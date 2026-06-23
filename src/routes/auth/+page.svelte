@@ -59,9 +59,9 @@
 				updateUserTimezone(sessionUser.token, timezone);
 			}
 
-			if (!redirectPath) {
-				redirectPath = $page.url.searchParams.get('redirect') || '/';
-			}
+			// Agent OS : après connexion, on arrive TOUJOURS sur le chat (choix produit),
+			// sauf si une redirection explicite est demandée via ?redirect=...
+			redirectPath = $page.url.searchParams.get('redirect') || '/';
 
 			goto(redirectPath);
 			localStorage.removeItem('redirectPath');
