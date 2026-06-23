@@ -17,9 +17,9 @@
 
 	// état -> apparence du badge (cf. ProviderState du bridge)
 	const badgeByState: Record<string, { type: string; label: string }> = {
-		active: { type: 'success', label: 'Active' },
-		configured: { type: 'info', label: 'Configured' },
-		not_configured: { type: 'muted', label: 'Not configured' }
+		active: { type: 'success', label: 'Actif' },
+		configured: { type: 'info', label: 'Configuré' },
+		not_configured: { type: 'muted', label: 'Non configuré' }
 	};
 
 	$: badge = badgeByState[provider.state] ?? badgeByState['not_configured'];
@@ -50,7 +50,7 @@
 		<div class="text-sm font-medium line-clamp-1">{provider.label}</div>
 		<div class="text-xs text-gray-500 line-clamp-1">
 			{(provider.models?.length ?? 0)}
-			{$i18n.t('models')}
+			{$i18n.t('modèles')}
 		</div>
 	</div>
 

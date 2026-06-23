@@ -31,6 +31,10 @@ class ActiveSelection(BaseModel):
     model_id: str
 
 
+class KeyBody(BaseModel):
+    value: str
+
+
 async def _bridge(method: str, path: str, json: dict | None = None):
     """Appelle le Providers Bridge avec la clé partagée. 503 si injoignable."""
     session = await get_session()
@@ -76,3 +80,15 @@ async def get_active(user=Depends(get_admin_user)):
 async def set_active(body: ActiveSelection, user=Depends(get_admin_user)):
     """Change le cerveau actif. S'applique aux nouvelles conversations."""
     return await _bridge("POST", "/active", json=body.model_dump())
+
+
+@router.put("/{provider_id}/key")
+async def set_key(provider_id: str, body: KeyBody, user=Depends(get_admin_user)):
+    """Enregistre/remplace la clé API d'un provider (valeur jamais renvoyée — FR-006)."""
+    return await _bridge("PUT", f"/credentials/{provider_id}", json=body.model_dump())
+
+
+@router.post("/{provider_id}/validate")
+async def validate_key(provider_id: str, body: KeyBody, user=Depends(get_admin_user)):
+    """Teste une clé avant enregistrement (probe réseau)."""
+    return await _bridge("POST", f"/credentials/{provider_id}/validate", json=body.model_dump())
