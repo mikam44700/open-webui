@@ -142,3 +142,92 @@ export const validateProviderKey = async (token: string, providerId: string, val
 
 	return res;
 };
+
+// US3 — démarre le flow OAuth (le navigateur s'ouvre sur l'hôte).
+export const startProviderOAuth = async (token: string, providerId: string) => {
+	let error = null;
+
+	const res = await fetch(`${WEBUI_API_BASE_URL}/providers/${providerId}/oauth/start`, {
+		method: 'POST',
+		headers: {
+			'Content-Type': 'application/json',
+			Authorization: `Bearer ${token}`
+		}
+	})
+		.then(async (res) => {
+			if (!res.ok) throw await res.json();
+			return res.json();
+		})
+		.catch((err) => {
+			console.error(err);
+			error = err.detail ?? err;
+			return null;
+		});
+
+	if (error) {
+		throw error;
+	}
+
+	return res;
+};
+
+// US3 — état du flow OAuth en cours (polling).
+export const getProviderOAuthStatus = async (token: string, providerId: string) => {
+	let error = null;
+
+	const res = await fetch(`${WEBUI_API_BASE_URL}/providers/${providerId}/oauth/status`, {
+		method: 'GET',
+		headers: {
+			'Content-Type': 'application/json',
+			Authorization: `Bearer ${token}`
+		}
+	})
+		.then(async (res) => {
+			if (!res.ok) throw await res.json();
+			return res.json();
+		})
+		.catch((err) => {
+			console.error(err);
+			error = err.detail ?? err;
+			return null;
+		});
+
+	if (error) {
+		throw error;
+	}
+
+	return res;
+};
+
+// Agent Hermes — helper générique pour les appels /hermes/*
+const hermesCall = async (token: string, method: string, path: string) => {
+	let error = null;
+
+	const res = await fetch(`${WEBUI_API_BASE_URL}/providers/hermes/${path}`, {
+		method,
+		headers: {
+			'Content-Type': 'application/json',
+			Authorization: `Bearer ${token}`
+		}
+	})
+		.then(async (res) => {
+			if (!res.ok) throw await res.json();
+			return res.json();
+		})
+		.catch((err) => {
+			console.error(err);
+			error = err.detail ?? err;
+			return null;
+		});
+
+	if (error) {
+		throw error;
+	}
+
+	return res;
+};
+
+export const getHermesStatus = (token: string) => hermesCall(token, 'GET', 'status');
+export const checkHermesUpdate = (token: string) => hermesCall(token, 'POST', 'update/check');
+export const startHermesUpdate = (token: string) => hermesCall(token, 'POST', 'update/start');
+export const getHermesUpdateStatus = (token: string) => hermesCall(token, 'GET', 'update/status');

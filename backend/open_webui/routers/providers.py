@@ -92,3 +92,42 @@ async def set_key(provider_id: str, body: KeyBody, user=Depends(get_admin_user))
 async def validate_key(provider_id: str, body: KeyBody, user=Depends(get_admin_user)):
     """Teste une clé avant enregistrement (probe réseau)."""
     return await _bridge("POST", f"/credentials/{provider_id}/validate", json=body.model_dump())
+
+
+@router.post("/{provider_id}/oauth/start")
+async def oauth_start(provider_id: str, user=Depends(get_admin_user)):
+    """Démarre le flow OAuth d'un provider (le navigateur s'ouvre sur l'hôte)."""
+    return await _bridge("POST", f"/oauth/{provider_id}/start")
+
+
+@router.get("/{provider_id}/oauth/status")
+async def oauth_status(provider_id: str, user=Depends(get_admin_user)):
+    """État du flow OAuth en cours (running / success / log)."""
+    return await _bridge("GET", f"/oauth/{provider_id}/status")
+
+
+# --- Agent Hermes : statut + mise à jour --------------------------------------
+
+
+@router.get("/hermes/status")
+async def hermes_status(user=Depends(get_admin_user)):
+    """Vue d'ensemble Hermes (version, cerveau actif, joignabilité)."""
+    return await _bridge("GET", "/hermes/status")
+
+
+@router.post("/hermes/update/check")
+async def hermes_update_check(user=Depends(get_admin_user)):
+    """Vérifie si une mise à jour Hermes est disponible (sans rien installer)."""
+    return await _bridge("POST", "/hermes/update/check")
+
+
+@router.post("/hermes/update/start")
+async def hermes_update_start(user=Depends(get_admin_user)):
+    """Lance la mise à jour Hermes (avec backup)."""
+    return await _bridge("POST", "/hermes/update/start")
+
+
+@router.get("/hermes/update/status")
+async def hermes_update_status(user=Depends(get_admin_user)):
+    """État de la mise à jour en cours."""
+    return await _bridge("GET", "/hermes/update/status")
