@@ -9,6 +9,7 @@
 		getHermesUpdateStatus
 	} from '$lib/apis/providers';
 	import Spinner from '$lib/components/common/Spinner.svelte';
+	import { WEBUI_BASE_URL } from '$lib/constants';
 
 	const i18n = getContext('i18n');
 
@@ -96,7 +97,15 @@
 {:else if status}
 	<!-- État -->
 	<div class="p-4 rounded-2xl border border-gray-100 dark:border-gray-850 flex flex-col gap-2.5">
-		<div class="text-sm font-medium mb-1">{$i18n.t('État de Hermes')}</div>
+		<div class="flex items-center gap-2.5 mb-1">
+			<img
+				src="{WEBUI_BASE_URL}/assets/providers/nous-research.png"
+				alt="Nous Research"
+				class="size-7 rounded-lg object-contain shrink-0"
+				draggable="false"
+			/>
+			<div class="text-sm font-medium">{$i18n.t('État de Hermes')}</div>
+		</div>
 
 		<div class="flex items-center justify-between text-sm">
 			<span class="text-gray-500">{$i18n.t('Version')}</span>

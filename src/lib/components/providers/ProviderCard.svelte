@@ -31,7 +31,10 @@
 
 	$: badge = badgeByState[provider.state] ?? badgeByState['not_configured'];
 	$: configured = provider.state !== 'not_configured';
-	$: logoUrl = `${WEBUI_BASE_URL}/assets/providers/${provider.logo}.svg`;
+	// La plupart des logos sont en PNG ; seuls ces quelques-uns restent en SVG.
+	const SVG_LOGOS = new Set(['api']);
+	$: logoExt = SVG_LOGOS.has(provider.logo) ? 'svg' : 'png';
+	$: logoUrl = `${WEBUI_BASE_URL}/assets/providers/${provider.logo}.${logoExt}`;
 
 	const onError = (e: Event) => {
 		(e.currentTarget as HTMLImageElement).src = `${WEBUI_BASE_URL}/assets/providers/api.svg`;
@@ -99,8 +102,10 @@
 <div class="flex flex-col gap-2.5 p-3.5 rounded-2xl border border-gray-100 dark:border-gray-850">
 	<!-- En-tête : logo + nom + état -->
 	<div class="flex items-center gap-2.5">
-		<div class="flex-none size-8 flex items-center justify-center">
-			<img src={logoUrl} on:error={onError} class="size-6 object-contain" alt={provider.label} draggable="false" />
+		<div
+			class="flex-none size-8 rounded-lg overflow-hidden ring-1 ring-gray-200/70 dark:ring-gray-700/60"
+		>
+			<img src={logoUrl} on:error={onError} class="w-full h-full object-cover" alt={provider.label} draggable="false" />
 		</div>
 		<div class="flex-1 min-w-0">
 			<div class="text-sm font-medium line-clamp-1">{provider.label}</div>
