@@ -19,7 +19,21 @@
 
 	let loaded = false;
 
+	// Capacités natives (Tools/Skills) gérées par Hermes via la page Capacités (/connectors) —
+	// on masque les surfaces natives d'OpenWebUI pour éviter le doublon (Hermes seul maître).
+	// Rien n'est supprimé : la redirection ci-dessous renvoie tout accès direct vers Capacités.
+	const HIDE_NATIVE_CAPABILITIES = true;
+
 	onMount(async () => {
+		if (
+			HIDE_NATIVE_CAPABILITIES &&
+			($page.url.pathname.includes('/workspace/tools') ||
+				$page.url.pathname.includes('/workspace/skills'))
+		) {
+			goto('/connectors');
+			return;
+		}
+
 		if ($user?.role !== 'admin') {
 			if ($page.url.pathname.includes('/models') && !$user?.permissions?.workspace?.models) {
 				goto('/');
@@ -119,7 +133,7 @@
 							>
 						{/if}
 
-						{#if $user?.role === 'admin' || $user?.permissions?.workspace?.skills}
+						{#if !HIDE_NATIVE_CAPABILITIES && ($user?.role === 'admin' || $user?.permissions?.workspace?.skills)}
 							<a
 								draggable="false"
 								aria-current={$page.url.pathname.includes('/workspace/skills') ? 'page' : null}
@@ -132,7 +146,7 @@
 							</a>
 						{/if}
 
-						{#if $user?.role === 'admin' || $user?.permissions?.workspace?.tools}
+						{#if !HIDE_NATIVE_CAPABILITIES && ($user?.role === 'admin' || $user?.permissions?.workspace?.tools)}
 							<a
 								draggable="false"
 								aria-current={$page.url.pathname.includes('/workspace/tools') ? 'page' : null}

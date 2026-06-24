@@ -153,7 +153,7 @@
 			calendar: { label: 'Calendar', href: '/calendar', iconType: 'calendar' },
 			playground: { label: 'Playground', href: '/playground', iconType: 'playground' },
 			providers: { label: 'Providers', href: '/providers', iconType: 'providers' },
-			connectors: { label: 'Connecteurs', href: '/connectors', iconType: 'connectors' }
+			connectors: { label: 'Capacités', href: '/connectors', iconType: 'connectors' }
 		};
 		return items[id];
 	};

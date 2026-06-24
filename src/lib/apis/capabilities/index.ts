@@ -1,0 +1,47 @@
+import { WEBUI_API_BASE_URL } from '$lib/constants';
+
+// Client API de la page Capacités (Agent OS). Appelle le router admin /api/v1/capabilities,
+// qui proxifie vers le Providers Bridge (capacités natives de Hermes — source de vérité unique).
+// Outils = toolsets natifs Hermes ; Compétences = skills Hermes. Les connecteurs MCP, troisième
+// volet de la page, ont leur propre client (apis/connectors).
+
+// Helper interne : un appel JSON authentifié vers /api/v1/capabilities, gestion d'erreur uniforme.
+const call = async (token: string, method: string, path: string, body?: unknown) => {
+	let error = null;
+
+	const res = await fetch(`${WEBUI_API_BASE_URL}/capabilities${path}`, {
+		method,
+		headers: {
+			'Content-Type': 'application/json',
+			Authorization: `Bearer ${token}`
+		},
+		...(body !== undefined ? { body: JSON.stringify(body) } : {})
+	})
+		.then(async (res) => {
+			if (!res.ok) throw await res.json();
+			return res.json();
+		})
+		.catch((err) => {
+			console.error(err);
+			error = err.detail ?? err;
+			return null;
+		});
+
+	if (error) {
+		throw error;
+	}
+
+	return res;
+};
+
+// Outils (toolsets natifs Hermes)
+export const getTools = (token: string) => call(token, 'GET', '/tools');
+
+export const setToolEnabled = (token: string, name: string, enabled: boolean) =>
+	call(token, 'PATCH', `/tools/${encodeURIComponent(name)}`, { enabled });
+
+// Compétences (skills natives Hermes)
+export const getSkills = (token: string) => call(token, 'GET', '/skills');
+
+export const setSkillEnabled = (token: string, name: string, enabled: boolean) =>
+	call(token, 'PATCH', `/skills/${encodeURIComponent(name)}`, { enabled });

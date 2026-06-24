@@ -9,12 +9,23 @@
 	import ConnectorList from '$lib/components/connectors/ConnectorList.svelte';
 	import CatalogList from '$lib/components/connectors/CatalogList.svelte';
 	import AddConnectorModal from '$lib/components/connectors/AddConnectorModal.svelte';
+	import ToolsetList from '$lib/components/capabilities/ToolsetList.svelte';
+	import SkillList from '$lib/components/capabilities/SkillList.svelte';
 	import Tooltip from '$lib/components/common/Tooltip.svelte';
 	import Sidebar from '$lib/components/icons/Sidebar.svelte';
 
 	let loaded = false;
-	let activeTab = 'installed';
+	// Onglet principal de la page Capacités : outils natifs / connecteurs MCP / compétences.
+	let section = 'tools';
+	// Sous-vue de l'onglet Connecteurs (existant) : mes connecteurs / catalogue.
+	let connectorTab = 'installed';
 	let showAddModal = false;
+
+	const sections = [
+		{ key: 'tools', label: 'Outils' },
+		{ key: 'connectors', label: 'Connecteurs' },
+		{ key: 'skills', label: 'Compétences' }
+	];
 
 	onMount(async () => {
 		// FR-002 : page admin-only
@@ -54,50 +65,75 @@
 				{/if}
 
 				<div class="ml-2 py-0.5 self-center flex items-center w-full gap-3">
-					<span class="text-sm font-medium">{$i18n.t('Connecteurs')}</span>
+					<span class="text-sm font-medium">{$i18n.t('Capacités')}</span>
 					<div class="flex gap-1 text-sm font-medium">
-						<button
-							type="button"
-							class="px-2.5 py-1 rounded-lg transition {activeTab === 'installed'
-								? 'bg-gray-100 dark:bg-gray-850'
-								: 'text-gray-500 hover:text-gray-800 dark:hover:text-gray-200'}"
-							on:click={() => (activeTab = 'installed')}
-						>
-							{$i18n.t('Mes connecteurs')}
-						</button>
-						<button
-							type="button"
-							class="px-2.5 py-1 rounded-lg transition {activeTab === 'catalog'
-								? 'bg-gray-100 dark:bg-gray-850'
-								: 'text-gray-500 hover:text-gray-800 dark:hover:text-gray-200'}"
-							on:click={() => (activeTab = 'catalog')}
-						>
-							{$i18n.t('Catalogue')}
-						</button>
+						{#each sections as s}
+							<button
+								type="button"
+								class="px-2.5 py-1 rounded-lg transition {section === s.key
+									? 'bg-gray-100 dark:bg-gray-850'
+									: 'text-gray-500 hover:text-gray-800 dark:hover:text-gray-200'}"
+								on:click={() => (section = s.key)}
+							>
+								{$i18n.t(s.label)}
+							</button>
+						{/each}
 					</div>
 				</div>
 			</div>
 		</nav>
 
 		<div class=" flex-1 max-h-full overflow-y-auto @container">
-			{#if activeTab === 'installed'}
-				<ConnectorList />
+			{#if section === 'tools'}
+				<ToolsetList />
+			{:else if section === 'skills'}
+				<SkillList />
 			{:else}
-				<div class="w-full max-w-5xl mx-auto px-3 py-3">
-					<div class="flex items-center justify-between mb-3 gap-2">
-						<div class="text-sm text-gray-600 dark:text-gray-400">
+				<!-- Connecteurs MCP : sous-vues existantes (mes connecteurs / catalogue) -->
+				<div class="w-full max-w-5xl mx-auto px-3 pt-3">
+					<div class="flex items-center justify-between gap-2">
+						<div class="flex gap-1 text-sm font-medium">
+							<button
+								type="button"
+								class="px-2.5 py-1 rounded-lg transition {connectorTab === 'installed'
+									? 'bg-gray-100 dark:bg-gray-850'
+									: 'text-gray-500 hover:text-gray-800 dark:hover:text-gray-200'}"
+								on:click={() => (connectorTab = 'installed')}
+							>
+								{$i18n.t('Mes connecteurs')}
+							</button>
+							<button
+								type="button"
+								class="px-2.5 py-1 rounded-lg transition {connectorTab === 'catalog'
+									? 'bg-gray-100 dark:bg-gray-850'
+									: 'text-gray-500 hover:text-gray-800 dark:hover:text-gray-200'}"
+								on:click={() => (connectorTab = 'catalog')}
+							>
+								{$i18n.t('Catalogue')}
+							</button>
+						</div>
+						{#if connectorTab === 'catalog'}
+							<button
+								type="button"
+								class="flex-none text-xs px-3 py-1.5 rounded-lg border border-gray-200 dark:border-gray-700 hover:bg-gray-100 dark:hover:bg-gray-850 transition"
+								on:click={() => (showAddModal = true)}
+							>
+								{$i18n.t('Ajouter un MCP custom')}
+							</button>
+						{/if}
+					</div>
+				</div>
+
+				{#if connectorTab === 'installed'}
+					<ConnectorList />
+				{:else}
+					<div class="w-full max-w-5xl mx-auto px-3 py-3">
+						<div class="mb-3 text-sm text-gray-600 dark:text-gray-400">
 							{$i18n.t('Installe un connecteur prêt à l’emploi, validé pour Hermes.')}
 						</div>
-						<button
-							type="button"
-							class="flex-none text-xs px-3 py-1.5 rounded-lg border border-gray-200 dark:border-gray-700 hover:bg-gray-100 dark:hover:bg-gray-850 transition"
-							on:click={() => (showAddModal = true)}
-						>
-							{$i18n.t('Ajouter un MCP custom')}
-						</button>
+						<CatalogList on:changed={() => (connectorTab = 'installed')} />
 					</div>
-					<CatalogList on:changed={() => (activeTab = 'installed')} />
-				</div>
+				{/if}
 			{/if}
 		</div>
 	</div>
@@ -106,7 +142,7 @@
 		bind:open={showAddModal}
 		on:added={() => {
 			showAddModal = false;
-			activeTab = 'installed';
+			connectorTab = 'installed';
 		}}
 		on:close={() => (showAddModal = false)}
 	/>
