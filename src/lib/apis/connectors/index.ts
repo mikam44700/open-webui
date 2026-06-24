@@ -59,3 +59,17 @@ export const setConnectorEnabled = (token: string, id: string, enabled: boolean)
 export const testConnector = (token: string, id: string) => call(token, 'POST', `/${id}/test`);
 
 export const deleteConnector = (token: string, id: string) => call(token, 'DELETE', `/${id}`);
+
+// US5 — ajouter un connecteur custom (http/stdio)
+export const addCustomConnector = (
+	token: string,
+	payload: {
+		name: string;
+		transport: string;
+		url?: string;
+		command?: string;
+		args?: string[];
+		env?: Record<string, string>;
+		auth_type?: string;
+	}
+) => call(token, 'POST', '/', payload);

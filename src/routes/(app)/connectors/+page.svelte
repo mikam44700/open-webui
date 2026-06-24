@@ -8,11 +8,13 @@
 
 	import ConnectorList from '$lib/components/connectors/ConnectorList.svelte';
 	import CatalogList from '$lib/components/connectors/CatalogList.svelte';
+	import AddConnectorModal from '$lib/components/connectors/AddConnectorModal.svelte';
 	import Tooltip from '$lib/components/common/Tooltip.svelte';
 	import Sidebar from '$lib/components/icons/Sidebar.svelte';
 
 	let loaded = false;
 	let activeTab = 'installed';
+	let showAddModal = false;
 
 	onMount(async () => {
 		// FR-002 : page admin-only
@@ -82,12 +84,30 @@
 				<ConnectorList />
 			{:else}
 				<div class="w-full max-w-5xl mx-auto px-3 py-3">
-					<div class="mb-3 text-sm text-gray-600 dark:text-gray-400">
-						{$i18n.t('Installe un connecteur prêt à l’emploi, validé pour Hermes.')}
+					<div class="flex items-center justify-between mb-3 gap-2">
+						<div class="text-sm text-gray-600 dark:text-gray-400">
+							{$i18n.t('Installe un connecteur prêt à l’emploi, validé pour Hermes.')}
+						</div>
+						<button
+							type="button"
+							class="flex-none text-xs px-3 py-1.5 rounded-lg border border-gray-200 dark:border-gray-700 hover:bg-gray-100 dark:hover:bg-gray-850 transition"
+							on:click={() => (showAddModal = true)}
+						>
+							{$i18n.t('Ajouter un MCP custom')}
+						</button>
 					</div>
 					<CatalogList on:changed={() => (activeTab = 'installed')} />
 				</div>
 			{/if}
 		</div>
 	</div>
+
+	<AddConnectorModal
+		bind:open={showAddModal}
+		on:added={() => {
+			showAddModal = false;
+			activeTab = 'installed';
+		}}
+		on:close={() => (showAddModal = false)}
+	/>
 {/if}
