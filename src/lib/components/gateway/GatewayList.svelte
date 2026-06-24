@@ -245,7 +245,7 @@
 		<!-- En-tête -->
 		<div class="flex items-start justify-between mb-3">
 			<div>
-				<div class="text-lg font-medium">{$i18n.t('Gateway')}</div>
+				<div class="text-lg font-medium">{$i18n.t('Messagerie')}</div>
 				<div class="text-xs text-gray-500">
 					{$i18n.t('Supervision du moteur et canaux de messagerie de vos agents.')}
 				</div>

@@ -163,7 +163,7 @@
 			playground: { label: 'Playground', href: '/playground', iconType: 'playground' },
 			providers: { label: 'Providers', href: '/providers', iconType: 'providers' },
 			connectors: { label: 'Capacités', href: '/connectors', iconType: 'connectors' },
-			gateway: { label: 'Gateway', href: '/gateway', iconType: 'gateway' }
+			gateway: { label: 'Messagerie', href: '/gateway', iconType: 'gateway' }
 		};
 		return items[id];
 	};
