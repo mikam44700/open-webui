@@ -76,7 +76,9 @@
 	import HotkeyHint from '../common/HotkeyHint.svelte';
 
 	const BREAKPOINT = 768;
-	const DEFAULT_PINNED_ITEMS = ['providers', 'connectors', 'gateway', 'kanban', 'notes', 'calendar', 'automations', 'workspace'];
+	// Ordre LOGIQUE de la barre (parcours de mise en place de l'OS) :
+	// cerveau -> créer les agents -> capacités -> canaux -> piloter -> automatiser -> productivité.
+	const DEFAULT_PINNED_ITEMS = ['providers', 'workspace', 'connectors', 'gateway', 'kanban', 'automations', 'notes', 'calendar'];
 
 	let scrollTop = 0;
 
@@ -104,15 +106,14 @@
 
 	let newFolderId = null;
 
-	// Toutes les pages d'Agent OS restent TOUJOURS présentes dans la nav, même si l'utilisateur
-	// a une liste d'épinglés personnalisée : on fusionne les pages manquantes de la liste par
-	// défaut (sinon une page — nouvelle ou non listée dans les réglages sauvegardés — disparaît
-	// définitivement). La visibilité reste filtrée par rôle/permission via isMenuItemVisible,
-	// et l'ordre personnalisé de l'utilisateur est préservé pour les pages déjà épinglées.
+	// Ordre CANONIQUE et stable de la barre : les pages connues suivent toujours l'ordre logique
+	// de DEFAULT_PINNED_ITEMS (peu importe les réglages sauvegardés), puis d'éventuelles pages
+	// personnalisées (absentes du défaut) sont ajoutées à la fin. Garantit que toutes les pages
+	// restent présentes ET dans un ordre cohérent. La visibilité reste filtrée par rôle/permission.
 	$: pinnedItems = (() => {
-		const saved = $settings?.pinnedMenuItems ?? DEFAULT_PINNED_ITEMS;
-		const missing = DEFAULT_PINNED_ITEMS.filter((id) => !saved.includes(id));
-		return [...missing, ...saved];
+		const saved = $settings?.pinnedMenuItems ?? [];
+		const custom = saved.filter((id) => !DEFAULT_PINNED_ITEMS.includes(id));
+		return [...DEFAULT_PINNED_ITEMS, ...custom];
 	})();
 
 	const isMenuItemVisible = (id) => {
