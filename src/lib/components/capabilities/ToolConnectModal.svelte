@@ -183,7 +183,9 @@
 		class="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4"
 		on:click|self={close}
 	>
-		<div class="w-full max-w-lg rounded-2xl bg-white dark:bg-gray-900 p-5 shadow-xl">
+		<div
+			class="w-full max-w-lg max-h-[85vh] overflow-y-auto rounded-2xl bg-white dark:bg-gray-900 p-5 shadow-xl"
+		>
 			<div class="flex items-center justify-between mb-3">
 				<div class="text-sm font-medium">{$i18n.t('Connecter')} — {toolset.label}</div>
 				<button
