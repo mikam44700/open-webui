@@ -3,6 +3,62 @@
 
 	import Switch from '$lib/components/common/Switch.svelte';
 
+	import webLogo from '$lib/assets/toolsets/web.jpg';
+	import browserLogo from '$lib/assets/toolsets/browser.jpg';
+	import terminalLogo from '$lib/assets/toolsets/terminal.jpg';
+	import fileLogo from '$lib/assets/toolsets/file.jpg';
+	import codeExecutionLogo from '$lib/assets/toolsets/code_execution.jpg';
+	import computerUseLogo from '$lib/assets/toolsets/computer_use.jpg';
+	import visionLogo from '$lib/assets/toolsets/vision.jpg';
+	import videoLogo from '$lib/assets/toolsets/video.jpg';
+	import imageGenLogo from '$lib/assets/toolsets/image_gen.jpg';
+	import videoGenLogo from '$lib/assets/toolsets/image_gen_alt.jpg';
+	import xSearchLogo from '$lib/assets/toolsets/x_search.jpg';
+	import moaLogo from '$lib/assets/toolsets/moa.jpg';
+	import ttsLogo from '$lib/assets/toolsets/tts.jpg';
+	import skillsLogo from '$lib/assets/toolsets/skills.jpg';
+	import todoLogo from '$lib/assets/toolsets/todo.jpg';
+	import memoryLogo from '$lib/assets/toolsets/memory.jpg';
+	import contextEngineLogo from '$lib/assets/toolsets/context_engine.jpg';
+	import sessionSearchLogo from '$lib/assets/toolsets/session_search.jpg';
+	import clarifyLogo from '$lib/assets/toolsets/clarify.jpg';
+	import delegationLogo from '$lib/assets/toolsets/delegation.jpg';
+	import cronjobLogo from '$lib/assets/toolsets/cronjob.jpg';
+	import homeassistantLogo from '$lib/assets/toolsets/homeassistant.jpg';
+	import spotifyLogo from '$lib/assets/toolsets/spotify.jpg';
+	import discordLogo from '$lib/assets/toolsets/discord.jpg';
+	import discordAdminLogo from '$lib/assets/toolsets/discord_admin.jpg';
+	import yuanbaoLogo from '$lib/assets/toolsets/yuanbao.jpg';
+
+	const LOGO_BY_ID: Record<string, string> = {
+		web: webLogo,
+		browser: browserLogo,
+		terminal: terminalLogo,
+		file: fileLogo,
+		code_execution: codeExecutionLogo,
+		computer_use: computerUseLogo,
+		vision: visionLogo,
+		video: videoLogo,
+		image_gen: imageGenLogo,
+		video_gen: videoGenLogo,
+		x_search: xSearchLogo,
+		moa: moaLogo,
+		tts: ttsLogo,
+		skills: skillsLogo,
+		todo: todoLogo,
+		memory: memoryLogo,
+		context_engine: contextEngineLogo,
+		session_search: sessionSearchLogo,
+		clarify: clarifyLogo,
+		delegation: delegationLogo,
+		cronjob: cronjobLogo,
+		homeassistant: homeassistantLogo,
+		spotify: spotifyLogo,
+		discord: discordLogo,
+		discord_admin: discordAdminLogo,
+		yuanbao: yuanbaoLogo
+	};
+
 	const i18n = getContext('i18n');
 	const dispatch = createEventDispatcher();
 
@@ -53,6 +109,9 @@
 	$: displayLabel = fr?.label ?? toolset.label;
 	$: displayDesc = fr?.desc ?? toolset.description ?? '';
 	$: providers = toolset.providers ?? [];
+	$: logoSrc = LOGO_BY_ID[toolset.name];
+	// Avec un logo, on retire l'emoji en tête du libellé pour éviter le doublon.
+	$: labelText = logoSrc ? displayLabel.replace(/^\S+\s+/, '') : displayLabel;
 
 	$: needsConnection = toolset.connection_state === 'connection_required';
 	$: isConnected = toolset.connection_state === 'connected';
@@ -71,7 +130,10 @@
 		>
 			<div class="flex items-center gap-2">
 				<span class="text-xs text-gray-400">{expanded ? '▾' : '▸'}</span>
-				<span class="text-sm font-medium truncate">{displayLabel}</span>
+				{#if logoSrc}
+					<img src={logoSrc} alt="" class="size-5 rounded object-contain flex-none" />
+				{/if}
+				<span class="text-sm font-medium truncate">{labelText}</span>
 				{#if isConnected}
 					<span
 						class="text-[10px] px-1.5 py-0.5 rounded-full bg-green-100 text-green-700 dark:bg-green-900/40 dark:text-green-400"
