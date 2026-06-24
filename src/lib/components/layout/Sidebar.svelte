@@ -76,7 +76,7 @@
 	import HotkeyHint from '../common/HotkeyHint.svelte';
 
 	const BREAKPOINT = 768;
-	const DEFAULT_PINNED_ITEMS = ['providers', 'notes', 'workspace'];
+	const DEFAULT_PINNED_ITEMS = ['providers', 'connectors', 'notes', 'workspace'];
 
 	let scrollTop = 0;
 
@@ -137,6 +137,9 @@
 			case 'providers':
 				// Page Providers (gestion des cerveaux Hermes) — admin-only (FR-009)
 				return $user?.role === 'admin';
+			case 'connectors':
+				// Page Connecteurs (gestion des MCP Hermes) — admin-only (FR-002)
+				return $user?.role === 'admin';
 			default:
 				return false;
 		}
@@ -149,7 +152,8 @@
 			automations: { label: 'Automations', href: '/automations', iconType: 'automations' },
 			calendar: { label: 'Calendar', href: '/calendar', iconType: 'calendar' },
 			playground: { label: 'Playground', href: '/playground', iconType: 'playground' },
-			providers: { label: 'Providers', href: '/providers', iconType: 'providers' }
+			providers: { label: 'Providers', href: '/providers', iconType: 'providers' },
+			connectors: { label: 'Connecteurs', href: '/connectors', iconType: 'connectors' }
 		};
 		return items[id];
 	};
@@ -943,6 +947,10 @@
 													d="M8.25 3v1.5M4.5 8.25H3m18 0h-1.5M4.5 12H3m18 0h-1.5m-15 3.75H3m18 0h-1.5M8.25 19.5V21M12 3v1.5m0 15V21m3.75-18v1.5m0 15V21m-9-1.5h10.5a2.25 2.25 0 0 0 2.25-2.25V6.75a2.25 2.25 0 0 0-2.25-2.25H6.75A2.25 2.25 0 0 0 4.5 6.75v10.5a2.25 2.25 0 0 0 2.25 2.25Zm.75-12h9v9h-9v-9Z"
 												/>
 											</svg>
+										{:else if itemId === 'connectors'}
+											<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="size-4.5">
+												<path stroke-linecap="round" stroke-linejoin="round" d="M13.19 8.688a4.5 4.5 0 0 1 1.242 7.244l-4.5 4.5a4.5 4.5 0 0 1-6.364-6.364l1.757-1.757m13.35-.622 1.757-1.757a4.5 4.5 0 0 0-6.364-6.364l-4.5 4.5a4.5 4.5 0 0 0 1.242 7.244" />
+											</svg>
 										{/if}
 									</div>
 								</a>
@@ -1206,6 +1214,10 @@
 														stroke-linejoin="round"
 														d="M8.25 3v1.5M4.5 8.25H3m18 0h-1.5M4.5 12H3m18 0h-1.5m-15 3.75H3m18 0h-1.5M8.25 19.5V21M12 3v1.5m0 15V21m3.75-18v1.5m0 15V21m-9-1.5h10.5a2.25 2.25 0 0 0 2.25-2.25V6.75a2.25 2.25 0 0 0-2.25-2.25H6.75A2.25 2.25 0 0 0 4.5 6.75v10.5a2.25 2.25 0 0 0 2.25 2.25Zm.75-12h9v9h-9v-9Z"
 													/>
+												</svg>
+											{:else if itemId === 'connectors'}
+												<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="size-4.5">
+													<path stroke-linecap="round" stroke-linejoin="round" d="M13.19 8.688a4.5 4.5 0 0 1 1.242 7.244l-4.5 4.5a4.5 4.5 0 0 1-6.364-6.364l1.757-1.757m13.35-.622 1.757-1.757a4.5 4.5 0 0 0-6.364-6.364l-4.5 4.5a4.5 4.5 0 0 0 1.242 7.244" />
 												</svg>
 											{/if}
 										</div>
