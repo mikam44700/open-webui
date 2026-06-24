@@ -117,36 +117,40 @@
 	$: connectable = needsConnection || isConnected;
 	// FR-013 : toolset activé mais connexion manquante → avertir.
 	$: warnMissing = toolset.enabled && needsConnection;
+	// La carte n'est dépliable que si elle a du contenu à montrer.
+	$: hasDetails = providers.length > 0 || connectable;
+
+	const toggle = () => {
+		if (hasDetails) expanded = !expanded;
+	};
 </script>
 
-<div class="border border-gray-100 dark:border-gray-850 rounded-2xl px-5 py-4 h-full">
+<div
+	class="border border-gray-100 dark:border-gray-850 rounded-2xl px-5 py-4 h-full transition {hasDetails
+		? 'cursor-pointer hover:bg-gray-50 dark:hover:bg-white/[0.03] hover:border-gray-200 dark:hover:border-gray-700'
+		: ''}"
+	role={hasDetails ? 'button' : undefined}
+	tabindex={hasDetails ? 0 : undefined}
+	on:click={toggle}
+	on:keydown={(e) => {
+		if (hasDetails && (e.key === 'Enter' || e.key === ' ')) {
+			e.preventDefault();
+			toggle();
+		}
+	}}
+>
 	<div class="flex items-start gap-4">
-		<!-- Colonne icône : chevron + logo (clique pour déplier) -->
-		<button
-			type="button"
-			class="flex items-center gap-2 flex-none pt-0.5"
-			on:click={() => (expanded = !expanded)}
-			aria-expanded={expanded}
-			aria-label={$i18n.t('Afficher les détails')}
-		>
-			<span class="text-xs text-gray-400 w-3 text-center">{expanded ? '▾' : '▸'}</span>
-			{#if logoSrc}
-				<img
-					src={logoSrc}
-					alt=""
-					class="size-10 rounded-xl object-cover flex-none border border-gray-100 dark:border-gray-800"
-				/>
-			{/if}
-		</button>
+		{#if logoSrc}
+			<img
+				src={logoSrc}
+				alt=""
+				class="size-10 rounded-xl object-cover flex-none border border-gray-100 dark:border-gray-800"
+			/>
+		{/if}
 
-		<!-- Colonne contenu : titre, badge, switch, description, détails -->
 		<div class="flex-1 min-w-0">
 			<div class="flex items-start justify-between gap-3">
-				<button
-					type="button"
-					class="min-w-0 text-left flex items-center gap-2 flex-wrap pt-1"
-					on:click={() => (expanded = !expanded)}
-				>
+				<div class="min-w-0 flex items-center gap-2 flex-wrap pt-1">
 					<span class="text-base font-medium">{labelText}</span>
 					{#if isConnected}
 						<span
@@ -159,9 +163,19 @@
 							>{$i18n.t('Connexion requise')}</span
 						>
 					{/if}
-				</button>
-				<div class="flex-none self-start pt-1">
-					<Switch state={toolset.enabled} on:change={() => dispatch('toggle')} />
+				</div>
+
+				<div class="flex items-center gap-2 flex-none pt-0.5">
+					{#if hasDetails}
+						<span
+							class="flex items-center justify-center size-7 rounded-lg text-gray-400 bg-gray-50 dark:bg-gray-850 text-xs"
+							aria-hidden="true">{expanded ? '▴' : '▾'}</span
+						>
+					{/if}
+					<!-- svelte-ignore a11y-no-static-element-interactions -->
+					<div on:click|stopPropagation on:keydown|stopPropagation>
+						<Switch state={toolset.enabled} on:change={() => dispatch('toggle')} />
+					</div>
 				</div>
 			</div>
 
@@ -177,8 +191,19 @@
 				</div>
 			{/if}
 
+			{#if hasDetails && !expanded}
+				<div class="text-xs font-medium text-sky-600 dark:text-sky-400 mt-2.5">
+					{$i18n.t('Voir les services')} ›
+				</div>
+			{/if}
+
 			{#if expanded}
-				<div class="mt-4 border-t border-gray-100 dark:border-gray-850 pt-4">
+				<!-- svelte-ignore a11y-no-static-element-interactions -->
+				<div
+					class="mt-4 border-t border-gray-100 dark:border-gray-850 pt-4"
+					on:click|stopPropagation
+					on:keydown|stopPropagation
+				>
 					{#if providers.length > 0}
 						<div class="text-[11px] font-medium text-gray-400 mb-2 uppercase tracking-wide">
 							{$i18n.t('Services disponibles')}
@@ -193,8 +218,8 @@
 						</div>
 					{/if}
 
-					{#if connectable}
-						<div class="mt-4">
+					<div class="flex items-center gap-3 mt-4">
+						{#if connectable}
 							<button
 								type="button"
 								class="text-xs px-3.5 py-2 rounded-lg border border-gray-200 dark:border-gray-700 hover:bg-gray-100 dark:hover:bg-gray-850 transition"
@@ -202,8 +227,15 @@
 							>
 								{isConnected ? $i18n.t('Gérer la connexion') : $i18n.t('Connecter')}
 							</button>
-						</div>
-					{/if}
+						{/if}
+						<button
+							type="button"
+							class="text-xs text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 transition"
+							on:click={() => (expanded = false)}
+						>
+							{$i18n.t('Masquer')}
+						</button>
+					</div>
 				</div>
 			{/if}
 		</div>
