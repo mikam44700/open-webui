@@ -513,7 +513,8 @@
 				</div>
 			{/if}
 
-			{#if role === 'admin'}
+			<!-- Playground masqué du menu profil (Agent OS) : surface native OpenWebUI non utilisée — Hermes seul maître. Réversible : remettre `role === 'admin'`. -->
+			{#if false && role === 'admin'}
 				<div class="flex items-center w-full">
 					<a
 						href="/playground"

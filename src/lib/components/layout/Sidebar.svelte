@@ -129,7 +129,8 @@
 				// Affiché en permanence dans Agent OS (page planning utilisateur), indépendamment du flag natif.
 				return $user?.role === 'admin' || ($user?.permissions?.features?.calendar ?? true);
 			case 'playground':
-				return $user?.role === 'admin';
+				// Masqué (Agent OS) : Playground OpenWebUI non utilisé — Hermes seul maître. Réversible : remettre `$user?.role === 'admin'`.
+				return false;
 			case 'providers':
 				// Page Providers (gestion des cerveaux Hermes) — admin-only (FR-009)
 				return $user?.role === 'admin';
