@@ -74,8 +74,7 @@
 
 	let expanded = false;
 
-	// Libellés + descriptions FR (orientés client, sans jargon technique). Source de vérité
-	// = Hermes pour les capacités ; ici on ne fait que présenter clairement en français.
+	// Libellés + descriptions FR (orientés client, sans jargon technique).
 	const FR: Record<string, { label: string; desc: string }> = {
 		web: { label: '🔍 Recherche & web', desc: 'Cherche sur le web et extrait le contenu des pages.' },
 		browser: { label: '🌐 Navigateur automatisé', desc: 'Pilote un navigateur : naviguer, cliquer, remplir, faire défiler.' },
@@ -120,74 +119,89 @@
 	$: warnMissing = toolset.enabled && needsConnection;
 </script>
 
-<div class="border border-gray-100 dark:border-gray-850 rounded-2xl px-5 py-4">
-	<div class="flex items-start gap-3">
+<div class="border border-gray-100 dark:border-gray-850 rounded-2xl px-5 py-4 h-full">
+	<div class="flex items-start gap-4">
+		<!-- Colonne icône : chevron + logo (clique pour déplier) -->
 		<button
 			type="button"
-			class="flex-1 min-w-0 text-left"
+			class="flex items-center gap-2 flex-none pt-0.5"
 			on:click={() => (expanded = !expanded)}
 			aria-expanded={expanded}
+			aria-label={$i18n.t('Afficher les détails')}
 		>
-			<div class="flex items-center gap-2">
-				<span class="text-xs text-gray-400">{expanded ? '▾' : '▸'}</span>
-				{#if logoSrc}
-					<img src={logoSrc} alt="" class="size-10 rounded-lg object-contain flex-none" />
-				{/if}
-				<span class="text-base font-medium truncate">{labelText}</span>
-				{#if isConnected}
-					<span
-						class="text-[10px] px-1.5 py-0.5 rounded-full bg-green-100 text-green-700 dark:bg-green-900/40 dark:text-green-400"
-						>{$i18n.t('Connecté')}</span
-					>
-				{:else if needsConnection}
-					<span
-						class="text-[10px] px-1.5 py-0.5 rounded-full bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-400"
-						>{$i18n.t('Connexion requise')}</span
-					>
-				{/if}
-			</div>
-			{#if displayDesc}
-				<div class="text-sm text-gray-500 mt-1 line-clamp-2 pl-7">{displayDesc}</div>
+			<span class="text-xs text-gray-400 w-3 text-center">{expanded ? '▾' : '▸'}</span>
+			{#if logoSrc}
+				<img src={logoSrc} alt="" class="size-10 rounded-xl object-contain flex-none" />
 			{/if}
 		</button>
-		<div class="flex-none self-center">
-			<Switch state={toolset.enabled} on:change={() => dispatch('toggle')} />
+
+		<!-- Colonne contenu : titre, badge, switch, description, détails -->
+		<div class="flex-1 min-w-0">
+			<div class="flex items-start justify-between gap-3">
+				<button
+					type="button"
+					class="min-w-0 text-left flex items-center gap-2 flex-wrap pt-1"
+					on:click={() => (expanded = !expanded)}
+				>
+					<span class="text-base font-medium">{labelText}</span>
+					{#if isConnected}
+						<span
+							class="text-[10px] px-1.5 py-0.5 rounded-full bg-green-100 text-green-700 dark:bg-green-900/40 dark:text-green-400"
+							>{$i18n.t('Connecté')}</span
+						>
+					{:else if needsConnection}
+						<span
+							class="text-[10px] px-1.5 py-0.5 rounded-full bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-400"
+							>{$i18n.t('Connexion requise')}</span
+						>
+					{/if}
+				</button>
+				<div class="flex-none self-start pt-1">
+					<Switch state={toolset.enabled} on:change={() => dispatch('toggle')} />
+				</div>
+			</div>
+
+			{#if displayDesc}
+				<div class="text-sm text-gray-500 dark:text-gray-400 mt-1.5 leading-relaxed">
+					{displayDesc}
+				</div>
+			{/if}
+
+			{#if warnMissing}
+				<div class="text-xs text-amber-600 dark:text-amber-400 mt-2">
+					{$i18n.t('Activé mais non connecté : configure la connexion pour qu’il fonctionne.')}
+				</div>
+			{/if}
+
+			{#if expanded}
+				<div class="mt-4 border-t border-gray-100 dark:border-gray-850 pt-4">
+					{#if providers.length > 0}
+						<div class="text-[11px] font-medium text-gray-400 mb-2 uppercase tracking-wide">
+							{$i18n.t('Services disponibles')}
+						</div>
+						<div class="flex flex-wrap gap-1.5">
+							{#each providers as provider (provider)}
+								<span
+									class="text-xs px-2.5 py-1 rounded-lg bg-gray-100 dark:bg-gray-850 text-gray-600 dark:text-gray-300"
+									>{provider}</span
+								>
+							{/each}
+						</div>
+					{/if}
+
+					{#if connectable}
+						<div class="mt-4">
+							<button
+								type="button"
+								class="text-xs px-3.5 py-2 rounded-lg border border-gray-200 dark:border-gray-700 hover:bg-gray-100 dark:hover:bg-gray-850 transition"
+								on:click={() => dispatch('connect')}
+							>
+								{isConnected ? $i18n.t('Gérer la connexion') : $i18n.t('Connecter')}
+							</button>
+						</div>
+					{/if}
+				</div>
+			{/if}
 		</div>
 	</div>
-
-	{#if warnMissing}
-		<div class="text-[11px] text-amber-600 dark:text-amber-400 mt-2 pl-5">
-			{$i18n.t('Activé mais non connecté : configure la connexion pour qu’il fonctionne.')}
-		</div>
-	{/if}
-
-	{#if expanded}
-		<div class="mt-3 pl-5 border-t border-gray-100 dark:border-gray-850 pt-3">
-			{#if providers.length > 0}
-				<div class="text-[11px] font-medium text-gray-400 mb-1.5 uppercase tracking-wide">
-					{$i18n.t('Services disponibles')}
-				</div>
-				<div class="flex flex-wrap gap-1.5">
-					{#each providers as provider (provider)}
-						<span
-							class="text-[11px] px-2 py-0.5 rounded-lg bg-gray-100 dark:bg-gray-850 text-gray-600 dark:text-gray-300"
-							>{provider}</span
-						>
-					{/each}
-				</div>
-			{/if}
-
-			{#if connectable}
-				<div class="mt-3">
-					<button
-						type="button"
-						class="text-xs px-3 py-1.5 rounded-lg border border-gray-200 dark:border-gray-700 hover:bg-gray-100 dark:hover:bg-gray-850 transition"
-						on:click={() => dispatch('connect')}
-					>
-						{isConnected ? $i18n.t('Gérer la connexion') : $i18n.t('Connecter')}
-					</button>
-				</div>
-			{/if}
-		</div>
-	{/if}
 </div>

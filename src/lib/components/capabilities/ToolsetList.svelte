@@ -146,7 +146,7 @@
 							{$i18n.t(group.label)}
 							<span class="font-normal normal-case tracking-normal">({group.items.length})</span>
 						</h3>
-						<div class="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+						<div class="grid grid-cols-1 sm:grid-cols-2 gap-3.5 items-stretch">
 							{#each group.items as toolset (toolset.name)}
 								<ToolsetCard
 									{toolset}
