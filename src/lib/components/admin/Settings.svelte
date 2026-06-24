@@ -246,8 +246,13 @@
 		}
 	];
 
+	// Agent OS (US4 — surface unique) : onglets natifs masqués car gérés par notre
+	// page Providers. Réversible : vider HIDDEN_TABS pour réafficher les écrans natifs.
+	const HIDDEN_TABS = ['connections'];
+
 	const setFilteredSettings = () => {
 		filteredSettings = allSettings.filter((tab) => {
+			if (HIDDEN_TABS.includes(tab.id)) return false;
 			const searchTerm = search.toLowerCase().trim();
 			return (
 				search === '' ||
