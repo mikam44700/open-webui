@@ -6,7 +6,12 @@
 	import Badge from '$lib/components/common/Badge.svelte';
 	import Spinner from '$lib/components/common/Spinner.svelte';
 	import ProviderOAuth from './ProviderOAuth.svelte';
-	import { setProviderKey, validateProviderKey, setActiveProvider } from '$lib/apis/providers';
+	import {
+		setProviderKey,
+		validateProviderKey,
+		setActiveProvider,
+		setAwsCredentials
+	} from '$lib/apis/providers';
 
 	const i18n = getContext('i18n');
 	const dispatch = createEventDispatcher();
@@ -75,6 +80,32 @@
 		}
 	};
 
+	// --- Credentials AWS (Bedrock, auth_type=aws_sdk) ---
+	let awsKeyId = '';
+	let awsSecret = '';
+	let awsRegion = 'us-east-1';
+	let savingAws = false;
+
+	const saveAws = async () => {
+		if (!awsKeyId || !awsSecret) return;
+		savingAws = true;
+		try {
+			await setAwsCredentials(localStorage.token, provider.id, {
+				access_key_id: awsKeyId,
+				secret_access_key: awsSecret,
+				region: awsRegion || undefined
+			});
+			toast.success($i18n.t('Credentials AWS enregistrés'));
+			awsKeyId = '';
+			awsSecret = '';
+			dispatch('changed');
+		} catch {
+			toast.error($i18n.t('Impossible d’enregistrer les credentials AWS'));
+		} finally {
+			savingAws = false;
+		}
+	};
+
 	// --- Modèle actif (inline, pour providers connectés avec des modèles) ---
 	let chosenModel = '';
 	$: if (provider.state === 'active' && !chosenModel) {
@@ -111,7 +142,9 @@
 			<div class="text-sm font-medium line-clamp-1">{provider.label}</div>
 			<div class="text-xs text-gray-500 line-clamp-1">{provider.models?.length ?? 0} {$i18n.t('modèles')}</div>
 		</div>
-		<Badge type={badge.type} content={$i18n.t(badge.label)} />
+		{#if provider.state !== 'not_configured'}
+			<Badge type={badge.type} content={$i18n.t(badge.label)} />
+		{/if}
 	</div>
 
 	<!-- Action de connexion selon la catégorie -->
@@ -153,8 +186,47 @@
 				{#if saving}<Spinner className="size-3.5" />{:else}{$i18n.t('Enregistrer')}{/if}
 			</button>
 		</div>
+	{:else if provider.id === 'bedrock'}
+		<!-- AWS Bedrock : credentials AWS (lus par le SDK de Hermes) -->
+		<div class="flex flex-col gap-2">
+			<input
+				class="text-sm bg-transparent border border-gray-100 dark:border-gray-850 rounded-xl px-3 py-2 outline-none"
+				type="text"
+				placeholder={configured ? '••••••••  ' + $i18n.t('(remplacer)') : 'AWS Access Key ID'}
+				bind:value={awsKeyId}
+				autocomplete="off"
+			/>
+			<input
+				class="text-sm bg-transparent border border-gray-100 dark:border-gray-850 rounded-xl px-3 py-2 outline-none"
+				type="password"
+				placeholder="AWS Secret Access Key"
+				bind:value={awsSecret}
+				autocomplete="off"
+			/>
+			<input
+				class="text-sm bg-transparent border border-gray-100 dark:border-gray-850 rounded-xl px-3 py-2 outline-none"
+				type="text"
+				placeholder={$i18n.t('Région') + ' (ex : us-east-1)'}
+				bind:value={awsRegion}
+				autocomplete="off"
+			/>
+			<div class="flex items-center justify-end">
+				<button
+					type="button"
+					class="text-xs px-3 py-1.5 rounded-lg bg-black text-white dark:bg-white dark:text-black transition disabled:opacity-40"
+					disabled={!awsKeyId || !awsSecret || savingAws}
+					on:click={saveAws}
+				>
+					{#if savingAws}<Spinner className="size-3.5" />{:else}{$i18n.t('Enregistrer')}{/if}
+				</button>
+			</div>
+		</div>
 	{:else}
-		<div class="text-xs text-gray-500">{$i18n.t('Authentification externe (AWS / Copilot).')}</div>
+		<div class="text-xs text-gray-500 leading-relaxed">
+			{$i18n.t(
+				'Connexion via le CLI GitHub Copilot authentifié sur la machine hôte (login externe) — rien à configurer ici.'
+			)}
+		</div>
 	{/if}
 
 	<!-- Choix du modèle + activation (providers connectés avec modèles) -->

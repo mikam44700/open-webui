@@ -114,6 +114,39 @@ export const setProviderKey = async (token: string, providerId: string, value: s
 	return res;
 };
 
+// Bedrock — enregistre les credentials AWS (Access Key + Secret + Région).
+export const setAwsCredentials = async (
+	token: string,
+	providerId: string,
+	creds: { access_key_id: string; secret_access_key: string; region?: string }
+) => {
+	let error = null;
+
+	const res = await fetch(`${WEBUI_API_BASE_URL}/providers/${providerId}/aws`, {
+		method: 'POST',
+		headers: {
+			'Content-Type': 'application/json',
+			Authorization: `Bearer ${token}`
+		},
+		body: JSON.stringify(creds)
+	})
+		.then(async (res) => {
+			if (!res.ok) throw await res.json();
+			return res.json();
+		})
+		.catch((err) => {
+			console.error(err);
+			error = err.detail ?? err;
+			return null;
+		});
+
+	if (error) {
+		throw error;
+	}
+
+	return res;
+};
+
 // US2 — teste une clé (probe réseau) AVANT enregistrement.
 export const validateProviderKey = async (token: string, providerId: string, value: string) => {
 	let error = null;

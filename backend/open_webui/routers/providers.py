@@ -35,6 +35,12 @@ class KeyBody(BaseModel):
     value: str
 
 
+class AwsBody(BaseModel):
+    access_key_id: str
+    secret_access_key: str
+    region: str | None = None
+
+
 async def _bridge(method: str, path: str, json: dict | None = None):
     """Appelle le Providers Bridge avec la clé partagée. 503 si injoignable."""
     session = await get_session()
@@ -86,6 +92,12 @@ async def set_active(body: ActiveSelection, user=Depends(get_admin_user)):
 async def set_key(provider_id: str, body: KeyBody, user=Depends(get_admin_user)):
     """Enregistre/remplace la clé API d'un provider (valeur jamais renvoyée — FR-006)."""
     return await _bridge("PUT", f"/credentials/{provider_id}", json=body.model_dump())
+
+
+@router.post("/{provider_id}/aws")
+async def set_aws(provider_id: str, body: AwsBody, user=Depends(get_admin_user)):
+    """Enregistre les credentials AWS (Bedrock) — valeurs jamais renvoyées (FR-006)."""
+    return await _bridge("POST", f"/credentials/{provider_id}/aws", json=body.model_dump())
 
 
 @router.post("/{provider_id}/validate")
