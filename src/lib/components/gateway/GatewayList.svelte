@@ -20,6 +20,9 @@
 	import slackLogo from '$lib/assets/messaging/slack.png';
 	import whatsappLogo from '$lib/assets/messaging/whatsapp.png';
 	import signalLogo from '$lib/assets/messaging/signal.png';
+	import emailLogo from '$lib/assets/messaging/email.jpg';
+	import smsLogo from '$lib/assets/messaging/sms.jpg';
+	import imessageLogo from '$lib/assets/messaging/imessage.jpg';
 
 	const i18n = getContext('i18n');
 
@@ -29,7 +32,10 @@
 		discord: discordLogo,
 		slack: slackLogo,
 		whatsapp_cloud: whatsappLogo,
-		signal: signalLogo
+		signal: signalLogo,
+		email: emailLogo,
+		sms: smsLogo,
+		bluebubbles: imessageLogo
 	};
 
 	let loading = true;
