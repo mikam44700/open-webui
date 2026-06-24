@@ -15,7 +15,22 @@
 	} from '$lib/apis/gateway';
 	import Spinner from '$lib/components/common/Spinner.svelte';
 
+	import telegramLogo from '$lib/assets/messaging/telegram.png';
+	import discordLogo from '$lib/assets/messaging/discord.jpg';
+	import slackLogo from '$lib/assets/messaging/slack.png';
+	import whatsappLogo from '$lib/assets/messaging/whatsapp.png';
+	import signalLogo from '$lib/assets/messaging/signal.png';
+
 	const i18n = getContext('i18n');
+
+	// Vrais logos des canaux ; fallback sur l'emoji si l'id n'est pas mappé.
+	const LOGO_BY_ID: Record<string, string> = {
+		telegram: telegramLogo,
+		discord: discordLogo,
+		slack: slackLogo,
+		whatsapp_cloud: whatsappLogo,
+		signal: signalLogo
+	};
 
 	let loading = true;
 	let bridgeDown = false;
@@ -349,7 +364,15 @@
 					<div class="rounded-2xl border border-gray-100 dark:border-gray-850 p-3.5">
 						<div class="flex items-start justify-between gap-2">
 							<div class="flex items-start gap-2.5 min-w-0">
-								<div class="text-2xl leading-none select-none">{p.emoji}</div>
+								{#if LOGO_BY_ID[p.id]}
+									<img
+										src={LOGO_BY_ID[p.id]}
+										alt={p.name}
+										class="size-7 rounded-lg object-contain flex-none"
+									/>
+								{:else}
+									<div class="text-2xl leading-none select-none">{p.emoji}</div>
+								{/if}
 								<div class="min-w-0">
 									<div class="flex items-center gap-2">
 										<span class="text-sm font-medium truncate">{p.name}</span>
@@ -447,7 +470,11 @@
 		>
 			<div class="flex items-center justify-between mb-1">
 				<div class="flex items-center gap-2">
-					<span class="text-xl">{p.emoji}</span>
+					{#if LOGO_BY_ID[p.id]}
+						<img src={LOGO_BY_ID[p.id]} alt={p.name} class="size-6 rounded-md object-contain" />
+					{:else}
+						<span class="text-xl">{p.emoji}</span>
+					{/if}
 					<span class="text-base font-medium">{p.name}</span>
 				</div>
 				<button
