@@ -5,7 +5,8 @@
 	import { getTools, setToolEnabled } from '$lib/apis/capabilities';
 
 	import Spinner from '$lib/components/common/Spinner.svelte';
-	import Switch from '$lib/components/common/Switch.svelte';
+	import ToolsetCard from '$lib/components/capabilities/ToolsetCard.svelte';
+	import ToolConnectModal from '$lib/components/capabilities/ToolConnectModal.svelte';
 
 	const i18n = getContext('i18n');
 
@@ -15,12 +16,37 @@
 		description?: string;
 		tools?: string[];
 		enabled: boolean;
+		connection_state?: string;
+	};
+
+	let selectedToolset: Toolset | null = null;
+	let showConnectModal = false;
+
+	const openConnect = (toolset: Toolset) => {
+		selectedToolset = toolset;
+		showConnectModal = true;
 	};
 
 	let loading = true;
 	let bridgeDown = false;
 	let toolsets: Toolset[] = [];
 	let search = '';
+
+	// Regroupement par catégorie : le bridge ne renvoie pas de catégorie, on mappe par
+	// nom de toolset (source de vérité = noms natifs Hermes). Tout toolset non listé
+	// retombe dans « Autres » pour qu'aucun nouvel outil Hermes ne disparaisse.
+	const CATEGORIES: { label: string; names: string[] }[] = [
+		{ label: 'Recherche & Web', names: ['web', 'browser', 'x_search'] },
+		{ label: 'Système & Code', names: ['terminal', 'file', 'code_execution', 'computer_use'] },
+		{ label: 'Multimédia & Génération', names: ['image_gen', 'video_gen', 'tts', 'vision', 'video'] },
+		{ label: 'Raisonnement & Agents', names: ['moa', 'skills', 'todo', 'clarify', 'delegation'] },
+		{ label: 'Mémoire & Contexte', names: ['memory', 'context_engine', 'session_search'] },
+		{
+			label: 'Automatisation & Intégrations',
+			names: ['cronjob', 'homeassistant', 'spotify', 'discord', 'discord_admin', 'yuanbao']
+		}
+	];
+	const OTHER_LABEL = 'Autres';
 
 	$: filtered = search.trim()
 		? toolsets.filter(
@@ -29,6 +55,21 @@
 					t.name.toLowerCase().includes(search.toLowerCase())
 			)
 		: toolsets;
+
+	// Outils filtrés regroupés par catégorie, dans l'ordre défini ci-dessus.
+	// On n'affiche que les catégories non vides.
+	$: groups = (() => {
+		const byCat = new Map<string, Toolset[]>();
+		for (const cat of CATEGORIES) byCat.set(cat.label, []);
+		byCat.set(OTHER_LABEL, []);
+		for (const t of filtered) {
+			const cat = CATEGORIES.find((c) => c.names.includes(t.name));
+			byCat.get(cat ? cat.label : OTHER_LABEL)?.push(t);
+		}
+		return [...CATEGORIES.map((c) => c.label), OTHER_LABEL]
+			.map((label) => ({ label, items: byCat.get(label) ?? [] }))
+			.filter((g) => g.items.length > 0);
+	})();
 
 	const isBridgeDown = (err: any) =>
 		err?.error?.code === 'bridge_unreachable' || err?.error?.code === 'hermes_unavailable';
@@ -94,28 +135,26 @@
 			bind:value={search}
 		/>
 
-		{#if filtered.length > 0}
-			<div class="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
-				{#each filtered as toolset (toolset.name)}
-					<div
-						class="flex items-start gap-3 border border-gray-100 dark:border-gray-850 rounded-2xl px-4 py-3"
-					>
-						<div class="flex-1 min-w-0">
-							<div class="text-sm font-medium truncate">{toolset.label}</div>
-							{#if toolset.description}
-								<div class="text-xs text-gray-500 mt-0.5 line-clamp-2">{toolset.description}</div>
-							{/if}
-							{#if toolset.tools && toolset.tools.length > 0}
-								<div class="text-[11px] text-gray-400 mt-1">
-									{toolset.tools.length}
-									{toolset.tools.length > 1 ? $i18n.t('outils') : $i18n.t('outil')}
-								</div>
-							{/if}
+		{#if groups.length > 0}
+			<div class="flex flex-col gap-6">
+				{#each groups as group (group.label)}
+					<section>
+						<h3
+							class="text-[11px] font-semibold uppercase tracking-wide text-gray-400 dark:text-gray-500 mb-2 px-0.5"
+						>
+							{$i18n.t(group.label)}
+							<span class="font-normal normal-case tracking-normal">({group.items.length})</span>
+						</h3>
+						<div class="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+							{#each group.items as toolset (toolset.name)}
+								<ToolsetCard
+									{toolset}
+									on:toggle={() => toggle(toolset)}
+									on:connect={() => openConnect(toolset)}
+								/>
+							{/each}
 						</div>
-						<div class="flex-none self-center">
-							<Switch state={toolset.enabled} on:change={() => toggle(toolset)} />
-						</div>
-					</div>
+					</section>
 				{/each}
 			</div>
 		{:else}
@@ -127,3 +166,17 @@
 		{/if}
 	{/if}
 </div>
+
+<ToolConnectModal
+	bind:open={showConnectModal}
+	toolset={selectedToolset}
+	on:connected={() => {
+		showConnectModal = false;
+		load();
+	}}
+	on:disconnected={() => {
+		showConnectModal = false;
+		load();
+	}}
+	on:close={() => (showConnectModal = false)}
+/>

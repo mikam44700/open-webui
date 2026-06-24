@@ -45,3 +45,22 @@ export const getSkills = (token: string) => call(token, 'GET', '/skills');
 
 export const setSkillEnabled = (token: string, name: string, enabled: boolean) =>
 	call(token, 'PATCH', `/skills/${encodeURIComponent(name)}`, { enabled });
+
+// Connexion des outils (feature 003) — métadonnées, clé/champs, OAuth, test, déconnexion.
+export const getToolConnection = (token: string, name: string) =>
+	call(token, 'GET', `/tools/${encodeURIComponent(name)}/connection`);
+
+export const setToolKey = (token: string, name: string, values: Record<string, string>) =>
+	call(token, 'PUT', `/tools/${encodeURIComponent(name)}/key`, { values });
+
+export const testToolConnection = (token: string, name: string) =>
+	call(token, 'POST', `/tools/${encodeURIComponent(name)}/test`);
+
+export const disconnectTool = (token: string, name: string) =>
+	call(token, 'DELETE', `/tools/${encodeURIComponent(name)}/connection`);
+
+export const startToolOAuth = (token: string, name: string) =>
+	call(token, 'POST', `/tools/${encodeURIComponent(name)}/oauth/start`);
+
+export const getToolOAuthStatus = (token: string, name: string) =>
+	call(token, 'GET', `/tools/${encodeURIComponent(name)}/oauth/status`);

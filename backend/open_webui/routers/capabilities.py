@@ -40,6 +40,49 @@ async def set_tool_enabled(toolset_name: str, body: EnabledBody, user=Depends(ge
     return await _bridge("PATCH", f"/tools/{toolset_name}", json=body.model_dump())
 
 
+# --- Connexion des toolsets (feature 003) ------------------------------------
+
+
+class ToolKeyBody(BaseModel):
+    values: dict[str, str]
+
+
+@router.get("/tools/{toolset_name}/connection")
+async def get_tool_connection(toolset_name: str, user=Depends(get_admin_user)):
+    """Métadonnées de connexion d'un toolset (champs/fournisseurs, état)."""
+    return await _bridge("GET", f"/tools/{toolset_name}/connection")
+
+
+@router.put("/tools/{toolset_name}/key")
+async def set_tool_key(toolset_name: str, body: ToolKeyBody, user=Depends(get_admin_user)):
+    """Enregistre les identifiants d'un toolset (valeurs jamais renvoyées)."""
+    return await _bridge("PUT", f"/tools/{toolset_name}/key", json=body.model_dump())
+
+
+@router.post("/tools/{toolset_name}/test")
+async def test_tool_connection(toolset_name: str, user=Depends(get_admin_user)):
+    """Teste la connexion d'un toolset."""
+    return await _bridge("POST", f"/tools/{toolset_name}/test")
+
+
+@router.delete("/tools/{toolset_name}/connection")
+async def disconnect_tool(toolset_name: str, user=Depends(get_admin_user)):
+    """Déconnecte un toolset (retrait des identifiants + désactivation)."""
+    return await _bridge("DELETE", f"/tools/{toolset_name}/connection")
+
+
+@router.post("/tools/{toolset_name}/oauth/start")
+async def start_tool_oauth(toolset_name: str, user=Depends(get_admin_user)):
+    """Démarre le flux OAuth d'un toolset (Spotify, xAI)."""
+    return await _bridge("POST", f"/tools/{toolset_name}/oauth/start")
+
+
+@router.get("/tools/{toolset_name}/oauth/status")
+async def get_tool_oauth_status(toolset_name: str, user=Depends(get_admin_user)):
+    """État du flux OAuth d'un toolset."""
+    return await _bridge("GET", f"/tools/{toolset_name}/oauth/status")
+
+
 @router.get("/skills")
 async def list_skills(user=Depends(get_admin_user)):
     """Liste les compétences natives Hermes avec leur état (admin-only)."""
