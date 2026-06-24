@@ -104,13 +104,14 @@
 
 	let newFolderId = null;
 
-	// Pages admin système d'Agent OS : toujours présentes dans la nav, même si l'utilisateur
-	// a une liste d'épinglés personnalisée (sinon l'ajout d'une nouvelle page admin n'apparaît
-	// jamais pour un compte avec settings existants). La visibilité reste filtrée par admin.
-	const SYSTEM_ITEMS = ['providers', 'connectors', 'gateway'];
+	// Toutes les pages d'Agent OS restent TOUJOURS présentes dans la nav, même si l'utilisateur
+	// a une liste d'épinglés personnalisée : on fusionne les pages manquantes de la liste par
+	// défaut (sinon une page — nouvelle ou non listée dans les réglages sauvegardés — disparaît
+	// définitivement). La visibilité reste filtrée par rôle/permission via isMenuItemVisible,
+	// et l'ordre personnalisé de l'utilisateur est préservé pour les pages déjà épinglées.
 	$: pinnedItems = (() => {
 		const saved = $settings?.pinnedMenuItems ?? DEFAULT_PINNED_ITEMS;
-		const missing = SYSTEM_ITEMS.filter((id) => !saved.includes(id));
+		const missing = DEFAULT_PINNED_ITEMS.filter((id) => !saved.includes(id));
 		return [...missing, ...saved];
 	})();
 
