@@ -489,6 +489,7 @@ from open_webui.routers import (
     providers,
     connectors,
     gateway,
+    kanban,
     capabilities,
     agents,
     evaluations,
@@ -1457,6 +1458,7 @@ app.include_router(automations.router, prefix='/api/v1/automations', tags=['auto
 app.include_router(providers.router, prefix='/api/v1/providers', tags=['providers'])
 app.include_router(connectors.router, prefix='/api/v1/connectors', tags=['connectors'])
 app.include_router(gateway.router, prefix='/api/v1/gateway', tags=['gateway'])
+app.include_router(kanban.router, prefix='/api/v1/kanban', tags=['kanban'])
 app.include_router(capabilities.router, prefix='/api/v1/capabilities', tags=['capabilities'])
 app.include_router(agents.router, prefix='/api/v1/agents', tags=['agents'])
 app.include_router(calendar.router, prefix='/api/v1/calendars', tags=['calendars'])
