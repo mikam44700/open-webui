@@ -13,9 +13,46 @@
 		tools?: string[];
 		enabled: boolean;
 		connection_state?: string;
+		providers?: string[];
 	};
 
 	let expanded = false;
+
+	// Libellés + descriptions FR (orientés client, sans jargon technique). Source de vérité
+	// = Hermes pour les capacités ; ici on ne fait que présenter clairement en français.
+	const FR: Record<string, { label: string; desc: string }> = {
+		web: { label: '🔍 Recherche & web', desc: 'Cherche sur le web et extrait le contenu des pages.' },
+		browser: { label: '🌐 Navigateur automatisé', desc: 'Pilote un navigateur : naviguer, cliquer, remplir, faire défiler.' },
+		terminal: { label: '💻 Terminal & processus', desc: 'Exécute des commandes et gère des processus système.' },
+		file: { label: '📁 Fichiers', desc: 'Lit, écrit, modifie et recherche dans des fichiers.' },
+		code_execution: { label: '⚡ Exécution de code', desc: 'Exécute du code dans un environnement isolé.' },
+		vision: { label: '👁️ Vision / analyse d’image', desc: 'Analyse et décrit des images.' },
+		video: { label: '🎬 Analyse vidéo', desc: 'Analyse et comprend des vidéos (modèle compatible requis).' },
+		image_gen: { label: '🎨 Génération d’images', desc: 'Crée des images à partir d’une description.' },
+		video_gen: { label: '🎬 Génération de vidéos', desc: 'Crée des vidéos à partir d’un texte ou d’une image.' },
+		x_search: { label: '🐦 Recherche X (Twitter)', desc: 'Recherche des posts et fils sur X (Twitter).' },
+		moa: { label: '🧠 Mélange d’agents', desc: 'Combine plusieurs modèles pour de meilleures réponses.' },
+		tts: { label: '🔊 Synthèse vocale', desc: 'Convertit du texte en voix.' },
+		skills: { label: '📚 Compétences', desc: 'Liste, consulte et gère les compétences de l’agent.' },
+		todo: { label: '📋 Planification de tâches', desc: 'Crée et suit une liste de tâches.' },
+		memory: { label: '💾 Mémoire', desc: 'Mémoire persistante entre les sessions.' },
+		context_engine: { label: '🧩 Moteur de contexte', desc: 'Outils dynamiques du moteur de contexte actif.' },
+		session_search: { label: '🔎 Recherche de sessions', desc: 'Recherche dans les conversations passées.' },
+		clarify: { label: '❓ Questions de clarification', desc: 'Pose des questions pour lever les ambiguïtés.' },
+		delegation: { label: '👥 Délégation de tâches', desc: 'Délègue des tâches à des sous-agents.' },
+		cronjob: { label: '⏰ Tâches planifiées', desc: 'Programme des tâches récurrentes (cron).' },
+		homeassistant: { label: '🏠 Maison connectée', desc: 'Pilote des appareils domotiques via Home Assistant.' },
+		spotify: { label: '🎵 Spotify', desc: 'Lecture, recherche, playlists et bibliothèque Spotify.' },
+		discord: { label: '💬 Discord', desc: 'Lit et participe aux conversations Discord.' },
+		discord_admin: { label: '🛡️ Administration Discord', desc: 'Gère salons, rôles et messages d’un serveur Discord.' },
+		yuanbao: { label: '🤖 Yuanbao', desc: 'Infos de groupe, membres et messages privés Yuanbao.' },
+		computer_use: { label: '🖱️ Contrôle de l’ordinateur', desc: 'Contrôle le bureau : souris, clavier, captures d’écran.' }
+	};
+
+	$: fr = FR[toolset.name];
+	$: displayLabel = fr?.label ?? toolset.label;
+	$: displayDesc = fr?.desc ?? toolset.description ?? '';
+	$: providers = toolset.providers ?? [];
 
 	$: needsConnection = toolset.connection_state === 'connection_required';
 	$: isConnected = toolset.connection_state === 'connected';
@@ -34,7 +71,7 @@
 		>
 			<div class="flex items-center gap-2">
 				<span class="text-xs text-gray-400">{expanded ? '▾' : '▸'}</span>
-				<span class="text-sm font-medium truncate">{toolset.label}</span>
+				<span class="text-sm font-medium truncate">{displayLabel}</span>
 				{#if isConnected}
 					<span
 						class="text-[10px] px-1.5 py-0.5 rounded-full bg-green-100 text-green-700 dark:bg-green-900/40 dark:text-green-400"
@@ -47,14 +84,8 @@
 					>
 				{/if}
 			</div>
-			{#if toolset.description}
-				<div class="text-xs text-gray-500 mt-0.5 line-clamp-2 pl-5">{toolset.description}</div>
-			{/if}
-			{#if toolset.tools && toolset.tools.length > 0}
-				<div class="text-[11px] text-gray-400 mt-1 pl-5">
-					{toolset.tools.length}
-					{toolset.tools.length > 1 ? $i18n.t('outils') : $i18n.t('outil')}
-				</div>
+			{#if displayDesc}
+				<div class="text-xs text-gray-500 mt-0.5 line-clamp-2 pl-5">{displayDesc}</div>
 			{/if}
 		</button>
 		<div class="flex-none self-center">
@@ -70,17 +101,18 @@
 
 	{#if expanded}
 		<div class="mt-3 pl-5 border-t border-gray-100 dark:border-gray-850 pt-3">
-			{#if toolset.tools && toolset.tools.length > 0}
+			{#if providers.length > 0}
+				<div class="text-[11px] font-medium text-gray-400 mb-1.5 uppercase tracking-wide">
+					{$i18n.t('Services disponibles')}
+				</div>
 				<div class="flex flex-wrap gap-1.5">
-					{#each toolset.tools as tool (tool)}
+					{#each providers as provider (provider)}
 						<span
-							class="text-[11px] px-2 py-0.5 rounded-lg bg-gray-100 dark:bg-gray-850 text-gray-600 dark:text-gray-300 font-mono"
-							>{tool}</span
+							class="text-[11px] px-2 py-0.5 rounded-lg bg-gray-100 dark:bg-gray-850 text-gray-600 dark:text-gray-300"
+							>{provider}</span
 						>
 					{/each}
 				</div>
-			{:else}
-				<div class="text-[11px] text-gray-400">{$i18n.t('Aucun outil listé')}</div>
 			{/if}
 
 			{#if connectable}

@@ -17,6 +17,7 @@
 		tools?: string[];
 		enabled: boolean;
 		connection_state?: string;
+		providers?: string[];
 	};
 
 	let selectedToolset: Toolset | null = null;
