@@ -246,9 +246,11 @@
 		}
 	];
 
-	// Agent OS (US4 — surface unique) : onglets natifs masqués car gérés par notre
-	// page Providers. Réversible : vider HIDDEN_TABS pour réafficher les écrans natifs.
-	const HIDDEN_TABS = ['connections'];
+	// Agent OS (surface unique) : onglets natifs masqués car gérés par nos pages dédiées.
+	// - 'connections' : géré par la page Providers (feature 001, US4).
+	// - 'integrations' : gestion des outils/MCP gérée par la page Connecteurs (feature 002, US3).
+	// Réversible : retirer l'id de HIDDEN_TABS pour réafficher l'écran natif.
+	const HIDDEN_TABS = ['connections', 'integrations'];
 
 	const setFilteredSettings = () => {
 		filteredSettings = allSettings.filter((tab) => {
