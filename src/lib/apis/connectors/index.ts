@@ -3,15 +3,17 @@ import { WEBUI_API_BASE_URL } from '$lib/constants';
 // Client API de la page Connecteurs (Agent OS). Appelle le router admin /api/v1/connectors,
 // qui proxifie vers le Providers Bridge (gestion des MCP de Hermes — source de vérité unique).
 
-export const getConnectors = async (token: string) => {
+// Helper interne : un appel JSON authentifié vers /api/v1/connectors, gestion d'erreur uniforme.
+const call = async (token: string, method: string, path: string, body?: unknown) => {
 	let error = null;
 
-	const res = await fetch(`${WEBUI_API_BASE_URL}/connectors/`, {
-		method: 'GET',
+	const res = await fetch(`${WEBUI_API_BASE_URL}/connectors${path}`, {
+		method,
 		headers: {
 			'Content-Type': 'application/json',
 			Authorization: `Bearer ${token}`
-		}
+		},
+		...(body !== undefined ? { body: JSON.stringify(body) } : {})
 	})
 		.then(async (res) => {
 			if (!res.ok) throw await res.json();
@@ -29,3 +31,23 @@ export const getConnectors = async (token: string) => {
 
 	return res;
 };
+
+export const getConnectors = (token: string) => call(token, 'GET', '/');
+
+// US2 — catalogue + installation + clé + OAuth
+export const getCatalog = (token: string) => call(token, 'GET', '/catalog');
+
+export const installConnector = (token: string, fromCatalog: string) =>
+	call(token, 'POST', '/', { from_catalog: fromCatalog });
+
+export const getInstallStatus = (token: string, id: string) =>
+	call(token, 'GET', `/${id}/install/status`);
+
+export const setConnectorKey = (token: string, id: string, value: string) =>
+	call(token, 'PUT', `/${id}/key`, { value });
+
+export const startConnectorOAuth = (token: string, id: string) =>
+	call(token, 'POST', `/${id}/oauth/start`);
+
+export const getConnectorOAuthStatus = (token: string, id: string) =>
+	call(token, 'GET', `/${id}/oauth/status`);
