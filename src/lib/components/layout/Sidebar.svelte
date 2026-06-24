@@ -76,7 +76,7 @@
 	import HotkeyHint from '../common/HotkeyHint.svelte';
 
 	const BREAKPOINT = 768;
-	const DEFAULT_PINNED_ITEMS = ['providers', 'connectors', 'notes', 'workspace'];
+	const DEFAULT_PINNED_ITEMS = ['providers', 'connectors', 'notes', 'calendar', 'workspace'];
 
 	let scrollTop = 0;
 
@@ -128,10 +128,8 @@
 					($user?.role === 'admin' || $user?.permissions?.features?.automations)
 				);
 			case 'calendar':
-				return (
-					$config?.features?.enable_calendar &&
-					($user?.role === 'admin' || $user?.permissions?.features?.calendar)
-				);
+				// Affiché en permanence dans Agent OS (page planning utilisateur), indépendamment du flag natif.
+				return $user?.role === 'admin' || ($user?.permissions?.features?.calendar ?? true);
 			case 'playground':
 				return $user?.role === 'admin';
 			case 'providers':
@@ -150,7 +148,7 @@
 			notes: { label: 'Notes', href: '/notes', iconType: 'note' },
 			workspace: { label: 'Workspace', href: '/workspace', iconType: 'workspace' },
 			automations: { label: 'Automations', href: '/automations', iconType: 'automations' },
-			calendar: { label: 'Calendar', href: '/calendar', iconType: 'calendar' },
+			calendar: { label: 'Calendrier', href: '/calendar', iconType: 'calendar' },
 			playground: { label: 'Playground', href: '/playground', iconType: 'playground' },
 			providers: { label: 'Providers', href: '/providers', iconType: 'providers' },
 			connectors: { label: 'Capacités', href: '/connectors', iconType: 'connectors' }
