@@ -563,7 +563,8 @@
 
 				<!-- {$i18n.t('Help')} -->
 
-				{#if $user?.role === 'admin'}
+				<!-- Liens « Documentation » et « Livraisons » (Releases) masqués (Agent OS) : pointent vers docs.openwebui.com et le GitHub OpenWebUI (branding tiers + contenu technique anglais hors-sujet pour nos clients). Réversible : remettre `$user?.role === 'admin'`. -->
+				{#if false && $user?.role === 'admin'}
 					<a
 						href="https://docs.openwebui.com"
 						target="_blank"
