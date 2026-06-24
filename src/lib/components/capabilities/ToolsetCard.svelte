@@ -120,7 +120,7 @@
 	$: warnMissing = toolset.enabled && needsConnection;
 </script>
 
-<div class="border border-gray-100 dark:border-gray-850 rounded-2xl px-4 py-3">
+<div class="border border-gray-100 dark:border-gray-850 rounded-2xl px-5 py-4">
 	<div class="flex items-start gap-3">
 		<button
 			type="button"
@@ -131,9 +131,9 @@
 			<div class="flex items-center gap-2">
 				<span class="text-xs text-gray-400">{expanded ? '▾' : '▸'}</span>
 				{#if logoSrc}
-					<img src={logoSrc} alt="" class="size-5 rounded object-contain flex-none" />
+					<img src={logoSrc} alt="" class="size-10 rounded-lg object-contain flex-none" />
 				{/if}
-				<span class="text-sm font-medium truncate">{labelText}</span>
+				<span class="text-base font-medium truncate">{labelText}</span>
 				{#if isConnected}
 					<span
 						class="text-[10px] px-1.5 py-0.5 rounded-full bg-green-100 text-green-700 dark:bg-green-900/40 dark:text-green-400"
@@ -147,7 +147,7 @@
 				{/if}
 			</div>
 			{#if displayDesc}
-				<div class="text-xs text-gray-500 mt-0.5 line-clamp-2 pl-5">{displayDesc}</div>
+				<div class="text-sm text-gray-500 mt-1 line-clamp-2 pl-7">{displayDesc}</div>
 			{/if}
 		</button>
 		<div class="flex-none self-center">
