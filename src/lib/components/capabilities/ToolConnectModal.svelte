@@ -242,7 +242,7 @@
 							{/if}
 						{:else if provider.kind === 'managed'}
 							<div class="text-xs text-gray-500">
-								{$i18n.t('Géré par ton abonnement Nous — rien à configurer ici.')}
+								{$i18n.t('Aucune clé à saisir pour ce fournisseur.')}
 							</div>
 						{:else}
 							{#each provider.fields as field}
