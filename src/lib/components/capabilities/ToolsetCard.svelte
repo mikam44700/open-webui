@@ -131,7 +131,11 @@
 		>
 			<span class="text-xs text-gray-400 w-3 text-center">{expanded ? '▾' : '▸'}</span>
 			{#if logoSrc}
-				<img src={logoSrc} alt="" class="size-10 rounded-xl object-contain flex-none" />
+				<img
+					src={logoSrc}
+					alt=""
+					class="size-10 rounded-xl object-cover flex-none border border-gray-100 dark:border-gray-800"
+				/>
 			{/if}
 		</button>
 
