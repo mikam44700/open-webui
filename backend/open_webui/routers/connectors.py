@@ -36,6 +36,10 @@ class KeyBody(BaseModel):
     value: str
 
 
+class EnabledBody(BaseModel):
+    enabled: bool
+
+
 @router.get("/")
 async def list_connectors(user=Depends(get_admin_user)):
     """Liste les connecteurs MCP avec leur état (admin-only)."""
@@ -76,3 +80,21 @@ async def oauth_start(connector_id: str, user=Depends(get_admin_user)):
 async def oauth_status(connector_id: str, user=Depends(get_admin_user)):
     """État du flux OAuth en cours (running / success / auth_url / log)."""
     return await _bridge("GET", f"/mcp/connectors/{connector_id}/oauth/status")
+
+
+@router.patch("/{connector_id}")
+async def set_enabled(connector_id: str, body: EnabledBody, user=Depends(get_admin_user)):
+    """Active/désactive un connecteur."""
+    return await _bridge("PATCH", f"/mcp/connectors/{connector_id}", json=body.model_dump())
+
+
+@router.post("/{connector_id}/test")
+async def test_connector(connector_id: str, user=Depends(get_admin_user)):
+    """Teste la connexion d'un connecteur (résultat succès/échec motivé)."""
+    return await _bridge("POST", f"/mcp/connectors/{connector_id}/test")
+
+
+@router.delete("/{connector_id}")
+async def delete_connector(connector_id: str, user=Depends(get_admin_user)):
+    """Supprime un connecteur (après confirmation côté UI)."""
+    return await _bridge("DELETE", f"/mcp/connectors/{connector_id}")

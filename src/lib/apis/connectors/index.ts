@@ -51,3 +51,11 @@ export const startConnectorOAuth = (token: string, id: string) =>
 
 export const getConnectorOAuthStatus = (token: string, id: string) =>
 	call(token, 'GET', `/${id}/oauth/status`);
+
+// US4 — gérer un connecteur
+export const setConnectorEnabled = (token: string, id: string, enabled: boolean) =>
+	call(token, 'PATCH', `/${id}`, { enabled });
+
+export const testConnector = (token: string, id: string) => call(token, 'POST', `/${id}/test`);
+
+export const deleteConnector = (token: string, id: string) => call(token, 'DELETE', `/${id}`);

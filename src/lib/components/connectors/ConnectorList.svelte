@@ -84,7 +84,7 @@
 		{#if filtered.length > 0}
 			<div class="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
 				{#each filtered as connector (connector.id)}
-					<ConnectorCard {connector} />
+					<ConnectorCard {connector} on:changed={load} />
 				{/each}
 			</div>
 		{:else}

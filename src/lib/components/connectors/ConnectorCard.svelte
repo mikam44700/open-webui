@@ -1,7 +1,12 @@
 <script lang="ts">
-	import { getContext } from 'svelte';
+	import { getContext, createEventDispatcher } from 'svelte';
+	import { toast } from 'svelte-sonner';
+
+	import { setConnectorEnabled, testConnector, deleteConnector } from '$lib/apis/connectors';
+	import Spinner from '$lib/components/common/Spinner.svelte';
 
 	const i18n = getContext('i18n');
+	const dispatch = createEventDispatcher();
 
 	export let connector: {
 		id: string;
@@ -12,6 +17,49 @@
 		endpoint?: string;
 		secret_state?: 'present' | 'absent';
 		source?: string | null;
+	};
+
+	let busy = ''; // '' | 'toggle' | 'test' | 'delete'
+	let confirmDelete = false;
+
+	const toggle = async () => {
+		busy = 'toggle';
+		try {
+			await setConnectorEnabled(localStorage.token, connector.id, !connector.enabled);
+			dispatch('changed');
+		} catch {
+			toast.error($i18n.t('Impossible de modifier ce connecteur'));
+		} finally {
+			busy = '';
+		}
+	};
+
+	const test = async () => {
+		busy = 'test';
+		try {
+			const r = await testConnector(localStorage.token, connector.id);
+			if (r?.ok)
+				toast.success($i18n.t('Connexion réussie') + (r.tools_count != null ? ` (${r.tools_count} outils)` : ''));
+			else toast.error($i18n.t('Échec de la connexion') + (r?.reason ? ` : ${r.reason}` : ''));
+		} catch {
+			toast.error($i18n.t('Impossible de tester ce connecteur'));
+		} finally {
+			busy = '';
+		}
+	};
+
+	const remove = async () => {
+		busy = 'delete';
+		try {
+			await deleteConnector(localStorage.token, connector.id);
+			toast.success($i18n.t('Connecteur supprimé'));
+			dispatch('changed');
+		} catch {
+			toast.error($i18n.t('Impossible de supprimer ce connecteur'));
+		} finally {
+			busy = '';
+			confirmDelete = false;
+		}
 	};
 
 	// Libellé + couleur de l'état (cf. data-model ConnectorState).
@@ -83,5 +131,57 @@
 		>
 			{$i18n.t(AUTH_LABEL[connector.auth_type] ?? connector.auth_type)}
 		</span>
+	</div>
+
+	<!-- Actions : tester / activer-désactiver / supprimer -->
+	<div class="flex items-center justify-end gap-2 pt-2 border-t border-gray-100 dark:border-gray-850">
+		<button
+			type="button"
+			class="text-xs px-2 py-1 rounded-lg text-gray-500 hover:text-gray-800 dark:hover:text-gray-200 transition disabled:opacity-40"
+			disabled={busy !== ''}
+			on:click={test}
+		>
+			{#if busy === 'test'}<Spinner className="size-3.5" />{:else}{$i18n.t('Tester')}{/if}
+		</button>
+		<button
+			type="button"
+			class="text-xs px-2 py-1 rounded-lg text-gray-500 hover:text-gray-800 dark:hover:text-gray-200 transition disabled:opacity-40"
+			disabled={busy !== ''}
+			on:click={toggle}
+		>
+			{#if busy === 'toggle'}
+				<Spinner className="size-3.5" />
+			{:else if connector.enabled}
+				{$i18n.t('Désactiver')}
+			{:else}
+				{$i18n.t('Activer')}
+			{/if}
+		</button>
+		{#if confirmDelete}
+			<button
+				type="button"
+				class="text-xs px-2 py-1 rounded-lg text-red-600 dark:text-red-400 hover:bg-red-500/10 transition disabled:opacity-40"
+				disabled={busy !== ''}
+				on:click={remove}
+			>
+				{#if busy === 'delete'}<Spinner className="size-3.5" />{:else}{$i18n.t('Confirmer')}{/if}
+			</button>
+			<button
+				type="button"
+				class="text-xs px-2 py-1 rounded-lg text-gray-500 hover:text-gray-800 dark:hover:text-gray-200 transition"
+				on:click={() => (confirmDelete = false)}
+			>
+				{$i18n.t('Annuler')}
+			</button>
+		{:else}
+			<button
+				type="button"
+				class="text-xs px-2 py-1 rounded-lg text-red-600 dark:text-red-400 hover:bg-red-500/10 transition disabled:opacity-40"
+				disabled={busy !== ''}
+				on:click={() => (confirmDelete = true)}
+			>
+				{$i18n.t('Supprimer')}
+			</button>
+		{/if}
 	</div>
 </div>

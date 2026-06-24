@@ -12,7 +12,7 @@
 	import Sidebar from '$lib/components/icons/Sidebar.svelte';
 
 	let loaded = false;
-	let activeTab: 'installed' | 'catalog' = 'installed';
+	let activeTab = 'installed';
 
 	onMount(async () => {
 		// FR-002 : page admin-only
