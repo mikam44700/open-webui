@@ -33,6 +33,12 @@
 	import cuaLogo from '$lib/assets/web-providers/cua.png';
 	// Vision (vision)
 	import openrouterLogo from '$lib/assets/providers/openrouter.svg';
+	// Génération d'images (image_gen)
+	import falLogo from '$lib/assets/web-providers/fal.jpg';
+	import kreaLogo from '$lib/assets/web-providers/krea.png';
+	import openaiLogo from '$lib/assets/providers/openai.svg';
+	import codexLogo from '$lib/assets/providers/codex.png';
+	import grokLogo from '$lib/assets/providers/grok.svg';
 
 	const LOGO_BY_SLUG: Record<string, string> = {
 		duckduckgo: duckduckgoLogo,
@@ -49,7 +55,12 @@
 		'browser-use': browserUseLogo,
 		browserbase: browserbaseLogo,
 		cua: cuaLogo,
-		openrouter: openrouterLogo
+		openrouter: openrouterLogo,
+		fal: falLogo,
+		krea: kreaLogo,
+		openai: openaiLogo,
+		codex: codexLogo,
+		grok: grokLogo
 	};
 
 	// Logos au tracé sombre/transparent : illisibles sur fond sombre → fond blanc.
@@ -59,7 +70,10 @@
 		'xai',
 		'camofox',
 		'chromium',
-		'openrouter'
+		'openrouter',
+		'krea',
+		'openai',
+		'grok'
 	]);
 
 	const i18n = getContext('i18n');
@@ -85,6 +99,7 @@
 		slug?: string | null;
 		advanced?: boolean;
 		category?: string | null;
+		connected?: boolean | null;
 	};
 
 	// Regroupement des fournisseurs avancés (mode Expert) par catégorie, dans cet ordre.
@@ -101,11 +116,19 @@
 	// État affiché par fournisseur. On n'affirme QUE ce qu'on sait avec certitude :
 	// - saved       : kind=key avec toutes ses clés saisies (saisie ≠ clé valide : « Tester »
 	//                 ne vérifie que la présence, pas un vrai appel API → on ne dit pas « connecté »)
+	// - detected    : géré via compte/OAuth et réellement connecté (Codex, xAI Grok détectés)
+	// - disconnected: géré via compte/OAuth mais PAS connecté → action requise ailleurs
 	// - active      : gratuit/local, marche sans rien (DuckDuckGo, cua, Chromium local)
 	// - subscription: géré, nécessite un abonnement Nous actif (état réel non vérifiable ici)
-	const providerStatus = (p: Provider): 'saved' | 'active' | 'subscription' | 'none' => {
-		if (p.kind === 'managed')
-			return p.slug && SUBSCRIPTION_SLUGS.has(p.slug) ? 'subscription' : 'active';
+	const providerStatus = (
+		p: Provider
+	): 'saved' | 'detected' | 'disconnected' | 'active' | 'subscription' | 'none' => {
+		if (p.kind === 'managed') {
+			if (p.slug && SUBSCRIPTION_SLUGS.has(p.slug)) return 'subscription';
+			if (p.connected === true) return 'detected';
+			if (p.connected === false) return 'disconnected';
+			return 'active';
+		}
 		if (p.kind === 'key' && p.fields.length > 0 && p.fields.every((f) => f.present))
 			return 'saved';
 		return 'none';
@@ -313,6 +336,16 @@
 									<span
 										class="text-[10px] px-1.5 py-0.5 rounded-full bg-sky-50 text-sky-600 dark:bg-sky-900/30 dark:text-sky-400"
 										>{$i18n.t('Clé enregistrée')}</span
+									>
+								{:else if providerStatus(provider) === 'detected'}
+									<span
+										class="text-[10px] px-1.5 py-0.5 rounded-full bg-green-100 text-green-700 dark:bg-green-900/40 dark:text-green-400"
+										>{$i18n.t('Connecté')}</span
+									>
+								{:else if providerStatus(provider) === 'disconnected'}
+									<span
+										class="text-[10px] px-1.5 py-0.5 rounded-full bg-amber-50 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400"
+										>{$i18n.t('Non connecté')}</span
 									>
 								{:else if providerStatus(provider) === 'active'}
 									<span
