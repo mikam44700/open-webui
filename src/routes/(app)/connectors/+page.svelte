@@ -11,6 +11,7 @@
 	import AddConnectorModal from '$lib/components/connectors/AddConnectorModal.svelte';
 	import ToolsetList from '$lib/components/capabilities/ToolsetList.svelte';
 	import SkillList from '$lib/components/capabilities/SkillList.svelte';
+	import IntegrationsList from '$lib/components/integrations/IntegrationsList.svelte';
 	import Tooltip from '$lib/components/common/Tooltip.svelte';
 	import Sidebar from '$lib/components/icons/Sidebar.svelte';
 
@@ -24,6 +25,7 @@
 	const sections = [
 		{ key: 'tools', label: 'Outils' },
 		{ key: 'connectors', label: 'Connecteurs MCP' },
+		{ key: 'integrations', label: 'Intégrations' },
 		{ key: 'skills', label: 'Compétences' }
 	];
 
@@ -86,6 +88,8 @@
 		<div class=" flex-1 max-h-full overflow-y-auto @container">
 			{#if section === 'tools'}
 				<ToolsetList />
+			{:else if section === 'integrations'}
+				<IntegrationsList />
 			{:else if section === 'skills'}
 				<SkillList />
 			{:else}
