@@ -39,6 +39,16 @@
 	import openaiLogo from '$lib/assets/providers/openai.svg';
 	import codexLogo from '$lib/assets/providers/codex.png';
 	import grokLogo from '$lib/assets/providers/grok.svg';
+	// Synthèse vocale (tts)
+	import edgeLogo from '$lib/assets/web-providers/edge.jpg';
+	import elevenlabsLogo from '$lib/assets/web-providers/elevenlabs.png';
+	import kittenLogo from '$lib/assets/web-providers/kitten.webp';
+	import piperLogo from '$lib/assets/web-providers/piper.svg';
+	import mistralLogo from '$lib/assets/providers/mistral-color.svg';
+	import geminiLogo from '$lib/assets/providers/gemini-color.svg';
+	// Automatisation & intégrations (homeassistant, spotify)
+	import homeassistantLogo from '$lib/assets/web-providers/homeassistant.png';
+	import spotifyLogo from '$lib/assets/web-providers/spotify.png';
 
 	const LOGO_BY_SLUG: Record<string, string> = {
 		duckduckgo: duckduckgoLogo,
@@ -60,7 +70,15 @@
 		krea: kreaLogo,
 		openai: openaiLogo,
 		codex: codexLogo,
-		grok: grokLogo
+		grok: grokLogo,
+		edge: edgeLogo,
+		elevenlabs: elevenlabsLogo,
+		kitten: kittenLogo,
+		piper: piperLogo,
+		mistral: mistralLogo,
+		gemini: geminiLogo,
+		homeassistant: homeassistantLogo,
+		spotify: spotifyLogo
 	};
 
 	// Logos au tracé sombre/transparent : illisibles sur fond sombre → fond blanc.
@@ -73,8 +91,16 @@
 		'openrouter',
 		'krea',
 		'openai',
-		'grok'
+		'grok',
+		'piper',
+		'elevenlabs',
+		'mistral',
+		'gemini'
 	]);
+
+	// Fournisseurs qui tournent en local (modèle téléchargé à la 1re utilisation) : pas de clé,
+	// mais pas « actif » d'office non plus → libellé neutre « Sans clé · local ».
+	const LOCAL_SLUGS = new Set(['kitten', 'piper']);
 
 	const i18n = getContext('i18n');
 	const dispatch = createEventDispatcher();
@@ -118,13 +144,15 @@
 	//                 ne vérifie que la présence, pas un vrai appel API → on ne dit pas « connecté »)
 	// - detected    : géré via compte/OAuth et réellement connecté (Codex, xAI Grok détectés)
 	// - disconnected: géré via compte/OAuth mais PAS connecté → action requise ailleurs
-	// - active      : gratuit/local, marche sans rien (DuckDuckGo, cua, Chromium local)
+	// - active      : service en ligne sans clé, marche tout de suite (DuckDuckGo, Edge TTS…)
+	// - local       : tourne en local sans clé, mais modèle téléchargé à la 1re utilisation
 	// - subscription: géré, nécessite un abonnement Nous actif (état réel non vérifiable ici)
 	const providerStatus = (
 		p: Provider
-	): 'saved' | 'detected' | 'disconnected' | 'active' | 'subscription' | 'none' => {
+	): 'saved' | 'detected' | 'disconnected' | 'active' | 'local' | 'subscription' | 'none' => {
 		if (p.kind === 'managed') {
 			if (p.slug && SUBSCRIPTION_SLUGS.has(p.slug)) return 'subscription';
+			if (p.slug && LOCAL_SLUGS.has(p.slug)) return 'local';
 			if (p.connected === true) return 'detected';
 			if (p.connected === false) return 'disconnected';
 			return 'active';
@@ -391,6 +419,11 @@
 									<span
 										class="text-[10px] px-1.5 py-0.5 rounded-full bg-green-50 text-green-600 dark:bg-green-900/20 dark:text-green-500"
 										>{$i18n.t('Actif sans clé')}</span
+									>
+								{:else if providerStatus(provider) === 'local'}
+									<span
+										class="text-[10px] px-1.5 py-0.5 rounded-full bg-gray-100 text-gray-500 dark:bg-gray-800 dark:text-gray-400"
+										>{$i18n.t('Sans clé · local')}</span
 									>
 								{:else if providerStatus(provider) === 'subscription'}
 									<span
