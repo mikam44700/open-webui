@@ -31,6 +31,8 @@
 	import browserbaseLogo from '$lib/assets/web-providers/browserbase.png';
 	// Recherche X (x_search) + Computer Use (computer_use)
 	import cuaLogo from '$lib/assets/web-providers/cua.png';
+	// Vision (vision)
+	import openrouterLogo from '$lib/assets/providers/openrouter.svg';
 
 	const LOGO_BY_SLUG: Record<string, string> = {
 		duckduckgo: duckduckgoLogo,
@@ -46,11 +48,19 @@
 		camofox: camofoxLogo,
 		'browser-use': browserUseLogo,
 		browserbase: browserbaseLogo,
-		cua: cuaLogo
+		cua: cuaLogo,
+		openrouter: openrouterLogo
 	};
 
 	// Logos au tracé sombre/transparent : illisibles sur fond sombre → fond blanc.
-	const WHITE_BG_SLUGS = new Set(['tavily', 'parallel', 'xai', 'camofox', 'chromium']);
+	const WHITE_BG_SLUGS = new Set([
+		'tavily',
+		'parallel',
+		'xai',
+		'camofox',
+		'chromium',
+		'openrouter'
+	]);
 
 	const i18n = getContext('i18n');
 	const dispatch = createEventDispatcher();
@@ -105,6 +115,8 @@
 	let saving = false;
 	let connected = false;
 	let providers: Provider[] = [];
+	// Encart d'information optionnel affiché en haut (ex. vision : « si ton modèle gère les images… »).
+	let note: string | null = null;
 	// Fournisseurs techniques (clé API ou serveur à lancer) repliés sous « Options avancées ».
 	let showAdvanced = false;
 	$: standardProviders = providers.filter((p) => !p.advanced);
@@ -137,6 +149,7 @@
 			const res = await getToolConnection(localStorage.token, toolset.name);
 			connected = res?.connected ?? false;
 			providers = res?.providers ?? [];
+			note = res?.note ?? null;
 			showAdvanced = false;
 			values = {};
 			for (const p of providers) {
@@ -381,6 +394,14 @@
 						{/if}
 					</div>
 				{/snippet}
+
+				{#if note}
+					<div
+						class="text-xs leading-relaxed text-emerald-800 dark:text-emerald-300 bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-100 dark:border-emerald-900/40 rounded-xl px-3 py-2.5 mb-3"
+					>
+						{note}
+					</div>
+				{/if}
 
 				{#each standardProviders as provider}
 					{@render providerCard(provider)}
