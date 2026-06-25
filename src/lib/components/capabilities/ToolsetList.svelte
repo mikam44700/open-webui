@@ -5,6 +5,7 @@
 	import { getTools, setToolEnabled } from '$lib/apis/capabilities';
 
 	import Spinner from '$lib/components/common/Spinner.svelte';
+	import Switch from '$lib/components/common/Switch.svelte';
 	import ToolsetCard from '$lib/components/capabilities/ToolsetCard.svelte';
 	import ToolConnectModal from '$lib/components/capabilities/ToolConnectModal.svelte';
 
@@ -31,7 +32,6 @@
 	let loading = true;
 	let bridgeDown = false;
 	let toolsets: Toolset[] = [];
-	let search = '';
 
 	// Regroupement par catégorie : le bridge ne renvoie pas de catégorie, on mappe par
 	// nom de toolset (source de vérité = noms natifs Hermes). Tout toolset non listé
@@ -49,26 +49,18 @@
 	];
 	const OTHER_LABEL = 'Autres';
 
-	// Catégories techniques masquées par défaut, révélées par le « Mode Expert ». Tout le reste
-	// (et la recherche) reste visible : le client voit l'essentiel, l'avancé est à un clic.
+	// Catégories techniques masquées par défaut, révélées par le « Mode Expert ».
 	const EXPERT_LABELS = new Set(['Système & Code', 'Automatisation & Intégrations', OTHER_LABEL]);
 	let showExpert = false;
+	// Onglet de catégorie sélectionné (navigation par sous-onglets plutôt qu'une longue page).
+	let selectedLabel = '';
 
-	$: filtered = search.trim()
-		? toolsets.filter(
-				(t) =>
-					t.label.toLowerCase().includes(search.toLowerCase()) ||
-					t.name.toLowerCase().includes(search.toLowerCase())
-			)
-		: toolsets;
-
-	// Outils filtrés regroupés par catégorie, dans l'ordre défini ci-dessus.
-	// On n'affiche que les catégories non vides.
+	// Outils regroupés par catégorie, dans l'ordre défini ci-dessus. Catégories vides masquées.
 	$: groups = (() => {
 		const byCat = new Map<string, Toolset[]>();
 		for (const cat of CATEGORIES) byCat.set(cat.label, []);
 		byCat.set(OTHER_LABEL, []);
-		for (const t of filtered) {
+		for (const t of toolsets) {
 			const cat = CATEGORIES.find((c) => c.names.includes(t.name));
 			byCat.get(cat ? cat.label : OTHER_LABEL)?.push(t);
 		}
@@ -77,12 +69,10 @@
 			.filter((g) => g.items.length > 0);
 	})();
 
-	// En recherche, on montre tout (l'utilisateur cherche un outil précis). Sinon on sépare
-	// les catégories « grand public » des catégories techniques (révélées par le Mode Expert).
-	$: isSearching = search.trim().length > 0;
-	$: standardGroups = isSearching ? groups : groups.filter((g) => !EXPERT_LABELS.has(g.label));
-	$: expertGroups = isSearching ? [] : groups.filter((g) => EXPERT_LABELS.has(g.label));
-	$: expertCount = expertGroups.reduce((n, g) => n + g.items.length, 0);
+	// Onglets visibles : catégories grand public ; les techniques s'ajoutent en Mode Expert.
+	$: visibleTabs = showExpert ? groups : groups.filter((g) => !EXPERT_LABELS.has(g.label));
+	// Catégorie affichée : celle sélectionnée si encore visible, sinon la première.
+	$: activeGroup = visibleTabs.find((g) => g.label === selectedLabel) ?? visibleTabs[0] ?? null;
 
 	const isBridgeDown = (err: any) =>
 		err?.error?.code === 'bridge_unreachable' || err?.error?.code === 'hermes_unavailable';
@@ -138,26 +128,50 @@
 			</button>
 		</div>
 	{:else}
-		<div class="mb-3 text-sm text-gray-600 dark:text-gray-400">
-			{$i18n.t('Outils natifs de ton cerveau Hermes (recherche web, terminal, navigateur…)')}
+		<!-- Titre + interrupteur Mode Expert (révèle les catégories techniques). -->
+		<div class="flex items-start justify-between gap-3 mb-3">
+			<div class="text-sm text-gray-600 dark:text-gray-400">
+				{$i18n.t('Outils natifs de ton cerveau Hermes (recherche web, terminal, navigateur…)')}
+			</div>
+			<label
+				class="flex-none flex items-center gap-2 text-xs text-gray-500 dark:text-gray-400 cursor-pointer select-none pt-0.5"
+				title={$i18n.t('Affiche les outils techniques (terminal, code, intégrations…)')}
+			>
+				{$i18n.t('Mode Expert')}
+				<Switch state={showExpert} on:change={() => (showExpert = !showExpert)} />
+			</label>
 		</div>
 
-		<input
-			class="w-full text-sm bg-transparent border border-gray-100 dark:border-gray-850 rounded-xl px-3 py-2 outline-none mb-3"
-			placeholder={$i18n.t('Rechercher un outil')}
-			bind:value={search}
-		/>
+		{#if groups.length > 0}
+			<!-- Sous-onglets par catégorie : on n'affiche qu'une catégorie à la fois (page courte).
+			     Ils passent à la ligne (flex-wrap) — pas de scroll horizontal. -->
+			<div class="flex flex-wrap gap-1.5 mb-4">
+				{#each visibleTabs as tab (tab.label)}
+					{@const isExpert = EXPERT_LABELS.has(tab.label)}
+					<button
+						type="button"
+						class="text-xs px-3 py-1.5 rounded-lg transition whitespace-nowrap {activeGroup?.label ===
+						tab.label
+							? 'bg-gray-900 text-white dark:bg-white dark:text-gray-900 font-medium'
+							: isExpert
+								? 'bg-amber-50 text-amber-700 dark:bg-amber-900/20 dark:text-amber-400/90 hover:bg-amber-100 dark:hover:bg-amber-900/30'
+								: 'bg-gray-50 text-gray-600 dark:bg-gray-850 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800'}"
+						on:click={() => (selectedLabel = tab.label)}
+					>
+						{$i18n.t(tab.label)}
+						<span class="opacity-60">({tab.items.length})</span>
+					</button>
+				{/each}
+			</div>
 
-		{#snippet groupSection(group)}
-			<section>
-				<h3
-					class="text-[11px] font-semibold uppercase tracking-wide text-gray-400 dark:text-gray-500 mb-2 px-0.5"
-				>
-					{$i18n.t(group.label)}
-					<span class="font-normal normal-case tracking-normal">({group.items.length})</span>
-				</h3>
+			{#if activeGroup}
+				{#if EXPERT_LABELS.has(activeGroup.label)}
+					<div class="text-[11px] text-amber-600 dark:text-amber-400/80 mb-3 px-0.5">
+						{$i18n.t('Outils puissants ou techniques — réservés aux usages avancés.')}
+					</div>
+				{/if}
 				<div class="grid grid-cols-1 sm:grid-cols-2 gap-3.5 items-stretch">
-					{#each group.items as toolset (toolset.name)}
+					{#each activeGroup.items as toolset (toolset.name)}
 						<ToolsetCard
 							{toolset}
 							on:toggle={() => toggle(toolset)}
@@ -165,43 +179,7 @@
 						/>
 					{/each}
 				</div>
-			</section>
-		{/snippet}
-
-		{#if groups.length > 0}
-			<div class="flex flex-col gap-6">
-				{#each standardGroups as group (group.label)}
-					{@render groupSection(group)}
-				{/each}
-
-				{#if expertGroups.length > 0}
-					<div>
-						<button
-							type="button"
-							class="w-full flex items-center justify-between text-xs text-gray-500 dark:text-gray-400 px-3 py-2.5 rounded-xl bg-gray-50 dark:bg-gray-850 hover:bg-gray-100 dark:hover:bg-gray-800 transition"
-							on:click={() => (showExpert = !showExpert)}
-						>
-							<span class="font-medium"
-								>{$i18n.t('Mode Expert')} · {$i18n.t('outils techniques')}
-								<span class="font-normal">({expertCount})</span></span
-							>
-							<span aria-hidden="true">{showExpert ? '▴' : '▾'}</span>
-						</button>
-						{#if showExpert}
-							<div class="text-[11px] text-gray-400 mt-2 mb-3 px-1">
-								{$i18n.t(
-									'Outils puissants ou techniques (terminal, code, intégrations…) — réservés aux usages avancés.'
-								)}
-							</div>
-							<div class="flex flex-col gap-6 mt-3">
-								{#each expertGroups as group (group.label)}
-									{@render groupSection(group)}
-								{/each}
-							</div>
-						{/if}
-					</div>
-				{/if}
-			</div>
+			{/if}
 		{:else}
 			<div
 				class="flex flex-col items-center justify-center text-center py-16 gap-2 border border-dashed border-gray-200 dark:border-gray-800 rounded-2xl"
