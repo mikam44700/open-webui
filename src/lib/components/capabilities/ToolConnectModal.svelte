@@ -13,6 +13,44 @@
 
 	import Spinner from '$lib/components/common/Spinner.svelte';
 
+	// Logos des fournisseurs de recherche web (mappés par `slug` renvoyé par le bridge).
+	import duckduckgoLogo from '$lib/assets/web-providers/duckduckgo.png';
+	import exaLogo from '$lib/assets/web-providers/exa.jpeg';
+	import firecrawlLogo from '$lib/assets/web-providers/firecrawl.png';
+	import braveLogo from '$lib/assets/web-providers/brave.webp';
+	import tavilyLogo from '$lib/assets/web-providers/tavily.png';
+	import parallelLogo from '$lib/assets/web-providers/parallel.svg';
+	import searxngLogo from '$lib/assets/web-providers/searxng.png';
+	import xaiLogo from '$lib/assets/web-providers/xai.png';
+	import nousLogo from '$lib/assets/providers/nousresearch.png';
+	// Navigateur automatisé (toolset « browser »)
+	import chromiumLogo from '$lib/assets/web-providers/chromium.png';
+	import camofoxLogo from '$lib/assets/web-providers/camofox.png';
+	import browserUseLogo from '$lib/assets/web-providers/browser-use.png';
+	import browserbaseLogo from '$lib/assets/web-providers/browserbase.png';
+	// Recherche X (x_search) + Computer Use (computer_use)
+	import cuaLogo from '$lib/assets/web-providers/cua.png';
+
+	const LOGO_BY_SLUG: Record<string, string> = {
+		duckduckgo: duckduckgoLogo,
+		exa: exaLogo,
+		firecrawl: firecrawlLogo,
+		brave: braveLogo,
+		tavily: tavilyLogo,
+		parallel: parallelLogo,
+		searxng: searxngLogo,
+		xai: xaiLogo,
+		nous: nousLogo,
+		chromium: chromiumLogo,
+		camofox: camofoxLogo,
+		'browser-use': browserUseLogo,
+		browserbase: browserbaseLogo,
+		cua: cuaLogo
+	};
+
+	// Logos au tracé sombre sur fond transparent : illisibles sur fond sombre → fond blanc.
+	const WHITE_BG_SLUGS = new Set(['tavily', 'parallel', 'xai', 'camofox']);
+
 	const i18n = getContext('i18n');
 	const dispatch = createEventDispatcher();
 
@@ -33,6 +71,16 @@
 		badge: string | null;
 		kind: string;
 		fields: Field[];
+		slug?: string | null;
+	};
+
+	// Un fournisseur est « connecté » s'il a toutes ses clés (kind=key) ;
+	// les fournisseurs sans clé (DuckDuckGo, abonnement Nous) sont « actifs » d'office.
+	const providerStatus = (p: Provider): 'connected' | 'active' | 'none' => {
+		if (p.kind === 'managed') return 'active';
+		if (p.kind === 'key' && p.fields.length > 0 && p.fields.every((f) => f.present))
+			return 'connected';
+		return 'none';
 	};
 
 	let loading = false;
@@ -197,21 +245,39 @@
 			{#if loading}
 				<div class="flex justify-center py-10"><Spinner className="size-5" /></div>
 			{:else}
-				{#if connected}
-					<div class="text-xs text-green-600 dark:text-green-400 mb-3">
-						{$i18n.t('Cet outil est connecté.')}
-					</div>
-				{/if}
-
 				{#each providers as provider}
 					<div class="border border-gray-100 dark:border-gray-850 rounded-2xl p-3 mb-3">
-						<div class="flex items-center gap-2 mb-2">
-							<div class="text-sm font-medium">{provider.name}</div>
-							{#if provider.badge}
-								<span class="text-[10px] px-1.5 py-0.5 rounded bg-gray-100 dark:bg-gray-850 text-gray-500"
-									>{provider.badge}</span
-								>
+						<div class="flex items-center gap-3 mb-2">
+							{#if provider.slug && LOGO_BY_SLUG[provider.slug]}
+								<img
+									src={LOGO_BY_SLUG[provider.slug]}
+									alt=""
+									class="size-10 rounded-xl flex-none border border-gray-100 dark:border-gray-800 {WHITE_BG_SLUGS.has(
+										provider.slug
+									)
+										? 'bg-white object-contain p-1'
+										: 'object-cover'}"
+								/>
 							{/if}
+							<div class="flex items-center gap-2 flex-wrap min-w-0">
+								<span class="text-sm font-medium">{provider.name}</span>
+								{#if provider.badge}
+									<span class="text-[10px] px-1.5 py-0.5 rounded bg-gray-100 dark:bg-gray-850 text-gray-500"
+										>{provider.badge}</span
+									>
+								{/if}
+								{#if providerStatus(provider) === 'connected'}
+									<span
+										class="text-[10px] px-1.5 py-0.5 rounded-full bg-green-100 text-green-700 dark:bg-green-900/40 dark:text-green-400"
+										>{$i18n.t('Connecté')}</span
+									>
+								{:else if providerStatus(provider) === 'active'}
+									<span
+										class="text-[10px] px-1.5 py-0.5 rounded-full bg-green-50 text-green-600 dark:bg-green-900/20 dark:text-green-500"
+										>{$i18n.t('Actif sans clé')}</span
+									>
+								{/if}
+							</div>
 						</div>
 						{#if provider.tag}
 							<div class="text-xs text-gray-500 mb-2">{provider.tag}</div>
