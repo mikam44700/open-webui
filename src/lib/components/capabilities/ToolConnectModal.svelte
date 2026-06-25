@@ -74,6 +74,15 @@
 		fields: Field[];
 		slug?: string | null;
 		advanced?: boolean;
+		category?: string | null;
+	};
+
+	// Regroupement des fournisseurs avancés (mode Expert) par catégorie, dans cet ordre.
+	const CATEGORY_ORDER = ['free', 'self_hosted', 'paid'];
+	const CATEGORY_LABEL: Record<string, string> = {
+		free: 'Gratuit',
+		self_hosted: 'Auto-hébergé · serveur à lancer',
+		paid: 'Payant'
 	};
 
 	// Fournisseurs « gérés » qui dépendent d'un abonnement payant (pas actifs d'office).
@@ -100,6 +109,11 @@
 	let showAdvanced = false;
 	$: standardProviders = providers.filter((p) => !p.advanced);
 	$: advancedProviders = providers.filter((p) => p.advanced);
+	// Avancés regroupés par catégorie (gratuit → auto-hébergé → payant), groupes vides masqués.
+	$: advancedByCategory = CATEGORY_ORDER.map((cat) => ({
+		cat,
+		items: advancedProviders.filter((p) => (p.category ?? 'paid') === cat)
+	})).filter((g) => g.items.length > 0);
 	// Valeurs saisies par clé de champ (jamais pré-remplies pour les secrets déjà présents).
 	let values: Record<string, string> = {};
 
@@ -389,8 +403,15 @@
 								'Pour utilisateurs avancés : nécessite une clé API ou un serveur à lancer soi-même.'
 							)}
 						</div>
-						{#each advancedProviders as provider}
-							{@render providerCard(provider)}
+						{#each advancedByCategory as group (group.cat)}
+							<div
+								class="text-[11px] font-medium text-gray-400 dark:text-gray-500 uppercase tracking-wide mb-2 px-1"
+							>
+								{CATEGORY_LABEL[group.cat]}
+							</div>
+							{#each group.items as provider}
+								{@render providerCard(provider)}
+							{/each}
 						{/each}
 					{/if}
 				{/if}
