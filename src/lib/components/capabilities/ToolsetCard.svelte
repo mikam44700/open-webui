@@ -123,12 +123,7 @@
 			<div class="flex items-start justify-between gap-3">
 				<div class="min-w-0 flex items-center gap-2 flex-wrap pt-1">
 					<span class="text-base font-medium">{labelText}</span>
-					{#if isConnected}
-						<span
-							class="text-[10px] px-1.5 py-0.5 rounded-full bg-green-100 text-green-700 dark:bg-green-900/40 dark:text-green-400"
-							>{$i18n.t('Connecté')}</span
-						>
-					{:else if needsConnection}
+					{#if needsConnection}
 						<span
 							class="text-[10px] px-1.5 py-0.5 rounded-full bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-400"
 							>{$i18n.t('Connexion requise')}</span
@@ -137,12 +132,6 @@
 				</div>
 
 				<div class="flex items-center gap-2 flex-none pt-0.5">
-					{#if hasDetails}
-						<span
-							class="flex items-center justify-center size-7 rounded-lg text-gray-400 bg-gray-50 dark:bg-gray-850 text-xs"
-							aria-hidden="true">{expanded ? '▴' : '▾'}</span
-						>
-					{/if}
 					<!-- svelte-ignore a11y-no-static-element-interactions -->
 					<div on:click|stopPropagation on:keydown|stopPropagation>
 						<Switch state={toolset.enabled} on:change={() => dispatch('toggle')} />

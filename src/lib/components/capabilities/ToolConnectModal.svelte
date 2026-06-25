@@ -6,7 +6,7 @@
 		getToolConnection,
 		setToolKey,
 		testToolKey,
-		disconnectTool,
+		disconnectToolProvider,
 		startToolOAuth,
 		getToolOAuthStatus
 	} from '$lib/apis/capabilities';
@@ -217,6 +217,10 @@
 		try {
 			const res = await setToolKey(localStorage.token, toolset.name, payload);
 			connected = res?.connection_state === 'connected';
+			// reflète localement les champs enregistrés → la pastille « enregistrée » et le
+			// bouton « Déconnecter » apparaissent aussitôt, sans rouvrir la fenêtre.
+			for (const f of provider.fields) if (payload[f.key]) f.present = true;
+			providers = providers;
 			toast.success($i18n.t('Connexion enregistrée'));
 			dispatch('connected');
 		} catch (err: any) {
@@ -258,16 +262,29 @@
 		}
 	};
 
-	const disconnect = async () => {
+	// Déconnecte un SEUL fournisseur : efface ses clés, sans toucher aux autres ni à l'outil.
+	let disconnecting: Record<string, boolean> = {};
+
+	const disconnectProvider = async (provider: Provider) => {
 		if (!toolset) return;
+		const keys = provider.fields.map((f) => f.key);
+		if (keys.length === 0) return;
+		disconnecting = { ...disconnecting, [provider.name]: true };
 		try {
-			await disconnectTool(localStorage.token, toolset.name);
-			connected = false;
-			toast.success($i18n.t('Outil déconnecté'));
+			await disconnectToolProvider(localStorage.token, toolset.name, keys);
+			// reflète la déconnexion localement (clés effacées) sans recharger toute la fenêtre
+			for (const f of provider.fields) {
+				f.present = false;
+				values[f.key] = '';
+			}
+			providers = providers;
+			testResults = { ...testResults, [provider.name]: undefined as never };
+			toast.success($i18n.t('{{provider}} déconnecté', { provider: provider.name }));
 			dispatch('disconnected');
-			close();
-		} catch {
-			toast.error($i18n.t('Échec de la déconnexion'));
+		} catch (err: any) {
+			toast.error(err?.error?.message ?? $i18n.t('Échec de la déconnexion'));
+		} finally {
+			disconnecting = { ...disconnecting, [provider.name]: false };
 		}
 	};
 
@@ -454,6 +471,16 @@
 									{#if testing[provider.name]}<Spinner className="size-3" />{/if}
 									{testing[provider.name] ? $i18n.t('Test…') : $i18n.t('Tester')}
 								</button>
+								{#if providerStatus(provider) === 'saved'}
+									<button
+										class="text-xs px-3 py-1.5 rounded-lg text-red-600 hover:bg-red-50 dark:hover:bg-red-950/30 transition disabled:opacity-50 flex items-center gap-1.5 ml-auto"
+										on:click={() => disconnectProvider(provider)}
+										disabled={disconnecting[provider.name]}
+									>
+										{#if disconnecting[provider.name]}<Spinner className="size-3" />{/if}
+										{$i18n.t('Déconnecter')}
+									</button>
+								{/if}
 							</div>
 							{#if testResults[provider.name]}
 								{@const r = testResults[provider.name]}
@@ -525,25 +552,13 @@
 						class="mt-1 max-h-32 overflow-y-auto text-[11px] bg-gray-50 dark:bg-gray-850 rounded-lg p-2 whitespace-pre-wrap">{oauthLog}</pre>
 				{/if}
 
-				<div class="flex justify-between mt-4">
-					<div>
-						{#if connected}
-							<button
-								class="text-xs px-3 py-1.5 rounded-lg text-red-600 hover:bg-red-50 dark:hover:bg-red-950/30 transition"
-								on:click={disconnect}
-							>
-								{$i18n.t('Déconnecter')}
-							</button>
-						{/if}
-					</div>
-					<div class="flex gap-2">
-						<button
-							class="text-xs px-3 py-1.5 rounded-lg bg-gray-100 dark:bg-gray-850 hover:bg-gray-200 dark:hover:bg-gray-800 transition"
-							on:click={close}
-						>
-							{$i18n.t('Fermer')}
-						</button>
-					</div>
+				<div class="flex justify-end mt-4">
+					<button
+						class="text-xs px-3 py-1.5 rounded-lg bg-gray-100 dark:bg-gray-850 hover:bg-gray-200 dark:hover:bg-gray-800 transition"
+						on:click={close}
+					>
+						{$i18n.t('Fermer')}
+					</button>
 				</div>
 			{/if}
 		</div>

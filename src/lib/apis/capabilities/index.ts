@@ -63,6 +63,10 @@ export const testToolKey = (token: string, name: string, values: Record<string, 
 export const disconnectTool = (token: string, name: string) =>
 	call(token, 'DELETE', `/tools/${encodeURIComponent(name)}/connection`);
 
+// Déconnecte UN seul fournisseur (efface ses champs, sans désactiver l'outil entier).
+export const disconnectToolProvider = (token: string, name: string, keys: string[]) =>
+	call(token, 'POST', `/tools/${encodeURIComponent(name)}/disconnect-provider`, { keys });
+
 export const startToolOAuth = (token: string, name: string) =>
 	call(token, 'POST', `/tools/${encodeURIComponent(name)}/oauth/start`);
 
