@@ -23,7 +23,7 @@
 
 	const sections = [
 		{ key: 'tools', label: 'Outils' },
-		{ key: 'connectors', label: 'Connecteurs' },
+		{ key: 'connectors', label: 'Connecteurs MCP' },
 		{ key: 'skills', label: 'Compétences' }
 	];
 
