@@ -48,8 +48,8 @@
 		cua: cuaLogo
 	};
 
-	// Logos au tracé sombre sur fond transparent : illisibles sur fond sombre → fond blanc.
-	const WHITE_BG_SLUGS = new Set(['tavily', 'parallel', 'xai', 'camofox']);
+	// Logos au tracé sombre/transparent : illisibles sur fond sombre → fond blanc.
+	const WHITE_BG_SLUGS = new Set(['tavily', 'parallel', 'xai', 'camofox', 'chromium']);
 
 	const i18n = getContext('i18n');
 	const dispatch = createEventDispatcher();
@@ -74,12 +74,19 @@
 		slug?: string | null;
 	};
 
-	// Un fournisseur est « connecté » s'il a toutes ses clés (kind=key) ;
-	// les fournisseurs sans clé (DuckDuckGo, abonnement Nous) sont « actifs » d'office.
-	const providerStatus = (p: Provider): 'connected' | 'active' | 'none' => {
-		if (p.kind === 'managed') return 'active';
+	// Fournisseurs « gérés » qui dépendent d'un abonnement payant (pas actifs d'office).
+	const SUBSCRIPTION_SLUGS = new Set(['nous']);
+
+	// État affiché par fournisseur. On n'affirme QUE ce qu'on sait avec certitude :
+	// - saved       : kind=key avec toutes ses clés saisies (saisie ≠ clé valide : « Tester »
+	//                 ne vérifie que la présence, pas un vrai appel API → on ne dit pas « connecté »)
+	// - active      : gratuit/local, marche sans rien (DuckDuckGo, cua, Chromium local)
+	// - subscription: géré, nécessite un abonnement Nous actif (état réel non vérifiable ici)
+	const providerStatus = (p: Provider): 'saved' | 'active' | 'subscription' | 'none' => {
+		if (p.kind === 'managed')
+			return p.slug && SUBSCRIPTION_SLUGS.has(p.slug) ? 'subscription' : 'active';
 		if (p.kind === 'key' && p.fields.length > 0 && p.fields.every((f) => f.present))
-			return 'connected';
+			return 'saved';
 		return 'none';
 	};
 
@@ -266,15 +273,20 @@
 										>{provider.badge}</span
 									>
 								{/if}
-								{#if providerStatus(provider) === 'connected'}
+								{#if providerStatus(provider) === 'saved'}
 									<span
-										class="text-[10px] px-1.5 py-0.5 rounded-full bg-green-100 text-green-700 dark:bg-green-900/40 dark:text-green-400"
-										>{$i18n.t('Connecté')}</span
+										class="text-[10px] px-1.5 py-0.5 rounded-full bg-sky-50 text-sky-600 dark:bg-sky-900/30 dark:text-sky-400"
+										>{$i18n.t('Clé enregistrée')}</span
 									>
 								{:else if providerStatus(provider) === 'active'}
 									<span
 										class="text-[10px] px-1.5 py-0.5 rounded-full bg-green-50 text-green-600 dark:bg-green-900/20 dark:text-green-500"
 										>{$i18n.t('Actif sans clé')}</span
+									>
+								{:else if providerStatus(provider) === 'subscription'}
+									<span
+										class="text-[10px] px-1.5 py-0.5 rounded-full bg-indigo-50 text-indigo-600 dark:bg-indigo-900/30 dark:text-indigo-400"
+										>{$i18n.t('Nécessite l’abonnement Nous')}</span
 									>
 								{/if}
 							</div>
