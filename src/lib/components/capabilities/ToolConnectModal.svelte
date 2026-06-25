@@ -12,6 +12,7 @@
 	} from '$lib/apis/capabilities';
 
 	import Spinner from '$lib/components/common/Spinner.svelte';
+	import { TOOLSET_FR } from '$lib/utils/toolsetLabels';
 
 	// Logos des fournisseurs de recherche web (mappés par `slug` renvoyé par le bridge).
 	import duckduckgoLogo from '$lib/assets/web-providers/duckduckgo.png';
@@ -72,6 +73,7 @@
 		kind: string;
 		fields: Field[];
 		slug?: string | null;
+		advanced?: boolean;
 	};
 
 	// Fournisseurs « gérés » qui dépendent d'un abonnement payant (pas actifs d'office).
@@ -94,6 +96,10 @@
 	let saving = false;
 	let connected = false;
 	let providers: Provider[] = [];
+	// Fournisseurs techniques (clé API ou serveur à lancer) repliés sous « Options avancées ».
+	let showAdvanced = false;
+	$: standardProviders = providers.filter((p) => !p.advanced);
+	$: advancedProviders = providers.filter((p) => p.advanced);
 	// Valeurs saisies par clé de champ (jamais pré-remplies pour les secrets déjà présents).
 	let values: Record<string, string> = {};
 
@@ -117,6 +123,7 @@
 			const res = await getToolConnection(localStorage.token, toolset.name);
 			connected = res?.connected ?? false;
 			providers = res?.providers ?? [];
+			showAdvanced = false;
 			values = {};
 			for (const p of providers) {
 				for (const f of p.fields) {
@@ -242,7 +249,9 @@
 			class="w-full max-w-lg max-h-[85vh] overflow-y-auto rounded-2xl bg-white dark:bg-gray-900 p-5 shadow-xl"
 		>
 			<div class="flex items-center justify-between mb-3">
-				<div class="text-sm font-medium">{$i18n.t('Connecter')} — {toolset.label}</div>
+				<div class="text-sm font-medium">
+					{$i18n.t('Connecter')} — {TOOLSET_FR[toolset.name]?.label ?? toolset.label}
+				</div>
 				<button
 					class="text-gray-400 hover:text-gray-700 dark:hover:text-gray-200"
 					on:click={close}>✕</button
@@ -252,7 +261,7 @@
 			{#if loading}
 				<div class="flex justify-center py-10"><Spinner className="size-5" /></div>
 			{:else}
-				{#each providers as provider}
+				{#snippet providerCard(provider: Provider)}
 					<div class="border border-gray-100 dark:border-gray-850 rounded-2xl p-3 mb-3">
 						<div class="flex items-center gap-3 mb-2">
 							{#if provider.slug && LOGO_BY_SLUG[provider.slug]}
@@ -357,7 +366,34 @@
 							</div>
 						{/if}
 					</div>
+				{/snippet}
+
+				{#each standardProviders as provider}
+					{@render providerCard(provider)}
 				{/each}
+
+				{#if advancedProviders.length > 0}
+					<button
+						type="button"
+						class="w-full flex items-center justify-between text-xs text-gray-500 dark:text-gray-400 px-3 py-2 rounded-xl bg-gray-50 dark:bg-gray-850 hover:bg-gray-100 dark:hover:bg-gray-800 transition mb-3"
+						on:click={() => (showAdvanced = !showAdvanced)}
+					>
+						<span class="font-medium"
+							>{$i18n.t('Options avancées (Expert)')} · {advancedProviders.length}</span
+						>
+						<span aria-hidden="true">{showAdvanced ? '▴' : '▾'}</span>
+					</button>
+					{#if showAdvanced}
+						<div class="text-[11px] text-gray-400 mb-3 -mt-1 px-1">
+							{$i18n.t(
+								'Pour utilisateurs avancés : nécessite une clé API ou un serveur à lancer soi-même.'
+							)}
+						</div>
+						{#each advancedProviders as provider}
+							{@render providerCard(provider)}
+						{/each}
+					{/if}
+				{/if}
 
 				{#if providers.length === 0}
 					<div class="text-xs text-gray-500 py-4">
