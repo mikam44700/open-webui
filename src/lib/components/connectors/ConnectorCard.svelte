@@ -4,6 +4,8 @@
 
 	import { setConnectorEnabled, testConnector, deleteConnector } from '$lib/apis/connectors';
 	import Spinner from '$lib/components/common/Spinner.svelte';
+	import { CONNECTOR_FR } from '$lib/utils/connectorLabels';
+	import { CONNECTOR_LOGO } from '$lib/utils/connectorLogos';
 
 	const i18n = getContext('i18n');
 	const dispatch = createEventDispatcher();
@@ -78,9 +80,17 @@
 		}
 	};
 
-	const AUTH_LABEL: Record<string, string> = { none: 'Sans auth', key: 'Clé API', oauth: 'OAuth' };
+	// Accès en langage client (pas de jargon : ni transport http/stdio, ni « OAuth »).
+	const ACCESS_LABEL: Record<string, string> = {
+		none: 'Prêt à l’emploi',
+		key: 'Clé API requise',
+		oauth: 'Connexion par compte'
+	};
 
 	$: state = STATE_META[connector.state] ?? STATE_META['disconnected'];
+	// Logo + nom d'affichage partagés avec le Catalogue (même visuel partout).
+	$: logoSrc = CONNECTOR_LOGO[connector.id];
+	$: displayName = CONNECTOR_FR[connector.id]?.name ?? connector.id;
 </script>
 
 <div
@@ -88,28 +98,37 @@
 		? ''
 		: 'opacity-60'}"
 >
-	<!-- En-tête : icône connecteur + nom + état -->
+	<!-- En-tête : logo connecteur (ou icône générique) + nom + état -->
 	<div class="flex items-center gap-2.5">
-		<div
-			class="flex-none size-8 rounded-lg flex items-center justify-center bg-gray-100 dark:bg-gray-850 ring-1 ring-gray-200/70 dark:ring-gray-700/60"
-		>
-			<svg
-				xmlns="http://www.w3.org/2000/svg"
-				fill="none"
-				viewBox="0 0 24 24"
-				stroke-width="1.6"
-				stroke="currentColor"
-				class="size-4 text-gray-500"
+		{#if logoSrc}
+			<img
+				src={logoSrc}
+				alt={displayName}
+				class="flex-none size-8 rounded-lg object-contain border border-gray-100 dark:border-gray-800 bg-white"
+				draggable="false"
+			/>
+		{:else}
+			<div
+				class="flex-none size-8 rounded-lg flex items-center justify-center bg-gray-100 dark:bg-gray-850 ring-1 ring-gray-200/70 dark:ring-gray-700/60"
 			>
-				<path
-					stroke-linecap="round"
-					stroke-linejoin="round"
-					d="M13.19 8.688a4.5 4.5 0 0 1 1.242 7.244l-4.5 4.5a4.5 4.5 0 0 1-6.364-6.364l1.757-1.757m13.35-.622 1.757-1.757a4.5 4.5 0 0 0-6.364-6.364l-4.5 4.5a4.5 4.5 0 0 0 1.242 7.244"
-				/>
-			</svg>
-		</div>
+				<svg
+					xmlns="http://www.w3.org/2000/svg"
+					fill="none"
+					viewBox="0 0 24 24"
+					stroke-width="1.6"
+					stroke="currentColor"
+					class="size-4 text-gray-500"
+				>
+					<path
+						stroke-linecap="round"
+						stroke-linejoin="round"
+						d="M13.19 8.688a4.5 4.5 0 0 1 1.242 7.244l-4.5 4.5a4.5 4.5 0 0 1-6.364-6.364l1.757-1.757m13.35-.622 1.757-1.757a4.5 4.5 0 0 0-6.364-6.364l-4.5 4.5a4.5 4.5 0 0 0 1.242 7.244"
+					/>
+				</svg>
+			</div>
+		{/if}
 		<div class="flex-1 min-w-0">
-			<div class="text-sm font-medium line-clamp-1">{connector.id}</div>
+			<div class="text-sm font-medium line-clamp-1">{displayName}</div>
 			{#if connector.endpoint}
 				<div class="text-xs text-gray-500 line-clamp-1">{connector.endpoint}</div>
 			{/if}
@@ -119,17 +138,12 @@
 		</span>
 	</div>
 
-	<!-- Badges : transport + type d'auth -->
+	<!-- Type d'accès, en langage client (pas de jargon technique) -->
 	<div class="flex items-center gap-1.5">
 		<span
 			class="text-[11px] px-2 py-0.5 rounded-full bg-gray-100 dark:bg-gray-850 text-gray-600 dark:text-gray-300"
 		>
-			{connector.transport}
-		</span>
-		<span
-			class="text-[11px] px-2 py-0.5 rounded-full bg-gray-100 dark:bg-gray-850 text-gray-600 dark:text-gray-300"
-		>
-			{$i18n.t(AUTH_LABEL[connector.auth_type] ?? connector.auth_type)}
+			{$i18n.t(ACCESS_LABEL[connector.auth_type] ?? connector.auth_type)}
 		</span>
 	</div>
 
