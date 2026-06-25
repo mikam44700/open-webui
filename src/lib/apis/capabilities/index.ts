@@ -56,6 +56,10 @@ export const setToolKey = (token: string, name: string, values: Record<string, s
 export const testToolConnection = (token: string, name: string) =>
 	call(token, 'POST', `/tools/${encodeURIComponent(name)}/test`);
 
+// Test RÉEL d'une clé/URL d'un fournisseur (appel HTTP côté bridge).
+export const testToolKey = (token: string, name: string, values: Record<string, string>) =>
+	call(token, 'POST', `/tools/${encodeURIComponent(name)}/test-key`, { values });
+
 export const disconnectTool = (token: string, name: string) =>
 	call(token, 'DELETE', `/tools/${encodeURIComponent(name)}/connection`);
 

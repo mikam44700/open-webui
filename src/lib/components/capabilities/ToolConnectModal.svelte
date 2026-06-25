@@ -5,7 +5,7 @@
 	import {
 		getToolConnection,
 		setToolKey,
-		testToolConnection,
+		testToolKey,
 		disconnectTool,
 		startToolOAuth,
 		getToolOAuthStatus
@@ -174,6 +174,8 @@
 			providers = res?.providers ?? [];
 			note = res?.note ?? null;
 			showAdvanced = false;
+			testing = {};
+			testResults = {};
 			values = {};
 			for (const p of providers) {
 				for (const f of p.fields) {
@@ -224,14 +226,35 @@
 		}
 	};
 
-	const test = async () => {
+	// Test RÉEL par fournisseur : envoie les valeurs saisies (ou vides → clé enregistrée).
+	type TestResult = { tested: boolean; ok: boolean; reason: string };
+	let testing: Record<string, boolean> = {};
+	let testResults: Record<string, TestResult> = {};
+
+	const testKey = async (provider: Provider) => {
 		if (!toolset) return;
+		const payload: Record<string, string> = {};
+		for (const f of provider.fields) payload[f.key] = (values[f.key] ?? '').trim();
+		testing = { ...testing, [provider.name]: true };
 		try {
-			const res = await testToolConnection(localStorage.token, toolset.name);
-			if (res?.ok) toast.success($i18n.t('Connexion valide'));
-			else toast.error(res?.reason ?? $i18n.t('Connexion incomplète'));
-		} catch {
-			toast.error($i18n.t('Le test a échoué'));
+			const res = await testToolKey(localStorage.token, toolset.name, payload);
+			testResults = { ...testResults, [provider.name]: res };
+			if (res?.tested && res?.ok) {
+				// clé valide → reflète l'enregistrement dans la pastille
+				for (const f of provider.fields) if (payload[f.key]) f.present = true;
+				providers = providers;
+			}
+		} catch (err: any) {
+			testResults = {
+				...testResults,
+				[provider.name]: {
+					tested: false,
+					ok: false,
+					reason: err?.error?.message ?? $i18n.t('Le test a échoué')
+				}
+			};
+		} finally {
+			testing = { ...testing, [provider.name]: false };
 		}
 	};
 
@@ -415,7 +438,7 @@
 									{/if}
 								</label>
 							{/each}
-							<div class="flex gap-2 mt-1">
+							<div class="flex gap-2 mt-1 items-center">
 								<button
 									class="text-xs px-3 py-1.5 rounded-lg bg-sky-600 hover:bg-sky-700 text-white transition disabled:opacity-50"
 									on:click={() => save(provider)}
@@ -423,7 +446,28 @@
 								>
 									{$i18n.t('Enregistrer')}
 								</button>
+								<button
+									class="text-xs px-3 py-1.5 rounded-lg bg-gray-100 dark:bg-gray-850 hover:bg-gray-200 dark:hover:bg-gray-800 transition disabled:opacity-50 flex items-center gap-1.5"
+									on:click={() => testKey(provider)}
+									disabled={testing[provider.name]}
+								>
+									{#if testing[provider.name]}<Spinner className="size-3" />{/if}
+									{testing[provider.name] ? $i18n.t('Test…') : $i18n.t('Tester')}
+								</button>
 							</div>
+							{#if testResults[provider.name]}
+								{@const r = testResults[provider.name]}
+								<div
+									class="text-xs mt-2 {r.tested && r.ok
+										? 'text-green-600 dark:text-green-400'
+										: r.tested
+											? 'text-red-600 dark:text-red-400'
+											: 'text-gray-500 dark:text-gray-400'}"
+								>
+									{r.tested ? (r.ok ? '✅' : '❌') : 'ℹ️'}
+									{r.reason}
+								</div>
+							{/if}
 						{/if}
 					</div>
 				{/snippet}
@@ -493,12 +537,6 @@
 						{/if}
 					</div>
 					<div class="flex gap-2">
-						<button
-							class="text-xs px-3 py-1.5 rounded-lg bg-gray-100 dark:bg-gray-850 hover:bg-gray-200 dark:hover:bg-gray-800 transition"
-							on:click={test}
-						>
-							{$i18n.t('Tester')}
-						</button>
 						<button
 							class="text-xs px-3 py-1.5 rounded-lg bg-gray-100 dark:bg-gray-850 hover:bg-gray-200 dark:hover:bg-gray-800 transition"
 							on:click={close}
