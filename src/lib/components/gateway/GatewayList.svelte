@@ -20,7 +20,7 @@
 	import slackLogo from '$lib/assets/messaging/slack.png';
 	import whatsappLogo from '$lib/assets/messaging/whatsapp.png';
 	import signalLogo from '$lib/assets/messaging/signal.png';
-	import emailLogo from '$lib/assets/messaging/email.jpg';
+	import emailLogo from '$lib/assets/messaging/email.svg';
 	import smsLogo from '$lib/assets/messaging/sms.jpg';
 	import imessageLogo from '$lib/assets/messaging/imessage.jpg';
 
@@ -374,7 +374,7 @@
 									<img
 										src={LOGO_BY_ID[p.id]}
 										alt={p.name}
-										class="size-7 rounded-lg object-contain flex-none"
+										class="size-10 rounded-xl object-cover flex-none border border-gray-100 dark:border-gray-800 bg-white"
 									/>
 								{:else}
 									<div class="text-2xl leading-none select-none">{p.emoji}</div>
