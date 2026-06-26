@@ -35,7 +35,10 @@
 		}
 
 		if ($user?.role !== 'admin') {
-			if ($page.url.pathname.includes('/models') && !$user?.permissions?.workspace?.models) {
+			// La page Agents (et son API /api/v1/agents) est admin-only : tout non-admin est redirigé.
+			if ($page.url.pathname.includes('/workspace/agents')) {
+				goto('/');
+			} else if ($page.url.pathname.includes('/models') && !$user?.permissions?.workspace?.models) {
 				goto('/');
 			} else if (
 				$page.url.pathname.includes('/knowledge') &&
@@ -99,8 +102,9 @@
 						class="flex gap-1 scrollbar-none overflow-x-auto w-fit text-center text-sm font-medium rounded-full bg-transparent py-1 touch-auto pointer-events-auto"
 					>
 						<!-- Onglet « Modèles » transformé en « Agents » (cerveau dans Hermes, un agent = un profil).
-						     L'ancienne route /workspace/models reste accessible mais n'est plus liée ici. -->
-						{#if $user?.role === 'admin' || $user?.permissions?.workspace?.models}
+						     L'ancienne route /workspace/models reste accessible mais n'est plus liée ici.
+						     Réservé aux admins : l'API /api/v1/agents est admin-only. -->
+						{#if $user?.role === 'admin'}
 							<a
 								draggable="false"
 								aria-current={$page.url.pathname.includes('/workspace/agents') ? 'page' : null}

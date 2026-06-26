@@ -81,13 +81,23 @@
 		bridgeDown = false;
 		try {
 			const token = localStorage.token;
+			// Board pour lequel on demande les tâches (peut différer du board courant côté serveur).
+			const requestedBoard = currentBoard;
 			const [b, t] = await Promise.all([
 				getBoards(token, false),
-				getTasks(token, { board: currentBoard, includeArchived: showArchived })
+				getTasks(token, { board: requestedBoard, includeArchived: showArchived })
 			]);
 			boards = b?.boards ?? [];
-			currentBoard = b?.current ?? currentBoard;
-			tasks = t?.tasks ?? [];
+			const serverBoard = b?.current ?? requestedBoard;
+			currentBoard = serverBoard;
+			// Si le board courant côté serveur diffère de celui demandé, recharge les tâches du
+			// bon board : sinon on afficherait les tâches d'un board en surlignant l'autre.
+			if (serverBoard !== requestedBoard) {
+				const t2 = await getTasks(token, { board: serverBoard, includeArchived: showArchived });
+				tasks = t2?.tasks ?? [];
+			} else {
+				tasks = t?.tasks ?? [];
+			}
 		} catch (err) {
 			if (isBridgeDown(err)) bridgeDown = true;
 			else if (!silent) toast.error($i18n.t('Échec du chargement'));

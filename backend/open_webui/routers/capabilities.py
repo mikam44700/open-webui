@@ -65,10 +65,30 @@ async def test_tool_connection(toolset_name: str, user=Depends(get_admin_user)):
     return await _bridge("POST", f"/tools/{toolset_name}/test")
 
 
+@router.post("/tools/{toolset_name}/test-key")
+async def test_tool_key(toolset_name: str, body: ToolKeyBody, user=Depends(get_admin_user)):
+    """Teste RÉELLEMENT une clé/URL d'un fournisseur (appel HTTP côté bridge)."""
+    return await _bridge("POST", f"/tools/{toolset_name}/test-key", json=body.model_dump())
+
+
 @router.delete("/tools/{toolset_name}/connection")
 async def disconnect_tool(toolset_name: str, user=Depends(get_admin_user)):
     """Déconnecte un toolset (retrait des identifiants + désactivation)."""
     return await _bridge("DELETE", f"/tools/{toolset_name}/connection")
+
+
+class ToolDisconnectBody(BaseModel):
+    keys: list[str]
+
+
+@router.post("/tools/{toolset_name}/disconnect-provider")
+async def disconnect_tool_provider(
+    toolset_name: str, body: ToolDisconnectBody, user=Depends(get_admin_user)
+):
+    """Déconnecte UN seul fournisseur (efface ses champs, sans désactiver l'outil entier)."""
+    return await _bridge(
+        "POST", f"/tools/{toolset_name}/disconnect-provider", json=body.model_dump()
+    )
 
 
 @router.post("/tools/{toolset_name}/oauth/start")

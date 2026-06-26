@@ -54,6 +54,8 @@
 	let loadingNote = false;
 	let saveState: 'idle' | 'saving' | 'saved' = 'idle';
 	let saveTimeout: ReturnType<typeof setTimeout>;
+	// Sauvegarde en attente (debounce) : permet de la flusher avant de quitter la note.
+	let pendingSave: { path: string; md: string } | null = null;
 
 	let inputElement: RichTextInput | null = null;
 	let editor: Editor | null = null;
@@ -140,7 +142,10 @@
 		loadingNote = false;
 	};
 
-	const goBack = () => {
+	const goBack = async () => {
+		// Flush la sauvegarde en attente : ne pas perdre la dernière modif si on revient
+		// pendant le délai du debounce.
+		await flushSave();
 		view = 'list';
 		selectedNode = null;
 		currentMd = '';
@@ -166,20 +171,29 @@
 
 	// ─── Sauvegarde débouncée ─────────────────────────────────────────────────
 
+	// Écrit immédiatement la sauvegarde en attente (s'il y en a une), en annulant le timer.
+	const flushSave = async () => {
+		if (!pendingSave) return;
+		clearTimeout(saveTimeout);
+		const { path, md } = pendingSave;
+		pendingSave = null;
+		saveState = 'saving';
+		try {
+			await saveMemoryNote(localStorage.token, path, md);
+			saveState = 'saved';
+		} catch (e) {
+			saveState = 'idle';
+			toast.error(typeof e === 'string' ? e : "Échec de l'enregistrement");
+		}
+	};
+
 	const scheduleSave = (md: string) => {
 		if (!selectedNode) return;
 		currentMd = md;
 		saveState = 'saving';
+		pendingSave = { path: selectedNode.path, md };
 		clearTimeout(saveTimeout);
-		saveTimeout = setTimeout(async () => {
-			try {
-				await saveMemoryNote(localStorage.token, selectedNode!.path, currentMd);
-				saveState = 'saved';
-			} catch (e) {
-				saveState = 'idle';
-				toast.error(typeof e === 'string' ? e : "Échec de l'enregistrement");
-			}
-		}, 600);
+		saveTimeout = setTimeout(flushSave, 600);
 	};
 
 	// ─── Enhance (FAB AI) ─────────────────────────────────────────────────────
@@ -306,6 +320,8 @@ Garde la langue d'origine. Retourne uniquement le texte en markdown.`;
 	});
 
 	onDestroy(() => {
+		// Best-effort : déclenche la sauvegarde en attente avant de détruire le composant.
+		flushSave();
 		clearTimeout(saveTimeout);
 		clearTimeout(searchDebounceTimer);
 	});
