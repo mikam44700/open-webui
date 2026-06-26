@@ -489,6 +489,7 @@ from open_webui.routers import (
     providers,
     connectors,
     integrations,
+    memory_bridge,
     gateway,
     kanban,
     capabilities,
@@ -1459,6 +1460,7 @@ app.include_router(automations.router, prefix='/api/v1/automations', tags=['auto
 app.include_router(providers.router, prefix='/api/v1/providers', tags=['providers'])
 app.include_router(connectors.router, prefix='/api/v1/connectors', tags=['connectors'])
 app.include_router(integrations.router, prefix='/api/v1/integrations', tags=['integrations'])
+app.include_router(memory_bridge.router, prefix='/api/v1/memory', tags=['memory'])
 app.include_router(gateway.router, prefix='/api/v1/gateway', tags=['gateway'])
 app.include_router(kanban.router, prefix='/api/v1/kanban', tags=['kanban'])
 app.include_router(capabilities.router, prefix='/api/v1/capabilities', tags=['capabilities'])

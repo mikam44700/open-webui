@@ -78,7 +78,7 @@
 	const BREAKPOINT = 768;
 	// Ordre LOGIQUE de la barre (parcours de mise en place de l'OS) :
 	// cerveau -> créer les agents -> capacités -> canaux -> piloter -> automatiser -> productivité.
-	const DEFAULT_PINNED_ITEMS = ['providers', 'workspace', 'connectors', 'gateway', 'kanban', 'automations', 'notes', 'calendar'];
+	const DEFAULT_PINNED_ITEMS = ['providers', 'memory', 'workspace', 'connectors', 'gateway', 'kanban', 'automations', 'notes', 'calendar'];
 
 	let scrollTop = 0;
 
@@ -144,6 +144,9 @@
 			case 'providers':
 				// Page Providers (gestion des cerveaux Hermes) — admin-only (FR-009)
 				return $user?.role === 'admin';
+			case 'memory':
+				// Page Mémoire (Second Cerveau, coffre Obsidian) — admin-only. Cf. specs/005-memoire.
+				return $user?.role === 'admin';
 			case 'connectors':
 				// Page Connecteurs (gestion des MCP Hermes) — admin-only (FR-002)
 				return $user?.role === 'admin';
@@ -166,6 +169,7 @@
 			calendar: { label: 'Calendrier', href: '/calendar', iconType: 'calendar' },
 			playground: { label: 'Playground', href: '/playground', iconType: 'playground' },
 			providers: { label: 'Providers', href: '/providers', iconType: 'providers' },
+			memory: { label: 'Mémoire', href: '/memory', iconType: 'memory' },
 			connectors: { label: 'Capacités', href: '/connectors', iconType: 'connectors' },
 			gateway: { label: 'Messagerie', href: '/gateway', iconType: 'gateway' },
 			kanban: { label: 'Tâches', href: '/kanban', iconType: 'kanban' }
@@ -962,6 +966,10 @@
 													d="M8.25 3v1.5M4.5 8.25H3m18 0h-1.5M4.5 12H3m18 0h-1.5m-15 3.75H3m18 0h-1.5M8.25 19.5V21M12 3v1.5m0 15V21m3.75-18v1.5m0 15V21m-9-1.5h10.5a2.25 2.25 0 0 0 2.25-2.25V6.75a2.25 2.25 0 0 0-2.25-2.25H6.75A2.25 2.25 0 0 0 4.5 6.75v10.5a2.25 2.25 0 0 0 2.25 2.25Zm.75-12h9v9h-9v-9Z"
 												/>
 											</svg>
+										{:else if itemId === 'memory'}
+											<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="size-4.5">
+												<path stroke-linecap="round" stroke-linejoin="round" d="M12 6.042A8.967 8.967 0 0 0 6 3.75c-1.052 0-2.062.18-3 .512v14.25A8.987 8.987 0 0 1 6 18c2.305 0 4.408.867 6 2.292m0-14.25a8.966 8.966 0 0 1 6-2.292c1.052 0 2.062.18 3 .512v14.25A8.987 8.987 0 0 0 18 18a8.967 8.967 0 0 0-6 2.292m0-14.25v14.25" />
+											</svg>
 										{:else if itemId === 'connectors'}
 											<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="size-4.5">
 												<path stroke-linecap="round" stroke-linejoin="round" d="M13.19 8.688a4.5 4.5 0 0 1 1.242 7.244l-4.5 4.5a4.5 4.5 0 0 1-6.364-6.364l1.757-1.757m13.35-.622 1.757-1.757a4.5 4.5 0 0 0-6.364-6.364l-4.5 4.5a4.5 4.5 0 0 0 1.242 7.244" />
@@ -1237,6 +1245,10 @@
 														stroke-linejoin="round"
 														d="M8.25 3v1.5M4.5 8.25H3m18 0h-1.5M4.5 12H3m18 0h-1.5m-15 3.75H3m18 0h-1.5M8.25 19.5V21M12 3v1.5m0 15V21m3.75-18v1.5m0 15V21m-9-1.5h10.5a2.25 2.25 0 0 0 2.25-2.25V6.75a2.25 2.25 0 0 0-2.25-2.25H6.75A2.25 2.25 0 0 0 4.5 6.75v10.5a2.25 2.25 0 0 0 2.25 2.25Zm.75-12h9v9h-9v-9Z"
 													/>
+												</svg>
+											{:else if itemId === 'memory'}
+												<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="size-4.5">
+													<path stroke-linecap="round" stroke-linejoin="round" d="M12 6.042A8.967 8.967 0 0 0 6 3.75c-1.052 0-2.062.18-3 .512v14.25A8.987 8.987 0 0 1 6 18c2.305 0 4.408.867 6 2.292m0-14.25a8.966 8.966 0 0 1 6-2.292c1.052 0 2.062.18 3 .512v14.25A8.987 8.987 0 0 0 18 18a8.967 8.967 0 0 0-6 2.292m0-14.25v14.25" />
 												</svg>
 											{:else if itemId === 'connectors'}
 												<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="size-4.5">
