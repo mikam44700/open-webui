@@ -505,6 +505,7 @@ from open_webui.routers import (
     groups,
     images,
     knowledge,
+    knowledge_bridge,
     memories,
     models,
     notes,
@@ -1446,6 +1447,8 @@ app.include_router(notes.router, prefix='/api/v1/notes', tags=['notes'])
 
 app.include_router(models.router, prefix='/api/v1/models', tags=['models'])
 app.include_router(knowledge.router, prefix='/api/v1/knowledge', tags=['knowledge'])
+# Pont Connaissances -> coffre Hermes (feature 015) : rend les documents lisibles par Agent OS.
+app.include_router(knowledge_bridge.router, prefix='/api/v1/knowledge-agent', tags=['knowledge-agent'])
 app.include_router(prompts.router, prefix='/api/v1/prompts', tags=['prompts'])
 app.include_router(tools.router, prefix='/api/v1/tools', tags=['tools'])
 app.include_router(skills.router, prefix='/api/v1/skills', tags=['skills'])
