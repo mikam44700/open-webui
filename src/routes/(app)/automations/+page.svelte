@@ -35,7 +35,7 @@
 >
 	<div class="flex-1 max-h-full overflow-y-auto">
 		{#if loaded}
-			<div class="pb-1 px-3 md:px-[18px] pt-2">
+			<div class="pb-1 px-3 md:px-[18px] pt-2 w-full">
 				{#if $mobile}
 					<div class="mb-2">
 						<Tooltip content={$showSidebar ? $i18n.t('Close Sidebar') : $i18n.t('Open Sidebar')}>

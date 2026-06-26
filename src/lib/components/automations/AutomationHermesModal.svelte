@@ -11,12 +11,14 @@
 
 	import Modal from '$lib/components/common/Modal.svelte';
 	import { buildRhythm as buildRhythmPayload } from '$lib/automations/labels';
+	import type { AutomationTemplate } from '$lib/automations/templates';
 
 	const i18n = getContext('i18n');
 	const dispatch = createEventDispatcher();
 
 	export let show = false;
 	export let automation: Automation | null = null; // null = création
+	export let prefill: AutomationTemplate | null = null; // modèle pré-rempli (création)
 
 	$: editing = automation !== null;
 
@@ -41,25 +43,25 @@
 
 	const weekdays = ['lundi', 'mardi', 'mercredi', 'jeudi', 'vendredi', 'samedi', 'dimanche'];
 
-	$: if (show) init(automation);
+	$: if (show) init(automation, prefill);
 
-	const init = (a: Automation | null) => {
+	const init = (a: Automation | null, p: AutomationTemplate | null) => {
 		if (a) {
 			name = a.name;
 			instruction = a.instruction;
 			deliver = a.deliver ?? '';
 			changeRhythm = false; // on ne touche pas au rythme par défaut en édition
 		} else {
-			name = '';
-			instruction = '';
+			name = p?.name ?? '';
+			instruction = p?.instruction ?? '';
 			deliver = '';
-			rhythmType = 'daily';
-			time = '08:00';
-			weekday = 0;
-			everyValue = 2;
-			everyUnit = 'h';
-			onceAt = '';
-			advancedSchedule = '';
+			rhythmType = p?.rhythm.rhythmType ?? 'daily';
+			time = p?.rhythm.time ?? '08:00';
+			weekday = p?.rhythm.weekday ?? 0;
+			everyValue = p?.rhythm.everyValue ?? 2;
+			everyUnit = p?.rhythm.everyUnit ?? 'h';
+			onceAt = p?.rhythm.onceAt ?? '';
+			advancedSchedule = p?.rhythm.advancedSchedule ?? '';
 			changeRhythm = true;
 		}
 	};
