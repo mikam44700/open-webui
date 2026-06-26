@@ -478,11 +478,13 @@ from open_webui.models.messages import Messages
 from open_webui.models.models import Models
 from open_webui.models.users import UserModel, Users
 from open_webui.routers import (
+    agent_channel,
     analytics,
     audio,
     auths,
     automations,
     automations_hermes,
+    briefing,
     calendar,
     calendar_hermes,
     channels,
@@ -1474,6 +1476,10 @@ app.include_router(calendar.router, prefix='/api/v1/calendars', tags=['calendars
 # Calendrier piloté par Hermes (feature 014) : Google Agenda via le bridge. La page front
 # utilise ce proxy ; le router natif ci-dessus reste monté (base locale) mais inerte cote UI.
 app.include_router(calendar_hermes.router, prefix='/api/v1/calendar', tags=['calendar'])
+# Briefing du jour assemblé par Hermes (feature 015).
+app.include_router(briefing.router, prefix='/api/v1/briefing', tags=['briefing'])
+# Canal « Agent OS » : Hermes publie ses briefings dans un canal de l'app (feature 015).
+app.include_router(agent_channel.router, prefix='/api/v1/agent-channel', tags=['agent-channel'])
 
 # SCIM 2.0 API for identity management
 if ENABLE_SCIM:

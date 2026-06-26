@@ -15,6 +15,7 @@
 	import QuickActionsCard from '$lib/components/dashboard/QuickActionsCard.svelte';
 	import WorkflowsCard from '$lib/components/dashboard/WorkflowsCard.svelte';
 	import OnboardingCard from '$lib/components/dashboard/OnboardingCard.svelte';
+	import BriefingCard from '$lib/components/dashboard/BriefingCard.svelte';
 	import { deriveOnboardingSteps } from '$lib/onboarding/steps';
 
 	import { getHermesStatus, getActiveProvider } from '$lib/apis/providers';
@@ -231,6 +232,8 @@
 				{#if !loading}
 					<OnboardingCard steps={onboardingSteps} />
 				{/if}
+
+				<BriefingCard />
 
 				<WorkflowsCard />
 
