@@ -13,6 +13,9 @@
 	import ConnectionsCard from '$lib/components/dashboard/ConnectionsCard.svelte';
 	import ActivityCard from '$lib/components/dashboard/ActivityCard.svelte';
 	import QuickActionsCard from '$lib/components/dashboard/QuickActionsCard.svelte';
+	import WorkflowsCard from '$lib/components/dashboard/WorkflowsCard.svelte';
+	import OnboardingCard from '$lib/components/dashboard/OnboardingCard.svelte';
+	import { deriveOnboardingSteps } from '$lib/onboarding/steps';
 
 	import { getHermesStatus, getActiveProvider } from '$lib/apis/providers';
 	import { getGatewayStatus } from '$lib/apis/gateway';
@@ -44,8 +47,20 @@
 	let activityUnavailable = false;
 	let counts: { label: string; n: number }[] = [];
 	let recent: { title: string; statusLabel: string; blocked: boolean }[] = [];
+	let taskTotal: number | 'unknown' = 'unknown';
 
 	$: alerts = deriveAlerts(states);
+
+	// Onboarding : dérivé des mêmes états (aucun appel supplémentaire).
+	$: onboardingSteps = deriveOnboardingSteps({
+		activeBrain: states.activeBrain,
+		connectedIntegrations: connectionsUnavailable
+			? 'unknown'
+			: integrations.filter((i) => i.connected).length,
+		memory: states.memory,
+		messaging: states.messaging,
+		taskCount: taskTotal
+	});
 
 	// Statuts techniques Kanban -> libellés dirigeant.
 	const STATUS_LABELS: Record<string, string> = {
@@ -148,6 +163,7 @@
 
 			const blocked = (agg['blocked'] ?? 0) + (agg['review'] ?? 0);
 			states.blockedTasks = blocked;
+			taskTotal = boards.reduce((sum: number, bd: any) => sum + (bd.total ?? 0), 0);
 
 			recent = [...tasks]
 				.sort((x: any, y: any) => (y.created_at ?? 0) - (x.created_at ?? 0))
@@ -224,6 +240,12 @@
 		<div class="flex-1 max-h-full overflow-y-auto @container">
 			<div class="w-full max-w-5xl mx-auto px-3 py-3 flex flex-col gap-3">
 				<AlertsBanner {alerts} {loading} />
+
+				{#if !loading}
+					<OnboardingCard steps={onboardingSteps} />
+				{/if}
+
+				<WorkflowsCard />
 
 				<div class="grid grid-cols-1 md:grid-cols-2 gap-3">
 					<HealthCard {bricks} {loading} />
