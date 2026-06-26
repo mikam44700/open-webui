@@ -12,6 +12,8 @@
 	import ToolsetList from '$lib/components/capabilities/ToolsetList.svelte';
 	import SkillList from '$lib/components/capabilities/SkillList.svelte';
 	import IntegrationsList from '$lib/components/integrations/IntegrationsList.svelte';
+	import GatewayList from '$lib/components/gateway/GatewayList.svelte';
+	import ProviderList from '$lib/components/providers/ProviderList.svelte';
 	import Tooltip from '$lib/components/common/Tooltip.svelte';
 	import Sidebar from '$lib/components/icons/Sidebar.svelte';
 
@@ -26,12 +28,19 @@
 		{ key: 'tools', label: 'Outils' },
 		{ key: 'connectors', label: 'Connecteurs avancés' },
 		{ key: 'integrations', label: 'Intégrations' },
+		{ key: 'messaging', label: 'Messagerie' },
+		{ key: 'providers', label: 'Modèles IA' },
 		{ key: 'skills', label: 'Compétences' }
 	];
 
-	// Mode Expert (011) : « Connecteurs avancés » (MCP) n'apparaît qu'en mode expert.
-	$: visibleSections = $expertMode ? sections : sections.filter((s) => s.key !== 'connectors');
-	$: if (!$expertMode && section === 'connectors') section = 'tools';
+	// Mode Expert : « Connecteurs avancés » (MCP) et « Compétences » (panneau technique des
+	// skills natives Hermes) n'apparaissent qu'en mode expert. Côté client non-tech, l'assistant
+	// a ses compétences activées par défaut — rien à gérer (vision « zéro charge mentale »).
+	const expertOnlySections = ['connectors', 'skills'];
+	$: visibleSections = $expertMode
+		? sections
+		: sections.filter((s) => !expertOnlySections.includes(s.key));
+	$: if (!$expertMode && expertOnlySections.includes(section)) section = 'tools';
 
 	onMount(async () => {
 		// FR-002 : page admin-only
@@ -94,6 +103,10 @@
 				<ToolsetList />
 			{:else if section === 'integrations'}
 				<IntegrationsList />
+			{:else if section === 'messaging'}
+				<GatewayList />
+			{:else if section === 'providers'}
+				<ProviderList />
 			{:else if section === 'skills'}
 				<SkillList />
 			{:else}
