@@ -484,6 +484,7 @@ from open_webui.routers import (
     automations,
     automations_hermes,
     calendar,
+    calendar_hermes,
     channels,
     chats,
     configs,
@@ -1470,6 +1471,9 @@ app.include_router(kanban.router, prefix='/api/v1/kanban', tags=['kanban'])
 app.include_router(capabilities.router, prefix='/api/v1/capabilities', tags=['capabilities'])
 app.include_router(agents.router, prefix='/api/v1/agents', tags=['agents'])
 app.include_router(calendar.router, prefix='/api/v1/calendars', tags=['calendars'])
+# Calendrier piloté par Hermes (feature 014) : Google Agenda via le bridge. La page front
+# utilise ce proxy ; le router natif ci-dessus reste monté (base locale) mais inerte cote UI.
+app.include_router(calendar_hermes.router, prefix='/api/v1/calendar', tags=['calendar'])
 
 # SCIM 2.0 API for identity management
 if ENABLE_SCIM:
