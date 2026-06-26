@@ -12,7 +12,11 @@
 	} from '$lib/apis/capabilities';
 
 	import Spinner from '$lib/components/common/Spinner.svelte';
+	import ConfirmDialog from '$lib/components/common/ConfirmDialog.svelte';
 	import { TOOLSET_FR } from '$lib/utils/toolsetLabels';
+
+	let showDisconnectConfirm = false;
+	let pendingDisconnect: Provider | null = null;
 
 	// Logos des fournisseurs de recherche web (mappés par `slug` renvoyé par le bridge).
 	import duckduckgoLogo from '$lib/assets/web-providers/duckduckgo.png';
@@ -507,7 +511,10 @@
 								{#if providerStatus(provider) === 'saved'}
 									<button
 										class="text-xs px-3 py-1.5 rounded-lg text-red-600 hover:bg-red-50 dark:hover:bg-red-950/30 transition disabled:opacity-50 flex items-center gap-1.5 ml-auto"
-										on:click={() => disconnectProvider(provider)}
+										on:click={() => {
+											pendingDisconnect = provider;
+											showDisconnectConfirm = true;
+										}}
 										disabled={disconnecting[provider.name]}
 									>
 										{#if disconnecting[provider.name]}<Spinner className="size-3" />{/if}
@@ -597,3 +604,15 @@
 		</div>
 	</div>
 {/if}
+
+<ConfirmDialog
+	bind:show={showDisconnectConfirm}
+	title={$i18n.t('Déconnecter ce fournisseur ?')}
+	message={$i18n.t(
+		'Les identifiants enregistrés pour ce fournisseur seront effacés. Vous pourrez le reconnecter plus tard.'
+	)}
+	confirmLabel={$i18n.t('Déconnecter')}
+	onConfirm={() => {
+		if (pendingDisconnect) disconnectProvider(pendingDisconnect);
+	}}
+/>

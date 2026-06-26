@@ -14,6 +14,10 @@
 		type MessagingEnvVar
 	} from '$lib/apis/gateway';
 	import Spinner from '$lib/components/common/Spinner.svelte';
+	import ConfirmDialog from '$lib/components/common/ConfirmDialog.svelte';
+
+	let showRestartConfirm = false;
+	let showRegenConfirm = false;
 
 	import telegramLogo from '$lib/assets/messaging/telegram.png';
 	import discordLogo from '$lib/assets/messaging/discord.jpg';
@@ -305,7 +309,7 @@
 				</div>
 				<button
 					class="px-3 py-1.5 text-sm rounded-lg bg-gray-100 dark:bg-gray-850 hover:bg-gray-200 dark:hover:bg-gray-800 transition disabled:opacity-50"
-					on:click={onRestart}
+					on:click={() => (showRestartConfirm = true)}
 					disabled={restarting}
 				>
 					{restarting ? $i18n.t('Redémarrage…') : $i18n.t('Redémarrer')}
@@ -334,7 +338,7 @@
 					</div>
 					<button
 						class="px-3 py-1.5 text-sm rounded-lg bg-gray-100 dark:bg-gray-850 hover:bg-gray-200 dark:hover:bg-gray-800 transition disabled:opacity-50"
-						on:click={onGenerateKey}
+						on:click={() => (status?.api_key_present ? (showRegenConfirm = true) : onGenerateKey())}
 						disabled={generatingKey}
 					>
 						{generatingKey
@@ -591,3 +595,23 @@
 		</div>
 	</div>
 {/if}
+
+<ConfirmDialog
+	bind:show={showRestartConfirm}
+	title={$i18n.t('Redémarrer la messagerie ?')}
+	message={$i18n.t(
+		'La messagerie va redémarrer. Les canaux seront brièvement interrompus, puis reconnectés.'
+	)}
+	confirmLabel={$i18n.t('Redémarrer')}
+	onConfirm={onRestart}
+/>
+
+<ConfirmDialog
+	bind:show={showRegenConfirm}
+	title={$i18n.t('Régénérer la clé API ?')}
+	message={$i18n.t(
+		'Une nouvelle clé sera générée et l’ancienne cessera de fonctionner. Les connexions qui utilisaient l’ancienne clé devront être mises à jour.'
+	)}
+	confirmLabel={$i18n.t('Régénérer')}
+	onConfirm={onGenerateKey}
+/>

@@ -3,6 +3,7 @@
 	import { toast } from 'svelte-sonner';
 
 	import { getTools, setToolEnabled } from '$lib/apis/capabilities';
+	import { expertMode } from '$lib/stores';
 
 	import Spinner from '$lib/components/common/Spinner.svelte';
 	import Switch from '$lib/components/common/Switch.svelte';
@@ -51,7 +52,7 @@
 
 	// Catégories techniques masquées par défaut, révélées par le « Mode Expert ».
 	const EXPERT_LABELS = new Set(['Système & Code', 'Automatisation & Intégrations', OTHER_LABEL]);
-	let showExpert = false;
+	// Mode Expert global (store partagé, persisté) — feature 011.
 	// Onglet de catégorie sélectionné (navigation par sous-onglets plutôt qu'une longue page).
 	let selectedLabel = '';
 
@@ -70,7 +71,7 @@
 	})();
 
 	// Onglets visibles : catégories grand public ; les techniques s'ajoutent en Mode Expert.
-	$: visibleTabs = showExpert ? groups : groups.filter((g) => !EXPERT_LABELS.has(g.label));
+	$: visibleTabs = $expertMode ? groups : groups.filter((g) => !EXPERT_LABELS.has(g.label));
 	// Catégorie affichée : celle sélectionnée si encore visible, sinon la première.
 	$: activeGroup = visibleTabs.find((g) => g.label === selectedLabel) ?? visibleTabs[0] ?? null;
 
@@ -138,7 +139,7 @@
 				title={$i18n.t('Affiche les outils techniques (terminal, code, intégrations…)')}
 			>
 				{$i18n.t('Mode Expert')}
-				<Switch state={showExpert} on:change={() => (showExpert = !showExpert)} />
+				<Switch state={$expertMode} on:change={() => expertMode.set(!$expertMode)} />
 			</label>
 		</div>
 

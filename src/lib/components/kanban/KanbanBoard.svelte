@@ -17,8 +17,11 @@
 	} from '$lib/apis/kanban';
 	import { getAgents } from '$lib/apis/agents';
 	import Spinner from '$lib/components/common/Spinner.svelte';
+	import ConfirmDialog from '$lib/components/common/ConfirmDialog.svelte';
 
 	const i18n = getContext('i18n');
+
+	let showDispatchConfirm = false;
 
 	// Colonnes (ordre du flux de travail). « archived » n'apparaît que si demandé.
 	const COLUMNS = [
@@ -342,7 +345,7 @@
 			</button>
 			<button
 				class="px-2.5 py-1 text-xs rounded-lg bg-gray-100 dark:bg-gray-850 hover:bg-gray-200 dark:hover:bg-gray-800 transition disabled:opacity-50"
-				on:click={onDispatch}
+				on:click={() => (showDispatchConfirm = true)}
 				disabled={dispatching}
 				title={$i18n.t('Promouvoir les tâches prêtes et lancer les agents')}
 			>
@@ -580,3 +583,13 @@
 		</div>
 	</div>
 {/if}
+
+<ConfirmDialog
+	bind:show={showDispatchConfirm}
+	title={$i18n.t('Lancer le dispatch ?')}
+	message={$i18n.t(
+		'Les tâches prêtes vont être promues et les agents lancés pour les exécuter. Cette action démarre du travail réel.'
+	)}
+	confirmLabel={$i18n.t('Lancer')}
+	onConfirm={onDispatch}
+/>

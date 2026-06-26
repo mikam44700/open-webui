@@ -3,7 +3,7 @@
 
 	const i18n = getContext('i18n');
 
-	import { mobile, showSidebar, user } from '$lib/stores';
+	import { mobile, showSidebar, user, expertMode } from '$lib/stores';
 	import { goto } from '$app/navigation';
 
 	import ConnectorList from '$lib/components/connectors/ConnectorList.svelte';
@@ -28,6 +28,10 @@
 		{ key: 'integrations', label: 'Intégrations' },
 		{ key: 'skills', label: 'Compétences' }
 	];
+
+	// Mode Expert (011) : « Connecteurs avancés » (MCP) n'apparaît qu'en mode expert.
+	$: visibleSections = $expertMode ? sections : sections.filter((s) => s.key !== 'connectors');
+	$: if (!$expertMode && section === 'connectors') section = 'tools';
 
 	onMount(async () => {
 		// FR-002 : page admin-only
@@ -69,7 +73,7 @@
 				<div class="ml-2 py-0.5 self-center flex items-center w-full gap-3">
 					<span class="text-sm font-medium">{$i18n.t('Capacités')}</span>
 					<div class="flex gap-1 text-sm font-medium">
-						{#each sections as s}
+						{#each visibleSections as s}
 							<button
 								type="button"
 								class="px-2.5 py-1 rounded-lg transition {section === s.key

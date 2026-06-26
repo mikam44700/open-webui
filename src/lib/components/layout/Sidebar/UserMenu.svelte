@@ -14,7 +14,8 @@
 		showShortcuts,
 		user,
 		config,
-		settings
+		settings,
+		expertMode
 	} from '$lib/stores';
 
 	import { WEBUI_API_BASE_URL } from '$lib/constants';
@@ -251,6 +252,20 @@
 					<Settings className="w-5 h-5" strokeWidth="1.5" />
 				</div>
 				<div class=" self-center truncate">{$i18n.t('Settings')}</div>
+			</button>
+
+			<button
+				class="flex items-center rounded-xl py-1.5 px-3 w-full hover:bg-gray-50 dark:hover:bg-gray-800 transition cursor-pointer select-none"
+				type="button"
+				on:click={() => expertMode.set(!$expertMode)}
+			>
+				<div class=" self-center mr-3">
+					<Code className="w-5 h-5" strokeWidth="1.5" />
+				</div>
+				<div class=" self-center truncate">{$i18n.t('Mode Expert')}</div>
+				<div class=" self-center ml-auto text-xs text-gray-500">
+					{$expertMode ? $i18n.t('Activé') : $i18n.t('Désactivé')}
+				</div>
 			</button>
 
 			{#if role === 'admin'}

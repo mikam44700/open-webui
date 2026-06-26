@@ -9,7 +9,10 @@
 		getHermesUpdateStatus
 	} from '$lib/apis/providers';
 	import Spinner from '$lib/components/common/Spinner.svelte';
+	import ConfirmDialog from '$lib/components/common/ConfirmDialog.svelte';
 	import { WEBUI_BASE_URL } from '$lib/constants';
+
+	let showUpdateConfirm = false;
 
 	const i18n = getContext('i18n');
 
@@ -162,7 +165,7 @@
 				type="button"
 				class="text-sm px-3 py-1.5 rounded-xl bg-black text-white dark:bg-white dark:text-black transition disabled:opacity-50 inline-flex items-center gap-2"
 				disabled={updateState === 'running'}
-				on:click={update}
+				on:click={() => (showUpdateConfirm = true)}
 			>
 				{#if updateState === 'running'}<Spinner className="size-4" />{$i18n.t('Mise à jour en cours…')}{:else}{$i18n.t('Mettre à jour le moteur')}{/if}
 			</button>
@@ -185,3 +188,13 @@
 		{/if}
 	</div>
 {/if}
+
+<ConfirmDialog
+	bind:show={showUpdateConfirm}
+	title={$i18n.t('Mettre à jour le moteur ?')}
+	message={$i18n.t(
+		'Le moteur va être mis à jour vers la dernière version, avec une sauvegarde automatique au préalable. Le service peut être interrompu quelques instants.'
+	)}
+	confirmLabel={$i18n.t('Mettre à jour')}
+	onConfirm={update}
+/>

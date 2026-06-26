@@ -23,6 +23,7 @@
 	import { getIntegrations } from '$lib/apis/integrations';
 	import { getBoards, getTasks } from '$lib/apis/kanban';
 	import { deriveAlerts, type DashboardStates, type DisplayStatus } from '$lib/dashboard/alerts';
+	import { labelForStatus, isBlockedStatus } from '$lib/dashboard/kanban-labels';
 
 	let loaded = false;
 	let loading = true;
@@ -61,20 +62,6 @@
 		messaging: states.messaging,
 		taskCount: taskTotal
 	});
-
-	// Statuts techniques Kanban -> libellés dirigeant.
-	const STATUS_LABELS: Record<string, string> = {
-		triage: 'À clarifier',
-		todo: 'À faire',
-		ready: 'Prêt',
-		running: 'En cours',
-		scheduled: 'Planifié',
-		blocked: 'Bloqué',
-		review: 'À valider',
-		done: 'Terminé'
-	};
-	const labelForStatus = (s: string) => STATUS_LABELS[s] ?? s;
-	const isBlocked = (s: string) => s === 'blocked' || s === 'review';
 
 	const loadHermes = async () => {
 		try {
@@ -171,7 +158,7 @@
 				.map((task: any) => ({
 					title: task.title,
 					statusLabel: labelForStatus(task.status),
-					blocked: isBlocked(task.status)
+					blocked: isBlockedStatus(task.status)
 				}));
 		} catch {
 			activityUnavailable = true;

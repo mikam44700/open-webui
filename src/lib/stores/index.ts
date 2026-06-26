@@ -12,6 +12,22 @@ import emojiShortCodes from '$lib/emoji-shortcodes.json';
 // Backend
 export const WEBUI_NAME = writable(APP_NAME);
 
+// Mode Expert global (feature 011) : bascule simple/expert pour toute l'app, persistée.
+// Défaut = simple (false). Honnête et réversible : ne change que la visibilité, jamais les fonctions.
+const EXPERT_MODE_KEY = 'agentos-expert-mode';
+export const expertMode = writable(
+	typeof localStorage !== 'undefined' && localStorage.getItem(EXPERT_MODE_KEY) === 'true'
+);
+if (typeof localStorage !== 'undefined') {
+	expertMode.subscribe((v) => {
+		try {
+			localStorage.setItem(EXPERT_MODE_KEY, v ? 'true' : 'false');
+		} catch {
+			// localStorage indisponible : on garde l'état en mémoire seulement.
+		}
+	});
+}
+
 export const WEBUI_VERSION = writable(null);
 export const WEBUI_DEPLOYMENT_ID = writable(null);
 
