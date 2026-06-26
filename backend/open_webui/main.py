@@ -482,6 +482,7 @@ from open_webui.routers import (
     audio,
     auths,
     automations,
+    automations_hermes,
     calendar,
     channels,
     chats,
@@ -1456,7 +1457,10 @@ if ENABLE_ADMIN_ANALYTICS:
     app.include_router(analytics.router, prefix='/api/v1/analytics', tags=['analytics'])
 app.include_router(utils.router, prefix='/api/v1/utils', tags=['utils'])
 app.include_router(terminals.router, prefix='/api/v1/terminals', tags=['terminals'])
-app.include_router(automations.router, prefix='/api/v1/automations', tags=['automations'])
+# Automatisations pilotées par Hermes (feature 013) : /api/v1/automations pointe vers le
+# proxy Hermes (source de vérité unique). Le router natif `automations` reste importé/intact
+# (son worker et ses modèles ne sont pas supprimés) mais n'est plus monté sur cette route.
+app.include_router(automations_hermes.router, prefix='/api/v1/automations', tags=['automations'])
 app.include_router(providers.router, prefix='/api/v1/providers', tags=['providers'])
 app.include_router(connectors.router, prefix='/api/v1/connectors', tags=['connectors'])
 app.include_router(integrations.router, prefix='/api/v1/integrations', tags=['integrations'])
