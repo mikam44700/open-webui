@@ -119,10 +119,10 @@
 	const isMenuItemVisible = (id) => {
 		switch (id) {
 			case 'notes':
-				return (
-					($config?.features?.enable_notes ?? false) &&
-					($user?.role === 'admin' || ($user?.permissions?.features?.notes ?? true))
-				);
+				// Fusionné dans « Mémoire » : la prise de notes riche vit maintenant dans l'onglet
+				// Mémoire (branché sur le coffre Obsidian). On masque le doublon « Notes » natif.
+				// Réversible : restaurer le return d'origine (enable_notes && permission).
+				return false;
 			case 'workspace':
 				return (
 					$user?.role === 'admin' ||
