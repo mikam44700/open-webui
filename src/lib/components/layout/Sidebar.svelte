@@ -168,7 +168,7 @@
 			automations: { label: 'Automatisations', href: '/automations', iconType: 'automations' },
 			calendar: { label: 'Calendrier', href: '/calendar', iconType: 'calendar' },
 			playground: { label: 'Playground', href: '/playground', iconType: 'playground' },
-			providers: { label: 'Providers', href: '/providers', iconType: 'providers' },
+			providers: { label: 'Modèles IA', href: '/providers', iconType: 'providers' },
 			memory: { label: 'Mémoire', href: '/memory', iconType: 'memory' },
 			connectors: { label: 'Capacités', href: '/connectors', iconType: 'connectors' },
 			gateway: { label: 'Messagerie', href: '/gateway', iconType: 'gateway' },

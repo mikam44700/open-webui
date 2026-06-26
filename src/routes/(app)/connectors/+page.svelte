@@ -24,7 +24,7 @@
 
 	const sections = [
 		{ key: 'tools', label: 'Outils' },
-		{ key: 'connectors', label: 'Connecteurs MCP' },
+		{ key: 'connectors', label: 'Connecteurs avancés' },
 		{ key: 'integrations', label: 'Intégrations' },
 		{ key: 'skills', label: 'Compétences' }
 	];
@@ -122,7 +122,7 @@
 								class="flex-none text-xs px-3 py-1.5 rounded-lg border border-gray-200 dark:border-gray-700 hover:bg-gray-100 dark:hover:bg-gray-850 transition"
 								on:click={() => (showAddModal = true)}
 							>
-								{$i18n.t('Ajouter un MCP custom')}
+								{$i18n.t('Ajouter un connecteur personnalisé')}
 							</button>
 						{/if}
 					</div>
@@ -133,7 +133,7 @@
 				{:else}
 					<div class="w-full max-w-5xl mx-auto px-3 py-3">
 						<div class="mb-3 text-sm text-gray-600 dark:text-gray-400">
-							{$i18n.t('Installe un connecteur prêt à l’emploi, validé pour Hermes.')}
+							{$i18n.t('Installe un connecteur prêt à l’emploi, validé pour ton assistant.')}
 						</div>
 						<CatalogList on:changed={() => (connectorTab = 'installed')} />
 					</div>

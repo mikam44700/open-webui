@@ -72,7 +72,7 @@
 		>
 			<div class="text-sm font-medium">{$i18n.t('Le service Capacités est injoignable')}</div>
 			<div class="text-xs text-gray-500 max-w-md">
-				{$i18n.t('Le pont vers Hermes ne répond pas. Vérifie qu’il tourne, puis réessaie.')}
+				{$i18n.t('Le moteur ne répond pas. Vérifie qu’il tourne, puis réessaie.')}
 			</div>
 			<button
 				class="text-xs px-3 py-1.5 rounded-xl bg-gray-100 dark:bg-gray-850 hover:bg-gray-200 dark:hover:bg-gray-800 transition"
@@ -83,7 +83,7 @@
 		</div>
 	{:else}
 		<div class="mb-3 text-sm text-gray-600 dark:text-gray-400">
-			{$i18n.t('Compétences réutilisables exécutées par ton cerveau Hermes')}
+			{$i18n.t('Compétences réutilisables exécutées par ton assistant')}
 		</div>
 
 		<input
@@ -124,7 +124,7 @@
 			>
 				<div class="text-sm font-medium">{$i18n.t('Aucune compétence')}</div>
 				<div class="text-xs text-gray-500 max-w-md">
-					{$i18n.t('Ajoute des compétences à ton cerveau Hermes pour les voir ici.')}
+					{$i18n.t('Ajoute des compétences à ton assistant pour les voir ici.')}
 				</div>
 			</div>
 		{/if}

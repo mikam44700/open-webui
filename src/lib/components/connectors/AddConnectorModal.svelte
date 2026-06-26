@@ -92,7 +92,7 @@
 	<div class="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" on:click|self={close}>
 		<div class="w-full max-w-lg rounded-2xl bg-white dark:bg-gray-900 p-5 shadow-xl">
 			<div class="flex items-center justify-between mb-4">
-				<div class="text-sm font-medium">{$i18n.t('Ajouter un MCP custom')}</div>
+				<div class="text-sm font-medium">{$i18n.t('Ajouter un connecteur personnalisé')}</div>
 				<button class="text-gray-400 hover:text-gray-700 dark:hover:text-gray-200" on:click={close}>✕</button>
 			</div>
 

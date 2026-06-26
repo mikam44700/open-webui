@@ -26,8 +26,8 @@
 	const TABS = [
 		{
 			key: 'hermes',
-			label: 'Agent Hermes',
-			hint: 'Vérifie que ton cerveau Hermes est bien branché et à jour.'
+			label: 'Moteur',
+			hint: 'Vérifie que ton moteur IA est bien branché et à jour.'
 		},
 		{
 			key: 'oauth',
@@ -36,7 +36,7 @@
 		},
 		{ key: 'api', label: 'Clés API', hint: 'Colle ta clé API, teste-la, puis enregistre.' },
 		{ key: 'local', label: 'Local', hint: 'Indique l’adresse de ton serveur local.' },
-		{ key: 'other', label: 'Autres', hint: 'Providers à authentification externe (AWS, Copilot).' }
+		{ key: 'other', label: 'Autres', hint: 'Modèles IA à authentification externe (AWS, Copilot).' }
 	];
 
 	let loading = true;
@@ -82,7 +82,7 @@
 			if (isBridgeDown(err)) {
 				bridgeDown = true;
 			} else {
-				toast.error($i18n.t('Échec du chargement des providers'));
+				toast.error($i18n.t('Échec du chargement des modèles IA'));
 			}
 		} finally {
 			loading = false;
@@ -100,9 +100,9 @@
 		<div
 			class="flex flex-col items-center justify-center text-center py-16 gap-3 border border-dashed border-gray-200 dark:border-gray-800 rounded-2xl"
 		>
-			<div class="text-sm font-medium">{$i18n.t('Le service Providers est injoignable')}</div>
+			<div class="text-sm font-medium">{$i18n.t('Le service Modèles IA est injoignable')}</div>
 			<div class="text-xs text-gray-500 max-w-md">
-				{$i18n.t('Le pont vers Hermes ne répond pas. Vérifie qu’il tourne, puis réessaie.')}
+				{$i18n.t('Le moteur ne répond pas. Vérifie qu’il tourne, puis réessaie.')}
 			</div>
 			<button
 				class="text-xs px-3 py-1.5 rounded-xl bg-gray-100 dark:bg-gray-850 hover:bg-gray-200 dark:hover:bg-gray-800 transition"
@@ -126,7 +126,7 @@
 		<!-- recherche -->
 		<input
 			class="w-full text-sm bg-transparent border border-gray-100 dark:border-gray-850 rounded-xl px-3 py-2 outline-none mb-3"
-			placeholder={$i18n.t('Rechercher un provider')}
+			placeholder={$i18n.t('Rechercher un modèle IA')}
 			bind:value={search}
 		/>
 
@@ -164,7 +164,7 @@
 				{/each}
 			</div>
 		{:else}
-			<div class="text-xs text-gray-500 text-center py-8">{$i18n.t('Aucun provider dans cet onglet')}</div>
+			<div class="text-xs text-gray-500 text-center py-8">{$i18n.t('Aucun modèle IA dans cet onglet')}</div>
 		{/if}
 	{/if}
 </div>

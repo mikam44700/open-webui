@@ -54,7 +54,7 @@
 						class="flex gap-1 scrollbar-none overflow-x-auto w-fit text-center text-sm font-medium bg-transparent py-1"
 					>
 						<a class="min-w-fit transition" href="/providers">
-							{$i18n.t('Providers')}
+							{$i18n.t('Modèles IA')}
 						</a>
 					</div>
 				</div>

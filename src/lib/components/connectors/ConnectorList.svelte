@@ -61,7 +61,7 @@
 		>
 			<div class="text-sm font-medium">{$i18n.t('Le service Connecteurs est injoignable')}</div>
 			<div class="text-xs text-gray-500 max-w-md">
-				{$i18n.t('Le pont vers Hermes ne répond pas. Vérifie qu’il tourne, puis réessaie.')}
+				{$i18n.t('Le moteur ne répond pas. Vérifie qu’il tourne, puis réessaie.')}
 			</div>
 			<button
 				class="text-xs px-3 py-1.5 rounded-xl bg-gray-100 dark:bg-gray-850 hover:bg-gray-200 dark:hover:bg-gray-800 transition"
@@ -72,7 +72,7 @@
 		</div>
 	{:else}
 		<div class="mb-3 text-sm text-gray-600 dark:text-gray-400">
-			{$i18n.t('Connecteurs MCP de ton cerveau Hermes')}
+			{$i18n.t('Connecteurs avancés de ton assistant')}
 		</div>
 
 		<input

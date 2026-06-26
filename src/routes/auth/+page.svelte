@@ -257,17 +257,15 @@
 				{:else}
 					<div class="my-auto flex flex-col justify-center items-center">
 						<div class=" sm:max-w-md my-auto pb-10 w-full dark:text-gray-100">
-							{#if $config?.metadata?.auth_logo_position === 'center'}
-								<div class="flex justify-center mb-6">
-									<img
-										id="logo"
-										crossorigin="anonymous"
-										src="{WEBUI_BASE_URL}/static/favicon.png"
-										class="size-24 rounded-full"
-										alt="{$WEBUI_NAME} logo"
-									/>
-								</div>
-							{/if}
+							<div class="flex justify-center mb-6">
+								<img
+									id="logo"
+									crossorigin="anonymous"
+									src="{WEBUI_BASE_URL}/static/favicon.png"
+									class="size-28 rounded-full"
+									alt="{$WEBUI_NAME} logo"
+								/>
+							</div>
 							<form
 								class=" flex flex-col justify-center"
 								on:submit={(e) => {
@@ -286,6 +284,15 @@
 										{:else}
 											{$i18n.t(`Sign up to {{WEBUI_NAME}}`, { WEBUI_NAME: $WEBUI_NAME })}
 										{/if}
+									</div>
+
+									<div class="mt-2 text-sm text-gray-600 dark:text-gray-400">
+										{$i18n.t(
+											'Votre assistant d’entreprise privé. Connectez vos outils, déléguez vos tâches, gardez la mémoire de votre activité.'
+										)}
+									</div>
+									<div class="mt-1 text-xs font-medium text-gray-500 dark:text-gray-500">
+										{$i18n.t('Propulsé par Hermes Agent')}
 									</div>
 
 									{#if $config?.onboarding ?? false}

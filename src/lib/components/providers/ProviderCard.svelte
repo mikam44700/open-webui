@@ -6,6 +6,7 @@
 	import Badge from '$lib/components/common/Badge.svelte';
 	import Spinner from '$lib/components/common/Spinner.svelte';
 	import ProviderOAuth from './ProviderOAuth.svelte';
+	import { getModelPresentation } from '$lib/catalog/model-badges';
 	import {
 		setProviderKey,
 		validateProviderKey,
@@ -36,6 +37,8 @@
 
 	$: badge = badgeByState[provider.state] ?? badgeByState['not_configured'];
 	$: configured = provider.state !== 'not_configured';
+	// Présentation métier curée (libellé humain + badges) — repli neutre si inconnu (D27).
+	$: presentation = getModelPresentation(provider.id);
 	// La plupart des logos sont en PNG ; seuls ces quelques-uns restent en SVG.
 	const SVG_LOGOS = new Set(['api']);
 	$: logoExt = SVG_LOGOS.has(provider.logo) ? 'svg' : 'png';
@@ -122,7 +125,7 @@
 			toast.success($i18n.t('Cerveau actif mis à jour'));
 			dispatch('changed');
 		} catch (e: any) {
-			if (e?.error?.code === 'not_configured') toast.error($i18n.t('Ce provider n’est pas configuré'));
+			if (e?.error?.code === 'not_configured') toast.error($i18n.t('Ce modèle IA n’est pas configuré'));
 			else toast.error($i18n.t('Échec de la mise à jour du cerveau actif'));
 		} finally {
 			activating = false;
@@ -140,12 +143,28 @@
 		</div>
 		<div class="flex-1 min-w-0">
 			<div class="text-sm font-medium line-clamp-1">{provider.label}</div>
-			<div class="text-xs text-gray-500 line-clamp-1">{provider.models?.length ?? 0} {$i18n.t('modèles')}</div>
+			{#if presentation.humanLabel}
+				<div class="text-xs text-gray-500 line-clamp-1">{presentation.humanLabel}</div>
+			{:else}
+				<div class="text-xs text-gray-500 line-clamp-1">{provider.models?.length ?? 0} {$i18n.t('modèles')}</div>
+			{/if}
 		</div>
 		{#if provider.state !== 'not_configured'}
 			<Badge type={badge.type} content={$i18n.t(badge.label)} />
 		{/if}
 	</div>
+
+	<!-- Badges métier curés (US3) : affichés seulement s'ils reflètent la nature réelle (D27). -->
+	{#if presentation.badges.length > 0}
+		<div class="flex flex-wrap gap-1">
+			{#each presentation.badges as b (b)}
+				<span
+					class="text-[10px] px-1.5 py-0.5 rounded-md bg-gray-100 dark:bg-gray-850 text-gray-600 dark:text-gray-300"
+					>{$i18n.t(b)}</span
+				>
+			{/each}
+		</div>
+	{/if}
 
 	<!-- Action de connexion selon la catégorie -->
 	{#if provider.category === 'oauth'}

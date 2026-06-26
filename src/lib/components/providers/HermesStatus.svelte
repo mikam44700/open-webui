@@ -28,7 +28,7 @@
 		try {
 			status = await getHermesStatus(localStorage.token);
 		} catch {
-			toast.error($i18n.t('Impossible de récupérer l’état de Hermes'));
+			toast.error($i18n.t('Impossible de récupérer l’état du moteur'));
 		} finally {
 			loading = false;
 		}
@@ -62,7 +62,7 @@
 				stopPolling();
 				if (st.success) {
 					updateState = 'success';
-					toast.success($i18n.t('Hermes mis à jour'));
+					toast.success($i18n.t('Moteur mis à jour'));
 					await loadStatus();
 				} else {
 					updateState = 'error';
@@ -104,7 +104,7 @@
 				class="size-7 rounded-lg object-contain shrink-0"
 				draggable="false"
 			/>
-			<div class="text-sm font-medium">{$i18n.t('État de Hermes')}</div>
+			<div class="text-sm font-medium">{$i18n.t('État du moteur')}</div>
 		</div>
 
 		<div class="flex items-center justify-between text-sm">
@@ -118,7 +118,7 @@
 			</span>
 		</div>
 		<div class="flex items-center justify-between text-sm">
-			<span class="text-gray-500">{$i18n.t('Moteur Hermes joignable')}</span>
+			<span class="text-gray-500">{$i18n.t('Moteur joignable')}</span>
 			<span class="font-medium {status.hermes_available ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}">
 				{status.hermes_available ? '✓' : '✗'}
 			</span>
@@ -143,9 +143,9 @@
 
 	<!-- Mise à jour -->
 	<div class="mt-3 p-4 rounded-2xl border border-gray-100 dark:border-gray-850 flex flex-col gap-2.5">
-		<div class="text-sm font-medium">{$i18n.t('Mise à jour de Hermes')}</div>
+		<div class="text-sm font-medium">{$i18n.t('Mise à jour du moteur')}</div>
 		<div class="text-xs text-gray-500">
-			{$i18n.t('Récupère la dernière version de Hermes (et ses derniers modèles). Une sauvegarde est faite automatiquement avant.')}
+			{$i18n.t('Récupère la dernière version du moteur (et ses derniers modèles). Une sauvegarde est faite automatiquement avant.')}
 		</div>
 
 		<div class="flex items-center gap-2">
@@ -164,7 +164,7 @@
 				disabled={updateState === 'running'}
 				on:click={update}
 			>
-				{#if updateState === 'running'}<Spinner className="size-4" />{$i18n.t('Mise à jour en cours…')}{:else}{$i18n.t('Mettre à jour Hermes')}{/if}
+				{#if updateState === 'running'}<Spinner className="size-4" />{$i18n.t('Mise à jour en cours…')}{:else}{$i18n.t('Mettre à jour le moteur')}{/if}
 			</button>
 		</div>
 
@@ -175,7 +175,7 @@
 		{#if updateState === 'running'}
 			<div class="text-xs text-amber-600 dark:text-amber-400">{$i18n.t('Mise à jour en cours, ne ferme pas la page…')}</div>
 		{:else if updateState === 'success'}
-			<div class="text-xs text-green-600 dark:text-green-400">{$i18n.t('Hermes est à jour ✓')}</div>
+			<div class="text-xs text-green-600 dark:text-green-400">{$i18n.t('Le moteur est à jour ✓')}</div>
 		{:else if updateState === 'error'}
 			<div class="text-xs text-red-600 dark:text-red-400">{$i18n.t('La mise à jour a échoué. Vois le détail ci-dessous.')}</div>
 		{/if}

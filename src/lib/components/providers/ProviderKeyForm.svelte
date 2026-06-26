@@ -60,7 +60,7 @@
 		{#if configured}
 			{$i18n.t('Une clé est déjà configurée. Saisis-en une nouvelle pour la remplacer.')}
 		{:else}
-			{$i18n.t('Saisis la clé API de ce provider.')}
+			{$i18n.t('Saisis la clé API de ce modèle IA.')}
 		{/if}
 		{#if provider.env_key}
 			<span class="text-gray-400">({provider.env_key})</span>

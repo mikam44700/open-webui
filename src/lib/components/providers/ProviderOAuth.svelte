@@ -67,9 +67,9 @@
 <div class="flex flex-col gap-2">
 	<div class="text-xs text-gray-500">
 		{#if connected}
-			{$i18n.t('Ce provider est connecté. Tu peux te reconnecter si besoin.')}
+			{$i18n.t('Ce modèle IA est connecté. Tu peux te reconnecter si besoin.')}
 		{:else}
-			{$i18n.t('Connecte ce provider avec ton compte. Une fenêtre de navigateur va s’ouvrir pour autoriser l’accès.')}
+			{$i18n.t('Connecte ce modèle IA avec ton compte. Une fenêtre de navigateur va s’ouvrir pour autoriser l’accès.')}
 		{/if}
 	</div>
 

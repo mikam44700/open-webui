@@ -118,7 +118,7 @@
 		>
 			<div class="text-sm font-medium">{$i18n.t('Le service Capacités est injoignable')}</div>
 			<div class="text-xs text-gray-500 max-w-md">
-				{$i18n.t('Le pont vers Hermes ne répond pas. Vérifie qu’il tourne, puis réessaie.')}
+				{$i18n.t('Le moteur ne répond pas. Vérifie qu’il tourne, puis réessaie.')}
 			</div>
 			<button
 				class="text-xs px-3 py-1.5 rounded-xl bg-gray-100 dark:bg-gray-850 hover:bg-gray-200 dark:hover:bg-gray-800 transition"
@@ -131,7 +131,7 @@
 		<!-- Titre + interrupteur Mode Expert (révèle les catégories techniques). -->
 		<div class="flex items-start justify-between gap-3 mb-3">
 			<div class="text-sm text-gray-600 dark:text-gray-400">
-				{$i18n.t('Outils natifs de ton cerveau Hermes (recherche web, terminal, navigateur…)')}
+				{$i18n.t('Outils natifs de ton assistant (recherche web, terminal, navigateur…)')}
 			</div>
 			<label
 				class="flex-none flex items-center gap-2 text-xs text-gray-500 dark:text-gray-400 cursor-pointer select-none pt-0.5"
