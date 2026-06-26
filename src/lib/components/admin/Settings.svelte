@@ -246,8 +246,15 @@
 		}
 	];
 
+	// Agent OS (surface unique) : onglets natifs masqués car gérés par nos pages dédiées.
+	// - 'connections' : géré par la page Providers (feature 001, US4).
+	// - 'integrations' : gestion des outils/MCP gérée par la page Connecteurs (feature 002, US3).
+	// Réversible : retirer l'id de HIDDEN_TABS pour réafficher l'écran natif.
+	const HIDDEN_TABS = ['connections', 'integrations'];
+
 	const setFilteredSettings = () => {
 		filteredSettings = allSettings.filter((tab) => {
+			if (HIDDEN_TABS.includes(tab.id)) return false;
 			const searchTerm = search.toLowerCase().trim();
 			return (
 				search === '' ||

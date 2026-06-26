@@ -14,7 +14,8 @@
 		showShortcuts,
 		user,
 		config,
-		settings
+		settings,
+		expertMode
 	} from '$lib/stores';
 
 	import { WEBUI_API_BASE_URL } from '$lib/constants';
@@ -253,6 +254,20 @@
 				<div class=" self-center truncate">{$i18n.t('Settings')}</div>
 			</button>
 
+			<button
+				class="flex items-center rounded-xl py-1.5 px-3 w-full hover:bg-gray-50 dark:hover:bg-gray-800 transition cursor-pointer select-none"
+				type="button"
+				on:click={() => expertMode.set(!$expertMode)}
+			>
+				<div class=" self-center mr-3">
+					<Code className="w-5 h-5" strokeWidth="1.5" />
+				</div>
+				<div class=" self-center truncate">{$i18n.t('Mode Expert')}</div>
+				<div class=" self-center ml-auto text-xs text-gray-500">
+					{$expertMode ? $i18n.t('Activé') : $i18n.t('Désactivé')}
+				</div>
+			</button>
+
 			{#if role === 'admin'}
 				<a
 					href="/admin"
@@ -301,7 +316,8 @@
 
 			<hr class=" border-gray-50/30 dark:border-gray-800/30 my-1 p-0" />
 
-			{#if $user?.role === 'admin' || $user?.permissions?.workspace?.models || $user?.permissions?.workspace?.knowledge || $user?.permissions?.workspace?.prompts || $user?.permissions?.workspace?.tools}
+			<!-- Masqué du menu profil (anti-redondance Agent OS) : déjà présent dans la barre de navigation. -->
+			{#if false && ($user?.role === 'admin' || $user?.permissions?.workspace?.models || $user?.permissions?.workspace?.knowledge || $user?.permissions?.workspace?.prompts || $user?.permissions?.workspace?.tools)}
 				<div class="flex items-center w-full">
 					<a
 						href="/workspace"
@@ -358,7 +374,7 @@
 				</div>
 			{/if}
 
-			{#if ($config?.features?.enable_notes ?? false) && ($user?.role === 'admin' || ($user?.permissions?.features?.notes ?? true))}
+			{#if false && ($config?.features?.enable_notes ?? false) && ($user?.role === 'admin' || ($user?.permissions?.features?.notes ?? true))}
 				<div class="flex items-center w-full">
 					<a
 						href="/notes"
@@ -402,7 +418,7 @@
 				</div>
 			{/if}
 
-			{#if $config?.features?.enable_calendar && ($user?.role === 'admin' || $user?.permissions?.features?.calendar)}
+			{#if false && $config?.features?.enable_calendar && ($user?.role === 'admin' || $user?.permissions?.features?.calendar)}
 				<div class="flex items-center w-full">
 					<a
 						href="/calendar"
@@ -455,7 +471,7 @@
 				</div>
 			{/if}
 
-			{#if $config?.features?.enable_automations && ($user?.role === 'admin' || $user?.permissions?.features?.automations)}
+			{#if false && $config?.features?.enable_automations && ($user?.role === 'admin' || $user?.permissions?.features?.automations)}
 				<div class="flex items-center w-full">
 					<a
 						href="/automations"
@@ -512,7 +528,8 @@
 				</div>
 			{/if}
 
-			{#if role === 'admin'}
+			<!-- Playground masqué du menu profil (Agent OS) : surface native OpenWebUI non utilisée — Hermes seul maître. Réversible : remettre `role === 'admin'`. -->
+			{#if false && role === 'admin'}
 				<div class="flex items-center w-full">
 					<a
 						href="/playground"
@@ -561,7 +578,8 @@
 
 				<!-- {$i18n.t('Help')} -->
 
-				{#if $user?.role === 'admin'}
+				<!-- Liens « Documentation » et « Livraisons » (Releases) masqués (Agent OS) : pointent vers docs.openwebui.com et le GitHub OpenWebUI (branding tiers + contenu technique anglais hors-sujet pour nos clients). Réversible : remettre `$user?.role === 'admin'`. -->
+				{#if false && $user?.role === 'admin'}
 					<a
 						href="https://docs.openwebui.com"
 						target="_blank"

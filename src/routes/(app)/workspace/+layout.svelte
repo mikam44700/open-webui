@@ -19,7 +19,21 @@
 
 	let loaded = false;
 
+	// Capacités natives (Tools/Skills) gérées par Hermes via la page Capacités (/connectors) —
+	// on masque les surfaces natives d'OpenWebUI pour éviter le doublon (Hermes seul maître).
+	// Rien n'est supprimé : la redirection ci-dessous renvoie tout accès direct vers Capacités.
+	const HIDE_NATIVE_CAPABILITIES = true;
+
 	onMount(async () => {
+		if (
+			HIDE_NATIVE_CAPABILITIES &&
+			($page.url.pathname.includes('/workspace/tools') ||
+				$page.url.pathname.includes('/workspace/skills'))
+		) {
+			goto('/connectors');
+			return;
+		}
+
 		if ($user?.role !== 'admin') {
 			if ($page.url.pathname.includes('/models') && !$user?.permissions?.workspace?.models) {
 				goto('/');
@@ -84,14 +98,16 @@
 					<div
 						class="flex gap-1 scrollbar-none overflow-x-auto w-fit text-center text-sm font-medium rounded-full bg-transparent py-1 touch-auto pointer-events-auto"
 					>
+						<!-- Onglet « Modèles » transformé en « Agents » (cerveau dans Hermes, un agent = un profil).
+						     L'ancienne route /workspace/models reste accessible mais n'est plus liée ici. -->
 						{#if $user?.role === 'admin' || $user?.permissions?.workspace?.models}
 							<a
 								draggable="false"
-								aria-current={$page.url.pathname.includes('/workspace/models') ? 'page' : null}
-								class="min-w-fit p-1.5 {$page.url.pathname.includes('/workspace/models')
+								aria-current={$page.url.pathname.includes('/workspace/agents') ? 'page' : null}
+								class="min-w-fit p-1.5 {$page.url.pathname.includes('/workspace/agents')
 									? ''
 									: 'text-gray-300 dark:text-gray-600 hover:text-gray-700 dark:hover:text-white'} transition select-none"
-								href="/workspace/models">{$i18n.t('Models')}</a
+								href="/workspace/agents">{$i18n.t('Agents')}</a
 							>
 						{/if}
 
@@ -119,7 +135,7 @@
 							>
 						{/if}
 
-						{#if $user?.role === 'admin' || $user?.permissions?.workspace?.skills}
+						{#if !HIDE_NATIVE_CAPABILITIES && ($user?.role === 'admin' || $user?.permissions?.workspace?.skills)}
 							<a
 								draggable="false"
 								aria-current={$page.url.pathname.includes('/workspace/skills') ? 'page' : null}
@@ -132,7 +148,7 @@
 							</a>
 						{/if}
 
-						{#if $user?.role === 'admin' || $user?.permissions?.workspace?.tools}
+						{#if !HIDE_NATIVE_CAPABILITIES && ($user?.role === 'admin' || $user?.permissions?.workspace?.tools)}
 							<a
 								draggable="false"
 								aria-current={$page.url.pathname.includes('/workspace/tools') ? 'page' : null}

@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { onMount, getContext } from 'svelte';
+	import { goto } from '$app/navigation';
 	import { WEBUI_NAME, showSidebar, functions, mobile } from '$lib/stores';
 	import { page } from '$app/stores';
 	import Tooltip from '$lib/components/common/Tooltip.svelte';
@@ -7,7 +8,11 @@
 
 	const i18n = getContext('i18n');
 
-	onMount(async () => {});
+	onMount(async () => {
+		// Page Playground masquée (Agent OS) : surface native OpenWebUI non utilisée — Hermes seul maître.
+		// Tout accès direct par URL est redirigé vers l'accueil. Réversible : retirer ce bloc.
+		goto('/');
+	});
 </script>
 
 <svelte:head>
