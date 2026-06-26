@@ -3,9 +3,12 @@
 
 	const i18n = getContext('i18n');
 
-	import { mobile, showSidebar, user } from '$lib/stores';
+	import { mobile, showArchivedChats, showSidebar, user } from '$lib/stores';
 	import { goto } from '$app/navigation';
 
+	import { WEBUI_API_BASE_URL } from '$lib/constants';
+
+	import UserMenu from '$lib/components/layout/Sidebar/UserMenu.svelte';
 	import Tooltip from '$lib/components/common/Tooltip.svelte';
 	import Sidebar from '$lib/components/icons/Sidebar.svelte';
 	import MemoryExplorer from '$lib/components/memory/MemoryExplorer.svelte';
@@ -28,7 +31,7 @@
 			? 'md:max-w-[calc(100%-var(--sidebar-width))]'
 			: ''} max-w-full"
 	>
-		<nav class="px-2 pt-1.5 backdrop-blur-xl w-full drag-region">
+		<nav class="   px-2 pt-1.5 backdrop-blur-xl w-full drag-region">
 			<div class=" flex items-center">
 				{#if $mobile}
 					<div class="{$showSidebar ? 'md:hidden' : ''} flex flex-none items-center">
@@ -39,7 +42,9 @@
 							<button
 								id="sidebar-toggle-button"
 								class=" cursor-pointer flex rounded-lg hover:bg-gray-100 dark:hover:bg-gray-850 transition"
-								on:click={() => showSidebar.set(!$showSidebar)}
+								on:click={() => {
+									showSidebar.set(!$showSidebar);
+								}}
 							>
 								<div class=" self-center p-1.5">
 									<Sidebar />
@@ -49,11 +54,45 @@
 					</div>
 				{/if}
 
-				<div class="ml-2 py-0.5 self-center flex items-center w-full gap-3">
-					<span class="text-sm font-medium">{$i18n.t('Mémoire')}</span>
-					<span class="text-xs text-gray-500"
-						>{$i18n.t('Tout ce que votre assistant a appris sur votre entreprise')}</span
-					>
+				<div class="ml-2 py-0.5 self-center flex items-center justify-between w-full">
+					<div class="">
+						<div
+							class="flex gap-1 scrollbar-none overflow-x-auto w-fit text-center text-sm font-medium bg-transparent py-1 touch-auto pointer-events-auto"
+						>
+							<a class="min-w-fit transition" href="/memory">
+								{$i18n.t('Mémoire')}
+							</a>
+						</div>
+					</div>
+
+					<div class=" self-center flex items-center gap-1">
+						{#if $user !== undefined && $user !== null}
+							<UserMenu
+								className="w-[240px]"
+								role={$user?.role}
+								help={true}
+								on:show={(e) => {
+									if (e.detail === 'archived-chat') {
+										showArchivedChats.set(true);
+									}
+								}}
+							>
+								<button
+									class="select-none flex rounded-xl p-1.5 w-full hover:bg-gray-50 dark:hover:bg-gray-850 transition"
+									aria-label="Menu utilisateur"
+								>
+									<div class=" self-center">
+										<img
+											src={`${WEBUI_API_BASE_URL}/users/${$user?.id}/profile/image`}
+											class="size-6 object-cover rounded-full"
+											alt="Profil utilisateur"
+											draggable="false"
+										/>
+									</div>
+								</button>
+							</UserMenu>
+						{/if}
+					</div>
 				</div>
 			</div>
 		</nav>
