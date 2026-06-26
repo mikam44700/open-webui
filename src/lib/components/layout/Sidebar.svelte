@@ -145,8 +145,10 @@
 				// Masqué (Agent OS) : Playground OpenWebUI non utilisé — Hermes seul maître. Réversible : remettre `$user?.role === 'admin'`.
 				return false;
 			case 'providers':
-				// Page Providers (gestion des cerveaux Hermes) — admin-only (FR-009)
-				return $user?.role === 'admin';
+				// Masqué dans la navbar : « Modèles IA » est désormais un onglet de la page
+				// Capacités (allège la barre latérale). La route /providers reste accessible.
+				// Réversible : restaurer `return $user?.role === 'admin';`.
+				return false;
 			case 'memory':
 				// Page Mémoire (Second Cerveau, coffre Obsidian) — admin-only. Cf. specs/005-memoire.
 				return $user?.role === 'admin';
@@ -154,8 +156,10 @@
 				// Page Connecteurs (gestion des MCP Hermes) — admin-only (FR-002)
 				return $user?.role === 'admin';
 			case 'gateway':
-				// Page Gateway (supervision moteur + canaux de messagerie) — admin-only
-				return $user?.role === 'admin';
+				// Masqué dans la navbar : la « Messagerie » est désormais un onglet de la page
+				// Capacités (allège la barre latérale). La route /gateway reste accessible.
+				// Réversible : restaurer `return $user?.role === 'admin';`.
+				return false;
 			case 'kanban':
 				// Page Tâches (Kanban multi-agents) — admin-only
 				return $user?.role === 'admin';
@@ -868,25 +872,28 @@
 					</Tooltip>
 				</div>
 
-				<div>
-					<Tooltip content={$i18n.t('Search')} placement="right">
-						<button
-							class=" cursor-pointer flex rounded-xl hover:bg-gray-100 dark:hover:bg-gray-850 transition group"
-							on:click={(e) => {
-								e.stopImmediatePropagation();
-								e.preventDefault();
+				<!-- Recherche déplacée dans le menu profil (UserMenu). Réversible : retirer le {#if false}. -->
+				{#if false}
+					<div>
+						<Tooltip content={$i18n.t('Search')} placement="right">
+							<button
+								class=" cursor-pointer flex rounded-xl hover:bg-gray-100 dark:hover:bg-gray-850 transition group"
+								on:click={(e) => {
+									e.stopImmediatePropagation();
+									e.preventDefault();
 
-								showSearch.set(true);
-							}}
-							draggable="false"
-							aria-label={$i18n.t('Search')}
-						>
-							<div class=" self-center flex items-center justify-center size-9">
-								<Search className="size-4.5" />
-							</div>
-						</button>
-					</Tooltip>
-				</div>
+									showSearch.set(true);
+								}}
+								draggable="false"
+								aria-label={$i18n.t('Search')}
+							>
+								<div class=" self-center flex items-center justify-center size-9">
+									<Search className="size-4.5" />
+								</div>
+							</button>
+						</Tooltip>
+					</div>
+				{/if}
 
 				{#each pinnedItems as itemId (itemId)}
 					{@const meta = getMenuItemMeta(itemId)}
@@ -920,7 +927,7 @@
 												<path
 													stroke-linecap="round"
 													stroke-linejoin="round"
-													d="M13.5 16.875h3.375m0 0h3.375m-3.375 0V13.5m0 3.375v3.375M6 10.5h2.25a2.25 2.25 0 0 0 2.25-2.25V6a2.25 2.25 0 0 0-2.25-2.25H6A2.25 2.25 0 0 0 3.75 6v2.25A2.25 2.25 0 0 0 6 10.5Zm0 9.75h2.25A2.25 2.25 0 0 0 10.5 18v-2.25a2.25 2.25 0 0 0-2.25-2.25H6a2.25 2.25 0 0 0-2.25 2.25V18A2.25 2.25 0 0 0 6 20.25Zm9.75-9.75H18a2.25 2.25 0 0 0 2.25-2.25V6A2.25 2.25 0 0 0 18 3.75h-2.25A2.25 2.25 0 0 0 13.5 6v2.25a2.25 2.25 0 0 0 2.25 2.25Z"
+													d="M20.25 14.15v4.25c0 1.094-.787 2.036-1.872 2.18-2.087.277-4.216.42-6.378.42s-4.291-.143-6.378-.42c-1.085-.144-1.872-1.086-1.872-2.18v-4.25m16.5 0a2.18 2.18 0 0 0 .75-1.661V8.706c0-1.081-.768-2.015-1.837-2.175a48.114 48.114 0 0 0-3.413-.387m4.5 6.006a2.18 2.18 0 0 1-.75.387 48.901 48.901 0 0 1-15 0 2.18 2.18 0 0 1-.75-.387m16.5 0a2.18 2.18 0 0 0 .75-1.661V8.706m-16.5 5.444a2.18 2.18 0 0 1-.75-1.661V8.706c0-1.081.768-2.015 1.837-2.175a48.114 48.114 0 0 1 3.413-.387m7.5 0V5.25A2.25 2.25 0 0 0 13.5 3h-3a2.25 2.25 0 0 0-2.25 2.25v.894m7.5 0a48.667 48.667 0 0 0-7.5 0M12 12.75h.008v.008H12v-.008Z"
 												/>
 											</svg>
 										{:else if itemId === 'automations'}
@@ -972,7 +979,7 @@
 											</svg>
 										{:else if itemId === 'memory'}
 											<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="size-4.5">
-												<path stroke-linecap="round" stroke-linejoin="round" d="M12 6.042A8.967 8.967 0 0 0 6 3.75c-1.052 0-2.062.18-3 .512v14.25A8.987 8.987 0 0 1 6 18c2.305 0 4.408.867 6 2.292m0-14.25a8.966 8.966 0 0 1 6-2.292c1.052 0 2.062.18 3 .512v14.25A8.987 8.987 0 0 0 18 18a8.967 8.967 0 0 0-6 2.292m0-14.25v14.25" />
+												<path stroke-linecap="round" stroke-linejoin="round" d="M12 5a3 3 0 1 0-5.997.125 4 4 0 0 0-2.526 5.77 4 4 0 0 0 .556 6.588A4 4 0 1 0 12 18Z" /><path stroke-linecap="round" stroke-linejoin="round" d="M12 5a3 3 0 1 1 5.997.125 4 4 0 0 1 2.526 5.77 4 4 0 0 1-.556 6.588A4 4 0 1 1 12 18Z" /><path stroke-linecap="round" stroke-linejoin="round" d="M15 13a4.5 4.5 0 0 1-3-4 4.5 4.5 0 0 1-3 4" /><path stroke-linecap="round" stroke-linejoin="round" d="M17.599 6.5a3 3 0 0 0 .399-1.375" /><path stroke-linecap="round" stroke-linejoin="round" d="M6.003 5.125A3 3 0 0 0 6.401 6.5" /><path stroke-linecap="round" stroke-linejoin="round" d="M3.477 10.896a4 4 0 0 1 .585-.396" /><path stroke-linecap="round" stroke-linejoin="round" d="M19.938 10.5a4 4 0 0 1 .585.396" /><path stroke-linecap="round" stroke-linejoin="round" d="M6 18a4 4 0 0 1-1.967-.516" /><path stroke-linecap="round" stroke-linejoin="round" d="M19.967 17.484A4 4 0 0 1 18 18" />
 											</svg>
 										{:else if itemId === 'connectors'}
 											<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="size-4.5">
@@ -1152,26 +1159,30 @@
 						</a>
 					</div>
 
-					<div class="px-[0.4375rem] flex justify-center text-gray-800 dark:text-gray-200">
-						<button
-							id="sidebar-search-button"
-							class="group grow flex items-center space-x-3 rounded-2xl px-2.5 py-2 hover:bg-gray-100 dark:hover:bg-gray-900 transition outline-none"
-							on:click={() => {
-								showSearch.set(true);
-							}}
-							draggable="false"
-							aria-label={$i18n.t('Search')}
-						>
-							<div class="self-center">
-								<Search strokeWidth="2" className="size-4.5" />
-							</div>
+					<!-- Bouton « Recherche » déplacé dans le menu profil (UserMenu) pour alléger la navbar.
+					     Reste accessible au clavier (Cmd+K). Réversible : retirer le {#if false}. -->
+					{#if false}
+						<div class="px-[0.4375rem] flex justify-center text-gray-800 dark:text-gray-200">
+							<button
+								id="sidebar-search-button"
+								class="group grow flex items-center space-x-3 rounded-2xl px-2.5 py-2 hover:bg-gray-100 dark:hover:bg-gray-900 transition outline-none"
+								on:click={() => {
+									showSearch.set(true);
+								}}
+								draggable="false"
+								aria-label={$i18n.t('Search')}
+							>
+								<div class="self-center">
+									<Search strokeWidth="2" className="size-4.5" />
+								</div>
 
-							<div class="flex flex-1 self-center translate-y-[0.5px]">
-								<div class=" self-center text-sm font-primary">{$i18n.t('Search')}</div>
-							</div>
-							<HotkeyHint name="search" className=" group-hover:visible invisible" />
-						</button>
-					</div>
+								<div class="flex flex-1 self-center translate-y-[0.5px]">
+									<div class=" self-center text-sm font-primary">{$i18n.t('Search')}</div>
+								</div>
+								<HotkeyHint name="search" className=" group-hover:visible invisible" />
+							</button>
+						</div>
+					{/if}
 
 					<div id="pinned-menu-items-list">
 						{#each pinnedItems as itemId (itemId)}
@@ -1204,7 +1215,7 @@
 													<path
 														stroke-linecap="round"
 														stroke-linejoin="round"
-														d="M13.5 16.875h3.375m0 0h3.375m-3.375 0V13.5m0 3.375v3.375M6 10.5h2.25a2.25 2.25 0 0 0 2.25-2.25V6a2.25 2.25 0 0 0-2.25-2.25H6A2.25 2.25 0 0 0 3.75 6v2.25A2.25 2.25 0 0 0 6 10.5Zm0 9.75h2.25A2.25 2.25 0 0 0 10.5 18v-2.25a2.25 2.25 0 0 0-2.25-2.25H6a2.25 2.25 0 0 0-2.25 2.25V18A2.25 2.25 0 0 0 6 20.25Zm9.75-9.75H18a2.25 2.25 0 0 0 2.25-2.25V6A2.25 2.25 0 0 0 18 3.75h-2.25A2.25 2.25 0 0 0 13.5 6v2.25a2.25 2.25 0 0 0 2.25 2.25Z"
+														d="M20.25 14.15v4.25c0 1.094-.787 2.036-1.872 2.18-2.087.277-4.216.42-6.378.42s-4.291-.143-6.378-.42c-1.085-.144-1.872-1.086-1.872-2.18v-4.25m16.5 0a2.18 2.18 0 0 0 .75-1.661V8.706c0-1.081-.768-2.015-1.837-2.175a48.114 48.114 0 0 0-3.413-.387m4.5 6.006a2.18 2.18 0 0 1-.75.387 48.901 48.901 0 0 1-15 0 2.18 2.18 0 0 1-.75-.387m16.5 0a2.18 2.18 0 0 0 .75-1.661V8.706m-16.5 5.444a2.18 2.18 0 0 1-.75-1.661V8.706c0-1.081.768-2.015 1.837-2.175a48.114 48.114 0 0 1 3.413-.387m7.5 0V5.25A2.25 2.25 0 0 0 13.5 3h-3a2.25 2.25 0 0 0-2.25 2.25v.894m7.5 0a48.667 48.667 0 0 0-7.5 0M12 12.75h.008v.008H12v-.008Z"
 													/>
 												</svg>
 											{:else if itemId === 'automations'}
@@ -1256,7 +1267,7 @@
 												</svg>
 											{:else if itemId === 'memory'}
 												<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="size-4.5">
-													<path stroke-linecap="round" stroke-linejoin="round" d="M12 6.042A8.967 8.967 0 0 0 6 3.75c-1.052 0-2.062.18-3 .512v14.25A8.987 8.987 0 0 1 6 18c2.305 0 4.408.867 6 2.292m0-14.25a8.966 8.966 0 0 1 6-2.292c1.052 0 2.062.18 3 .512v14.25A8.987 8.987 0 0 0 18 18a8.967 8.967 0 0 0-6 2.292m0-14.25v14.25" />
+													<path stroke-linecap="round" stroke-linejoin="round" d="M12 5a3 3 0 1 0-5.997.125 4 4 0 0 0-2.526 5.77 4 4 0 0 0 .556 6.588A4 4 0 1 0 12 18Z" /><path stroke-linecap="round" stroke-linejoin="round" d="M12 5a3 3 0 1 1 5.997.125 4 4 0 0 1 2.526 5.77 4 4 0 0 1-.556 6.588A4 4 0 1 1 12 18Z" /><path stroke-linecap="round" stroke-linejoin="round" d="M15 13a4.5 4.5 0 0 1-3-4 4.5 4.5 0 0 1-3 4" /><path stroke-linecap="round" stroke-linejoin="round" d="M17.599 6.5a3 3 0 0 0 .399-1.375" /><path stroke-linecap="round" stroke-linejoin="round" d="M6.003 5.125A3 3 0 0 0 6.401 6.5" /><path stroke-linecap="round" stroke-linejoin="round" d="M3.477 10.896a4 4 0 0 1 .585-.396" /><path stroke-linecap="round" stroke-linejoin="round" d="M19.938 10.5a4 4 0 0 1 .585.396" /><path stroke-linecap="round" stroke-linejoin="round" d="M6 18a4 4 0 0 1-1.967-.516" /><path stroke-linecap="round" stroke-linejoin="round" d="M19.967 17.484A4 4 0 0 1 18 18" />
 												</svg>
 											{:else if itemId === 'connectors'}
 												<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="size-4.5">
