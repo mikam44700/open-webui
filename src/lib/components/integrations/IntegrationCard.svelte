@@ -2,7 +2,7 @@
 	import { getContext, createEventDispatcher } from 'svelte';
 	import { toast } from 'svelte-sonner';
 
-	import { INTEGRATION_LOGO, GOOGLE_SERVICE_LOGO } from '$lib/utils/integrationLogos';
+	import { INTEGRATION_LOGO, INTEGRATION_LOGO_BG, GOOGLE_SERVICE_LOGO } from '$lib/utils/integrationLogos';
 	import { INTEGRATION_FR, ACCESS_LABEL, STATE_LABEL } from '$lib/utils/integrationLabels';
 	import { disconnectIntegration, setIntegrationKey, testIntegration } from '$lib/apis/integrations';
 	import { tick } from 'svelte';
@@ -37,6 +37,7 @@
 	$: name = fr?.name ?? integration.id;
 	$: desc = fr?.desc ?? '';
 	$: logo = INTEGRATION_LOGO[integration.id];
+	$: logoBg = INTEGRATION_LOGO_BG[integration.id] ?? 'bg-white';
 	$: access = ACCESS_LABEL[integration.auth_mode] ?? '';
 	$: stateLabel = STATE_LABEL[integration.state] ?? integration.state;
 	$: stateCls = STATE_CLS[integration.state] ?? STATE_CLS.not_connected;
@@ -117,7 +118,7 @@
 	<div class="flex items-start gap-2.5">
 		{#if logo}
 			<div
-				class="size-9 flex-none rounded-lg border border-gray-100 dark:border-gray-700 bg-white flex items-center justify-center p-1"
+				class="size-9 flex-none rounded-lg border border-gray-100 dark:border-gray-700 {logoBg} flex items-center justify-center p-1"
 			>
 				<img src={logo} alt={name} class="max-w-full max-h-full object-contain" draggable="false" />
 			</div>

@@ -17,6 +17,14 @@
 	let search = '';
 	let category = '';
 
+	// Lien « Demander un connecteur » (placeholder : remplacer par la vraie adresse support).
+	const SUPPORT_EMAIL = 'support@agent-os.app';
+	const requestMailto =
+		`mailto:${SUPPORT_EMAIL}?subject=` +
+		encodeURIComponent('Demande de connecteur — Agent OS') +
+		'&body=' +
+		encodeURIComponent('Bonjour,\n\nJ’aimerais que vous ajoutiez le connecteur suivant :\n\n');
+
 	$: filteredApps = integrations.filter((it) => {
 		const fr = INTEGRATION_FR[it.id];
 		if (category && fr?.category !== category) return false;
@@ -112,6 +120,19 @@
 				{:else}
 					<CatalogList on:changed={() => dispatch('changed')} />
 				{/if}
+			</div>
+
+			<!-- Footer épinglé : demander un connecteur (façon Base44). -->
+			<div
+				class="border-t border-gray-100 dark:border-gray-800 px-5 py-3 text-center text-sm text-gray-500"
+			>
+				{$i18n.t('Vous ne trouvez pas ce qu’il vous faut ?')}
+				<a
+					class="font-medium text-gray-900 underline underline-offset-2 hover:opacity-80 dark:text-white"
+					href={requestMailto}
+				>
+					{$i18n.t('Demander un connecteur')}
+				</a>
 			</div>
 		</div>
 	</div>
