@@ -60,6 +60,7 @@
 	// OAuth centralisé 1 clic — Microsoft 365, Notion, GitHub, Airtable et futurs providers.
 	// Ajouter ici les ids des intégrations qui utilisent l'OAuth bridge (pas de clé manuelle).
 	const CENTRAL_OAUTH_IDS = new Set([
+		'google-workspace',
 		'microsoft-365',
 		'notion',
 		'github',
