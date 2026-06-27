@@ -47,9 +47,6 @@
 </script>
 
 <div class="w-full max-w-5xl mx-auto px-3 py-3">
-	<div class="mb-3 text-sm text-gray-600 dark:text-gray-400">
-		{$i18n.t('Connecte tes apps à ton agent (compte ou clé).')}
-	</div>
 
 	{#if loading}
 		<div class="flex justify-center py-16"><Spinner className="size-6" /></div>

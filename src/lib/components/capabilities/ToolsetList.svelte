@@ -129,11 +129,9 @@
 			</button>
 		</div>
 	{:else}
-		<!-- Titre + interrupteur Mode Expert (révèle les catégories techniques). -->
-		<div class="flex items-start justify-between gap-3 mb-3">
-			<div class="text-sm text-gray-600 dark:text-gray-400">
-				{$i18n.t('Outils natifs de ton assistant (recherche web, terminal, navigateur…)')}
-			</div>
+		<!-- Interrupteur Mode Expert (révèle les catégories techniques). Le texte d'accroche
+		     de la page vit désormais dans l'en-tête de Capacités — pas de doublon ici. -->
+		<div class="flex items-center justify-end gap-3 mb-3">
 			<label
 				class="flex-none flex items-center gap-2 text-xs text-gray-500 dark:text-gray-400 cursor-pointer select-none pt-0.5"
 				title={$i18n.t('Affiche les outils techniques (terminal, code, intégrations…)')}
