@@ -3,8 +3,10 @@
 	import { toast } from 'svelte-sonner';
 
 	import { getIntegrations } from '$lib/apis/integrations';
+	import { INTEGRATION_FR } from '$lib/utils/integrationLabels';
 	import Spinner from '$lib/components/common/Spinner.svelte';
 	import IntegrationCard from './IntegrationCard.svelte';
+	import IntegrationsBrowseModal from './IntegrationsBrowseModal.svelte';
 
 	const i18n = getContext('i18n');
 
@@ -22,9 +24,15 @@
 	let loading = true;
 	let bridgeDown = false;
 	let integrations: Integration[] = [];
+	let showBrowse = false;
 
 	// Le client final ne voit que les intégrations visibles (les masquées restent gérées en admin).
 	$: visible = integrations.filter((i) => i.visible !== false);
+	// Vedettes : marquées « populaires » ; repli sur les 4 premières si rien n'est marqué.
+	$: popular = visible.filter((i) => INTEGRATION_FR[i.id]?.popular);
+	$: featured = popular.length > 0 ? popular : visible.slice(0, 4);
+	// Déjà connectées (ou clé enregistrée) — mises en avant dans leur propre section.
+	$: connected = visible.filter((i) => i.state === 'connected' || i.state === 'key_present');
 
 	const isBridgeDown = (err: any) =>
 		err?.error?.code === 'bridge_unreachable' || err?.error?.code === 'hermes_unavailable';
@@ -47,7 +55,6 @@
 </script>
 
 <div class="w-full max-w-5xl mx-auto px-3 py-3">
-
 	{#if loading}
 		<div class="flex justify-center py-16"><Spinner className="size-6" /></div>
 	{:else if bridgeDown}
@@ -63,12 +70,50 @@
 			</button>
 		</div>
 	{:else if visible.length > 0}
-		<div class="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
-			{#each visible as integration (integration.id)}
+		<!-- Les plus populaires + accès au catalogue complet -->
+		<div class="flex items-center justify-between mb-3">
+			<div class="text-sm font-medium">{$i18n.t('Les plus populaires')}</div>
+			<button
+				type="button"
+				class="text-sm text-gray-500 hover:text-gray-900 dark:hover:text-white transition inline-flex items-center gap-1"
+				on:click={() => (showBrowse = true)}
+			>
+				{$i18n.t('Tout parcourir')}
+				<svg
+					xmlns="http://www.w3.org/2000/svg"
+					fill="none"
+					viewBox="0 0 24 24"
+					stroke-width="2"
+					stroke="currentColor"
+					class="size-4"
+				>
+					<path stroke-linecap="round" stroke-linejoin="round" d="M13.5 4.5 21 12m0 0-7.5 7.5M21 12H3" />
+				</svg>
+			</button>
+		</div>
+
+		<div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+			{#each featured as integration (integration.id)}
 				<IntegrationCard {integration} on:changed={load} />
 			{/each}
 		</div>
+
+		<!-- Applications connectées -->
+		<div class="text-sm font-medium mt-7 mb-3">{$i18n.t('Applications connectées')}</div>
+		{#if connected.length > 0}
+			<div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+				{#each connected as integration (integration.id)}
+					<IntegrationCard {integration} on:changed={load} />
+				{/each}
+			</div>
+		{:else}
+			<div class="text-xs text-gray-500 py-4">
+				{$i18n.t('Aucune application connectée pour l’instant.')}
+			</div>
+		{/if}
 	{:else}
 		<div class="text-xs text-gray-500 text-center py-8">{$i18n.t('Aucune intégration disponible')}</div>
 	{/if}
 </div>
+
+<IntegrationsBrowseModal bind:open={showBrowse} integrations={visible} on:changed={load} />

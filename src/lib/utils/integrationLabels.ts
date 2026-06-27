@@ -4,44 +4,74 @@
 // `name` : nom affiché · `desc` : à quoi ça sert, en clair · les sous-services viennent
 // du backend (catalogue Hermes), pas d'ici.
 
-export const INTEGRATION_FR: Record<string, { name: string; desc: string }> = {
+export type IntegrationMeta = {
+	name: string;
+	desc: string;
+	// Catégorie (filtre de la modale « Parcourir ») et mise en avant (section « Les plus populaires »).
+	category?: string;
+	popular?: boolean;
+};
+
+export const INTEGRATION_FR: Record<string, IntegrationMeta> = {
 	'google-workspace': {
 		name: 'Google Workspace',
-		desc: 'Gmail, Agenda, Drive, Sheets et Docs — branchés sur ton compte Google.'
+		desc: 'Gmail, Agenda, Drive, Sheets et Docs — branchés sur ton compte Google.',
+		category: 'Productivité',
+		popular: true
 	},
 	notion: {
 		name: 'Notion',
-		desc: 'Tes pages, bases de données et notes Notion, accessibles par l’agent.'
+		desc: 'Tes pages, bases de données et notes Notion, accessibles par l’agent.',
+		category: 'Productivité',
+		popular: true
 	},
 	github: {
 		name: 'GitHub',
-		desc: 'Tes dépôts, issues et pull requests GitHub.'
+		desc: 'Tes dépôts, issues et pull requests GitHub.',
+		category: 'Développement',
+		popular: true
 	},
 	airtable: {
 		name: 'Airtable',
-		desc: 'Tes bases Airtable : tables, enregistrements et vues.'
+		desc: 'Tes bases Airtable : tables, enregistrements et vues.',
+		category: 'Productivité',
+		popular: true
 	},
 	email: {
 		name: 'Email',
-		desc: 'Ta boîte mail (réception et envoi) via IMAP/SMTP.'
+		desc: 'Ta boîte mail (réception et envoi) via IMAP/SMTP.',
+		category: 'Communication'
 	},
 	obsidian: {
 		name: 'Obsidian',
-		desc: 'Ton coffre de notes Obsidian : lire, chercher, créer et lier des notes.'
+		desc: 'Ton coffre de notes Obsidian : lire, chercher, créer et lier des notes.',
+		category: 'Productivité'
 	},
 	x: {
 		name: 'X (Twitter)',
-		desc: 'Publier, rechercher et lire sur X avec ton compte.'
+		desc: 'Publier, rechercher et lire sur X avec ton compte.',
+		category: 'Réseaux sociaux'
 	},
 	apple: {
 		name: 'Apple',
-		desc: 'Notes, Rappels et iMessage — sur ton Mac.'
+		desc: 'Notes, Rappels et iMessage — sur ton Mac.',
+		category: 'Productivité'
 	},
 	hue: {
 		name: 'Philips Hue',
-		desc: 'Pilote tes lumières connectées Philips Hue.'
+		desc: 'Pilote tes lumières connectées Philips Hue.',
+		category: 'Maison'
 	}
 };
+
+// Ordre d'affichage des catégories dans le filtre de la modale « Parcourir ».
+export const INTEGRATION_CATEGORIES = [
+	'Productivité',
+	'Communication',
+	'Développement',
+	'Réseaux sociaux',
+	'Maison'
+];
 
 // Accès en langage client (pas de jargon : ni « OAuth », ni « IMAP »).
 export const ACCESS_LABEL: Record<string, string> = {
