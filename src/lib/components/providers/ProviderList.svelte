@@ -45,16 +45,9 @@
 	let providers: Provider[] = [];
 	let active: { provider_id: string; model_id: string } | null = null;
 
-	let search = '';
 	let activeTab = 'oauth';
 
-	$: filtered = search.trim()
-		? providers.filter(
-				(p) =>
-					p.label.toLowerCase().includes(search.toLowerCase()) ||
-					p.id.toLowerCase().includes(search.toLowerCase())
-			)
-		: providers;
+	$: filtered = providers;
 
 	const countOf = (key: string) => filtered.filter((p) => p.category === key).length;
 	$: tabItems = filtered.filter((p) => p.category === activeTab);
@@ -123,13 +116,6 @@
 			{/if}
 		</div>
 
-		<!-- recherche -->
-		<input
-			class="w-full text-sm bg-transparent border border-gray-100 dark:border-gray-850 rounded-xl px-3 py-2 outline-none mb-3"
-			placeholder={$i18n.t('Rechercher un modèle IA')}
-			bind:value={search}
-		/>
-
 		<!-- barre d'onglets -->
 		<div class="flex items-center gap-1 border-b border-gray-100 dark:border-gray-850 mb-3 overflow-x-auto">
 			{#each TABS as tab (tab.key)}
@@ -147,8 +133,10 @@
 			{/each}
 		</div>
 
-		<!-- aide de l'onglet courant -->
-		<div class="text-xs text-gray-500 mb-3 px-0.5">{$i18n.t(currentTab.hint)}</div>
+		<!-- aide de l'onglet courant (masquée pour Moteur : le bandeau santé suffit) -->
+		{#if activeTab !== 'hermes'}
+			<div class="text-xs text-gray-500 mb-3 px-0.5">{$i18n.t(currentTab.hint)}</div>
+		{/if}
 
 		<!-- contenu de l'onglet -->
 		{#if activeTab === 'hermes'}
