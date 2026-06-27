@@ -57,9 +57,9 @@
 	$: isConnected = integration.state === 'connected';
 	$: keyPresent = integration.state === 'key_present';
 
-	// OAuth centralisé 1 clic — Microsoft 365 et futurs providers.
+	// OAuth centralisé 1 clic — Microsoft 365, Notion, GitHub, Airtable et futurs providers.
 	// Ajouter ici les ids des intégrations qui utilisent l'OAuth bridge (pas de clé manuelle).
-	const CENTRAL_OAUTH_IDS = new Set(['microsoft-365']);
+	const CENTRAL_OAUTH_IDS = new Set(['microsoft-365', 'notion', 'github', 'airtable']);
 	$: isCentralOAuth = CENTRAL_OAUTH_IDS.has(integration.id);
 
 	let googleOpen = false;
@@ -209,7 +209,7 @@
 	{/if}
 
 	<div class="mt-auto flex flex-col gap-2 pt-1">
-		{#if isKeyLike && showField}
+		{#if isKeyLike && !isCentralOAuth && showField}
 			<input
 				bind:this={fieldEl}
 				type={isPath ? 'text' : 'password'}
@@ -225,7 +225,7 @@
 			<span class="text-[11px] text-gray-500 dark:text-gray-400">{$i18n.t(access)}</span>
 
 			<div class="flex items-center gap-1.5">
-				{#if isKeyLike && showField}
+				{#if isKeyLike && !isCentralOAuth && showField}
 					<button
 						type="button"
 						class="text-xs px-3 py-1.5 rounded-lg bg-black text-white dark:bg-white dark:text-black transition disabled:opacity-40"
@@ -319,7 +319,7 @@
 					>
 						{$i18n.t('Connecter')}
 					</button>
-				{:else if isKeyLike}
+				{:else if isKeyLike && !isCentralOAuth}
 					<button
 						type="button"
 						class="text-xs px-3 py-1.5 rounded-lg bg-black text-white dark:bg-white dark:text-black transition"
