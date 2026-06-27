@@ -45,7 +45,8 @@
 	let providers: Provider[] = [];
 	let active: { provider_id: string; model_id: string } | null = null;
 
-	let activeTab = 'oauth';
+	// Onglet par défaut : Moteur (santé du moteur), première chose que voit le dirigeant.
+	let activeTab = 'hermes';
 
 	$: filtered = providers;
 
@@ -66,11 +67,8 @@
 			]);
 			providers = provRes?.providers ?? [];
 			active = activeRes;
-			// onglet par défaut = celui du cerveau actif (sinon le premier non vide)
-			const activeProv = providers.find((p) => p.id === active?.provider_id);
-			activeTab =
-				activeProv?.category ??
-				(TABS.find((t) => providers.some((p) => p.category === t.key))?.key ?? 'oauth');
+			// On reste sur l'onglet courant (Moteur par défaut) — pas de saut auto vers
+			// la catégorie du cerveau actif, pour un atterrissage stable et prévisible.
 		} catch (err) {
 			if (isBridgeDown(err)) {
 				bridgeDown = true;
