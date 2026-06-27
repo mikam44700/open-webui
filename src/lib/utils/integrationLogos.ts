@@ -9,7 +9,7 @@ import notionLogo from '$lib/assets/integrations/notion-new.png';
 import githubLogo from '$lib/assets/integrations/github-new.svg';
 import airtableLogo from '$lib/assets/integrations/airtable-new.png';
 import emailLogo from '$lib/assets/integrations/email-new.png';
-import obsidianLogo from '$lib/assets/integrations/obsidian.svg';
+import obsidianLogo from '$lib/assets/integrations/obsidian-icon.webp';
 import xLogo from '$lib/assets/integrations/x.svg';
 import appleLogo from '$lib/assets/integrations/apple.svg';
 import hueLogo from '$lib/assets/integrations/hue.svg';
@@ -29,7 +29,7 @@ export const INTEGRATION_LOGO: Record<string, string> = {
 // Couleur du fond derrière le logo. Certains logos (ex. Obsidian, cristal violet) sont
 // pensés pour un fond sombre — on respecte leur identité. Défaut : fond blanc.
 export const INTEGRATION_LOGO_BG: Record<string, string> = {
-	obsidian: 'bg-neutral-900'
+	obsidian: 'bg-black'
 };
 
 // Espace Google Workspace : chaque service avec son propre logo (clé = nom du sous-service FR).
