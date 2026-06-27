@@ -23,7 +23,7 @@ export type ModelPresentation = {
  * Fournisseurs tournant en local (sur la machine/serveur du client) : les données
  * ne quittent pas l'infrastructure → légitimement « Local » et « Confidentiel ».
  */
-const LOCAL_PROVIDERS = new Set(['ollama', 'localai', 'llamacpp', 'llama-cpp', 'lmstudio', 'vllm']);
+const LOCAL_PROVIDERS = new Set(['ollama', 'ollama-local', 'localai', 'llamacpp', 'llama-cpp', 'lmstudio', 'vllm']);
 
 /**
  * Table curée par identifiant de fournisseur (source : bridge `/providers`).
