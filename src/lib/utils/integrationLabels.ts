@@ -61,6 +61,12 @@ export const INTEGRATION_FR: Record<string, IntegrationMeta> = {
 		name: 'Philips Hue',
 		desc: 'Pilote tes lumières connectées Philips Hue.',
 		category: 'Maison'
+	},
+	'microsoft-365': {
+		name: 'Microsoft 365',
+		desc: 'Outlook, OneDrive, Teams, Agenda — toute votre suite bureautique.',
+		category: 'Productivité',
+		popular: true
 	}
 };
 

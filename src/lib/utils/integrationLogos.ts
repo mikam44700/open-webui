@@ -13,6 +13,8 @@ import obsidianLogo from '$lib/assets/integrations/obsidian-icon.webp';
 import xLogo from '$lib/assets/integrations/x.svg';
 import appleLogo from '$lib/assets/integrations/apple.svg';
 import hueLogo from '$lib/assets/integrations/hue.svg';
+// Placeholder Microsoft 365 — à remplacer par le logo officiel Microsoft 365
+import microsoft365Logo from '$lib/assets/integrations/microsoft/microsoft365.svg';
 
 export const INTEGRATION_LOGO: Record<string, string> = {
 	'google-workspace': googleLogo,
@@ -23,7 +25,8 @@ export const INTEGRATION_LOGO: Record<string, string> = {
 	obsidian: obsidianLogo,
 	x: xLogo,
 	apple: appleLogo,
-	hue: hueLogo
+	hue: hueLogo,
+	'microsoft-365': microsoft365Logo
 };
 
 // Couleur du fond derrière le logo. Certains logos (ex. Obsidian, cristal violet) sont

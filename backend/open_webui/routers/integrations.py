@@ -115,3 +115,39 @@ async def google_status(user=Depends(get_admin_user)):
 async def disconnect_integration(integration_id: str, user=Depends(get_admin_user)):
     """Déconnecte une intégration (après confirmation côté UI)."""
     return await _bridge("DELETE", f"/integrations/{integration_id}/disconnect")
+
+
+# --- OAuth centralisé 1 clic (Microsoft 365 et futurs providers OAuth) ---
+
+
+class OAuthExchangeBody(BaseModel):
+    code: str
+    state: str
+
+
+@router.get("/oauth/{provider_id}/auth-url")
+async def oauth_auth_url(provider_id: str, user=Depends(get_admin_user)):
+    """Récupère l'URL d'autorisation OAuth du fournisseur (redirige l'utilisateur)."""
+    return await _bridge("GET", f"/integrations/oauth/{provider_id}/auth-url")
+
+
+@router.post("/oauth/{provider_id}/exchange")
+async def oauth_exchange(
+    provider_id: str, body: OAuthExchangeBody, user=Depends(get_admin_user)
+):
+    """Échange le code OAuth de retour contre un token stocké par le bridge."""
+    return await _bridge(
+        "POST", f"/integrations/oauth/{provider_id}/exchange", json=body.model_dump()
+    )
+
+
+@router.get("/oauth/{provider_id}/status")
+async def oauth_status(provider_id: str, user=Depends(get_admin_user)):
+    """Retourne l'état de connexion OAuth d'un fournisseur (connected | not_connected)."""
+    return await _bridge("GET", f"/integrations/oauth/{provider_id}/status")
+
+
+@router.delete("/oauth/{provider_id}")
+async def oauth_disconnect(provider_id: str, user=Depends(get_admin_user)):
+    """Révoque et supprime les tokens OAuth d'un fournisseur."""
+    return await _bridge("DELETE", f"/integrations/oauth/{provider_id}")

@@ -75,3 +75,22 @@ export const getGoogleStatus = (token: string) =>
 // US4 — déconnecter une intégration
 export const disconnectIntegration = (token: string, id: string) =>
 	call(token, 'DELETE', `/${id}/disconnect`);
+
+// OAuth centralisé (1 clic) — Microsoft 365 et futurs providers OAuth gérés par le bridge.
+// Ces fonctions proxifient vers /integrations/oauth/{provider_id}/* côté bridge.
+
+/** Récupère l'URL d'autorisation OAuth du fournisseur (redirige l'utilisateur vers celle-ci). */
+export const getOAuthAuthUrl = (token: string, providerId: string) =>
+	call(token, 'GET', `/oauth/${providerId}/auth-url`);
+
+/** Échange le code de retour OAuth contre un token stocké côté bridge. */
+export const exchangeOAuth = (token: string, providerId: string, code: string, state: string) =>
+	call(token, 'POST', `/oauth/${providerId}/exchange`, { code, state });
+
+/** Retourne l'état de connexion OAuth du fournisseur (connected | not_connected). */
+export const getOAuthStatus = (token: string, providerId: string) =>
+	call(token, 'GET', `/oauth/${providerId}/status`);
+
+/** Déconnecte (révoque) un provider OAuth centralisé. */
+export const disconnectOAuth = (token: string, providerId: string) =>
+	call(token, 'DELETE', `/oauth/${providerId}`);

@@ -4,7 +4,13 @@
 
 	import { INTEGRATION_LOGO, INTEGRATION_LOGO_BG, GOOGLE_SERVICE_LOGO } from '$lib/utils/integrationLogos';
 	import { INTEGRATION_FR, ACCESS_LABEL, STATE_LABEL } from '$lib/utils/integrationLabels';
-	import { disconnectIntegration, setIntegrationKey, testIntegration } from '$lib/apis/integrations';
+	import {
+		disconnectIntegration,
+		setIntegrationKey,
+		testIntegration,
+		getOAuthAuthUrl,
+		disconnectOAuth
+	} from '$lib/apis/integrations';
 	import { tick } from 'svelte';
 	import Spinner from '$lib/components/common/Spinner.svelte';
 	import GoogleConnectModal from './GoogleConnectModal.svelte';
@@ -50,6 +56,11 @@
 	$: isPath = integration.auth_mode === 'path';
 	$: isConnected = integration.state === 'connected';
 	$: keyPresent = integration.state === 'key_present';
+
+	// OAuth centralisé 1 clic — Microsoft 365 et futurs providers.
+	// Ajouter ici les ids des intégrations qui utilisent l'OAuth bridge (pas de clé manuelle).
+	const CENTRAL_OAUTH_IDS = new Set(['microsoft-365']);
+	$: isCentralOAuth = CENTRAL_OAUTH_IDS.has(integration.id);
 
 	let googleOpen = false;
 	let emailOpen = false;
@@ -101,6 +112,41 @@
 		busy = true;
 		try {
 			await disconnectIntegration(localStorage.token, integration.id);
+			toast.success($i18n.t('Déconnecté.'));
+			dispatch('changed');
+		} catch {
+			toast.error($i18n.t('Impossible de déconnecter.'));
+		} finally {
+			busy = false;
+			confirmDisconnect = false;
+		}
+	};
+
+	// Connexion OAuth centralisée : enregistre le provider dans sessionStorage puis redirige
+	// vers l'URL d'autorisation du fournisseur. Le callback /integrations/oauth/callback
+	// se charge de l'échange automatique du code.
+	const onConnectOAuth = async () => {
+		busy = true;
+		try {
+			const res = await getOAuthAuthUrl(localStorage.token, integration.id);
+			if (!res?.auth_url) {
+				toast.error($i18n.t('Impossible de démarrer la connexion.'));
+				return;
+			}
+			sessionStorage.setItem('oauth_provider', integration.id);
+			window.location.href = res.auth_url;
+		} catch {
+			toast.error($i18n.t('Impossible de démarrer la connexion.'));
+			busy = false;
+		}
+		// Ne pas remettre busy = false : la page va se rediriger.
+	};
+
+	// Déconnexion OAuth centralisée (révocation des tokens bridge).
+	const onDisconnectOAuth = async () => {
+		busy = true;
+		try {
+			await disconnectOAuth(localStorage.token, integration.id);
 			toast.success($i18n.t('Déconnecté.'));
 			dispatch('changed');
 		} catch {
@@ -203,7 +249,7 @@
 						type="button"
 						class="text-xs px-2.5 py-1 rounded-lg text-red-600 dark:text-red-400 hover:bg-red-500/10 transition disabled:opacity-40"
 						disabled={busy}
-						on:click={onDisconnect}
+						on:click={isCentralOAuth ? onDisconnectOAuth : onDisconnect}
 					>
 						{#if busy}<Spinner className="size-3.5" />{:else}{$i18n.t('Confirmer')}{/if}
 					</button>
@@ -213,6 +259,15 @@
 						on:click={() => (confirmDisconnect = false)}
 					>
 						{$i18n.t('Annuler')}
+					</button>
+				{:else if isConnected && isCentralOAuth}
+					<!-- Intégration OAuth centralisée connectée : déconnexion via bridge OAuth -->
+					<button
+						type="button"
+						class="text-xs px-3 py-1.5 rounded-lg border border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-850 transition"
+						on:click={() => (confirmDisconnect = true)}
+					>
+						{$i18n.t('Déconnecter')}
 					</button>
 				{:else if isConnected}
 					<button
@@ -237,6 +292,16 @@
 						on:click={() => (confirmDisconnect = true)}
 					>
 						{$i18n.t('Déconnecter')}
+					</button>
+				{:else if isCentralOAuth}
+					<!-- Intégration OAuth centralisée non connectée : 1 clic → redirection fournisseur -->
+					<button
+						type="button"
+						class="text-xs px-3 py-1.5 rounded-lg bg-black text-white dark:bg-white dark:text-black transition disabled:opacity-40"
+						disabled={busy}
+						on:click={onConnectOAuth}
+					>
+						{#if busy}<Spinner className="size-3.5" />{:else}{$i18n.t('Se connecter')}{/if}
 					</button>
 				{:else if isGoogle}
 					<button
