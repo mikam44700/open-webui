@@ -113,9 +113,9 @@
 	<div class="flex items-start gap-4">
 		{#if logoSrc}
 			<div
-				class="size-10 flex-none rounded-xl border border-gray-100 dark:border-gray-700 bg-white flex items-center justify-center p-1.5"
+				class="size-10 flex-none rounded-xl border border-gray-100 dark:border-gray-700 overflow-hidden flex items-center justify-center"
 			>
-				<img src={logoSrc} alt="" class="max-w-full max-h-full object-contain" />
+				<img src={logoSrc} alt="" class="w-full h-full object-cover" />
 			</div>
 		{/if}
 

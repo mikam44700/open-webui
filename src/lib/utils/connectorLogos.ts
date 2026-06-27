@@ -14,3 +14,7 @@ export const CONNECTOR_LOGO: Record<string, string> = {
 	n8n: n8nLogo,
 	'unreal-engine': unrealEngineLogo
 };
+
+// Logos « carré plein » (fond intégré, dégradés compris) → affichés bord à bord pour
+// remplir tout le carré. Les autres gardent le fond blanc + une marge.
+export const CONNECTOR_LOGO_FULL_BLEED = new Set<string>(['linear', 'n8n', 'unreal-engine']);

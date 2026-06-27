@@ -170,9 +170,9 @@
 		<div class="flex items-center justify-between">
 			<div class="flex items-center gap-2.5">
 				<img
-					src="{WEBUI_BASE_URL}/assets/providers/nous-research.png"
-					alt="Nous Research"
-					class="size-7 rounded-lg object-contain shrink-0"
+					src="{WEBUI_BASE_URL}/assets/providers/nousresearch.png"
+					alt="Agent Hermes"
+					class="size-11 rounded-xl object-cover shrink-0"
 					draggable="false"
 				/>
 				<div class="text-sm font-medium">{$i18n.t('État du moteur')}</div>

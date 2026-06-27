@@ -42,6 +42,11 @@
 		sms: smsLogo,
 		bluebubbles: imessageLogo
 	};
+	// Logos « carré plein » (fond intégré) → affichés bord à bord pour remplir le carré.
+	const LOGO_FULL_BLEED = new Set(['discord', 'signal', 'whatsapp_cloud', 'sms', 'bluebubbles']);
+	// Fond de couleur de marque pour les logos dont les coins sont transparents (sinon on
+	// verrait le blanc de la carte). WhatsApp = carré arrondi vert sur fond transparent.
+	const LOGO_BG: Record<string, string> = { whatsapp_cloud: 'bg-[#25D366]' };
 
 	let loading = true;
 	let bridgeDown = false;
@@ -371,13 +376,18 @@
 						<div class="flex items-start justify-between gap-2">
 							<div class="flex items-start gap-3 min-w-0">
 								{#if LOGO_BY_ID[p.id]}
+									{@const fb = LOGO_FULL_BLEED.has(p.id)}
 									<div
-										class="size-10 flex-none rounded-xl border border-gray-100 dark:border-gray-700 bg-white flex items-center justify-center p-1.5"
+										class="size-10 flex-none rounded-xl border border-gray-100 dark:border-gray-700 overflow-hidden flex items-center justify-center {LOGO_BG[
+											p.id
+										] ?? (fb ? '' : 'bg-white')} {fb ? '' : 'p-1.5'}"
 									>
 										<img
 											src={LOGO_BY_ID[p.id]}
 											alt={p.name}
-											class="max-w-full max-h-full object-contain"
+											class={fb
+												? 'w-full h-full object-cover'
+												: 'max-w-full max-h-full object-contain'}
 										/>
 									</div>
 								{:else}

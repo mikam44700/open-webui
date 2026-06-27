@@ -6,7 +6,10 @@
 // la liste exacte des outils exposés dépend de la version du serveur MCP et se confirme
 // après installation (cf. règle d'honnêteté des libellés).
 
-export const CONNECTOR_FR: Record<string, { name: string; desc: string; actions: string[] }> = {
+export const CONNECTOR_FR: Record<
+	string,
+	{ name: string; desc: string; actions: string[]; popular?: boolean }
+> = {
 	linear: {
 		name: 'Linear',
 		desc: 'Gère tes tickets, projets et commentaires Linear (gestion de projet) directement depuis l’agent.',

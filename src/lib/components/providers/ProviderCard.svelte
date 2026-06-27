@@ -7,6 +7,7 @@
 	import Spinner from '$lib/components/common/Spinner.svelte';
 	import ProviderOAuth from './ProviderOAuth.svelte';
 	import { getModelPresentation } from '$lib/catalog/model-badges';
+	import { PROVIDER_LOGO_FULL_BLEED } from '$lib/utils/providerLogos';
 	import {
 		setProviderKey,
 		validateProviderKey,
@@ -41,8 +42,13 @@
 	$: presentation = getModelPresentation(provider.id);
 	// La plupart des logos sont en PNG ; seuls ces quelques-uns restent en SVG.
 	const SVG_LOGOS = new Set(['api']);
-	$: logoExt = SVG_LOGOS.has(provider.logo) ? 'svg' : 'png';
-	$: logoUrl = `${WEBUI_BASE_URL}/assets/providers/${provider.logo}.${logoExt}`;
+	// Nous Portal : forcer le logo « NOUS RESEARCH » (boîte) côté front, sans dépendre du
+	// rechargement du bridge. Les autres providers gardent le logo renvoyé par le bridge.
+	$: logoFile = provider.id === 'nous' ? 'nous-research' : provider.logo;
+	$: logoExt = SVG_LOGOS.has(logoFile) ? 'svg' : 'png';
+	$: logoUrl = `${WEBUI_BASE_URL}/assets/providers/${logoFile}.${logoExt}`;
+	// Logo « carré plein » → affiché bord à bord (remplit le carré) ; sinon icône sur fond blanc.
+	$: fullBleed = PROVIDER_LOGO_FULL_BLEED.has(logoFile);
 
 	const onError = (e: Event) => {
 		(e.currentTarget as HTMLImageElement).src = `${WEBUI_BASE_URL}/assets/providers/api.svg`;
@@ -139,12 +145,14 @@
 	<!-- En-tête : logo + nom + état -->
 	<div class="flex items-center gap-2.5">
 		<div
-			class="flex-none size-9 rounded-lg border border-gray-100 dark:border-gray-700 bg-white flex items-center justify-center p-1"
+			class="flex-none size-10 rounded-xl border border-gray-100 dark:border-gray-700 overflow-hidden flex items-center justify-center {fullBleed
+				? ''
+				: 'bg-white p-1.5'}"
 		>
 			<img
 				src={logoUrl}
 				on:error={onError}
-				class="max-w-full max-h-full object-contain"
+				class={fullBleed ? 'w-full h-full object-cover' : 'max-w-full max-h-full object-contain'}
 				alt={provider.label}
 				draggable="false"
 			/>

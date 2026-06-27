@@ -6,7 +6,6 @@
 	import { expertMode } from '$lib/stores';
 
 	import Spinner from '$lib/components/common/Spinner.svelte';
-	import Switch from '$lib/components/common/Switch.svelte';
 	import ToolsetCard from '$lib/components/capabilities/ToolsetCard.svelte';
 	import ToolConnectModal from '$lib/components/capabilities/ToolConnectModal.svelte';
 
@@ -129,18 +128,8 @@
 			</button>
 		</div>
 	{:else}
-		<!-- Interrupteur Mode Expert (révèle les catégories techniques). Le texte d'accroche
-		     de la page vit désormais dans l'en-tête de Capacités — pas de doublon ici. -->
-		<div class="flex items-center justify-end gap-3 mb-3">
-			<label
-				class="flex-none flex items-center gap-2 text-xs text-gray-500 dark:text-gray-400 cursor-pointer select-none pt-0.5"
-				title={$i18n.t('Affiche les outils techniques (terminal, code, intégrations…)')}
-			>
-				{$i18n.t('Mode Expert')}
-				<Switch state={$expertMode} on:change={() => expertMode.set(!$expertMode)} />
-			</label>
-		</div>
-
+		<!-- L'interrupteur « Réglages avancés » (ex-Mode Expert) est désormais global, en haut
+		     de la page Capacités. Plus de doublon ici. -->
 		{#if groups.length > 0}
 			<!-- Sous-onglets par catégorie : on n'affiche qu'une catégorie à la fois (page courte).
 			     Ils passent à la ligne (flex-wrap) — pas de scroll horizontal. -->

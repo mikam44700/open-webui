@@ -11,7 +11,7 @@
 	import Spinner from '$lib/components/common/Spinner.svelte';
 	import OAuthProgressModal from './OAuthProgressModal.svelte';
 	import { CONNECTOR_FR } from '$lib/utils/connectorLabels';
-	import { CONNECTOR_LOGO } from '$lib/utils/connectorLogos';
+	import { CONNECTOR_LOGO, CONNECTOR_LOGO_FULL_BLEED } from '$lib/utils/connectorLogos';
 
 	const i18n = getContext('i18n');
 	const dispatch = createEventDispatcher();
@@ -38,12 +38,16 @@
 	$: displayDesc = fr?.desc ?? entry.description ?? '';
 	$: actions = fr?.actions ?? [];
 	$: logoSrc = CONNECTOR_LOGO[entry.name];
+	$: fullBleed = CONNECTOR_LOGO_FULL_BLEED.has(entry.name);
 
 	let keyValue = '';
 	let working = false;
 	let oauthOpen = false;
 	let showKeyInput = false;
 	let keyInputEl: HTMLInputElement | undefined;
+	// « Ce que ça fait » replié par défaut (cartes compactes) : déplié au clic sur le
+	// lien bleu, comme l'onglet Outils. Évite les gros blocs quand la liste est longue.
+	let expanded = false;
 
 	// Champ clé API replié par défaut (cartes compactes et de même hauteur).
 	// Au clic, on révèle l'emplacement de saisie et on y place le curseur.
@@ -109,12 +113,14 @@
 	<div class="flex items-start gap-2.5">
 		{#if logoSrc}
 			<div
-				class="size-9 flex-none rounded-lg border border-gray-100 dark:border-gray-700 bg-white flex items-center justify-center p-1"
+				class="size-10 flex-none rounded-xl border border-gray-100 dark:border-gray-700 overflow-hidden flex items-center justify-center {fullBleed
+					? ''
+					: 'bg-white p-1.5'}"
 			>
 				<img
 					src={logoSrc}
 					alt={entry.name}
-					class="max-w-full max-h-full object-contain"
+					class={fullBleed ? 'w-full h-full object-cover' : 'max-w-full max-h-full object-contain'}
 					draggable="false"
 				/>
 			</div>
@@ -133,19 +139,36 @@
 	</div>
 
 	{#if actions.length > 0}
-		<div class="flex flex-col gap-1.5">
-			<div class="text-[11px] font-semibold uppercase tracking-wide text-gray-400 dark:text-gray-500">
-				{$i18n.t('Ce que ça fait')}
+		{#if !expanded}
+			<button
+				type="button"
+				class="self-start text-xs font-medium text-sky-600 dark:text-sky-400 hover:underline"
+				on:click={() => (expanded = true)}
+			>
+				{$i18n.t('Voir ce que ça fait')} ›
+			</button>
+		{:else}
+			<div class="flex flex-col gap-1.5">
+				<div class="text-[11px] font-semibold uppercase tracking-wide text-gray-400 dark:text-gray-500">
+					{$i18n.t('Ce que ça fait')}
+				</div>
+				<ul class="flex flex-col gap-1 pl-0.5">
+					{#each actions as action}
+						<li class="flex items-start gap-1.5 text-[11px] text-gray-600 dark:text-gray-400">
+							<span class="flex-none mt-1 size-1 rounded-full bg-gray-400 dark:bg-gray-600"></span>
+							<span>{$i18n.t(action)}</span>
+						</li>
+					{/each}
+				</ul>
+				<button
+					type="button"
+					class="self-start text-xs text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 transition"
+					on:click={() => (expanded = false)}
+				>
+					{$i18n.t('Masquer')}
+				</button>
 			</div>
-			<ul class="flex flex-col gap-1 pl-0.5">
-				{#each actions as action}
-					<li class="flex items-start gap-1.5 text-[11px] text-gray-600 dark:text-gray-400">
-						<span class="flex-none mt-1 size-1 rounded-full bg-gray-400 dark:bg-gray-600"></span>
-						<span>{$i18n.t(action)}</span>
-					</li>
-				{/each}
-			</ul>
-		</div>
+		{/if}
 	{/if}
 
 	{#if !entry.installed}

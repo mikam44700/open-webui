@@ -118,7 +118,7 @@
 	<div class="flex items-start gap-2.5">
 		{#if logo}
 			<div
-				class="size-9 flex-none rounded-lg border border-gray-100 dark:border-gray-700 {logoBg} flex items-center justify-center p-1"
+				class="size-10 flex-none rounded-xl border border-gray-100 dark:border-gray-700 {logoBg} flex items-center justify-center p-1.5"
 			>
 				<img src={logo} alt={name} class="max-w-full max-h-full object-contain" draggable="false" />
 			</div>

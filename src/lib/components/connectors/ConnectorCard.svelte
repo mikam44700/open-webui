@@ -5,7 +5,7 @@
 	import { setConnectorEnabled, testConnector, deleteConnector } from '$lib/apis/connectors';
 	import Spinner from '$lib/components/common/Spinner.svelte';
 	import { CONNECTOR_FR } from '$lib/utils/connectorLabels';
-	import { CONNECTOR_LOGO } from '$lib/utils/connectorLogos';
+	import { CONNECTOR_LOGO, CONNECTOR_LOGO_FULL_BLEED } from '$lib/utils/connectorLogos';
 
 	const i18n = getContext('i18n');
 	const dispatch = createEventDispatcher();
@@ -23,6 +23,9 @@
 
 	let busy = ''; // '' | 'toggle' | 'test' | 'delete'
 	let confirmDelete = false;
+	// « Ce que ça fait » replié par défaut, comme dans le catalogue : on garde la liste
+	// des capacités accessible même une fois le connecteur installé.
+	let expanded = false;
 
 	const toggle = async () => {
 		busy = 'toggle';
@@ -90,7 +93,10 @@
 	$: state = STATE_META[connector.state] ?? STATE_META['disconnected'];
 	// Logo + nom d'affichage partagés avec le Catalogue (même visuel partout).
 	$: logoSrc = CONNECTOR_LOGO[connector.id];
+	$: fullBleed = CONNECTOR_LOGO_FULL_BLEED.has(connector.id);
 	$: displayName = CONNECTOR_FR[connector.id]?.name ?? connector.id;
+	// Capacités (mêmes données FR que le catalogue) — affichées sur demande.
+	$: actions = CONNECTOR_FR[connector.id]?.actions ?? [];
 </script>
 
 <div
@@ -102,18 +108,20 @@
 	<div class="flex items-center gap-2.5">
 		{#if logoSrc}
 			<div
-				class="flex-none size-8 rounded-lg border border-gray-100 dark:border-gray-700 bg-white flex items-center justify-center p-1"
+				class="flex-none size-10 rounded-xl border border-gray-100 dark:border-gray-700 overflow-hidden flex items-center justify-center {fullBleed
+					? ''
+					: 'bg-white p-1.5'}"
 			>
 				<img
 					src={logoSrc}
 					alt={displayName}
-					class="max-w-full max-h-full object-contain"
+					class={fullBleed ? 'w-full h-full object-cover' : 'max-w-full max-h-full object-contain'}
 					draggable="false"
 				/>
 			</div>
 		{:else}
 			<div
-				class="flex-none size-8 rounded-lg flex items-center justify-center bg-gray-100 dark:bg-gray-850 ring-1 ring-gray-200/70 dark:ring-gray-700/60"
+				class="flex-none size-10 rounded-xl flex items-center justify-center bg-gray-100 dark:bg-gray-850 ring-1 ring-gray-200/70 dark:ring-gray-700/60"
 			>
 				<svg
 					xmlns="http://www.w3.org/2000/svg"
@@ -150,6 +158,40 @@
 			{$i18n.t(ACCESS_LABEL[connector.auth_type] ?? connector.auth_type)}
 		</span>
 	</div>
+
+	<!-- Ce que ça fait : replié par défaut, déployé au clic (comme le catalogue + l'onglet Outils) -->
+	{#if actions.length > 0}
+		{#if !expanded}
+			<button
+				type="button"
+				class="self-start text-xs font-medium text-sky-600 dark:text-sky-400 hover:underline"
+				on:click={() => (expanded = true)}
+			>
+				{$i18n.t('Voir ce que ça fait')} ›
+			</button>
+		{:else}
+			<div class="flex flex-col gap-1.5">
+				<div class="text-[11px] font-semibold uppercase tracking-wide text-gray-400 dark:text-gray-500">
+					{$i18n.t('Ce que ça fait')}
+				</div>
+				<ul class="flex flex-col gap-1 pl-0.5">
+					{#each actions as action}
+						<li class="flex items-start gap-1.5 text-[11px] text-gray-600 dark:text-gray-400">
+							<span class="flex-none mt-1 size-1 rounded-full bg-gray-400 dark:bg-gray-600"></span>
+							<span>{$i18n.t(action)}</span>
+						</li>
+					{/each}
+				</ul>
+				<button
+					type="button"
+					class="self-start text-xs text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 transition"
+					on:click={() => (expanded = false)}
+				>
+					{$i18n.t('Masquer')}
+				</button>
+			</div>
+		{/if}
+	{/if}
 
 	<!-- Actions : tester / activer-désactiver / supprimer -->
 	<div class="flex items-center justify-end gap-2 pt-2 border-t border-gray-100 dark:border-gray-850">
