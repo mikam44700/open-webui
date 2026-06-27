@@ -97,8 +97,8 @@
 </script>
 
 <div
-	class="border border-gray-100 dark:border-gray-850 rounded-2xl px-5 py-4 h-full transition {hasDetails
-		? 'cursor-pointer hover:bg-gray-50 dark:hover:bg-white/[0.03] hover:border-gray-200 dark:hover:border-gray-700'
+	class="border border-gray-100 dark:border-gray-850 rounded-2xl px-5 py-4 h-full transition hover:border-gray-200 dark:hover:border-gray-700 hover:shadow-sm {hasDetails
+		? 'cursor-pointer hover:bg-gray-50 dark:hover:bg-white/[0.03]'
 		: ''}"
 	role={hasDetails ? 'button' : undefined}
 	tabindex={hasDetails ? 0 : undefined}
@@ -112,11 +112,11 @@
 >
 	<div class="flex items-start gap-4">
 		{#if logoSrc}
-			<img
-				src={logoSrc}
-				alt=""
-				class="size-10 rounded-xl object-cover flex-none border border-gray-100 dark:border-gray-800"
-			/>
+			<div
+				class="size-10 flex-none rounded-xl border border-gray-100 dark:border-gray-700 bg-white flex items-center justify-center p-1.5"
+			>
+				<img src={logoSrc} alt="" class="max-w-full max-h-full object-contain" />
+			</div>
 		{/if}
 
 		<div class="flex-1 min-w-0">

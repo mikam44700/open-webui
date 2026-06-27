@@ -366,7 +366,7 @@
 				{#each filtered as p (p.id)}
 					{@const st = stateLabel(p.state)}
 					<div
-						class="rounded-2xl border border-gray-100 dark:border-gray-850 p-4 transition hover:border-gray-200 dark:hover:border-gray-700"
+						class="rounded-2xl border border-gray-100 dark:border-gray-850 p-4 transition hover:border-gray-200 dark:hover:border-gray-700 hover:shadow-sm"
 					>
 						<div class="flex items-start justify-between gap-2">
 							<div class="flex items-start gap-3 min-w-0">

@@ -133,13 +133,21 @@
 	};
 </script>
 
-<div class="flex flex-col gap-2.5 p-3.5 rounded-2xl border border-gray-100 dark:border-gray-850">
+<div
+	class="flex flex-col gap-2.5 p-4 rounded-2xl border border-gray-100 dark:border-gray-850 transition hover:border-gray-200 dark:hover:border-gray-700 hover:shadow-sm"
+>
 	<!-- En-tête : logo + nom + état -->
 	<div class="flex items-center gap-2.5">
 		<div
-			class="flex-none size-8 rounded-lg overflow-hidden ring-1 ring-gray-200/70 dark:ring-gray-700/60"
+			class="flex-none size-9 rounded-lg border border-gray-100 dark:border-gray-700 bg-white flex items-center justify-center p-1"
 		>
-			<img src={logoUrl} on:error={onError} class="w-full h-full object-cover" alt={provider.label} draggable="false" />
+			<img
+				src={logoUrl}
+				on:error={onError}
+				class="max-w-full max-h-full object-contain"
+				alt={provider.label}
+				draggable="false"
+			/>
 		</div>
 		<div class="flex-1 min-w-0">
 			<div class="text-sm font-medium line-clamp-1">{provider.label}</div>

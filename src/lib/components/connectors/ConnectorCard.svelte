@@ -94,19 +94,23 @@
 </script>
 
 <div
-	class="flex flex-col gap-2.5 p-3.5 rounded-2xl border border-gray-100 dark:border-gray-850 {connector.enabled
+	class="flex flex-col gap-2.5 p-4 rounded-2xl border border-gray-100 dark:border-gray-850 transition hover:border-gray-200 dark:hover:border-gray-700 hover:shadow-sm {connector.enabled
 		? ''
 		: 'opacity-60'}"
 >
 	<!-- En-tête : logo connecteur (ou icône générique) + nom + état -->
 	<div class="flex items-center gap-2.5">
 		{#if logoSrc}
-			<img
-				src={logoSrc}
-				alt={displayName}
-				class="flex-none size-8 rounded-lg object-contain border border-gray-100 dark:border-gray-800 bg-white"
-				draggable="false"
-			/>
+			<div
+				class="flex-none size-8 rounded-lg border border-gray-100 dark:border-gray-700 bg-white flex items-center justify-center p-1"
+			>
+				<img
+					src={logoSrc}
+					alt={displayName}
+					class="max-w-full max-h-full object-contain"
+					draggable="false"
+				/>
+			</div>
 		{:else}
 			<div
 				class="flex-none size-8 rounded-lg flex items-center justify-center bg-gray-100 dark:bg-gray-850 ring-1 ring-gray-200/70 dark:ring-gray-700/60"

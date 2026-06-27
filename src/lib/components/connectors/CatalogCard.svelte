@@ -103,15 +103,21 @@
 	};
 </script>
 
-<div class="flex flex-col gap-2.5 p-3.5 rounded-2xl border border-gray-100 dark:border-gray-850 h-full">
+<div
+	class="flex flex-col gap-2.5 p-4 rounded-2xl border border-gray-100 dark:border-gray-850 h-full transition hover:border-gray-200 dark:hover:border-gray-700 hover:shadow-sm"
+>
 	<div class="flex items-start gap-2.5">
 		{#if logoSrc}
-			<img
-				src={logoSrc}
-				alt={entry.name}
-				class="size-9 rounded-lg object-contain flex-none border border-gray-100 dark:border-gray-800 bg-white"
-				draggable="false"
-			/>
+			<div
+				class="size-9 flex-none rounded-lg border border-gray-100 dark:border-gray-700 bg-white flex items-center justify-center p-1"
+			>
+				<img
+					src={logoSrc}
+					alt={entry.name}
+					class="max-w-full max-h-full object-contain"
+					draggable="false"
+				/>
+			</div>
 		{/if}
 		<div class="flex-1 min-w-0 flex flex-col gap-1">
 			<div class="text-sm font-medium leading-tight line-clamp-1">{displayName}</div>

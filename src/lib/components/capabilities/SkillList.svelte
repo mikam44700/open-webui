@@ -151,7 +151,7 @@
 						<div class="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
 							{#each group.items as skill (skill.name)}
 								<div
-									class="flex items-start gap-3 border border-gray-100 dark:border-gray-850 rounded-2xl px-4 py-3"
+									class="flex items-start gap-3 border border-gray-100 dark:border-gray-850 rounded-2xl px-4 py-3.5 transition hover:border-gray-200 dark:hover:border-gray-700 hover:shadow-sm"
 								>
 									<div class="flex-1 min-w-0">
 										<div class="text-sm font-medium truncate">{skill.title}</div>
