@@ -15,6 +15,7 @@
 	} from '$lib/apis/gateway';
 	import Spinner from '$lib/components/common/Spinner.svelte';
 	import ConfirmDialog from '$lib/components/common/ConfirmDialog.svelte';
+	import { expertMode } from '$lib/stores';
 
 	let showRestartConfirm = false;
 	let showRegenConfirm = false;
@@ -49,7 +50,6 @@
 	let platforms: MessagingPlatform[] = [];
 	let gatewayRunning = false;
 
-	let search = '';
 	let restarting = false;
 	let generatingKey = false;
 
@@ -69,15 +69,7 @@
 	const isBridgeDown = (err: any) =>
 		err?.error?.code === 'bridge_unreachable' || err?.error?.code === 'hermes_unavailable';
 
-	$: filtered = search.trim()
-		? platforms.filter((p) => {
-				const needle = search.trim().toLowerCase();
-				const hay = [p.name, p.id, p.description, ...p.env_vars.map((v) => v.key)]
-					.join(' ')
-					.toLowerCase();
-				return hay.includes(needle);
-			})
-		: platforms;
+	$: filtered = platforms;
 
 	const load = async (silent = false) => {
 		if (!silent) loading = true;
@@ -267,22 +259,8 @@
 			</button>
 		</div>
 	{:else}
-		<!-- En-tête -->
-		<div class="flex items-start justify-between mb-3">
-			<div>
-				<div class="text-lg font-medium">{$i18n.t('Messagerie')}</div>
-				<div class="text-xs text-gray-500">
-					{$i18n.t('Supervision du moteur et canaux de messagerie de vos agents.')}
-				</div>
-			</div>
-			<button
-				class="px-3 py-1.5 text-sm rounded-lg bg-gray-100 dark:bg-gray-850 hover:bg-gray-200 dark:hover:bg-gray-800 transition"
-				on:click={() => load()}
-			>
-				{$i18n.t('Rafraîchir')}
-			</button>
-		</div>
-
+		<!-- Supervision technique (serveur + clé API) : Mode Expert uniquement. -->
+		{#if $expertMode}
 		<!-- Bloc statut gateway -->
 		<div class="rounded-2xl border border-gray-100 dark:border-gray-850 p-4 mb-3">
 			<div class="flex items-center justify-between gap-3 flex-wrap">
@@ -355,33 +333,59 @@
 				</div>
 			</div>
 		{/if}
-
-		<!-- Recherche -->
-		<div class="mb-3">
-			<input
-				class="w-full px-3 py-2 text-sm rounded-lg bg-gray-50 dark:bg-gray-850 outline-none"
-				placeholder={$i18n.t('Rechercher une plateforme')}
-				bind:value={search}
-			/>
-		</div>
+		{/if}
 
 		<!-- Grille des plateformes -->
-		<div class="text-sm font-medium mb-2">{$i18n.t('Canaux de messagerie')}</div>
+		<div class="flex items-center justify-between mb-3">
+			<div class="text-sm font-medium">{$i18n.t('Canaux de messagerie')}</div>
+			<button
+				type="button"
+				class="p-1.5 rounded-lg text-gray-400 hover:text-gray-700 hover:bg-gray-100 dark:hover:bg-gray-850 dark:hover:text-gray-200 transition"
+				title={$i18n.t('Rafraîchir')}
+				aria-label={$i18n.t('Rafraîchir')}
+				on:click={() => load()}
+			>
+				<svg
+					xmlns="http://www.w3.org/2000/svg"
+					fill="none"
+					viewBox="0 0 24 24"
+					stroke-width="1.8"
+					stroke="currentColor"
+					class="size-4"
+				>
+					<path
+						stroke-linecap="round"
+						stroke-linejoin="round"
+						d="M16.023 9.348h4.992V4.356M3 3.75v4.5m0 0h4.5m-4.5 0 3.181-3.183a8.25 8.25 0 0 1 11.667 0l3.181 3.183m0 6.75v4.5m0 0h-4.5m4.5 0-3.182-3.182a8.25 8.25 0 0 1-11.667 0L3 16.5"
+					/>
+				</svg>
+			</button>
+		</div>
 		{#if filtered.length > 0}
-			<div class="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+			<div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
 				{#each filtered as p (p.id)}
 					{@const st = stateLabel(p.state)}
-					<div class="rounded-2xl border border-gray-100 dark:border-gray-850 p-3.5">
+					<div
+						class="rounded-2xl border border-gray-100 dark:border-gray-850 p-4 transition hover:border-gray-200 dark:hover:border-gray-700"
+					>
 						<div class="flex items-start justify-between gap-2">
-							<div class="flex items-start gap-2.5 min-w-0">
+							<div class="flex items-start gap-3 min-w-0">
 								{#if LOGO_BY_ID[p.id]}
-									<img
-										src={LOGO_BY_ID[p.id]}
-										alt={p.name}
-										class="size-10 rounded-xl object-cover flex-none border border-gray-100 dark:border-gray-800 bg-white"
-									/>
+									<div
+										class="size-10 flex-none rounded-xl border border-gray-100 dark:border-gray-700 bg-white flex items-center justify-center p-1.5"
+									>
+										<img
+											src={LOGO_BY_ID[p.id]}
+											alt={p.name}
+											class="max-w-full max-h-full object-contain"
+										/>
+									</div>
 								{:else}
-									<div class="text-2xl leading-none select-none">{p.emoji}</div>
+									<div
+										class="size-10 flex-none rounded-xl border border-gray-100 dark:border-gray-700 bg-gray-50 dark:bg-gray-850 flex items-center justify-center text-xl select-none"
+									>
+										{p.emoji}
+									</div>
 								{/if}
 								<div class="min-w-0">
 									<div class="flex items-center gap-2">
@@ -417,10 +421,12 @@
 							</button>
 						</div>
 
-						<div class="flex items-center gap-1 mt-3">
+						<div
+							class="flex items-center gap-1 mt-3 pt-3 border-t border-gray-50 dark:border-gray-850"
+						>
 							{#if p.docs_url}
 								<a
-									class="px-2 py-1 text-xs rounded-lg hover:bg-gray-100 dark:hover:bg-gray-850 transition text-gray-600 dark:text-gray-300"
+									class="px-2 py-1 text-xs rounded-lg hover:bg-gray-100 dark:hover:bg-gray-850 transition text-gray-500"
 									href={p.docs_url}
 									target="_blank"
 									rel="noopener noreferrer"
@@ -429,14 +435,15 @@
 								</a>
 							{/if}
 							<button
-								class="px-2 py-1 text-xs rounded-lg hover:bg-gray-100 dark:hover:bg-gray-850 transition text-gray-600 dark:text-gray-300 disabled:opacity-50"
+								class="px-2 py-1 text-xs rounded-lg hover:bg-gray-100 dark:hover:bg-gray-850 transition text-gray-500 disabled:opacity-50"
 								on:click={() => testPlatform(p)}
 								disabled={busy === p.id}
 							>
 								{$i18n.t('Tester')}
 							</button>
+							<div class="flex-1"></div>
 							<button
-								class="px-2 py-1 text-xs rounded-lg hover:bg-gray-100 dark:hover:bg-gray-850 transition text-gray-600 dark:text-gray-300"
+								class="px-2.5 py-1 text-xs font-medium rounded-lg border border-gray-200 dark:border-gray-700 hover:bg-gray-100 dark:hover:bg-gray-850 transition"
 								on:click={() => openModal(p)}
 							>
 								{p.configured ? $i18n.t('Détails') : $i18n.t('Configurer')}
@@ -457,7 +464,7 @@
 			</div>
 		{:else}
 			<div class="text-sm text-gray-500 py-10 text-center">
-				{$i18n.t('Aucune plateforme ne correspond.')}
+				{$i18n.t('Aucun canal disponible pour le moment.')}
 			</div>
 		{/if}
 	{/if}
@@ -481,7 +488,15 @@
 			<div class="flex items-center justify-between mb-1">
 				<div class="flex items-center gap-2">
 					{#if LOGO_BY_ID[p.id]}
-						<img src={LOGO_BY_ID[p.id]} alt={p.name} class="size-6 rounded-md object-contain" />
+						<div
+							class="size-7 rounded-md border border-gray-100 dark:border-gray-700 bg-white flex items-center justify-center p-1"
+						>
+							<img
+								src={LOGO_BY_ID[p.id]}
+								alt={p.name}
+								class="max-w-full max-h-full object-contain"
+							/>
+						</div>
 					{:else}
 						<span class="text-xl">{p.emoji}</span>
 					{/if}
