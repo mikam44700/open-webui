@@ -13,8 +13,14 @@ import obsidianLogo from '$lib/assets/integrations/obsidian-icon.webp';
 import xLogo from '$lib/assets/integrations/x.svg';
 import appleLogo from '$lib/assets/integrations/apple.svg';
 import hueLogo from '$lib/assets/integrations/hue.svg';
-// Placeholder Microsoft 365 — à remplacer par le logo officiel Microsoft 365
+// Placeholder Microsoft 365 — a remplacer par le logo officiel Microsoft 365
 import microsoft365Logo from '$lib/assets/integrations/microsoft/microsoft365.svg';
+// Placeholders OAuth 1 clic — a remplacer par les logos officiels de chaque service
+import calendlyLogo from '$lib/assets/integrations/calendly/calendly.svg';
+import boxLogo from '$lib/assets/integrations/box/box.svg';
+import dropboxLogo from '$lib/assets/integrations/dropbox/dropbox.svg';
+import salesforceLogo from '$lib/assets/integrations/salesforce/salesforce.svg';
+import clickupLogo from '$lib/assets/integrations/clickup/clickup.svg';
 
 export const INTEGRATION_LOGO: Record<string, string> = {
 	'google-workspace': googleLogo,
@@ -26,7 +32,12 @@ export const INTEGRATION_LOGO: Record<string, string> = {
 	x: xLogo,
 	apple: appleLogo,
 	hue: hueLogo,
-	'microsoft-365': microsoft365Logo
+	'microsoft-365': microsoft365Logo,
+	calendly: calendlyLogo,
+	box: boxLogo,
+	dropbox: dropboxLogo,
+	salesforce: salesforceLogo,
+	clickup: clickupLogo
 };
 
 // Couleur du fond derrière le logo. Certains logos (ex. Obsidian, cristal violet) sont
