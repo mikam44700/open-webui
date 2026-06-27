@@ -19,7 +19,9 @@
 				goto('/');
 			}
 		} else {
-			goto('/workspace/models');
+			// Onglet « Modèles » remplacé par « Agents » dans la nav (Hermes seul maître).
+			// L'admin atterrit donc sur Agents, premier onglet visible, et non plus sur Modèles.
+			goto('/workspace/agents');
 		}
 	});
 </script>
