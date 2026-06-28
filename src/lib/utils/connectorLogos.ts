@@ -8,11 +8,13 @@
 import linearLogo from '$lib/assets/connectors/linear.png';
 import n8nLogo from '$lib/assets/connectors/n8n.svg';
 import unrealEngineLogo from '$lib/assets/connectors/unreal-engine.png';
+import hubspotLogo from '$lib/assets/connectors/hubspot.svg';
 
 export const CONNECTOR_LOGO: Record<string, string> = {
 	linear: linearLogo,
 	n8n: n8nLogo,
-	'unreal-engine': unrealEngineLogo
+	'unreal-engine': unrealEngineLogo,
+	hubspot: hubspotLogo
 };
 
 // Logos « carré plein » (fond intégré, dégradés compris) → affichés bord à bord pour

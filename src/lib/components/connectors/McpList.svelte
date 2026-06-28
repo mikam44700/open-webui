@@ -21,7 +21,21 @@
 		auth_type: 'none' | 'key' | 'oauth';
 		installed: boolean;
 		source_url?: string | null;
+		// Connecteur hors catalogue Hermes (ajouté en custom http/OAuth au clic).
+		preset?: { transport: 'http' | 'sse'; url: string; auth_type: 'none' | 'key' | 'oauth' };
 	};
+
+	// Vedettes « maison » absentes du catalogue Hermes mais branchables via leur serveur
+	// MCP officiel (http + connexion par compte). Ex. HubSpot → mcp.hubspot.com.
+	const PRESET_FEATURED: Entry[] = [
+		{
+			name: 'hubspot',
+			transport: 'http',
+			auth_type: 'oauth',
+			installed: false,
+			preset: { transport: 'http', url: 'https://mcp.hubspot.com/', auth_type: 'oauth' }
+		}
+	];
 	type Connector = {
 		id: string;
 		transport: 'stdio' | 'http' | 'sse';
@@ -40,12 +54,14 @@
 	let showBrowse = false;
 	let showAddModal = false;
 
-	// Vedettes : connecteurs marqués « populaires » dans les libellés FR ;
-	// repli sur les 4 premiers non installés (à découvrir) sinon les 4 premiers.
+	// Vedettes : presets « maison » (HubSpot…) non encore installés, puis connecteurs
+	// marqués « populaires » dans les libellés FR ; repli sur les premiers non installés.
+	$: installedIds = new Set(connectors.map((c) => c.id));
+	$: presetFeatured = PRESET_FEATURED.filter((e) => !installedIds.has(e.name));
 	$: notInstalled = entries.filter((e) => !e.installed);
 	$: popular = entries.filter((e) => CONNECTOR_FR[e.name]?.popular);
-	$: featured =
-		popular.length > 0 ? popular.slice(0, 4) : (notInstalled.length > 0 ? notInstalled : entries).slice(0, 4);
+	$: base = popular.length > 0 ? popular : notInstalled.length > 0 ? notInstalled : entries;
+	$: featured = [...presetFeatured, ...base].slice(0, 4);
 
 	const isBridgeDown = (err: any) =>
 		err?.error?.code === 'bridge_unreachable' || err?.error?.code === 'hermes_unavailable';

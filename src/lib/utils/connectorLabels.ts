@@ -10,6 +10,18 @@ export const CONNECTOR_FR: Record<
 	string,
 	{ name: string; desc: string; actions: string[]; popular?: boolean }
 > = {
+	hubspot: {
+		name: 'HubSpot',
+		desc: 'Connecte ton CRM HubSpot : contacts, entreprises, transactions et tickets, pilotés depuis l’agent.',
+		popular: true,
+		actions: [
+			'Rechercher contacts, entreprises et transactions',
+			'Créer ou mettre à jour une fiche contact / entreprise',
+			'Suivre l’avancement des transactions (deals)',
+			'Consulter et créer des tickets de support',
+			'Lire l’activité récente du CRM'
+		]
+	},
 	linear: {
 		name: 'Linear',
 		desc: 'Gère tes tickets, projets et commentaires Linear (gestion de projet) directement depuis l’agent.',

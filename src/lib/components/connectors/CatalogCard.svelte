@@ -6,7 +6,8 @@
 		installConnector,
 		setConnectorKey,
 		startConnectorOAuth,
-		getInstallStatus
+		getInstallStatus,
+		addCustomConnector
 	} from '$lib/apis/connectors';
 	import Spinner from '$lib/components/common/Spinner.svelte';
 	import OAuthProgressModal from './OAuthProgressModal.svelte';
@@ -23,6 +24,9 @@
 		auth_type: 'none' | 'key' | 'oauth';
 		installed: boolean;
 		source_url?: string | null;
+		// Connecteur hors catalogue Hermes (ex. HubSpot) : on l'ajoute en « custom »
+		// (http/OAuth) au lieu de passer par `hermes mcp install`.
+		preset?: { transport: 'http' | 'sse'; url: string; auth_type: 'none' | 'key' | 'oauth' };
 	};
 
 	// Accès en langage client (pas de jargon : ni transport http/stdio, ni « OAuth »).
@@ -72,6 +76,29 @@
 	const install = async () => {
 		working = true;
 		try {
+			// Connecteur « preset » (hors catalogue Hermes, ex. HubSpot) : on l'ajoute en
+			// custom (http/OAuth) puis on lance directement la connexion par compte.
+			if (entry.preset) {
+				try {
+					await addCustomConnector(localStorage.token, {
+						name: entry.name,
+						transport: entry.preset.transport,
+						url: entry.preset.url,
+						auth_type: entry.preset.auth_type
+					});
+				} catch (err: any) {
+					// Déjà ajouté précédemment (clic répété) : on poursuit vers l'OAuth.
+					if (err?.error?.code !== 'name_conflict') throw err;
+				}
+				if (entry.preset.auth_type === 'oauth') {
+					await startConnectorOAuth(localStorage.token, entry.name);
+					oauthOpen = true;
+				} else {
+					toast.success($i18n.t('Connecteur installé.'));
+					dispatch('changed');
+				}
+				return;
+			}
 			// 1) clé API d'abord (pour une install non-interactive)
 			if (entry.auth_type === 'key') {
 				if (!keyValue) {
