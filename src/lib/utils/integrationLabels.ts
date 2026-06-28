@@ -28,8 +28,7 @@ export const INTEGRATION_FR: Record<string, IntegrationMeta> = {
 	github: {
 		name: 'GitHub',
 		desc: 'Tes dépôts, issues et pull requests GitHub.',
-		category: 'Développement',
-		popular: true
+		category: 'Développement'
 	},
 	airtable: {
 		name: 'Airtable',
@@ -45,7 +44,8 @@ export const INTEGRATION_FR: Record<string, IntegrationMeta> = {
 	obsidian: {
 		name: 'Obsidian',
 		desc: 'Ton coffre de notes Obsidian : lire, chercher, créer et lier des notes.',
-		category: 'Productivité'
+		category: 'Productivité',
+		popular: true
 	},
 	x: {
 		name: 'X (Twitter)',

@@ -62,6 +62,9 @@
 	$: popular = entries.filter((e) => CONNECTOR_FR[e.name]?.popular);
 	$: base = popular.length > 0 ? popular : notInstalled.length > 0 ? notInstalled : entries;
 	$: featured = [...presetFeatured, ...base].slice(0, 4);
+	// « Tout parcourir » : presets maison (HubSpot…) + catalogue Hermes, pour qu'ils
+	// apparaissent aussi dans la modale (pas seulement en vedette).
+	$: browseEntries = [...presetFeatured, ...entries];
 
 	const isBridgeDown = (err: any) =>
 		err?.error?.code === 'bridge_unreachable' || err?.error?.code === 'hermes_unavailable';
@@ -174,7 +177,7 @@
 	{/if}
 </div>
 
-<McpBrowseModal bind:open={showBrowse} {entries} on:changed={load} />
+<McpBrowseModal bind:open={showBrowse} entries={browseEntries} on:changed={load} />
 
 <AddConnectorModal
 	bind:open={showAddModal}
