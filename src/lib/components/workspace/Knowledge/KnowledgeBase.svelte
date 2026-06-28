@@ -1126,7 +1126,7 @@
 			}
 			knowledgeId = knowledge?.id;
 		} else {
-			goto('/workspace/knowledge');
+			goto('/memory/knowledge');
 		}
 
 		const dropZone = document.querySelector('body');

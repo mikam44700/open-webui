@@ -24,13 +24,33 @@
 	// Rien n'est supprimé : la redirection ci-dessous renvoie tout accès direct vers Capacités.
 	const HIDE_NATIVE_CAPABILITIES = true;
 
+	// Page « Prompts » native (raccourcis /slash pour le chat) : reliquat power-user d'OpenWebUI.
+	// Inutile pour le dirigeant non-tech — l'Atelier d'agents + le bouton « Clarifier ma demande » (✨)
+	// couvrent déjà le besoin. On masque l'onglet et on redirige l'accès direct. Rien n'est supprimé.
+	const HIDE_NATIVE_PROMPTS = true;
+
+	// Page « Connaissances » déplacée sous Mémoire (Second Cerveau) : le savoir vit dans la Mémoire,
+	// pas dans une surface Workspace séparée. On masque l'onglet ici et on redirige vers /memory/knowledge.
+	// Les routes /memory/knowledge* réutilisent les mêmes composants (rien n'est dupliqué ni supprimé).
+	const HIDE_NATIVE_KNOWLEDGE = true;
+
 	onMount(async () => {
+		if (HIDE_NATIVE_KNOWLEDGE && $page.url.pathname.includes('/workspace/knowledge')) {
+			goto('/memory/knowledge');
+			return;
+		}
+
 		if (
 			HIDE_NATIVE_CAPABILITIES &&
 			($page.url.pathname.includes('/workspace/tools') ||
 				$page.url.pathname.includes('/workspace/skills'))
 		) {
 			goto('/connectors');
+			return;
+		}
+
+		if (HIDE_NATIVE_PROMPTS && $page.url.pathname.includes('/workspace/prompts')) {
+			goto('/');
 			return;
 		}
 
@@ -115,7 +135,7 @@
 							>
 						{/if}
 
-						{#if $user?.role === 'admin' || $user?.permissions?.workspace?.knowledge}
+						{#if !HIDE_NATIVE_KNOWLEDGE && ($user?.role === 'admin' || $user?.permissions?.workspace?.knowledge)}
 							<a
 								draggable="false"
 								aria-current={$page.url.pathname.includes('/workspace/knowledge') ? 'page' : null}
@@ -128,7 +148,7 @@
 							</a>
 						{/if}
 
-						{#if $user?.role === 'admin' || $user?.permissions?.workspace?.prompts}
+						{#if !HIDE_NATIVE_PROMPTS && ($user?.role === 'admin' || $user?.permissions?.workspace?.prompts)}
 							<a
 								draggable="false"
 								aria-current={$page.url.pathname.includes('/workspace/prompts') ? 'page' : null}
