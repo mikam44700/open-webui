@@ -487,6 +487,7 @@ from open_webui.routers import (
     briefing,
     calendar,
     calendar_hermes,
+    google_services_hermes,
     channels,
     chats,
     configs,
@@ -1479,6 +1480,7 @@ app.include_router(calendar.router, prefix='/api/v1/calendars', tags=['calendars
 # Calendrier piloté par Hermes (feature 014) : Google Agenda via le bridge. La page front
 # utilise ce proxy ; le router natif ci-dessus reste monté (base locale) mais inerte cote UI.
 app.include_router(calendar_hermes.router, prefix='/api/v1/calendar', tags=['calendar'])
+app.include_router(google_services_hermes.router, prefix='/api/v1/google', tags=['google'])
 # Briefing du jour assemblé par Hermes (feature 015).
 app.include_router(briefing.router, prefix='/api/v1/briefing', tags=['briefing'])
 # Canal « Agent OS » : Hermes publie ses briefings dans un canal de l'app (feature 015).
