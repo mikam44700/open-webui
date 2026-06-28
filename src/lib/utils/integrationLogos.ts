@@ -13,8 +13,8 @@ import obsidianLogo from '$lib/assets/integrations/obsidian-icon.webp';
 import xLogo from '$lib/assets/integrations/x.svg';
 import appleLogo from '$lib/assets/integrations/apple.svg';
 import hueLogo from '$lib/assets/integrations/hue.svg';
-// Placeholder Microsoft 365 — a remplacer par le logo officiel Microsoft 365
-import microsoft365Logo from '$lib/assets/integrations/microsoft/microsoft365.svg';
+// Logo principal Microsoft 365
+import microsoft365Logo from '$lib/assets/integrations/microsoft/microsoft365-main.jpg';
 // Placeholders OAuth 1 clic — a remplacer par les logos officiels de chaque service
 import calendlyLogo from '$lib/assets/integrations/calendly/calendly.svg';
 import boxLogo from '$lib/assets/integrations/box/box.svg';
@@ -61,4 +61,29 @@ export const GOOGLE_SERVICE_LOGO: Record<string, string> = {
 	Agenda: gwsCalendar,
 	Docs: gwsDocs,
 	Contacts: gwsContacts
+};
+
+// Espace Microsoft 365 : chaque service avec son propre logo (cle = nom du sous-service renvoyé par le serveur).
+import ms365Outlook from '$lib/assets/integrations/microsoft/outlook.png';
+import ms365Calendar from '$lib/assets/integrations/microsoft/calendar.png';
+import ms365OneDrive from '$lib/assets/integrations/microsoft/onedrive.png';
+import ms365Word from '$lib/assets/integrations/microsoft/word.png';
+import ms365Excel from '$lib/assets/integrations/microsoft/excel.svg';
+import ms365PowerPoint from '$lib/assets/integrations/microsoft/powerpoint.png';
+import ms365Teams from '$lib/assets/integrations/microsoft/teams.png';
+import ms365OneNote from '$lib/assets/integrations/microsoft/onenote.png';
+import ms365Todo from '$lib/assets/integrations/microsoft/todo.png';
+import ms365Contacts from '$lib/assets/integrations/microsoft/contacts.jpg';
+
+export const MICROSOFT_SERVICE_LOGO: Record<string, string> = {
+	Outlook: ms365Outlook,
+	Agenda: ms365Calendar,
+	OneDrive: ms365OneDrive,
+	Word: ms365Word,
+	Excel: ms365Excel,
+	PowerPoint: ms365PowerPoint,
+	Teams: ms365Teams,
+	OneNote: ms365OneNote,
+	'To Do': ms365Todo,
+	Contacts: ms365Contacts
 };

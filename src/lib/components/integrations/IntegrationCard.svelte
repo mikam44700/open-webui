@@ -2,7 +2,7 @@
 	import { getContext, createEventDispatcher } from 'svelte';
 	import { toast } from 'svelte-sonner';
 
-	import { INTEGRATION_LOGO, INTEGRATION_LOGO_BG, GOOGLE_SERVICE_LOGO } from '$lib/utils/integrationLogos';
+	import { INTEGRATION_LOGO, INTEGRATION_LOGO_BG, GOOGLE_SERVICE_LOGO, MICROSOFT_SERVICE_LOGO } from '$lib/utils/integrationLogos';
 	import { INTEGRATION_FR, ACCESS_LABEL, STATE_LABEL } from '$lib/utils/integrationLabels';
 	import {
 		disconnectIntegration,
@@ -52,6 +52,14 @@
 	// Modes de connexion : compte (Google), clé/chemin (Notion/GitHub/Airtable/Obsidian).
 	$: isGoogle = integration.auth_mode === 'account' && integration.id === 'google-workspace';
 	$: isEmail = integration.auth_mode === 'credentials' && integration.id === 'email';
+
+	// Mapping logo de sous-service selon l'espace (Google Workspace ou Microsoft 365).
+	// null = pas de mapping, les sous-services s'affichent en pills texte simples.
+	const SERVICE_LOGO_BY_ID: Record<string, Record<string, string>> = {
+		'google-workspace': GOOGLE_SERVICE_LOGO,
+		'microsoft-365': MICROSOFT_SERVICE_LOGO
+	};
+	$: serviceLogoMap = SERVICE_LOGO_BY_ID[integration.id] ?? null;
 	$: isKeyLike = integration.auth_mode === 'key' || integration.auth_mode === 'path';
 	$: isPath = integration.auth_mode === 'path';
 	$: isConnected = integration.state === 'connected';
@@ -192,15 +200,15 @@
 	</div>
 
 	{#if subservices.length > 0}
-		{#if isGoogle}
-			<!-- Espace Google Workspace : chaque service avec son propre logo -->
+		{#if serviceLogoMap}
+			<!-- Espace a sous-logos (Google Workspace, Microsoft 365, etc.) : chaque service avec son propre logo -->
 			<div class="flex flex-wrap gap-1.5">
 				{#each subservices as s}
 					<div
 						class="flex items-center gap-1.5 text-[11px] px-2 py-1 rounded-lg border border-gray-100 dark:border-gray-800 bg-gray-50 dark:bg-gray-850/50"
 					>
-						{#if GOOGLE_SERVICE_LOGO[s]}
-							<img src={GOOGLE_SERVICE_LOGO[s]} alt={s} class="size-4 object-contain" draggable="false" />
+						{#if serviceLogoMap[s]}
+							<img src={serviceLogoMap[s]} alt={s} class="size-4 object-contain" draggable="false" />
 						{/if}
 						<span class="text-gray-700 dark:text-gray-300">{s}</span>
 					</div>
