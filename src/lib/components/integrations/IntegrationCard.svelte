@@ -78,9 +78,25 @@
 		'box',
 		'dropbox',
 		'salesforce',
-		'clickup'
+		'clickup',
+		'google-meet',
+		'google-slides',
+		'google-analytics',
+		'google-search-console'
 	]);
 	$: isCentralOAuth = CENTRAL_OAUTH_IDS.has(integration.id);
+
+	// Services Google pilotés par notre bridge (Chemin A) : intégrations distinctes mais
+	// qui s'activent avec le MÊME compte Google. La connexion/déconnexion passe donc par le
+	// fournisseur « google-workspace » (un seul google_token.json), pas par un OAuth propre.
+	const GOOGLE_DIRECT_IDS = new Set([
+		'google-meet',
+		'google-slides',
+		'google-analytics',
+		'google-search-console'
+	]);
+	$: isGoogleDirect = GOOGLE_DIRECT_IDS.has(integration.id);
+	$: oauthProviderId = isGoogleDirect ? 'google-workspace' : integration.id;
 
 	let googleOpen = false;
 	let emailOpen = false;
@@ -148,12 +164,12 @@
 	const onConnectOAuth = async () => {
 		busy = true;
 		try {
-			const res = await getOAuthAuthUrl(localStorage.token, integration.id);
+			const res = await getOAuthAuthUrl(localStorage.token, oauthProviderId);
 			if (!res?.auth_url) {
 				toast.error($i18n.t('Impossible de démarrer la connexion.'));
 				return;
 			}
-			sessionStorage.setItem('oauth_provider', integration.id);
+			sessionStorage.setItem('oauth_provider', oauthProviderId);
 			window.location.href = res.auth_url;
 		} catch {
 			toast.error($i18n.t('Impossible de démarrer la connexion.'));
@@ -285,6 +301,10 @@
 					>
 						{$i18n.t('Annuler')}
 					</button>
+				{:else if isConnected && isGoogleDirect}
+					<!-- Service Google piloté par le bridge : activé via le compte Google ;
+					     la déconnexion se fait depuis la carte Google Workspace (un seul compte). -->
+					<span class="text-[11px] text-green-700 dark:text-green-400">{$i18n.t('Activé avec votre compte Google')}</span>
 				{:else if isConnected && isCentralOAuth}
 					<!-- Intégration OAuth centralisée connectée : déconnexion via bridge OAuth -->
 					<button

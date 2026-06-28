@@ -93,6 +93,26 @@ export const INTEGRATION_FR: Record<string, IntegrationMeta> = {
 		name: 'ClickUp',
 		desc: 'Gestion de projets et de tâches — suivi, assignation et statuts.',
 		category: 'Productivité'
+	},
+	'google-meet': {
+		name: 'Google Meet',
+		desc: 'Réunions vidéo Google Meet — créées via ton compte Google.',
+		category: 'Communication'
+	},
+	'google-slides': {
+		name: 'Google Slides',
+		desc: 'Crée et gère des présentations — via ton compte Google.',
+		category: 'Productivité'
+	},
+	'google-analytics': {
+		name: 'Google Analytics',
+		desc: 'Statistiques de fréquentation de ton site — via ton compte Google.',
+		category: 'Productivité'
+	},
+	'google-search-console': {
+		name: 'Google Search Console',
+		desc: 'Référencement et requêtes de recherche de ton site — via ton compte Google.',
+		category: 'Productivité'
 	}
 };
 

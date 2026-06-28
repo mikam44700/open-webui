@@ -37,7 +37,11 @@ export const INTEGRATION_LOGO: Record<string, string> = {
 	box: boxLogo,
 	dropbox: dropboxLogo,
 	salesforce: salesforceLogo,
-	clickup: clickupLogo
+	clickup: clickupLogo,
+	'google-meet': gwsMeet,
+	'google-slides': gwsSlides,
+	'google-analytics': gwsAnalytics,
+	'google-search-console': gwsSearchConsole
 };
 
 // Couleur du fond derrière le logo. Certains logos (ex. Obsidian, cristal violet) sont
@@ -68,11 +72,7 @@ export const GOOGLE_SERVICE_LOGO: Record<string, string> = {
 	Sheets: gwsSheets,
 	Agenda: gwsCalendar,
 	Docs: gwsDocs,
-	Contacts: gwsContacts,
-	Meet: gwsMeet,
-	Slides: gwsSlides,
-	Analytics: gwsAnalytics,
-	'Search Console': gwsSearchConsole
+	Contacts: gwsContacts
 };
 
 // Espace Microsoft 365 : chaque service avec son propre logo (cle = nom du sous-service renvoyé par le serveur).
