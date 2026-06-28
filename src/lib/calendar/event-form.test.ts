@@ -31,6 +31,16 @@ describe('validateEventForm', () => {
 		expect(r.ok && r.body.location).toBe('Bureau');
 	});
 
+	it('ajoute with_meet quand une réunion Meet est demandée', () => {
+		const r = validateEventForm({ ...base, withMeet: true });
+		expect(r.ok && r.body.with_meet).toBe(true);
+	});
+
+	it('n’ajoute pas with_meet par défaut', () => {
+		const r = validateEventForm(base);
+		expect(r.ok && r.body.with_meet).toBeUndefined();
+	});
+
 	it('refuse un titre vide', () => {
 		expect(validateEventForm({ ...base, title: '  ' }).ok).toBe(false);
 	});

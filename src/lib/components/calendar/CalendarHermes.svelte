@@ -25,7 +25,7 @@
 	let events: CalendarEvent[] = [];
 
 	let showModal = false;
-	let form = { title: '', startLocal: '', endLocal: '', location: '' };
+	let form = { title: '', startLocal: '', endLocal: '', location: '', withMeet: false };
 	let saving = false;
 
 	let showDeleteConfirm = false;
@@ -66,8 +66,13 @@
 		}
 		saving = true;
 		try {
-			await createEvent(localStorage.token, v.body);
-			toast.success($i18n.t('Événement ajouté à votre agenda'));
+			const res = await createEvent(localStorage.token, v.body);
+			const meetLink = res?.event?.meet_link;
+			toast.success(
+				meetLink
+					? $i18n.t('Réunion Meet créée et ajoutée à votre agenda')
+					: $i18n.t('Événement ajouté à votre agenda')
+			);
 			showModal = false;
 			form = { title: '', startLocal: '', endLocal: '', location: '' };
 			await load();
@@ -128,6 +133,10 @@
 			<label class="text-sm">
 				<span class="text-gray-600 dark:text-gray-300">{$i18n.t('Lieu (optionnel)')}</span>
 				<input class="w-full mt-1 px-3 py-2 rounded-lg bg-gray-50 dark:bg-gray-850 outline-none text-sm" bind:value={form.location} />
+			</label>
+			<label class="flex items-center gap-2 text-sm cursor-pointer select-none">
+				<input type="checkbox" class="size-4 rounded accent-black dark:accent-white" bind:checked={form.withMeet} />
+				<span class="text-gray-600 dark:text-gray-300">{$i18n.t('Ajouter une réunion vidéo Google Meet')}</span>
 			</label>
 		</div>
 		<div class="flex justify-end gap-2 mt-4">
