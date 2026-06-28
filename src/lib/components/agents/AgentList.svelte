@@ -108,7 +108,9 @@
 	onMount(load);
 </script>
 
-<div class="relative w-full min-h-full overflow-hidden bg-[#fcfbfa] dark:bg-gray-950">
+<div
+	class="relative min-h-full overflow-hidden -mx-3 md:-mx-[18px] -mb-1 bg-gradient-to-b from-sky-50 via-[#fdfcfb] to-emerald-50/60 dark:from-gray-950 dark:via-gray-950 dark:to-gray-950"
+>
 	<!-- Halos décoratifs façon « aurora » (haut + bas), style Lindy -->
 	<div aria-hidden="true" class="pointer-events-none absolute inset-0 overflow-hidden">
 		<div
