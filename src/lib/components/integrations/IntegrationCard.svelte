@@ -2,7 +2,7 @@
 	import { getContext, createEventDispatcher } from 'svelte';
 	import { toast } from 'svelte-sonner';
 
-	import { INTEGRATION_LOGO, INTEGRATION_LOGO_BG, GOOGLE_SERVICE_LOGO, MICROSOFT_SERVICE_LOGO } from '$lib/utils/integrationLogos';
+	import { INTEGRATION_LOGO, INTEGRATION_LOGO_BG, INTEGRATION_LOGO_FULL_BLEED, GOOGLE_SERVICE_LOGO, MICROSOFT_SERVICE_LOGO } from '$lib/utils/integrationLogos';
 	import { INTEGRATION_FR, ACCESS_LABEL, STATE_LABEL } from '$lib/utils/integrationLabels';
 	import {
 		disconnectIntegration,
@@ -44,6 +44,7 @@
 	$: desc = fr?.desc ?? '';
 	$: logo = INTEGRATION_LOGO[integration.id];
 	$: logoBg = INTEGRATION_LOGO_BG[integration.id] ?? 'bg-white';
+	$: logoFullBleed = INTEGRATION_LOGO_FULL_BLEED.has(integration.id);
 	$: access = ACCESS_LABEL[integration.auth_mode] ?? '';
 	$: stateLabel = STATE_LABEL[integration.state] ?? integration.state;
 	$: stateCls = STATE_CLS[integration.state] ?? STATE_CLS.not_connected;
@@ -183,9 +184,14 @@
 	<div class="flex items-start gap-2.5">
 		{#if logo}
 			<div
-				class="size-10 flex-none rounded-xl border border-gray-100 dark:border-gray-700 {logoBg} flex items-center justify-center p-1.5"
+				class="size-10 flex-none rounded-xl border border-gray-100 dark:border-gray-700 overflow-hidden flex items-center justify-center {logoFullBleed ? '' : `${logoBg} p-1.5`}"
 			>
-				<img src={logo} alt={name} class="max-w-full max-h-full object-contain" draggable="false" />
+				<img
+					src={logo}
+					alt={name}
+					class={logoFullBleed ? 'w-full h-full object-cover' : 'max-w-full max-h-full object-contain'}
+					draggable="false"
+				/>
 			</div>
 		{/if}
 		<div class="flex-1 min-w-0 flex flex-col gap-1">

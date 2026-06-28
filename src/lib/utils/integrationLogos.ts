@@ -15,12 +15,12 @@ import appleLogo from '$lib/assets/integrations/apple.svg';
 import hueLogo from '$lib/assets/integrations/hue.svg';
 // Logo principal Microsoft 365
 import microsoft365Logo from '$lib/assets/integrations/microsoft/microsoft365-main.jpg';
-// Placeholders OAuth 1 clic — a remplacer par les logos officiels de chaque service
-import calendlyLogo from '$lib/assets/integrations/calendly/calendly.svg';
-import boxLogo from '$lib/assets/integrations/box/box.svg';
-import dropboxLogo from '$lib/assets/integrations/dropbox/dropbox.svg';
-import salesforceLogo from '$lib/assets/integrations/salesforce/salesforce.svg';
-import clickupLogo from '$lib/assets/integrations/clickup/clickup.svg';
+// Logos officiels OAuth 1 clic (Salesforce = SVG vectoriel ; les autres = PNG/JPEG haute def).
+import calendlyLogo from '$lib/assets/integrations/calendly/calendly-logo.png';
+import boxLogo from '$lib/assets/integrations/box/box-logo.png';
+import dropboxLogo from '$lib/assets/integrations/dropbox/dropbox-logo.png';
+import salesforceLogo from '$lib/assets/integrations/salesforce/salesforce-logo.svg';
+import clickupLogo from '$lib/assets/integrations/clickup/clickup-logo.jpg';
 
 export const INTEGRATION_LOGO: Record<string, string> = {
 	'google-workspace': googleLogo,
@@ -45,6 +45,10 @@ export const INTEGRATION_LOGO: Record<string, string> = {
 export const INTEGRATION_LOGO_BG: Record<string, string> = {
 	obsidian: 'bg-black'
 };
+
+// Logos « carré plein » (fond couleur intégré, ex. Box bleu) → affichés bord-à-bord pour
+// remplir toute la case, sans marge ni fond blanc. Les autres gardent fond + padding.
+export const INTEGRATION_LOGO_FULL_BLEED = new Set<string>(['box']);
 
 // Espace Google Workspace : chaque service avec son propre logo (clé = nom du sous-service FR).
 import gwsGmail from '$lib/assets/integrations/google/gmail.png';
