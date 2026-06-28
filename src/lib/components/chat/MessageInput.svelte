@@ -1707,10 +1707,10 @@
 
 									<button
 											type="button"
-											class="bg-transparent hover:bg-gray-100 text-gray-400 hover:text-gray-700 dark:text-gray-500 dark:hover:bg-gray-800 dark:hover:text-white rounded-full size-8 flex justify-center items-center outline-hidden transition disabled:opacity-30 disabled:cursor-not-allowed"
-											aria-label={$i18n.t('Améliorer ma demande')}
-											title={$i18n.t('Améliorer ma demande')}
-											disabled={enhancing || !prompt.trim()}
+											class="bg-transparent hover:bg-gray-100 text-gray-700 dark:text-white dark:hover:bg-gray-800 rounded-full size-8 flex justify-center items-center outline-hidden transition disabled:opacity-30 disabled:cursor-not-allowed"
+											aria-label={$i18n.t('Clarifier ma demande')}
+											title={$i18n.t('Clarifier ma demande')}
+											disabled={enhancing}
 											on:click={enhanceMyPrompt}
 										>
 											{#if enhancing}
@@ -1742,9 +1742,9 @@
 													class="size-5"
 												>
 													<path
-														d="M12 3l1.5 4.5L18 9l-4.5 1.5L12 15l-1.5-4.5L6 9l4.5-1.5L12 3z"
+														d="M9 4.5a.75.75 0 0 1 .721.544l.813 2.846a3.75 3.75 0 0 0 2.576 2.576l2.846.813a.75.75 0 0 1 0 1.442l-2.846.813a3.75 3.75 0 0 0-2.576 2.576l-.813 2.846a.75.75 0 0 1-1.442 0l-.813-2.846a3.75 3.75 0 0 0-2.576-2.576l-2.846-.813a.75.75 0 0 1 0-1.442l2.846-.813A3.75 3.75 0 0 0 8.187 7.89l.813-2.846A.75.75 0 0 1 9 4.5ZM18 1.5a.75.75 0 0 1 .728.568l.258 1.036c.236.94.97 1.674 1.91 1.91l1.036.258a.75.75 0 0 1 0 1.456l-1.036.258c-.94.236-1.674.97-1.91 1.91l-.258 1.036a.75.75 0 0 1-1.456 0l-.258-1.036a2.625 2.625 0 0 0-1.91-1.91l-1.036-.258a.75.75 0 0 1 0-1.456l1.036-.258a2.625 2.625 0 0 0 1.91-1.91l.258-1.036A.75.75 0 0 1 18 1.5ZM16.5 15a.75.75 0 0 1 .712.513l.394 1.183c.15.447.5.799.948.948l1.183.395a.75.75 0 0 1 0 1.422l-1.183.395c-.447.15-.799.5-.948.948l-.395 1.183a.75.75 0 0 1-1.422 0l-.395-1.183a1.5 1.5 0 0 0-.948-.948l-1.183-.395a.75.75 0 0 1 0-1.422l1.183-.395c.447-.15.799-.5.948-.948l.395-1.183A.75.75 0 0 1 16.5 15Z"
 													/>
-													<path d="M5 15l.7 2.1L8 18l-2.3.9L5 21l-.7-2.1L2 18l2.3-.9L5 15z" />
+													<path d="M0 0" />
 												</svg>
 											{/if}
 										</button>
