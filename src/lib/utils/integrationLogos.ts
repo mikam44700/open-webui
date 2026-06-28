@@ -73,7 +73,7 @@ import ms365PowerPoint from '$lib/assets/integrations/microsoft/powerpoint.png';
 import ms365Teams from '$lib/assets/integrations/microsoft/teams.png';
 import ms365OneNote from '$lib/assets/integrations/microsoft/onenote.png';
 import ms365Todo from '$lib/assets/integrations/microsoft/todo.png';
-import ms365Contacts from '$lib/assets/integrations/microsoft/contacts.jpg';
+import ms365Contacts from '$lib/assets/integrations/microsoft/contacts.png';
 
 export const MICROSOFT_SERVICE_LOGO: Record<string, string> = {
 	Outlook: ms365Outlook,
