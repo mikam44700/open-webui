@@ -7,6 +7,7 @@
 	import Spinner from '$lib/components/common/Spinner.svelte';
 	import AgentCreate from './AgentCreate.svelte';
 	import AgentEditor from './AgentEditor.svelte';
+	import AgentAtelier from './AgentAtelier.svelte';
 	import { AGENT_TEMPLATES } from './templates';
 	import { colorFor, initial, prettifyName } from './utils';
 
@@ -28,8 +29,15 @@
 	let agents: Agent[] = [];
 
 	let showCreate = false;
+	let showAtelier = false;
 	let showEditor = false;
 	let editing: Agent | null = null;
+
+	// Aperçu de la mission d'un template avant activation (déplie le soul complet).
+	let expandedTemplate: string | null = null;
+	const toggleTemplate = (id: string) => {
+		expandedTemplate = expandedTemplate === id ? null : id;
+	};
 
 	$: existingNames = new Set(agents.map((a) => a.name));
 	$: availableTemplates = AGENT_TEMPLATES.filter((t) => !existingNames.has(t.id));
@@ -98,12 +106,20 @@
 				{$i18n.t('Vos collègues numériques, prêts à travailler.')}
 			</div>
 		</div>
-		<button
-			class="flex-none text-sm px-3.5 py-2 rounded-xl bg-black text-white dark:bg-white dark:text-black hover:opacity-90 transition"
-			on:click={() => (showCreate = true)}
-		>
-			{$i18n.t('+ Créer un agent')}
-		</button>
+		<div class="flex-none flex flex-col items-end gap-1">
+			<button
+				class="text-sm px-3.5 py-2 rounded-xl bg-black text-white dark:bg-white dark:text-black hover:opacity-90 transition"
+				on:click={() => (showAtelier = true)}
+			>
+				✨ {$i18n.t('Créer un agent')}
+			</button>
+			<button
+				class="text-[11px] text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition"
+				on:click={() => (showCreate = true)}
+			>
+				{$i18n.t('Mode manuel')}
+			</button>
+		</div>
 	</div>
 
 	{#if loading}
@@ -203,7 +219,32 @@
 								<div class="text-sm font-medium truncate">{tpl.label}</div>
 							</div>
 						</div>
-						<div class="text-xs text-gray-500 mt-3 line-clamp-2 min-h-[2rem]">{tpl.description}</div>
+						<div
+							class="text-xs text-gray-500 mt-3 {expandedTemplate === tpl.id
+								? ''
+								: 'line-clamp-2 min-h-[2rem]'}"
+						>
+							{tpl.description}
+						</div>
+
+						{#if expandedTemplate === tpl.id}
+							<div
+								class="mt-3 pt-3 border-t border-gray-100 dark:border-gray-800 text-xs text-gray-600 dark:text-gray-300 whitespace-pre-line"
+							>
+								{tpl.soul}
+							</div>
+						{/if}
+
+						<button
+							class="mt-2 self-start text-[11px] text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 transition"
+							on:click={() => toggleTemplate(tpl.id)}
+							aria-expanded={expandedTemplate === tpl.id}
+						>
+							{expandedTemplate === tpl.id
+								? $i18n.t('Masquer la mission')
+								: $i18n.t('Voir la mission')}
+						</button>
+
 						<div class="mt-3">
 							<button
 								class="w-full text-sm px-3 py-1.5 rounded-xl bg-gray-100 dark:bg-gray-850 hover:bg-gray-200 dark:hover:bg-gray-800 transition"
@@ -219,5 +260,6 @@
 	{/if}
 </div>
 
+<AgentAtelier bind:show={showAtelier} on:created={load} />
 <AgentCreate bind:show={showCreate} on:created={load} />
 <AgentEditor bind:show={showEditor} agent={editing} on:updated={load} on:deleted={load} />
