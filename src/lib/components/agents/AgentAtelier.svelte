@@ -5,7 +5,8 @@
 
 	import { getModels } from '$lib/apis';
 	import { createAgent } from '$lib/apis/agents';
-	import { generateAgent, type GeneratedAgent } from '$lib/agents/generator';
+	import { uploadFile, getFileById } from '$lib/apis/files';
+	import { generateAgent, MAX_DOCS, type GeneratedAgent, type SourceDoc } from '$lib/agents/generator';
 
 	const i18n = getContext('i18n');
 	const dispatch = createEventDispatcher();
@@ -24,6 +25,18 @@
 
 	let model = '';
 	let briefEl: HTMLTextAreaElement;
+
+	// Documents fournis par le dirigeant (procédures existantes).
+	let sources: SourceDoc[] = [];
+	let uploading = false;
+	let dragOver = false;
+	let fileInput: HTMLInputElement;
+
+	// Édition directe de la mission générée (sauvegardée avant activation).
+	let editing = false;
+	let editLabel = '';
+	let editDescription = '';
+	let editSections: { title: string; body: string; icon: string }[] = [];
 
 	// Suggestions concrètes (langage dirigeant, pas de jargon).
 	const ideas = [
@@ -85,14 +98,68 @@
 		briefEl?.focus();
 	};
 
+	// Upload + extraction du texte d'un document via OpenWebUI.
+	const handleFiles = async (files: FileList | File[]) => {
+		const list = Array.from(files ?? []);
+		if (!list.length) return;
+
+		const free = MAX_DOCS - sources.length;
+		if (free <= 0) {
+			toast.error($i18n.t('{{n}} documents maximum par agent', { n: MAX_DOCS }));
+			return;
+		}
+		const toProcess = list.slice(0, free);
+		if (list.length > free) {
+			toast.error($i18n.t('{{n}} documents maximum par agent', { n: MAX_DOCS }));
+		}
+
+		uploading = true;
+		for (const file of toProcess) {
+			try {
+				const up = await uploadFile(localStorage.token, file, null, true, true);
+				let content = up?.data?.content ?? '';
+				if (!content && up?.id) {
+					const full = await getFileById(localStorage.token, up.id);
+					content = full?.data?.content ?? full?.content ?? '';
+				}
+				if (!content.trim()) {
+					toast.error($i18n.t('Document illisible : {{name}}', { name: file.name }));
+					continue;
+				}
+				sources = [...sources, { name: file.name, content }];
+			} catch {
+				toast.error($i18n.t('Échec de l’import : {{name}}', { name: file.name }));
+			}
+		}
+		uploading = false;
+	};
+
+	const removeSource = (name: string) => {
+		sources = sources.filter((s) => s.name !== name);
+	};
+
+	const onPick = (e: Event) => {
+		const input = e.target as HTMLInputElement;
+		if (input.files) handleFiles(input.files);
+		input.value = '';
+	};
+
+	const onDrop = (e: DragEvent) => {
+		e.preventDefault();
+		dragOver = false;
+		if (e.dataTransfer?.files) handleFiles(e.dataTransfer.files);
+	};
+
+	$: canGenerate = (brief.trim().length > 0 || sources.length > 0) && !uploading;
+
 	const generate = async () => {
-		if (!brief.trim()) return;
+		if (!brief.trim() && sources.length === 0) return;
 		phase = 'generating';
 		errorMsg = '';
 		startGenMessages();
 		try {
 			if (!model) await loadModels();
-			result = await generateAgent(localStorage.token, model, brief.trim());
+			result = await generateAgent(localStorage.token, model, brief.trim(), { sources });
 			phase = 'result';
 		} catch (e: any) {
 			errorMsg = e?.message ?? 'La génération a échoué.';
@@ -103,17 +170,16 @@
 	};
 
 	const regenerate = async () => {
+		editing = false;
 		phase = 'generating';
 		errorMsg = '';
 		startGenMessages();
 		try {
-			result = await generateAgent(
-				localStorage.token,
-				model,
-				brief.trim(),
-				result ?? undefined,
-				adjustment.trim() || undefined
-			);
+			result = await generateAgent(localStorage.token, model, brief.trim(), {
+				sources,
+				previous: result ?? undefined,
+				adjustment: adjustment.trim() || undefined
+			});
 			adjustment = '';
 			showAdjust = false;
 			phase = 'result';
@@ -127,6 +193,7 @@
 
 	const activate = async () => {
 		if (!result) return;
+		if (editing) syncFromEdits();
 		activating = true;
 		try {
 			await createAgent(localStorage.token, {
@@ -147,10 +214,36 @@
 		}
 	};
 
+	const startEditing = () => {
+		if (!result) return;
+		editLabel = result.label;
+		editDescription = result.description;
+		editSections = sections.map((s) => ({ ...s }));
+		showAdjust = false;
+		editing = true;
+	};
+
+	// Reconstruit result.soul depuis les blocs édités → la version corrigée sera activée.
+	const syncFromEdits = () => {
+		if (!result) return;
+		result = {
+			...result,
+			label: editLabel.trim() || result.label,
+			description: editDescription.trim(),
+			soul: editSections.map((s) => `## ${s.title}\n${s.body.trim()}`).join('\n\n')
+		};
+	};
+
+	const finishEditing = () => {
+		syncFromEdits();
+		editing = false;
+	};
+
 	const restart = () => {
 		result = null;
 		adjustment = '';
 		showAdjust = false;
+		editing = false;
 		phase = 'brief';
 	};
 
@@ -164,6 +257,8 @@
 			adjustment = '';
 			showAdjust = false;
 			activating = false;
+			sources = [];
+			editing = false;
 		}, 200);
 	};
 
@@ -232,6 +327,69 @@
 						}}
 					></textarea>
 
+					<!-- Documents (optionnel) — la procédure existe souvent déjà en fichier -->
+					<div
+						class="mt-3 rounded-2xl border border-dashed {dragOver
+							? 'border-gray-400 dark:border-gray-500 bg-gray-50 dark:bg-gray-850'
+							: 'border-gray-200 dark:border-gray-800'} transition px-4 py-3"
+						role="button"
+						tabindex="0"
+						on:click={() => fileInput?.click()}
+						on:keydown={(e) => {
+							if (e.key === 'Enter' || e.key === ' ') fileInput?.click();
+						}}
+						on:dragover|preventDefault={() => (dragOver = true)}
+						on:dragleave={() => (dragOver = false)}
+						on:drop={onDrop}
+					>
+						<input
+							bind:this={fileInput}
+							type="file"
+							class="hidden"
+							multiple
+							accept=".pdf,.doc,.docx,.txt,.md,.rtf,.png,.jpg,.jpeg"
+							on:change={onPick}
+						/>
+
+						{#if sources.length === 0}
+							<div class="flex items-center justify-center gap-2 text-sm text-gray-500 py-1">
+								{#if uploading}
+									<Spinner className="size-4" />{$i18n.t('Lecture du document…')}
+								{:else}
+									<span>📎</span>{$i18n.t('Vous avez une procédure ? Glissez vos documents (optionnel)')}
+								{/if}
+							</div>
+						{:else}
+							<div class="flex flex-wrap items-center gap-2">
+								{#each sources as s (s.name)}
+									<span
+										class="inline-flex items-center gap-1.5 text-xs px-2.5 py-1.5 rounded-lg bg-gray-100 dark:bg-gray-850 text-gray-700 dark:text-gray-200"
+									>
+										<span>📄</span>
+										<span class="max-w-[180px] truncate">{s.name}</span>
+										<button
+											class="text-gray-400 hover:text-gray-700 dark:hover:text-white"
+											on:click|stopPropagation={() => removeSource(s.name)}
+											aria-label={$i18n.t('Retirer')}>✕</button
+										>
+									</span>
+								{/each}
+								{#if uploading}
+									<span class="inline-flex items-center gap-1.5 text-xs text-gray-500">
+										<Spinner className="size-3.5" />{$i18n.t('Lecture…')}
+									</span>
+								{:else if sources.length < MAX_DOCS}
+									<span class="text-xs text-gray-400">{$i18n.t('+ ajouter')}</span>
+								{/if}
+							</div>
+							<div class="text-[11px] text-gray-400 mt-1.5">
+								{$i18n.t('{{n}} documents maximum — l’agent s’appuiera dessus.', {
+									n: MAX_DOCS
+								})}
+							</div>
+						{/if}
+					</div>
+
 					<div class="flex flex-wrap gap-2 justify-center mt-4">
 						{#each ideas as idea}
 							<button
@@ -247,7 +405,7 @@
 				<div class="mt-8 flex justify-center">
 					<button
 						class="text-sm font-medium px-6 py-3 rounded-2xl bg-black text-white dark:bg-white dark:text-black hover:opacity-90 transition disabled:opacity-40 disabled:cursor-not-allowed shadow-sm"
-						disabled={!brief.trim()}
+						disabled={!canGenerate}
 						on:click={generate}
 					>
 						✨ {$i18n.t('Créer mon agent')}
@@ -271,29 +429,55 @@
 						>
 							{result.emoji}
 						</div>
-						<div class="min-w-0">
-							<div class="text-2xl font-semibold truncate">{result.label}</div>
-							<div class="text-sm text-gray-500">{result.description}</div>
+						<div class="min-w-0 flex-1">
+							{#if editing}
+								<input
+									bind:value={editLabel}
+									class="w-full text-2xl font-semibold bg-transparent border-b border-gray-200 dark:border-gray-700 outline-none focus:border-gray-400 pb-0.5"
+								/>
+								<input
+									bind:value={editDescription}
+									class="w-full text-sm text-gray-500 bg-transparent border-b border-gray-100 dark:border-gray-800 outline-none focus:border-gray-300 mt-1.5 pb-0.5"
+								/>
+							{:else}
+								<div class="text-2xl font-semibold truncate">{result.label}</div>
+								<div class="text-sm text-gray-500">{result.description}</div>
+							{/if}
 						</div>
 					</div>
 
-					<!-- Sa mission, en sections lisibles -->
+					<!-- Sa mission, en sections lisibles (éditable directement) -->
 					<div class="mt-6 space-y-3">
-						{#each sections as s, idx}
-							<div
-								class="rounded-2xl border border-gray-100 dark:border-gray-850 p-4"
-								in:fly={{ y: 10, duration: 250, delay: 60 * idx }}
-							>
-								<div class="flex items-center gap-2 text-sm font-semibold">
-									<span>{s.icon}</span>{s.title}
+						{#if editing}
+							{#each editSections as s (s.title)}
+								<div class="rounded-2xl border border-gray-200 dark:border-gray-800 p-4">
+									<div class="flex items-center gap-2 text-sm font-semibold">
+										<span>{s.icon}</span>{s.title}
+									</div>
+									<textarea
+										bind:value={s.body}
+										rows={Math.max(3, s.body.split('\n').length)}
+										class="w-full text-sm text-gray-700 dark:text-gray-200 mt-2 bg-gray-50 dark:bg-gray-850 border border-gray-100 dark:border-gray-800 rounded-xl px-3 py-2 outline-none focus:border-gray-300 dark:focus:border-gray-700 transition resize-y leading-relaxed"
+									></textarea>
 								</div>
+							{/each}
+						{:else}
+							{#each sections as s, idx}
 								<div
-									class="text-sm text-gray-600 dark:text-gray-300 mt-2 whitespace-pre-line leading-relaxed"
+									class="rounded-2xl border border-gray-100 dark:border-gray-850 p-4"
+									in:fly={{ y: 10, duration: 250, delay: 60 * idx }}
 								>
-									{s.body}
+									<div class="flex items-center gap-2 text-sm font-semibold">
+										<span>{s.icon}</span>{s.title}
+									</div>
+									<div
+										class="text-sm text-gray-600 dark:text-gray-300 mt-2 whitespace-pre-line leading-relaxed"
+									>
+										{s.body}
+									</div>
 								</div>
-							</div>
-						{/each}
+							{/each}
+						{/if}
 					</div>
 
 					<!-- Ajustement en langage naturel -->
@@ -339,10 +523,21 @@
 						on:click={restart}>↻ {$i18n.t('Recommencer')}</button
 					>
 					<div class="flex items-center gap-2">
-						<button
-							class="text-sm px-4 py-2 rounded-xl bg-gray-100 dark:bg-gray-850 hover:bg-gray-200 dark:hover:bg-gray-800 transition"
-							on:click={() => (showAdjust = !showAdjust)}>{$i18n.t('Ajuster')}</button
-						>
+						{#if editing}
+							<button
+								class="text-sm px-4 py-2 rounded-xl bg-gray-100 dark:bg-gray-850 hover:bg-gray-200 dark:hover:bg-gray-800 transition"
+								on:click={finishEditing}>✓ {$i18n.t('Terminé')}</button
+							>
+						{:else}
+							<button
+								class="text-sm px-4 py-2 rounded-xl bg-gray-100 dark:bg-gray-850 hover:bg-gray-200 dark:hover:bg-gray-800 transition"
+								on:click={startEditing}>✏️ {$i18n.t('Modifier')}</button
+							>
+							<button
+								class="text-sm px-4 py-2 rounded-xl bg-gray-100 dark:bg-gray-850 hover:bg-gray-200 dark:hover:bg-gray-800 transition"
+								on:click={() => (showAdjust = !showAdjust)}>{$i18n.t('Ajuster')}</button
+							>
+						{/if}
 						<button
 							class="text-sm font-medium px-5 py-2 rounded-xl bg-black text-white dark:bg-white dark:text-black hover:opacity-90 transition disabled:opacity-50"
 							disabled={activating}

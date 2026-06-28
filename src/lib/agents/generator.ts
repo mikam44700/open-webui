@@ -11,6 +11,16 @@ export type GeneratedAgent = {
 	soul: string;
 };
 
+// Un document fourni par le dirigeant (procédure existante), texte déjà extrait.
+export type SourceDoc = { name: string; content: string };
+
+// Garde-fous qualité : 1 agent = 1 métier. Au-delà, c'est plusieurs agents.
+export const MAX_DOCS = 3;
+// Budget de texte total (~18-20 pages) avant condensation, pour garder l'IA focalisée.
+const MAX_TOTAL_CHARS = 24000;
+// Au-delà, un document est condensé individuellement avant génération.
+const CONDENSE_THRESHOLD = 8000;
+
 // Le « moule » : 5 sections imposées, ton PME français, garde-fous systématiques.
 export const AGENT_GENERATOR_SYSTEM = `Tu es un concepteur expert d'agents IA pour des dirigeants de PME françaises non techniques.
 
@@ -60,24 +70,91 @@ const parseAgent = (raw: string): GeneratedAgent => {
 	return { label, emoji, description, soul };
 };
 
-// Génère un agent. `adjustment` + `previous` permettent d'affiner sans repartir de zéro.
+// Condense un document volumineux en sa procédure essentielle (fidèle, sans invention).
+const condenseDocument = async (
+	token: string,
+	model: string,
+	name: string,
+	text: string
+): Promise<string> => {
+	try {
+		const res = await generateOpenAIChatCompletion(token, {
+			model,
+			stream: false,
+			temperature: 0.2,
+			messages: [
+				{
+					role: 'system',
+					content:
+						'Tu extrais l’essentiel d’un document de procédure métier. Restitue UNIQUEMENT la procédure : son déclencheur, ses étapes dans l’ordre, ses règles, ses cas particuliers. Reste strictement fidèle au document, n’invente rien, n’ajoute rien. Réponds en points clairs, 400 mots maximum.'
+				},
+				{ role: 'user', content: `Document « ${name} » :\n\n${text}` }
+			]
+		});
+		return res?.choices?.[0]?.message?.content?.trim() || text;
+	} catch {
+		// En cas d'échec de condensation, on garde le texte tronqué plutôt que de bloquer.
+		return text.slice(0, CONDENSE_THRESHOLD);
+	}
+};
+
+// Prépare le bloc « documents » : condense si l'ensemble dépasse le budget de contexte.
+const prepareSources = async (
+	token: string,
+	model: string,
+	sources: SourceDoc[]
+): Promise<string> => {
+	let docs = (sources ?? [])
+		.map((s) => ({ name: s.name, content: (s.content ?? '').trim() }))
+		.filter((s) => s.content);
+
+	if (!docs.length) return '';
+
+	const total = docs.reduce((n, d) => n + d.content.length, 0);
+	if (total > MAX_TOTAL_CHARS) {
+		docs = await Promise.all(
+			docs.map(async (d) =>
+				d.content.length > CONDENSE_THRESHOLD
+					? { name: d.name, content: await condenseDocument(token, model, d.name, d.content) }
+					: d
+			)
+		);
+	}
+
+	return docs.map((d) => `--- Document : ${d.name} ---\n${d.content}`).join('\n\n');
+};
+
+// Génère un agent depuis une phrase et/ou des documents.
+// `adjustment` + `previous` permettent d'affiner sans repartir de zéro.
 export const generateAgent = async (
 	token: string,
 	model: string,
 	brief: string,
-	previous?: GeneratedAgent,
-	adjustment?: string
+	opts: { sources?: SourceDoc[]; previous?: GeneratedAgent; adjustment?: string } = {}
 ): Promise<GeneratedAgent> => {
 	if (!model) {
 		throw new Error('Aucun modèle disponible pour générer l’agent.');
 	}
 
-	let userContent = `Besoin du dirigeant : ${brief.trim()}`;
-	if (previous && adjustment && adjustment.trim()) {
+	const sourcesBlock = await prepareSources(token, model, opts.sources ?? []);
+
+	let userContent = '';
+	if (brief.trim()) {
+		userContent += `Besoin du dirigeant : ${brief.trim()}\n\n`;
+	}
+	if (sourcesBlock) {
 		userContent +=
-			`\n\nVoici l'agent généré précédemment :\n` +
-			JSON.stringify(previous) +
-			`\n\nAjuste-le selon cette demande, en gardant ce qui est bon : ${adjustment.trim()}`;
+			`Documents fournis par le dirigeant (procédures existantes — utilise-les comme source principale, reste fidèle, n'invente pas) :\n\n${sourcesBlock}\n\n`;
+	}
+	if (!userContent) {
+		userContent = 'Conçois un assistant généraliste utile pour une PME.';
+	}
+
+	if (opts.previous && opts.adjustment && opts.adjustment.trim()) {
+		userContent +=
+			`Voici l'agent généré précédemment :\n` +
+			JSON.stringify(opts.previous) +
+			`\n\nAjuste-le selon cette demande, en gardant ce qui est bon : ${opts.adjustment.trim()}`;
 	}
 
 	const res = await generateOpenAIChatCompletion(token, {
