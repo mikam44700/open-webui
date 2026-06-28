@@ -16,9 +16,6 @@
 	import WorkflowsCard from '$lib/components/dashboard/WorkflowsCard.svelte';
 	import OnboardingCard from '$lib/components/dashboard/OnboardingCard.svelte';
 	import BriefingCard from '$lib/components/dashboard/BriefingCard.svelte';
-	import PresentationCard from '$lib/components/dashboard/PresentationCard.svelte';
-	import AnalyticsCard from '$lib/components/dashboard/AnalyticsCard.svelte';
-	import SearchConsoleCard from '$lib/components/dashboard/SearchConsoleCard.svelte';
 	import { deriveOnboardingSteps } from '$lib/onboarding/steps';
 
 	import { getHermesStatus, getActiveProvider } from '$lib/apis/providers';
@@ -55,11 +52,6 @@
 	let taskTotal: number | 'unknown' = 'unknown';
 
 	$: alerts = deriveAlerts(states);
-
-	// Google connecté ? (pour la carte Présentation — état honnête, pas de bouton mort)
-	$: googleConnected = connectionsUnavailable
-		? 'unknown'
-		: integrations.some((i) => /google/i.test(i.label) && i.connected);
 
 	// Onboarding : dérivé des mêmes états (aucun appel supplémentaire).
 	$: onboardingSteps = deriveOnboardingSteps({
@@ -255,9 +247,6 @@
 					/>
 					<ActivityCard {loading} unavailable={activityUnavailable} {counts} {recent} />
 					<QuickActionsCard />
-					<PresentationCard {googleConnected} />
-					<AnalyticsCard {googleConnected} />
-					<SearchConsoleCard {googleConnected} />
 				</div>
 			</div>
 		</div>

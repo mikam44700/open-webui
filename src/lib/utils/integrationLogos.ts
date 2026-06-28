@@ -57,6 +57,10 @@ import gwsSheets from '$lib/assets/integrations/google/sheets.png';
 import gwsCalendar from '$lib/assets/integrations/google/calendar.png';
 import gwsDocs from '$lib/assets/integrations/google/docs.png';
 import gwsContacts from '$lib/assets/integrations/google/contacts.png';
+import gwsMeet from '$lib/assets/integrations/google/meet.png';
+import gwsSlides from '$lib/assets/integrations/google/slides.png';
+import gwsAnalytics from '$lib/assets/integrations/google/analytics.svg';
+import gwsSearchConsole from '$lib/assets/integrations/google/search-console.png';
 
 export const GOOGLE_SERVICE_LOGO: Record<string, string> = {
 	Gmail: gwsGmail,
@@ -64,7 +68,11 @@ export const GOOGLE_SERVICE_LOGO: Record<string, string> = {
 	Sheets: gwsSheets,
 	Agenda: gwsCalendar,
 	Docs: gwsDocs,
-	Contacts: gwsContacts
+	Contacts: gwsContacts,
+	Meet: gwsMeet,
+	Slides: gwsSlides,
+	Analytics: gwsAnalytics,
+	'Search Console': gwsSearchConsole
 };
 
 // Espace Microsoft 365 : chaque service avec son propre logo (cle = nom du sous-service renvoyé par le serveur).
