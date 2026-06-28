@@ -108,36 +108,9 @@
 	onMount(load);
 </script>
 
-<div
-	class="relative min-h-full overflow-hidden -mx-3 md:-mx-[18px] -mb-1 bg-gradient-to-b from-sky-50 via-[#fdfcfb] to-emerald-50/60 dark:from-gray-950 dark:via-gray-950 dark:to-gray-950"
->
-	<!-- Halos décoratifs façon « aurora » (haut + bas), style Lindy -->
-	<div aria-hidden="true" class="pointer-events-none absolute inset-0 overflow-hidden">
-		<div
-			class="absolute -top-40 -left-24 size-[560px] rounded-full bg-sky-200/45 blur-[130px] dark:bg-sky-500/[0.08]"
-		></div>
-		<div
-			class="absolute -top-32 right-0 size-[460px] rounded-full bg-amber-100/60 blur-[120px] dark:bg-amber-400/[0.06]"
-		></div>
-		<div
-			class="absolute -bottom-40 left-8 size-[520px] rounded-full bg-amber-100/50 blur-[130px] dark:bg-amber-400/[0.05]"
-		></div>
-		<div
-			class="absolute -bottom-32 -right-16 size-[460px] rounded-full bg-emerald-200/40 blur-[120px] dark:bg-emerald-500/[0.07]"
-		></div>
-	</div>
-
-	<div class="relative z-10 w-full max-w-5xl mx-auto px-4 py-6 sm:py-8">
-		<!-- En-tête -->
-		<header class="flex items-start justify-between gap-4 mb-8">
-			<div>
-				<h1 class="text-2xl sm:text-[28px] font-semibold tracking-tight leading-tight">
-					{$i18n.t('Agents')}
-				</h1>
-				<p class="text-sm text-gray-500 dark:text-gray-400 mt-1.5 max-w-md leading-relaxed">
-					{$i18n.t('Vos collègues numériques, prêts à travailler. Activez-en un, ou créez le vôtre en une phrase.')}
-				</p>
-			</div>
+<div class="w-full max-w-7xl mx-auto px-4 pt-5 pb-8">
+		<!-- Action de création (le grand titre du hub est fourni par le layout « Espace de travail ») -->
+		<div class="flex items-center justify-end gap-4 mb-6">
 			<div class="flex-none flex flex-col items-end gap-1.5">
 				<button
 					class="text-sm font-medium px-4 py-2.5 rounded-xl bg-gradient-to-br from-gray-900 to-black text-white dark:from-white dark:to-gray-200 dark:text-black shadow-sm hover:shadow-md hover:-translate-y-px active:translate-y-0 transition-all flex items-center gap-1.5 whitespace-nowrap"
@@ -152,7 +125,7 @@
 					{$i18n.t('Mode manuel')}
 				</button>
 			</div>
-		</header>
+		</div>
 
 		{#if loading}
 			<div class="flex justify-center py-24"><Spinner className="size-6" /></div>
@@ -196,7 +169,7 @@
 						{#each agents as agent, i (agent.name)}
 							<div
 								in:fly={{ y: 10, duration: 260, delay: i * 35 }}
-								class="group relative flex flex-col rounded-3xl p-5 bg-white dark:bg-gray-900 border transition-all duration-200 hover:-translate-y-0.5 {agent.active
+								class="group relative flex flex-col rounded-2xl p-4 bg-white dark:bg-gray-900 border transition-all duration-200 hover:-translate-y-0.5 {agent.active
 									? 'border-green-400/50 shadow-[0_10px_34px_-14px_rgba(16,185,129,0.5)] bg-gradient-to-b from-green-50/50 to-transparent dark:from-green-500/[0.07]'
 									: 'border-gray-100 dark:border-gray-800 shadow-[0_2px_14px_-8px_rgba(0,0,0,0.15)] hover:border-gray-200 dark:hover:border-gray-700 hover:shadow-[0_14px_34px_-16px_rgba(0,0,0,0.25)]'}"
 							>
@@ -219,13 +192,13 @@
 											<img
 												src={agent.avatar}
 												alt={prettifyName(agent.name)}
-												class="size-12 rounded-2xl object-cover shadow-sm ring-1 ring-black/5 {agent.active
+												class="size-11 rounded-2xl object-cover shadow-sm ring-1 ring-black/5 {agent.active
 													? 'ring-2 ring-green-400/70 ring-offset-2 ring-offset-white dark:ring-offset-gray-900'
 													: ''}"
 											/>
 										{:else}
 											<div
-												class="size-12 rounded-2xl flex items-center justify-center text-white text-lg font-semibold shadow-sm ring-1 ring-black/5 {agent.active
+												class="size-11 rounded-2xl flex items-center justify-center text-white text-lg font-semibold shadow-sm ring-1 ring-black/5 {agent.active
 													? 'ring-2 ring-green-400/70 ring-offset-2 ring-offset-white dark:ring-offset-gray-900'
 													: ''}"
 												style="background-image: {gradientFor(agent.name)}"
@@ -311,22 +284,22 @@
 							{$i18n.t('Aucun agent ne correspond à votre recherche.')}
 						</div>
 					{:else}
-						<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+						<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
 							{#each filteredTemplates as tpl, i (tpl.id)}
 								<div
 									in:fly={{ y: 10, duration: 240, delay: Math.min(i, 8) * 30 }}
-									class="group flex flex-col rounded-3xl p-5 bg-gray-50/60 dark:bg-gray-900/40 border border-gray-100 dark:border-gray-800 hover:bg-white dark:hover:bg-gray-900 hover:border-gray-200 dark:hover:border-gray-700 hover:shadow-[0_14px_34px_-16px_rgba(0,0,0,0.22)] hover:-translate-y-0.5 transition-all duration-200"
+									class="group flex flex-col rounded-2xl p-4 bg-gray-50/60 dark:bg-gray-900/40 border border-gray-100 dark:border-gray-800 hover:bg-white dark:hover:bg-gray-900 hover:border-gray-200 dark:hover:border-gray-700 hover:shadow-[0_14px_34px_-16px_rgba(0,0,0,0.22)] hover:-translate-y-0.5 transition-all duration-200"
 								>
 									<div class="flex items-center gap-3.5">
 										{#if tpl.image}
 											<img
 												src={tpl.image}
 												alt={tpl.label}
-												class="flex-none size-12 rounded-2xl object-cover shadow-sm ring-1 ring-black/5 group-hover:scale-105 transition-transform"
+												class="flex-none size-11 rounded-2xl object-cover shadow-sm ring-1 ring-black/5 group-hover:scale-105 transition-transform"
 											/>
 										{:else}
 											<div
-												class="flex-none size-12 rounded-2xl flex items-center justify-center text-2xl bg-white dark:bg-gray-850 shadow-sm ring-1 ring-black/5 group-hover:scale-105 transition-transform"
+												class="flex-none size-11 rounded-2xl flex items-center justify-center text-2xl bg-white dark:bg-gray-850 shadow-sm ring-1 ring-black/5 group-hover:scale-105 transition-transform"
 											>
 												{tpl.emoji}
 											</div>
@@ -375,7 +348,6 @@
 				</section>
 			{/if}
 		{/if}
-	</div>
 </div>
 
 <AgentAtelier bind:show={showAtelier} on:created={load} />

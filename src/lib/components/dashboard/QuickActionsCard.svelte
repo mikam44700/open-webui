@@ -8,7 +8,7 @@
 		{ label: 'Capacités', href: '/connectors' },
 		{ label: 'Messagerie', href: '/gateway' },
 		{ label: 'Mémoire', href: '/memory' },
-		{ label: 'Tâches', href: '/kanban' }
+		{ label: 'Tâches', href: '/workspace/tasks' }
 	];
 </script>
 

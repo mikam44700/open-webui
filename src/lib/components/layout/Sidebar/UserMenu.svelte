@@ -496,14 +496,14 @@
 			{#if false && $config?.features?.enable_automations && ($user?.role === 'admin' || $user?.permissions?.features?.automations)}
 				<div class="flex items-center w-full">
 					<a
-						href="/automations"
+						href="/workspace/automations"
 						draggable="false"
 						class="flex flex-1 rounded-xl py-1.5 px-3 hover:bg-gray-50 dark:hover:bg-gray-800 transition cursor-pointer select-none"
 						on:click={async (e) => {
 							if (e.metaKey || e.ctrlKey || e.shiftKey || e.button === 1) return;
 							e.preventDefault();
 							show = false;
-							goto('/automations');
+							goto('/workspace/automations');
 							if ($mobile) {
 								await tick();
 								showSidebar.set(false);

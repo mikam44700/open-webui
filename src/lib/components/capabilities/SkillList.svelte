@@ -105,7 +105,7 @@
 	onMount(load);
 </script>
 
-<div class="w-full max-w-5xl mx-auto px-3 py-3">
+<div class="w-full max-w-7xl mx-auto px-3 py-3">
 	{#if loading}
 		<div class="flex justify-center py-16"><Spinner className="size-6" /></div>
 	{:else if bridgeDown}
@@ -148,7 +148,7 @@
 							<div class="text-sm font-semibold">{$i18n.t(group.label)}</div>
 							<div class="text-xs text-gray-400">{group.items.length}</div>
 						</div>
-						<div class="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+						<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2.5">
 							{#each group.items as skill (skill.name)}
 								<div
 									class="flex items-start gap-3 border border-gray-100 dark:border-gray-850 rounded-2xl px-4 py-3.5 transition hover:border-gray-200 dark:hover:border-gray-700 hover:shadow-sm"

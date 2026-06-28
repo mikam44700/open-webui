@@ -34,9 +34,39 @@
 	// Les routes /memory/knowledge* réutilisent les mêmes composants (rien n'est dupliqué ni supprimé).
 	const HIDE_NATIVE_KNOWLEDGE = true;
 
-	// Barre d'onglets du Workspace masquée : il ne reste que « Agents » (Knowledge/Prompts/Tools/Skills
-	// déjà masqués), redondant avec le titre de la page Agents. On garde le bouton sidebar (mobile).
+	// Onglets du Workspace désormais rendus dans l'en-tête du contenu (style Capacités : grand titre
+	// « Espace de travail » + onglets soulignés). La barre d'onglets de la <nav> reste masquée.
 	const HIDE_WORKSPACE_TABS = true;
+
+	// Sous-titre du hub selon l'onglet actif (comme la page Capacités).
+	$: workspacePath = $page.url.pathname;
+	// L'onglet « Tâches » (Kanban) a besoin d'une hauteur définie (board plein écran + scroll interne
+	// des colonnes). Les autres onglets défilent normalement (l'en-tête scrolle avec le contenu).
+	$: isWorkspaceBoard = workspacePath.includes('/workspace/tasks');
+	// Bannière colorée du hub selon l'onglet actif (esprit Capacités) : explique à quoi sert l'onglet.
+	$: workspaceBanner = workspacePath.includes('/workspace/tasks')
+		? {
+				strong: 'Le tableau de bord du travail',
+				sub: 'Suivez d’un coup d’œil ce que vos agents font : à faire, en cours, terminé.',
+				wrap: 'from-sky-200/70 via-sky-100/50 to-blue-100/60 dark:from-sky-900/30 dark:via-sky-900/20 dark:to-blue-900/20',
+				halo1: 'bg-sky-400/30 dark:bg-sky-500/20',
+				halo2: 'bg-blue-300/30 dark:bg-blue-500/10'
+			}
+		: workspacePath.includes('/workspace/automations')
+			? {
+					strong: 'Le pilote automatique',
+					sub: 'Programmez des actions récurrentes que vos agents exécutent tout seuls, au bon moment.',
+					wrap: 'from-amber-200/70 via-orange-100/50 to-yellow-100/60 dark:from-amber-900/30 dark:via-orange-900/20 dark:to-yellow-900/20',
+					halo1: 'bg-orange-300/40 dark:bg-orange-500/20',
+					halo2: 'bg-amber-300/30 dark:bg-amber-500/10'
+				}
+			: {
+					strong: 'Vos collègues numériques',
+					sub: 'Créez et activez des agents IA spécialisés — chacun avec sa mission — qui travaillent pour vous.',
+					wrap: 'from-violet-200/70 via-violet-100/50 to-indigo-100/60 dark:from-violet-900/30 dark:via-violet-900/20 dark:to-indigo-900/20',
+					halo1: 'bg-violet-400/30 dark:bg-violet-500/20',
+					halo2: 'bg-indigo-300/30 dark:bg-indigo-500/10'
+				};
 
 	onMount(async () => {
 		if (HIDE_NATIVE_KNOWLEDGE && $page.url.pathname.includes('/workspace/knowledge')) {
@@ -98,7 +128,7 @@
 			: ''} max-w-full"
 	>
 		<nav
-			class="   px-2.5 {!HIDE_WORKSPACE_TABS || $mobile ? 'pt-1.5' : ''} backdrop-blur-xl drag-region select-none"
+			class="relative z-10 px-2.5 {!HIDE_WORKSPACE_TABS || $mobile ? 'pt-1.5' : ''} backdrop-blur-xl drag-region select-none"
 		>
 			<div class=" flex items-center gap-1">
 				{#if $mobile}
@@ -139,6 +169,28 @@
 									? ''
 									: 'text-gray-300 dark:text-gray-600 hover:text-gray-700 dark:hover:text-white'} transition select-none"
 								href="/workspace/agents">{$i18n.t('Agents')}</a
+							>
+						{/if}
+
+						{#if $user?.role === 'admin'}
+							<a
+								draggable="false"
+								aria-current={$page.url.pathname.includes('/workspace/tasks') ? 'page' : null}
+								class="min-w-fit p-1.5 {$page.url.pathname.includes('/workspace/tasks')
+									? ''
+									: 'text-gray-300 dark:text-gray-600 hover:text-gray-700 dark:hover:text-white'} transition select-none"
+								href="/workspace/tasks">{$i18n.t('Tâches')}</a
+							>
+						{/if}
+
+						{#if $user?.role === 'admin'}
+							<a
+								draggable="false"
+								aria-current={$page.url.pathname.includes('/workspace/automations') ? 'page' : null}
+								class="min-w-fit p-1.5 {$page.url.pathname.includes('/workspace/automations')
+									? ''
+									: 'text-gray-300 dark:text-gray-600 hover:text-gray-700 dark:hover:text-white'} transition select-none"
+								href="/workspace/automations">{$i18n.t('Automatisations')}</a
 							>
 						{/if}
 
@@ -200,10 +252,95 @@
 		</nav>
 
 		<div
-			class="  pb-1 px-3 md:px-[18px] flex-1 max-h-full overflow-y-auto"
+			class="relative z-10 px-3 md:px-[18px] flex-1 max-h-full {isWorkspaceBoard
+				? 'flex flex-col overflow-hidden'
+				: 'pb-1 overflow-y-auto'}"
 			id="workspace-container"
 		>
-			<slot />
+			{#if $user?.role === 'admin'}
+				<!-- En-tête du hub « Espace de travail » (style Capacités) : titre + onglets + bannière.
+				     Onglets contenu = défile avec le contenu ; onglet Tâches = en-tête figé + board plein écran. -->
+				<div class="{isWorkspaceBoard ? 'flex-none ' : ''}w-full max-w-7xl mx-auto px-4 pt-4 sm:pt-6">
+					<h1 class="text-2xl font-semibold tracking-tight text-gray-900 dark:text-white">
+						{$i18n.t('Espace de travail')}
+					</h1>
+					<div
+						class="mt-4 flex flex-wrap gap-x-6 gap-y-1 border-b border-gray-200 dark:border-gray-800"
+					>
+						<a
+							href="/workspace/agents"
+							aria-current={workspacePath.includes('/workspace/agents') ? 'page' : null}
+							class="relative pb-2.5 text-sm transition {workspacePath.includes('/workspace/agents')
+								? 'font-medium text-gray-900 dark:text-white'
+								: 'text-gray-400 hover:text-gray-700 dark:text-gray-500 dark:hover:text-gray-300'}"
+						>
+							{$i18n.t('Agents')}
+							{#if workspacePath.includes('/workspace/agents')}
+								<span
+									class="absolute -bottom-px left-0 right-0 h-0.5 rounded-full bg-gray-900 dark:bg-white"
+								></span>
+							{/if}
+						</a>
+						<a
+							href="/workspace/tasks"
+							aria-current={workspacePath.includes('/workspace/tasks') ? 'page' : null}
+							class="relative pb-2.5 text-sm transition {workspacePath.includes('/workspace/tasks')
+								? 'font-medium text-gray-900 dark:text-white'
+								: 'text-gray-400 hover:text-gray-700 dark:text-gray-500 dark:hover:text-gray-300'}"
+						>
+							{$i18n.t('Tâches')}
+							{#if workspacePath.includes('/workspace/tasks')}
+								<span
+									class="absolute -bottom-px left-0 right-0 h-0.5 rounded-full bg-gray-900 dark:bg-white"
+								></span>
+							{/if}
+						</a>
+						<a
+							href="/workspace/automations"
+							aria-current={workspacePath.includes('/workspace/automations') ? 'page' : null}
+							class="relative pb-2.5 text-sm transition {workspacePath.includes('/workspace/automations')
+								? 'font-medium text-gray-900 dark:text-white'
+								: 'text-gray-400 hover:text-gray-700 dark:text-gray-500 dark:hover:text-gray-300'}"
+						>
+							{$i18n.t('Automatisations')}
+							{#if workspacePath.includes('/workspace/automations')}
+								<span
+									class="absolute -bottom-px left-0 right-0 h-0.5 rounded-full bg-gray-900 dark:bg-white"
+								></span>
+							{/if}
+						</a>
+					</div>
+
+					<!-- Bannière colorée par onglet (même taille/style que Capacités : haute + centrée + halos) -->
+					<div
+						class="relative mt-4 overflow-hidden rounded-3xl bg-gradient-to-br {workspaceBanner.wrap}"
+					>
+						<div
+							class="pointer-events-none absolute -right-12 top-1/2 h-44 w-44 -translate-y-1/2 rounded-full blur-3xl {workspaceBanner.halo1}"
+						></div>
+						<div
+							class="pointer-events-none absolute -left-16 -top-10 h-40 w-40 rounded-full blur-3xl {workspaceBanner.halo2}"
+						></div>
+						<div
+							class="relative flex flex-col items-center justify-center gap-2 px-6 py-8 text-center"
+						>
+							<div
+								class="rounded-full bg-white/90 px-5 py-2 text-sm text-gray-800 shadow-sm backdrop-blur dark:bg-gray-900/80 dark:text-gray-100"
+							>
+								<span class="font-semibold text-gray-900 dark:text-white"
+									>{$i18n.t(workspaceBanner.strong)}</span
+								>
+							</div>
+							<p class="text-sm text-gray-500 dark:text-gray-400">
+								{$i18n.t(workspaceBanner.sub)}
+							</p>
+						</div>
+					</div>
+				</div>
+			{/if}
+			<div class={isWorkspaceBoard ? 'flex-1 min-h-0 overflow-y-auto pb-1' : 'contents'}>
+				<slot />
+			</div>
 		</div>
 	</div>
 {/if}

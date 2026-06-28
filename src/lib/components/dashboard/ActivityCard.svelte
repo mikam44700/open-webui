@@ -15,7 +15,7 @@
 <div class="flex flex-col gap-2.5 p-4 rounded-2xl border border-gray-100 dark:border-gray-850">
 	<div class="flex items-center justify-between">
 		<div class="text-sm font-medium">{$i18n.t('Ce que l’agent a fait')}</div>
-		<a href="/kanban" class="text-xs text-gray-500 hover:text-gray-800 dark:hover:text-gray-200"
+		<a href="/workspace/tasks" class="text-xs text-gray-500 hover:text-gray-800 dark:hover:text-gray-200"
 			>{$i18n.t('Voir les tâches')} →</a
 		>
 	</div>

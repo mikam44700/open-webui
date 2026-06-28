@@ -109,7 +109,7 @@
 	onMount(load);
 </script>
 
-<div class="w-full max-w-5xl mx-auto px-3 py-3">
+<div class="w-full max-w-7xl mx-auto px-3 py-3">
 	{#if loading}
 		<div class="flex justify-center py-16"><Spinner className="size-6" /></div>
 	{:else if bridgeDown}
@@ -158,7 +158,7 @@
 						{$i18n.t('Outils puissants ou techniques — réservés aux usages avancés.')}
 					</div>
 				{/if}
-				<div class="grid grid-cols-1 sm:grid-cols-2 gap-3.5 items-stretch">
+				<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3.5 items-stretch">
 					{#each activeGroup.items as toolset (toolset.name)}
 						<ToolsetCard
 							{toolset}

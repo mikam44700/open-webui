@@ -52,7 +52,7 @@
 	onMount(load);
 </script>
 
-<div class="w-full max-w-5xl mx-auto px-3 py-3">
+<div class="w-full max-w-7xl mx-auto px-3 py-3">
 	{#if loading}
 		<div class="flex justify-center py-16"><Spinner className="size-6" /></div>
 	{:else if bridgeDown}
@@ -82,7 +82,7 @@
 		/>
 
 		{#if filtered.length > 0}
-			<div class="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+			<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2.5">
 				{#each filtered as connector (connector.id)}
 					<ConnectorCard {connector} on:changed={load} />
 				{/each}

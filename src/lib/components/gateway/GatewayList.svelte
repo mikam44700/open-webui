@@ -246,7 +246,7 @@
 				: 'bg-gray-500/10 text-gray-500 dark:text-gray-400';
 </script>
 
-<div class="w-full max-w-5xl mx-auto px-3 py-3">
+<div class="w-full max-w-7xl mx-auto px-3 py-3">
 	{#if loading}
 		<div class="flex justify-center py-16"><Spinner /></div>
 	{:else if bridgeDown}
@@ -367,7 +367,7 @@
 			</button>
 		</div>
 		{#if filtered.length > 0}
-			<div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+			<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
 				{#each filtered as p (p.id)}
 					{@const st = stateLabel(p.state)}
 					<div

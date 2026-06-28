@@ -136,8 +136,10 @@
 					$user?.permissions?.workspace?.skills
 				);
 			case 'automations':
-				// Affiché en permanence dans Agent OS (agents autonomes planifiés), indépendamment du flag natif.
-				return $user?.role === 'admin' || ($user?.permissions?.features?.automations ?? true);
+				// Déplacé dans le hub « Espace de travail » (onglet Automatisations) pour alléger la barre
+				// latérale. La route /automations redirige vers /workspace/automations. Réversible :
+				// restaurer `return $user?.role === 'admin' || (...features?.automations ?? true);`.
+				return false;
 			case 'calendar':
 				// Affiché en permanence dans Agent OS (page planning utilisateur), indépendamment du flag natif.
 				return $user?.role === 'admin' || ($user?.permissions?.features?.calendar ?? true);
@@ -161,8 +163,10 @@
 				// Réversible : restaurer `return $user?.role === 'admin';`.
 				return false;
 			case 'kanban':
-				// Page Tâches (Kanban multi-agents) — admin-only
-				return $user?.role === 'admin';
+				// Déplacé dans le hub « Espace de travail » (onglet Tâches) pour alléger la barre latérale.
+				// La route /kanban redirige vers /workspace/tasks. Réversible : restaurer
+				// `return $user?.role === 'admin';`.
+				return false;
 			default:
 				return false;
 		}

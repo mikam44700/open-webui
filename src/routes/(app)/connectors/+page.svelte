@@ -157,7 +157,7 @@
 
 		<div class=" flex-1 max-h-full overflow-y-auto @container">
 			<!-- En-tête premium : grand titre + texte d'accroche dynamique + onglets dessous (inspiré Base44). -->
-			<div class="w-full max-w-5xl mx-auto px-3 pt-4 sm:pt-6">
+			<div class="w-full max-w-7xl mx-auto px-3 pt-4 sm:pt-6">
 				<div class="flex items-start justify-between gap-3">
 					<h1 class="text-2xl font-semibold tracking-tight text-gray-900 dark:text-white">
 						{$i18n.t('Capacités')}
@@ -236,10 +236,10 @@
 							</div>
 						{/if}
 						<div
-							class="relative flex flex-col items-center justify-center gap-2.5 px-6 py-12 text-center"
+							class="relative flex flex-col items-center justify-center gap-2 px-6 py-8 text-center"
 						>
 							<div
-								class="rounded-full bg-white/90 px-6 py-2.5 text-base text-gray-800 shadow-sm backdrop-blur dark:bg-gray-900/80 dark:text-gray-100"
+								class="rounded-full bg-white/90 px-5 py-2 text-sm text-gray-800 shadow-sm backdrop-blur dark:bg-gray-900/80 dark:text-gray-100"
 							>
 								{$i18n.t(activeSection.banner.lead)}
 								<span class="font-semibold text-gray-900 dark:text-white"

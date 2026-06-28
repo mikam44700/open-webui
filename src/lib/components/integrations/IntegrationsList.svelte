@@ -54,7 +54,7 @@
 	onMount(load);
 </script>
 
-<div class="w-full max-w-5xl mx-auto px-3 py-3">
+<div class="w-full max-w-7xl mx-auto px-3 py-3">
 	{#if loading}
 		<div class="flex justify-center py-16"><Spinner className="size-6" /></div>
 	{:else if bridgeDown}
@@ -92,7 +92,7 @@
 			</button>
 		</div>
 
-		<div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+		<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
 			{#each featured as integration (integration.id)}
 				<IntegrationCard {integration} on:changed={load} />
 			{/each}
@@ -101,7 +101,7 @@
 		<!-- Applications connectées -->
 		<div class="text-sm font-medium mt-7 mb-3">{$i18n.t('Applications connectées')}</div>
 		{#if connected.length > 0}
-			<div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+			<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
 				{#each connected as integration (integration.id)}
 					<IntegrationCard {integration} on:changed={load} />
 				{/each}
