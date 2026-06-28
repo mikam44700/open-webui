@@ -108,10 +108,24 @@
 	onMount(load);
 </script>
 
-<div
-	class="w-full min-h-full bg-gradient-to-b from-gray-50/70 via-white to-white dark:from-gray-900/30 dark:via-gray-950 dark:to-gray-950"
->
-	<div class="w-full max-w-5xl mx-auto px-4 py-6 sm:py-8">
+<div class="relative w-full min-h-full overflow-hidden bg-[#fcfbfa] dark:bg-gray-950">
+	<!-- Halos décoratifs façon « aurora » (haut + bas), style Lindy -->
+	<div aria-hidden="true" class="pointer-events-none absolute inset-0 overflow-hidden">
+		<div
+			class="absolute -top-40 -left-24 size-[560px] rounded-full bg-sky-200/45 blur-[130px] dark:bg-sky-500/[0.08]"
+		></div>
+		<div
+			class="absolute -top-32 right-0 size-[460px] rounded-full bg-amber-100/60 blur-[120px] dark:bg-amber-400/[0.06]"
+		></div>
+		<div
+			class="absolute -bottom-40 left-8 size-[520px] rounded-full bg-amber-100/50 blur-[130px] dark:bg-amber-400/[0.05]"
+		></div>
+		<div
+			class="absolute -bottom-32 -right-16 size-[460px] rounded-full bg-emerald-200/40 blur-[120px] dark:bg-emerald-500/[0.07]"
+		></div>
+	</div>
+
+	<div class="relative z-10 w-full max-w-5xl mx-auto px-4 py-6 sm:py-8">
 		<!-- En-tête -->
 		<header class="flex items-start justify-between gap-4 mb-8">
 			<div>

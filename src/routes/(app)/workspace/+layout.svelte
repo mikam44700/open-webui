@@ -34,6 +34,10 @@
 	// Les routes /memory/knowledge* réutilisent les mêmes composants (rien n'est dupliqué ni supprimé).
 	const HIDE_NATIVE_KNOWLEDGE = true;
 
+	// Barre d'onglets du Workspace masquée : il ne reste que « Agents » (Knowledge/Prompts/Tools/Skills
+	// déjà masqués), redondant avec le titre de la page Agents. On garde le bouton sidebar (mobile).
+	const HIDE_WORKSPACE_TABS = true;
+
 	onMount(async () => {
 		if (HIDE_NATIVE_KNOWLEDGE && $page.url.pathname.includes('/workspace/knowledge')) {
 			goto('/memory/knowledge');
@@ -117,6 +121,7 @@
 					</div>
 				{/if}
 
+				{#if !HIDE_WORKSPACE_TABS}
 				<div class="">
 					<div
 						class="flex gap-1 scrollbar-none overflow-x-auto w-fit text-center text-sm font-medium rounded-full bg-transparent py-1 touch-auto pointer-events-auto"
@@ -186,6 +191,7 @@
 						{/if}
 					</div>
 				</div>
+				{/if}
 
 				<!-- <div class="flex items-center text-xl font-medium">{$i18n.t('Workspace')}</div> -->
 			</div>
