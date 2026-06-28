@@ -5,6 +5,7 @@ export type AgentTemplate = {
 	id: string; // identifiant de profil suggéré
 	label: string; // nom d'affichage
 	emoji: string; // avatar provisoire (en attendant les illustrations 3D)
+	image?: string; // URL/chemin d'une mascotte illustrée (prioritaire sur l'emoji quand fournie)
 	description: string; // résumé du rôle (carte)
 	soul: string; // mission préremplie (SOUL.md)
 };
