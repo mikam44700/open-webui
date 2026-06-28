@@ -32,6 +32,12 @@
 	let dragOver = false;
 	let fileInput: HTMLInputElement;
 
+	// Mode guidé : 3 questions de capture (le vrai process) pour un agent sur-mesure.
+	let guidedOpen = false;
+	let gWalkthrough = '';
+	let gExceptions = '';
+	let gSuccess = '';
+
 	// Édition directe de la mission générée (sauvegardée avant activation).
 	let editing = false;
 	let editLabel = '';
@@ -150,7 +156,13 @@
 		if (e.dataTransfer?.files) handleFiles(e.dataTransfer.files);
 	};
 
-	$: canGenerate = (brief.trim().length > 0 || sources.length > 0) && !uploading;
+	$: canGenerate =
+		(brief.trim().length > 0 ||
+			sources.length > 0 ||
+			gWalkthrough.trim() ||
+			gExceptions.trim() ||
+			gSuccess.trim()) &&
+		!uploading;
 
 	const generate = async () => {
 		if (!brief.trim() && sources.length === 0) return;
@@ -159,7 +171,10 @@
 		startGenMessages();
 		try {
 			if (!model) await loadModels();
-			result = await generateAgent(localStorage.token, model, brief.trim(), { sources });
+			result = await generateAgent(localStorage.token, model, brief.trim(), {
+				sources,
+				guided: { walkthrough: gWalkthrough, exceptions: gExceptions, success: gSuccess }
+			});
 			phase = 'result';
 		} catch (e: any) {
 			errorMsg = e?.message ?? 'La génération a échoué.';
@@ -177,6 +192,7 @@
 		try {
 			result = await generateAgent(localStorage.token, model, brief.trim(), {
 				sources,
+				guided: { walkthrough: gWalkthrough, exceptions: gExceptions, success: gSuccess },
 				previous: result ?? undefined,
 				adjustment: adjustment.trim() || undefined
 			});
@@ -259,6 +275,10 @@
 			activating = false;
 			sources = [];
 			editing = false;
+			guidedOpen = false;
+			gWalkthrough = '';
+			gExceptions = '';
+			gSuccess = '';
 		}, 200);
 	};
 
@@ -386,6 +406,64 @@
 								{$i18n.t('{{n}} documents maximum — l’agent s’appuiera dessus.', {
 									n: MAX_DOCS
 								})}
+							</div>
+						{/if}
+					</div>
+
+					<!-- Mode guidé : 3 questions de capture pour un agent sur-mesure -->
+					<div class="mt-3">
+						<button
+							class="mx-auto flex items-center gap-1.5 text-xs text-gray-500 hover:text-gray-800 dark:hover:text-gray-200 transition"
+							on:click={() => (guidedOpen = !guidedOpen)}
+							aria-expanded={guidedOpen}
+						>
+							<span>✨</span>
+							{guidedOpen
+								? $i18n.t('Masquer les questions')
+								: $i18n.t('Répondre à 3 questions pour un agent sur-mesure')}
+						</button>
+
+						{#if guidedOpen}
+							<div class="mt-3 space-y-3 text-left" in:fly={{ y: 8, duration: 200 }}>
+								<div>
+									<div class="text-xs text-gray-500 mb-1">
+										{$i18n.t('1. Racontez un cas concret récent, étape par étape')}
+									</div>
+									<textarea
+										bind:value={gWalkthrough}
+										rows="2"
+										placeholder={$i18n.t(
+											'Ex : le client appelle, je note ses coordonnées, je regarde le planning, je propose un créneau…'
+										)}
+										class="w-full text-sm bg-gray-50 dark:bg-gray-850 border border-gray-100 dark:border-gray-800 rounded-xl px-3 py-2 outline-none focus:border-gray-300 dark:focus:border-gray-700 transition resize-none"
+									></textarea>
+								</div>
+								<div>
+									<div class="text-xs text-gray-500 mb-1">
+										{$i18n.t('2. Qu’est-ce qui se passe quand ça déraille ?')}
+									</div>
+									<textarea
+										bind:value={gExceptions}
+										rows="2"
+										placeholder={$i18n.t(
+											'Ex : le client annule à la dernière minute, ou la pièce n’est pas en stock…'
+										)}
+										class="w-full text-sm bg-gray-50 dark:bg-gray-850 border border-gray-100 dark:border-gray-800 rounded-xl px-3 py-2 outline-none focus:border-gray-300 dark:focus:border-gray-700 transition resize-none"
+									></textarea>
+								</div>
+								<div>
+									<div class="text-xs text-gray-500 mb-1">
+										{$i18n.t('3. C’est réussi quand ?')}
+									</div>
+									<textarea
+										bind:value={gSuccess}
+										rows="2"
+										placeholder={$i18n.t(
+											'Ex : le rendez-vous est confirmé, noté dans l’agenda, et le client a reçu un récapitulatif…'
+										)}
+										class="w-full text-sm bg-gray-50 dark:bg-gray-850 border border-gray-100 dark:border-gray-800 rounded-xl px-3 py-2 outline-none focus:border-gray-300 dark:focus:border-gray-700 transition resize-none"
+									></textarea>
+								</div>
 							</div>
 						{/if}
 					</div>

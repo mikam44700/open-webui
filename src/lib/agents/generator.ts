@@ -183,7 +183,12 @@ export const generateAgent = async (
 	token: string,
 	model: string,
 	brief: string,
-	opts: { sources?: SourceDoc[]; previous?: GeneratedAgent; adjustment?: string } = {}
+	opts: {
+		sources?: SourceDoc[];
+		guided?: { walkthrough?: string; exceptions?: string; success?: string };
+		previous?: GeneratedAgent;
+		adjustment?: string;
+	} = {}
 ): Promise<GeneratedAgent> => {
 	if (!model) {
 		throw new Error('Aucun modèle disponible pour générer l’agent.');
@@ -199,6 +204,19 @@ export const generateAgent = async (
 		userContent +=
 			`Documents fournis par le dirigeant (procédures existantes — utilise-les comme source principale, reste fidèle, n'invente pas) :\n\n${sourcesBlock}\n\n`;
 	}
+
+	const g = opts.guided ?? {};
+	const captureLines: string[] = [];
+	if (g.walkthrough?.trim())
+		captureLines.push(`- Déroulé d'un cas concret réel, dans l'ordre : ${g.walkthrough.trim()}`);
+	if (g.exceptions?.trim())
+		captureLines.push(`- Ce qui se passe quand ça déraille (exceptions) : ${g.exceptions.trim()}`);
+	if (g.success?.trim()) captureLines.push(`- Le critère de réussite : ${g.success.trim()}`);
+	if (captureLines.length) {
+		userContent +=
+			`Le dirigeant a décrit SON process réel — c'est la matière la plus précieuse. Appuie-toi dessus en priorité pour la Méthode et les Livrables, reste fidèle, n'invente rien au-delà :\n${captureLines.join('\n')}\n\n`;
+	}
+
 	if (!userContent) {
 		userContent = 'Conçois un assistant généraliste utile pour une PME.';
 	}
