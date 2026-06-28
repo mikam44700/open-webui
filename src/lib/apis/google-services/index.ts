@@ -44,3 +44,27 @@ export const createPresentation = (
 	slides: string[] = []
 ): Promise<{ presentation: CreatedPresentation }> =>
 	call(token, 'POST', '/slides', { title, slides });
+
+export type AnalyticsSummary = {
+	connected: boolean;
+	property: string;
+	days?: number;
+	metrics: { label: string; value: string }[];
+	note?: string;
+};
+
+// Résumé Google Analytics (GA4) en lecture seule.
+export const getAnalytics = (token: string): Promise<{ analytics: AnalyticsSummary }> =>
+	call(token, 'GET', '/analytics');
+
+export type SearchConsoleSummary = {
+	connected: boolean;
+	site: string;
+	days?: number;
+	queries: { query: string; clicks: number; impressions: number }[];
+	note?: string;
+};
+
+// Top requêtes Google Search Console (lecture seule).
+export const getSearchConsole = (token: string): Promise<{ search_console: SearchConsoleSummary }> =>
+	call(token, 'GET', '/search-console');

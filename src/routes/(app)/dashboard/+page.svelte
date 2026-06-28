@@ -17,6 +17,8 @@
 	import OnboardingCard from '$lib/components/dashboard/OnboardingCard.svelte';
 	import BriefingCard from '$lib/components/dashboard/BriefingCard.svelte';
 	import PresentationCard from '$lib/components/dashboard/PresentationCard.svelte';
+	import AnalyticsCard from '$lib/components/dashboard/AnalyticsCard.svelte';
+	import SearchConsoleCard from '$lib/components/dashboard/SearchConsoleCard.svelte';
 	import { deriveOnboardingSteps } from '$lib/onboarding/steps';
 
 	import { getHermesStatus, getActiveProvider } from '$lib/apis/providers';
@@ -254,6 +256,8 @@
 					<ActivityCard {loading} unavailable={activityUnavailable} {counts} {recent} />
 					<QuickActionsCard />
 					<PresentationCard {googleConnected} />
+					<AnalyticsCard {googleConnected} />
+					<SearchConsoleCard {googleConnected} />
 				</div>
 			</div>
 		</div>

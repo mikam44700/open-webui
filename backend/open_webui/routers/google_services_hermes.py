@@ -22,3 +22,15 @@ router = APIRouter()
 async def create_presentation(body: dict, user=Depends(get_admin_user)):
     """Crée une présentation Google Slides (titre + plan optionnel)."""
     return await _bridge("POST", "/google/slides", json=body)
+
+
+@router.get("/analytics")
+async def analytics_summary(user=Depends(get_admin_user)):
+    """Résumé Google Analytics (GA4) en lecture seule."""
+    return await _bridge("GET", "/google/analytics")
+
+
+@router.get("/search-console")
+async def search_console_summary(user=Depends(get_admin_user)):
+    """Top requêtes Google Search Console (lecture seule)."""
+    return await _bridge("GET", "/google/search-console")
