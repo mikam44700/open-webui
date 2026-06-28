@@ -70,6 +70,8 @@
 	import InputMenu from './MessageInput/InputMenu.svelte';
 	import VoiceRecording from './MessageInput/VoiceRecording.svelte';
 
+	import { enhancePrompt } from '$lib/chat/enhance';
+
 	import ToolServersModal from './ToolServersModal.svelte';
 	import SkillsModal from './SkillsModal.svelte';
 
@@ -132,6 +134,27 @@
 		generating;
 
 	export let prompt = '';
+
+	// « Améliorer ma demande » : reformule le texte saisi sans changer l'intention.
+	let enhancing = false;
+	const enhanceMyPrompt = async () => {
+		const text = prompt.trim();
+		if (!text || enhancing) return;
+		const model = (atSelectedModel?.id ? [atSelectedModel.id] : selectedModels)?.[0];
+		enhancing = true;
+		try {
+			const improved = await enhancePrompt(localStorage.token, model, text);
+			if (improved && improved !== text) {
+				prompt = improved;
+				// L'éditeur riche ne réagit pas à prompt = … ; on pousse le texte via sa méthode.
+				chatInputElement?.setText?.(improved);
+			}
+		} catch (e) {
+			toast.error($i18n.t('Amélioration indisponible pour le moment'));
+		} finally {
+			enhancing = false;
+		}
+	};
 	export let files = [];
 
 	export let selectedToolIds = [];
@@ -1681,6 +1704,50 @@
 											<PlusAlt className="size-5.5" />
 										</button>
 									</InputMenu>
+
+									<button
+											type="button"
+											class="bg-transparent hover:bg-gray-100 text-gray-400 hover:text-gray-700 dark:text-gray-500 dark:hover:bg-gray-800 dark:hover:text-white rounded-full size-8 flex justify-center items-center outline-hidden transition disabled:opacity-30 disabled:cursor-not-allowed"
+											aria-label={$i18n.t('Améliorer ma demande')}
+											title={$i18n.t('Améliorer ma demande')}
+											disabled={enhancing || !prompt.trim()}
+											on:click={enhanceMyPrompt}
+										>
+											{#if enhancing}
+												<svg
+													class="size-4 animate-spin"
+													viewBox="0 0 24 24"
+													fill="none"
+													xmlns="http://www.w3.org/2000/svg"
+												>
+													<circle
+														class="opacity-25"
+														cx="12"
+														cy="12"
+														r="10"
+														stroke="currentColor"
+														stroke-width="4"
+													/>
+													<path
+														class="opacity-75"
+														fill="currentColor"
+														d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"
+													/>
+												</svg>
+											{:else}
+												<svg
+													xmlns="http://www.w3.org/2000/svg"
+													viewBox="0 0 24 24"
+													fill="currentColor"
+													class="size-5"
+												>
+													<path
+														d="M12 3l1.5 4.5L18 9l-4.5 1.5L12 15l-1.5-4.5L6 9l4.5-1.5L12 3z"
+													/>
+													<path d="M5 15l.7 2.1L8 18l-2.3.9L5 21l-.7-2.1L2 18l2.3-.9L5 15z" />
+												</svg>
+											{/if}
+										</button>
 
 									{#if showWebSearchButton || showImageGenerationButton || showCodeInterpreterButton || showToolsButton || showSkillsButton || (toggleFilters && toggleFilters.length > 0)}
 										<div
