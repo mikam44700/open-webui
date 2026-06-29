@@ -113,3 +113,30 @@ async def list_skills(user=Depends(get_admin_user)):
 async def set_skill_enabled(skill_name: str, body: EnabledBody, user=Depends(get_admin_user)):
     """Active/désactive une compétence native Hermes."""
     return await _bridge("PATCH", f"/skills/{skill_name}", json=body.model_dump())
+
+
+# --- Compétences « maison » (sur mesure, créées par le client) ----------------
+
+
+class CustomSkillBody(BaseModel):
+    label: str
+    description: str = ""
+    instructions: str = ""
+
+
+@router.get("/custom-skills")
+async def list_custom_skills(user=Depends(get_admin_user)):
+    """Liste les compétences maison du client (admin-only)."""
+    return await _bridge("GET", "/custom-skills")
+
+
+@router.post("/custom-skills")
+async def create_custom_skill(body: CustomSkillBody, user=Depends(get_admin_user)):
+    """Crée une compétence maison."""
+    return await _bridge("POST", "/custom-skills", json=body.model_dump())
+
+
+@router.delete("/custom-skills/{skill_name}")
+async def delete_custom_skill(skill_name: str, user=Depends(get_admin_user)):
+    """Supprime une compétence maison."""
+    return await _bridge("DELETE", f"/custom-skills/{skill_name}")

@@ -1,7 +1,7 @@
 <script lang="ts">
-	// Page « Compétences » de l'Espace de travail : la boîte à outils des agents.
-	// Réutilise SkillList (liste, recherche, catégories, activation) — source = moteur Hermes.
-	import SkillList from '$lib/components/capabilities/SkillList.svelte';
+	// Page « Compétences » de l'Espace de travail : NOS compétences maison (sur mesure),
+	// distinctes des compétences natives Hermes (onglet Compétences de Capacités).
+	import CustomSkillList from '$lib/components/agents/CustomSkillList.svelte';
 </script>
 
-<SkillList />
+<CustomSkillList />

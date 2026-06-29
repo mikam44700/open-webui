@@ -46,6 +46,19 @@ export const getSkills = (token: string) => call(token, 'GET', '/skills');
 export const setSkillEnabled = (token: string, name: string, enabled: boolean) =>
 	call(token, 'PATCH', `/skills/${encodeURIComponent(name)}`, { enabled });
 
+// Compétences « maison » (sur mesure, créées par le client) — page Compétences de l'Espace de travail.
+export const getCustomSkills = (token: string) => call(token, 'GET', '/custom-skills');
+
+export const createCustomSkill = (
+	token: string,
+	label: string,
+	description: string,
+	instructions: string
+) => call(token, 'POST', '/custom-skills', { label, description, instructions });
+
+export const deleteCustomSkill = (token: string, name: string) =>
+	call(token, 'DELETE', `/custom-skills/${encodeURIComponent(name)}`);
+
 // Connexion des outils (feature 003) — métadonnées, clé/champs, OAuth, test, déconnexion.
 export const getToolConnection = (token: string, name: string) =>
 	call(token, 'GET', `/tools/${encodeURIComponent(name)}/connection`);
