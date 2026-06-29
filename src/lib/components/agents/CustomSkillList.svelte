@@ -9,6 +9,10 @@
 		createCustomSkill,
 		deleteCustomSkill
 	} from '$lib/apis/capabilities';
+	import { getModels } from '$lib/apis';
+	import { getIntegrations } from '$lib/apis/integrations';
+	import { getConnectors } from '$lib/apis/connectors';
+	import { generateSkill } from '$lib/skills/skill-generator';
 
 	import Spinner from '$lib/components/common/Spinner.svelte';
 	import Modal from '$lib/components/common/Modal.svelte';
@@ -28,6 +32,71 @@
 	let formLabel = '';
 	let formDescription = '';
 	let formInstructions = '';
+
+	// Génération par l'IA (✨) — réutilise le moteur de l'Atelier d'agents.
+	let model = '';
+	let genBrief = '';
+	let generating = false;
+	let genError = '';
+
+	const loadModel = async () => {
+		if (model) return;
+		try {
+			const res = await getModels(localStorage.token);
+			const list = res?.data ?? res ?? [];
+			model = list?.[0]?.id ?? '';
+		} catch {
+			/* géré au moment de générer */
+		}
+	};
+
+	// Outils réellement connectés : la compétence générée les mobilisera nommément.
+	const fetchConnectedTools = async (): Promise<string[]> => {
+		const out: string[] = [];
+		try {
+			const res: any = await getIntegrations(localStorage.token);
+			const list = Array.isArray(res) ? res : (res?.integrations ?? []);
+			for (const it of list) {
+				if (it?.state === 'connected') out.push(it.label || it.name || it.id);
+			}
+		} catch {
+			/* tolérant */
+		}
+		try {
+			const res: any = await getConnectors(localStorage.token);
+			const list = Array.isArray(res) ? res : (res?.connectors ?? []);
+			for (const c of list) {
+				if (c?.enabled !== false) out.push(c.label || c.id || c.name);
+			}
+		} catch {
+			/* tolérant */
+		}
+		return [...new Set(out.filter(Boolean))];
+	};
+
+	const doGenerate = async () => {
+		if (!genBrief.trim()) {
+			toast.error($i18n.t('Décris d’abord ce que la compétence doit faire'));
+			return;
+		}
+		generating = true;
+		genError = '';
+		try {
+			if (!model) await loadModel();
+			const tools = await fetchConnectedTools();
+			const result = await generateSkill(localStorage.token, model, genBrief.trim(), {
+				connectedTools: tools
+			});
+			// On remplit le formulaire : le dirigeant relit et ajuste avant de créer.
+			formLabel = result.label;
+			formDescription = result.description;
+			formInstructions = result.instructions;
+		} catch (err: any) {
+			genError = err?.message || $i18n.t('La génération a échoué. Réessaie.');
+		} finally {
+			generating = false;
+		}
+	};
 
 	// Confirmation de suppression
 	let showDelete = false;
@@ -57,7 +126,10 @@
 		formLabel = '';
 		formDescription = '';
 		formInstructions = '';
+		genBrief = '';
+		genError = '';
 		showCreate = true;
+		loadModel();
 	};
 
 	const submitCreate = async () => {
@@ -137,12 +209,20 @@
 					{$i18n.t('Des savoir-faire que vous créez vous-même pour vos agents (une procédure métier, une façon de faire propre à votre entreprise). Une fois créée, une compétence est utilisable par vos agents.')}
 				</div>
 			</div>
-			<button
-				class="flex-none text-sm px-3.5 py-2 rounded-xl bg-gray-900 text-white dark:bg-white dark:text-gray-900 hover:opacity-90 transition font-medium"
-				on:click={openCreate}
-			>
-				+ {$i18n.t('Créer une compétence')}
-			</button>
+			<div class="flex-none flex items-center gap-2">
+				<button
+					class="text-sm px-3.5 py-2 rounded-xl bg-violet-600 text-white hover:bg-violet-700 transition font-medium"
+					on:click={openCreate}
+				>
+					✨ {$i18n.t('Générer avec l’IA')}
+				</button>
+				<button
+					class="text-sm px-3.5 py-2 rounded-xl bg-gray-100 dark:bg-gray-850 hover:bg-gray-200 dark:hover:bg-gray-800 transition font-medium"
+					on:click={openCreate}
+				>
+					+ {$i18n.t('Créer')}
+				</button>
+			</div>
 		</div>
 
 		{#if skills.length > 0}
@@ -192,6 +272,41 @@
 		<div class="text-base font-semibold mb-1">{$i18n.t('Créer une compétence')}</div>
 		<div class="text-xs text-gray-500 mb-4">
 			{$i18n.t('Décrivez le savoir-faire en clair. Vos agents pourront s’en servir.')}
+		</div>
+
+		<!-- ✨ Génération par l'IA : décris en une phrase, on remplit le formulaire pour toi -->
+		<div
+			class="rounded-2xl border border-violet-200/70 dark:border-violet-900/40 bg-gradient-to-br from-violet-50/80 to-indigo-50/60 dark:from-violet-950/30 dark:to-indigo-950/20 p-3.5 mb-5"
+		>
+			<div class="text-xs font-medium text-violet-900 dark:text-violet-200 mb-2">
+				✨ {$i18n.t('Générer avec l’IA')}
+			</div>
+			<textarea
+				class="w-full text-sm bg-white/70 dark:bg-gray-900/50 border border-violet-100 dark:border-violet-900/40 rounded-xl px-3 py-2 outline-none min-h-16 resize-y"
+				placeholder={$i18n.t('Décris la compétence en une phrase. Ex. : relancer les devis sans réponse après 7 jours, poliment.')}
+				bind:value={genBrief}
+				disabled={generating}
+			></textarea>
+			{#if genError}
+				<div class="text-xs text-red-500 mt-1">{genError}</div>
+			{/if}
+			<div class="flex justify-end mt-2">
+				<button
+					class="text-xs px-3 py-1.5 rounded-lg bg-violet-600 text-white hover:bg-violet-700 transition font-medium disabled:opacity-50 flex items-center gap-1.5"
+					on:click={doGenerate}
+					disabled={generating}
+				>
+					{#if generating}
+						<Spinner className="size-3.5" />
+						{$i18n.t('Génération…')}
+					{:else}
+						✨ {$i18n.t('Générer')}
+					{/if}
+				</button>
+			</div>
+			<div class="text-[11px] text-gray-500 dark:text-gray-400 mt-1.5">
+				{$i18n.t('L’IA remplit les champs ci-dessous. Vous pouvez tout relire et ajuster avant de créer.')}
+			</div>
 		</div>
 
 		<label class="block text-xs font-medium text-gray-600 dark:text-gray-300 mb-1">
