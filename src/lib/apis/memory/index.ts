@@ -58,3 +58,11 @@ export const getMemoryNote = (token: string, path: string): Promise<NoteContent>
 
 export const saveMemoryNote = (token: string, path: string, content: string): Promise<NoteContent> =>
 	call(token, 'POST', '/note', { path, content });
+
+// Crée la structure PARA du coffre (00-Réception, 01-Projets, … + INDEX). Idempotent.
+export const initMemoryVault = (token: string): Promise<{ created: string[] }> =>
+	call(token, 'POST', '/init');
+
+// Dépose une note dans la Boîte de réception (zone d'écriture sûre de l'agent).
+export const writeInboxNote = (token: string, title: string, content: string): Promise<NoteContent> =>
+	call(token, 'POST', '/inbox', { title, content });

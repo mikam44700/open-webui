@@ -25,6 +25,11 @@ class NoteWriteBody(BaseModel):
     content: str
 
 
+class InboxNoteBody(BaseModel):
+    title: str
+    content: str
+
+
 @router.get("/tree")
 async def memory_tree(user=Depends(get_admin_user)):
     """Arborescence du coffre (dossiers métier + notes)."""
@@ -47,3 +52,15 @@ async def memory_note(path: str, user=Depends(get_admin_user)):
 async def write_memory_note(body: NoteWriteBody, user=Depends(get_admin_user)):
     """Crée/corrige une note (relecture/correction humaine)."""
     return await _bridge("POST", "/memory/note", json=body.model_dump())
+
+
+@router.post("/init")
+async def init_memory_vault(user=Depends(get_admin_user)):
+    """Crée la structure PARA du coffre (00-Réception, 01-Projets, … + INDEX). Idempotent."""
+    return await _bridge("POST", "/memory/init")
+
+
+@router.post("/inbox")
+async def write_inbox_note(body: InboxNoteBody, user=Depends(get_admin_user)):
+    """Dépose une note dans la Boîte de réception (zone d'écriture sûre de l'agent)."""
+    return await _bridge("POST", "/memory/inbox", json=body.model_dump())
