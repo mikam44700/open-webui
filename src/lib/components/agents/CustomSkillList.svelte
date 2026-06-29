@@ -19,13 +19,16 @@
 	import Modal from '$lib/components/common/Modal.svelte';
 	import ConfirmDialog from '$lib/components/common/ConfirmDialog.svelte';
 
+	import { SKILL_CATEGORIES } from '$lib/skills/skill-generator';
+
 	const i18n = getContext('i18n');
 
-	type CustomSkill = { name: string; label: string; description: string };
+	type CustomSkill = { name: string; label: string; description: string; category?: string };
 
 	let loading = true;
 	let bridgeDown = false;
 	let skills: CustomSkill[] = [];
+	let search = '';
 
 	// Modale de création
 	let showCreate = false;
@@ -33,6 +36,29 @@
 	let formLabel = '';
 	let formDescription = '';
 	let formInstructions = '';
+	let formCategory = 'Autres';
+
+	// Regroupement par catégorie + filtre de recherche.
+	$: q = search.trim().toLowerCase();
+	$: filtered = q
+		? skills.filter(
+				(s) =>
+					s.label.toLowerCase().includes(q) ||
+					(s.description ?? '').toLowerCase().includes(q) ||
+					(s.category ?? '').toLowerCase().includes(q)
+			)
+		: skills;
+	$: groups = (() => {
+		const map = new Map<string, CustomSkill[]>();
+		for (const s of filtered) {
+			const cat = s.category || 'Autres';
+			if (!map.has(cat)) map.set(cat, []);
+			map.get(cat)!.push(s);
+		}
+		return [...map.keys()]
+			.sort((a, b) => a.localeCompare(b))
+			.map((cat) => ({ cat, items: map.get(cat)!.slice().sort((x, y) => x.label.localeCompare(y.label)) }));
+	})();
 
 	// Génération par l'IA (✨) — réutilise le moteur de l'Atelier d'agents.
 	let model = '';
@@ -98,6 +124,7 @@
 			formLabel = result.label;
 			formDescription = result.description;
 			formInstructions = result.instructions;
+			formCategory = result.category || 'Autres';
 		} catch (err: any) {
 			genError = err?.message || $i18n.t('La génération a échoué. Réessaie.');
 		} finally {
@@ -133,6 +160,7 @@
 		formLabel = '';
 		formDescription = '';
 		formInstructions = '';
+		formCategory = 'Autres';
 		genBrief = '';
 		genError = '';
 		showCreate = true;
@@ -171,6 +199,7 @@
 			formLabel = result.label;
 			formDescription = result.description;
 			formInstructions = result.instructions;
+			formCategory = result.category || 'Autres';
 			genBrief = '';
 			genError = '';
 			showImport = false;
@@ -199,7 +228,8 @@
 				localStorage.token,
 				formLabel.trim(),
 				formDescription.trim(),
-				formInstructions.trim()
+				formInstructions.trim(),
+				formCategory || 'Autres'
 			);
 			showCreate = false;
 			toast.success($i18n.t('Compétence créée'));
@@ -285,27 +315,50 @@
 		</div>
 
 		{#if skills.length > 0}
-			<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2.5">
-				{#each skills as skill (skill.name)}
-					<div
-						class="group flex items-start gap-3 border border-gray-100 dark:border-gray-850 rounded-2xl px-4 py-3.5 transition hover:border-gray-200 dark:hover:border-gray-700 hover:shadow-sm"
-					>
-						<div class="flex-1 min-w-0">
-							<div class="text-sm font-medium truncate">{skill.label}</div>
-							{#if skill.description}
-								<div class="text-xs text-gray-500 mt-0.5 line-clamp-2">{skill.description}</div>
-							{/if}
+			<!-- Barre de recherche (utile dès qu'il y a beaucoup de compétences) -->
+			<input
+				class="w-full text-sm bg-transparent border border-gray-100 dark:border-gray-850 rounded-xl px-3 py-2 outline-none mb-4"
+				placeholder={$i18n.t('Rechercher une compétence (nom, catégorie…)')}
+				bind:value={search}
+			/>
+
+			{#if groups.length > 0}
+				<div class="flex flex-col gap-5">
+					{#each groups as group (group.cat)}
+						<div>
+							<div class="flex items-baseline gap-2 mb-2">
+								<div class="text-sm font-semibold">{group.cat}</div>
+								<div class="text-xs text-gray-400">{group.items.length}</div>
+							</div>
+							<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2.5">
+								{#each group.items as skill (skill.name)}
+									<div
+										class="group flex items-start gap-3 border border-gray-100 dark:border-gray-850 rounded-2xl px-4 py-3.5 transition hover:border-gray-200 dark:hover:border-gray-700 hover:shadow-sm"
+									>
+										<div class="flex-1 min-w-0">
+											<div class="text-sm font-medium truncate">{skill.label}</div>
+											{#if skill.description}
+												<div class="text-xs text-gray-500 mt-0.5 line-clamp-2">{skill.description}</div>
+											{/if}
+										</div>
+										<button
+											class="flex-none self-center text-xs text-gray-400 hover:text-red-500 opacity-0 group-hover:opacity-100 transition"
+											title={$i18n.t('Supprimer')}
+											on:click={() => askDelete(skill)}
+										>
+											{$i18n.t('Supprimer')}
+										</button>
+									</div>
+								{/each}
+							</div>
 						</div>
-						<button
-							class="flex-none self-center text-xs text-gray-400 hover:text-red-500 opacity-0 group-hover:opacity-100 transition"
-							title={$i18n.t('Supprimer')}
-							on:click={() => askDelete(skill)}
-						>
-							{$i18n.t('Supprimer')}
-						</button>
-					</div>
-				{/each}
-			</div>
+					{/each}
+				</div>
+			{:else}
+				<div class="text-center text-xs text-gray-500 py-12">
+					{$i18n.t('Aucune compétence ne correspond à votre recherche.')}
+				</div>
+			{/if}
 		{:else}
 			<div
 				class="flex flex-col items-center justify-center text-center py-16 gap-3 border border-dashed border-gray-200 dark:border-gray-800 rounded-2xl"
@@ -385,6 +438,18 @@
 			placeholder={$i18n.t('Ex. : Relancer les devis restés sans réponse, poliment.')}
 			bind:value={formDescription}
 		/>
+
+		<label class="block text-xs font-medium text-gray-600 dark:text-gray-300 mb-1">
+			{$i18n.t('Catégorie')}
+		</label>
+		<select
+			class="w-full text-sm bg-transparent border border-gray-100 dark:border-gray-850 rounded-xl px-3 py-2 outline-none mb-3"
+			bind:value={formCategory}
+		>
+			{#each SKILL_CATEGORIES as cat}
+				<option value={cat}>{cat}</option>
+			{/each}
+		</select>
 
 		<label class="block text-xs font-medium text-gray-600 dark:text-gray-300 mb-1">
 			{$i18n.t('Comment faire (la procédure)')}

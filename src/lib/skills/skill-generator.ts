@@ -9,7 +9,26 @@ export type GeneratedSkill = {
 	label: string; // nom court lisible
 	description: string; // ce que ça fait + QUAND l'utiliser (mécanisme de déclenchement)
 	instructions: string; // la procédure (corps du SKILL.md)
+	category: string; // catégorie de rangement (Vente, Finance, SAV…)
 };
+
+// Catégories proposées pour ranger les compétences (le moule s'y réfère).
+export const SKILL_CATEGORIES = [
+	'Vente',
+	'Finance & Compta',
+	'Service client',
+	'Marketing',
+	'Quotidien',
+	'Pilotage',
+	'Rédaction & Documents',
+	'RH',
+	'Juridique',
+	'Achats',
+	'Veille',
+	'Process & SOP',
+	'Mémoire & Coffre',
+	'Autres'
+];
 
 // Le « moule » : prompt générateur. Structure en balises (best practice Claude), exemple intégré
 // (few-shot), auto-critique silencieuse. La qualité de ce prompt = la qualité des compétences.
@@ -56,6 +75,9 @@ Clés exactes :
   (situations concrètes de déclenchement). 280 caractères maximum.
 - "instructions" : la procédure en Markdown — étapes numérotées concrètes, puis une courte section
   « Garde-fous » (titre ##). C'est le cœur de la valeur.
+- "category" : UNE seule catégorie parmi exactement : Vente, Finance & Compta, Service client,
+  Marketing, Quotidien, Pilotage, Rédaction & Documents, RH, Juridique, Achats, Veille,
+  Process & SOP, Mémoire & Coffre, Autres.
 </format_de_sortie>
 
 <exemple_de_qualite>
@@ -93,12 +115,14 @@ const parseSkill = (raw: string): GeneratedSkill => {
 	const label = String(obj.label ?? '').trim() || 'Nouvelle compétence';
 	const description = String(obj.description ?? '').trim();
 	const instructions = String(obj.instructions ?? '').trim();
+	const rawCat = String(obj.category ?? '').trim();
+	const category = SKILL_CATEGORIES.includes(rawCat) ? rawCat : 'Autres';
 
 	if (!instructions) {
 		throw new Error('Procédure vide générée.');
 	}
 
-	return { label, description, instructions };
+	return { label, description, instructions, category };
 };
 
 // Génère une compétence depuis une phrase. `previous` + `adjustment` permettent d'affiner.

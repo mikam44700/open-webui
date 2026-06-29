@@ -53,8 +53,9 @@ export const createCustomSkill = (
 	token: string,
 	label: string,
 	description: string,
-	instructions: string
-) => call(token, 'POST', '/custom-skills', { label, description, instructions });
+	instructions: string,
+	category: string = 'Autres'
+) => call(token, 'POST', '/custom-skills', { label, description, instructions, category });
 
 export const deleteCustomSkill = (token: string, name: string) =>
 	call(token, 'DELETE', `/custom-skills/${encodeURIComponent(name)}`);

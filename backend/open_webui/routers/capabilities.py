@@ -122,6 +122,7 @@ class CustomSkillBody(BaseModel):
     label: str
     description: str = ""
     instructions: str = ""
+    category: str = "Autres"
 
 
 @router.get("/custom-skills")
