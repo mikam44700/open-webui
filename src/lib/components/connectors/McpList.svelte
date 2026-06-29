@@ -30,6 +30,7 @@
 		installable?: boolean;
 		url?: string | null;
 		install_method?: string;
+		config_fields?: { key: string; label?: string; type?: string; secret?: boolean; required?: boolean }[];
 		// Connecteur hors catalogue Hermes (ajouté en custom http/OAuth au clic).
 		preset?: { transport: 'http' | 'sse'; url: string; auth_type: 'none' | 'key' | 'oauth' };
 	};

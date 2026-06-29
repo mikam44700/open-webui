@@ -62,6 +62,7 @@
 </script>
 
 {#if open}
+	<!-- svelte-ignore a11y_click_events_have_key_events a11y_no_static_element_interactions -->
 	<div class="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" on:click|self={close}>
 		<div class="w-full max-w-lg rounded-2xl bg-white dark:bg-gray-900 p-5 shadow-xl">
 			<div class="flex items-center justify-between mb-3">

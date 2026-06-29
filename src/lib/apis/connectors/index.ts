@@ -40,6 +40,13 @@ export const getCatalog = (token: string) => call(token, 'GET', '/catalog');
 export const installConnector = (token: string, fromCatalog: string) =>
 	call(token, 'POST', '/', { from_catalog: fromCatalog });
 
+// Installe un MCP du registre distant (remote OAuth, ou stdio avec champs/clés résolus côté bridge).
+export const installFromRegistry = (
+	token: string,
+	name: string,
+	fields?: Record<string, string | string[]>
+) => call(token, 'POST', '/', { from_registry: name, fields: fields ?? {} });
+
 export const getInstallStatus = (token: string, id: string) =>
 	call(token, 'GET', `/${id}/install/status`);
 

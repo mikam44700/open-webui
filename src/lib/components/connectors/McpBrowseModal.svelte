@@ -43,11 +43,13 @@
 		on:click={close}
 		role="presentation"
 	>
+		<!-- svelte-ignore a11y_click_events_have_key_events -->
 		<div
 			class="w-full max-w-3xl max-h-[85vh] flex flex-col rounded-2xl bg-white dark:bg-gray-900 shadow-xl"
 			on:click|stopPropagation
 			role="dialog"
 			aria-modal="true"
+			tabindex="-1"
 		>
 			<!-- En-tête -->
 			<div class="px-5 pt-5">

@@ -9,7 +9,8 @@
 		setConnectorKey,
 		startConnectorOAuth,
 		getInstallStatus,
-		addCustomConnector
+		addCustomConnector,
+		installFromRegistry
 	} from '$lib/apis/connectors';
 	import Spinner from '$lib/components/common/Spinner.svelte';
 	import OAuthProgressModal from './OAuthProgressModal.svelte';
@@ -34,10 +35,18 @@
 		installable?: boolean;
 		url?: string | null;
 		install_method?: string; // "engine" | "registry" | ""
+		// Champs à renseigner avant install (MCP stdio à clé du registre).
+		config_fields?: { key: string; label?: string; type?: string; secret?: boolean; required?: boolean }[];
 		// Connecteur hors catalogue Hermes (ex. HubSpot) : on l'ajoute en « custom »
 		// (http/OAuth) au lieu de passer par `hermes mcp install`.
 		preset?: { transport: 'http' | 'sse'; url: string; auth_type: 'none' | 'key' | 'oauth' };
 	};
+
+	// MCP du registre à champs (stdio à clé) : on demande les valeurs avant d'installer.
+	$: fields = entry.config_fields ?? [];
+	$: needsFields = entry.install_method === 'registry' && fields.length > 0 && !entry.installed;
+	let fieldValues: Record<string, string> = {};
+	let showFields = false;
 
 	// Config d'ajout « custom » (http + OAuth) pour les connecteurs distants : preset maison
 	// (HubSpot) OU MCP remote du registre (Stripe, Asana…). Même chemin que HubSpot.
@@ -127,6 +136,38 @@
 					toast.success($i18n.t('Connecteur installé.'));
 					dispatch('changed');
 				}
+				return;
+			}
+
+			// MCP du registre (stdio) : le bridge résout le manifest. Avec champs → on les demande
+			// (révélés au 1er clic), sinon installation directe.
+			if (entry.install_method === 'registry') {
+				if (needsFields) {
+					if (!showFields) {
+						showFields = true;
+						working = false;
+						return;
+					}
+					const missing = fields.find((f) => f.required && !fieldValues[f.key]?.trim());
+					if (missing) {
+						toast.error($i18n.t('Renseigne les champs requis'));
+						working = false;
+						return;
+					}
+				}
+				// Champs `array` (ex. dossiers autorisés) : séparés par virgule ou retour à la ligne.
+				const values: Record<string, string | string[]> = {};
+				for (const f of fields) {
+					const raw = fieldValues[f.key]?.trim();
+					if (!raw) continue;
+					values[f.key] =
+						f.type === 'array' ? raw.split(/[\n,]/).map((s) => s.trim()).filter(Boolean) : raw;
+				}
+				await installFromRegistry(localStorage.token, entry.name, values);
+				fieldValues = {};
+				showFields = false;
+				toast.success($i18n.t('Connecteur installé.'));
+				dispatch('changed');
 				return;
 			}
 			// 1) clé API d'abord (pour une install non-interactive)
@@ -247,7 +288,24 @@
 		</div>
 	{:else if !entry.installed}
 		<div class="mt-auto flex flex-col gap-2.5">
-			{#if entry.auth_type === 'key' && showKeyInput}
+			<!-- MCP du registre à champs (clé/dossier…) : révélés au 1er clic sur Installer. -->
+			{#if needsFields && showFields}
+				<div class="flex flex-col gap-2 mb-0.5">
+					{#each fields as f (f.key)}
+						<label class="flex flex-col gap-1 text-[11px] text-gray-500 dark:text-gray-400">
+							<span>{f.label || f.key}{f.required ? ' *' : ''}</span>
+							<input
+								class="text-sm bg-transparent border border-gray-100 dark:border-gray-850 rounded-xl px-3 py-2 outline-none"
+								type={f.secret ? 'password' : 'text'}
+								placeholder={f.type === 'array' ? $i18n.t('séparés par des virgules') : ''}
+								bind:value={fieldValues[f.key]}
+								autocomplete="off"
+							/>
+						</label>
+					{/each}
+				</div>
+			{/if}
+			{#if entry.auth_type === 'key' && entry.install_method !== 'registry' && showKeyInput}
 				<input
 					bind:this={keyInputEl}
 					class="text-sm bg-transparent border border-gray-100 dark:border-gray-850 rounded-xl px-3 py-2 outline-none"
@@ -262,7 +320,7 @@
 					{$i18n.t(ACCESS_LABEL[entry.auth_type] ?? '')}
 				</span>
 				<div class="flex items-center gap-2 flex-none">
-				{#if entry.auth_type === 'key'}
+				{#if entry.auth_type === 'key' && entry.install_method !== 'registry'}
 					<button
 						type="button"
 						class="text-xs px-3 py-1.5 rounded-lg border transition flex items-center gap-1.5 {showKeyInput

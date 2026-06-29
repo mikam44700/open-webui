@@ -91,6 +91,7 @@
 </script>
 
 {#if open}
+	<!-- svelte-ignore a11y_click_events_have_key_events a11y_no_static_element_interactions -->
 	<div class="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" on:click|self={close}>
 		<div class="w-full max-w-lg rounded-2xl bg-white dark:bg-gray-900 p-5 shadow-xl">
 			<div class="flex items-center justify-between mb-4">
@@ -107,10 +108,11 @@
 				/>
 
 				<div class="flex items-center gap-2">
-					<label class="text-xs text-gray-500 w-24">{$i18n.t('Transport')}</label>
+					<label class="text-xs text-gray-500 w-24" for="conn-transport">{$i18n.t('Transport')}</label>
 					<select
 						class="flex-1 text-sm bg-transparent border border-gray-100 dark:border-gray-850 rounded-xl px-3 py-2 outline-none"
 						bind:value={transport}
+						id="conn-transport"
 					>
 						<option value="http">HTTP</option>
 						<option value="stdio">stdio</option>
@@ -146,10 +148,11 @@
 				{/if}
 
 				<div class="flex items-center gap-2">
-					<label class="text-xs text-gray-500 w-24">{$i18n.t('Authentification')}</label>
+					<label class="text-xs text-gray-500 w-24" for="conn-auth">{$i18n.t('Authentification')}</label>
 					<select
 						class="flex-1 text-sm bg-transparent border border-gray-100 dark:border-gray-850 rounded-xl px-3 py-2 outline-none"
 						bind:value={authType}
+						id="conn-auth"
 					>
 						<option value="none">{$i18n.t('Sans auth')}</option>
 						<option value="key">{$i18n.t('Clé API')}</option>

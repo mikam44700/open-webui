@@ -23,6 +23,8 @@ router = APIRouter()
 
 class ConnectorCreate(BaseModel):
     from_catalog: str | None = None
+    from_registry: str | None = None
+    fields: dict | None = None
     name: str | None = None
     transport: str | None = None
     url: str | None = None
