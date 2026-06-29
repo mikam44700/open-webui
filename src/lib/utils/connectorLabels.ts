@@ -64,7 +64,7 @@ export const CONNECTOR_FR: Record<
 		actions: ['Lire et rechercher des e-mails', 'Rédiger et envoyer un message', 'Trier et organiser la boîte de réception']
 	},
 	'google-calendar': {
-		name: 'Google Agenda',
+		name: 'Google Calendar',
 		desc: 'Consulte ton agenda, planifie des rendez-vous et vérifie tes disponibilités.',
 		actions: ['Voir les événements à venir', 'Créer un rendez-vous', 'Vérifier les créneaux libres']
 	},
