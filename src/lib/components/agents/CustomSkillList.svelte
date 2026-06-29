@@ -13,6 +13,7 @@
 	import { getIntegrations } from '$lib/apis/integrations';
 	import { getConnectors } from '$lib/apis/connectors';
 	import { generateSkill, transformSkill, toRawSkillUrl } from '$lib/skills/skill-generator';
+	import { expertMode } from '$lib/stores';
 
 	import Spinner from '$lib/components/common/Spinner.svelte';
 	import Modal from '$lib/components/common/Modal.svelte';
@@ -271,18 +272,15 @@
 				>
 					✨ {$i18n.t('Générer avec l’IA')}
 				</button>
-				<button
-					class="text-sm px-3.5 py-2 rounded-xl bg-gray-100 dark:bg-gray-850 hover:bg-gray-200 dark:hover:bg-gray-800 transition font-medium"
-					on:click={openImport}
-				>
-					⬇ {$i18n.t('Importer une skill')}
-				</button>
-				<button
-					class="text-sm px-3.5 py-2 rounded-xl bg-gray-100 dark:bg-gray-850 hover:bg-gray-200 dark:hover:bg-gray-800 transition font-medium"
-					on:click={openCreate}
-				>
-					+ {$i18n.t('Créer')}
-				</button>
+				{#if $expertMode}
+					<button
+						class="text-sm px-3.5 py-2 rounded-xl bg-gray-100 dark:bg-gray-850 hover:bg-gray-200 dark:hover:bg-gray-800 transition font-medium"
+						on:click={openImport}
+						title={$i18n.t('Réservé aux réglages avancés')}
+					>
+						⬇ {$i18n.t('Importer une skill')}
+					</button>
+				{/if}
 			</div>
 		</div>
 
@@ -317,10 +315,10 @@
 					{$i18n.t('Créez votre première compétence sur mesure : décrivez un savoir-faire propre à votre entreprise, et vos agents pourront l’utiliser.')}
 				</div>
 				<button
-					class="text-sm px-3.5 py-2 rounded-xl bg-gray-900 text-white dark:bg-white dark:text-gray-900 hover:opacity-90 transition font-medium"
+					class="text-sm px-3.5 py-2 rounded-xl bg-violet-600 text-white hover:bg-violet-700 transition font-medium"
 					on:click={openCreate}
 				>
-					+ {$i18n.t('Créer une compétence')}
+					✨ {$i18n.t('Générer avec l’IA')}
 				</button>
 			</div>
 		{/if}
