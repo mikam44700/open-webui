@@ -13,10 +13,19 @@ import atlassianLogo from '$lib/assets/connectors/atlassian.svg';
 import plaidLogo from '$lib/assets/connectors/plaid.jpg';
 import quickbooksLogo from '$lib/assets/connectors/quickbooks.svg';
 import stripeLogo from '$lib/assets/connectors/stripe.png';
-import canvaLogo from '$lib/assets/connectors/canva.jpg';
+import canvaLogo from '$lib/assets/connectors/canva.svg';
 import figmaLogo from '$lib/assets/connectors/figma.svg';
 import higgsfieldLogo from '$lib/assets/connectors/higgsfield.png';
 import braveSearchLogo from '$lib/assets/connectors/brave-search.png';
+import airtableLogo from '$lib/assets/connectors/airtable.svg';
+import asanaLogo from '$lib/assets/connectors/asana.svg';
+import gmailLogo from '$lib/assets/connectors/gmail.svg';
+import googleCalendarLogo from '$lib/assets/connectors/google-calendar.svg';
+import googleDriveLogo from '$lib/assets/connectors/google-drive.svg';
+import notionLogo from '$lib/assets/connectors/notion.svg';
+import paypalLogo from '$lib/assets/connectors/paypal.svg';
+import slackLogo from '$lib/assets/connectors/slack.svg';
+import youtubeLogo from '$lib/assets/connectors/youtube.svg';
 
 export const CONNECTOR_LOGO: Record<string, string> = {
 	linear: linearLogo,
@@ -30,7 +39,16 @@ export const CONNECTOR_LOGO: Record<string, string> = {
 	canva: canvaLogo,
 	figma: figmaLogo,
 	higgsfield: higgsfieldLogo,
-	'brave-search': braveSearchLogo
+	'brave-search': braveSearchLogo,
+	airtable: airtableLogo,
+	asana: asanaLogo,
+	gmail: gmailLogo,
+	'google-calendar': googleCalendarLogo,
+	'google-drive': googleDriveLogo,
+	notion: notionLogo,
+	paypal: paypalLogo,
+	slack: slackLogo,
+	youtube: youtubeLogo
 };
 
 // Logos « carré plein » (fond intégré, dégradés compris) → affichés bord à bord pour
