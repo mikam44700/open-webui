@@ -110,7 +110,7 @@
 	<div class="flex items-center gap-2.5">
 		{#if logoSrc}
 			<div
-				class="flex-none size-14 rounded-xl border border-gray-100 dark:border-gray-700 overflow-hidden flex items-center justify-center {fullBleed
+				class="flex-none size-[52px] rounded-xl border border-gray-100 dark:border-gray-700 overflow-hidden flex items-center justify-center {fullBleed
 					? ''
 					: 'bg-white p-0.5'}"
 			>
@@ -123,7 +123,7 @@
 			</div>
 		{:else}
 			<div
-				class="flex-none size-14 rounded-xl flex items-center justify-center bg-gray-100 dark:bg-gray-850 ring-1 ring-gray-200/70 dark:ring-gray-700/60"
+				class="flex-none size-[52px] rounded-xl flex items-center justify-center bg-gray-100 dark:bg-gray-850 ring-1 ring-gray-200/70 dark:ring-gray-700/60"
 			>
 				<svg
 					xmlns="http://www.w3.org/2000/svg"

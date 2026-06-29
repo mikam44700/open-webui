@@ -202,7 +202,7 @@
 	<div class="flex items-start gap-2.5">
 		{#if logo}
 			<div
-				class="size-14 flex-none rounded-xl border border-gray-100 dark:border-gray-700 overflow-hidden flex items-center justify-center {logoFullBleed ? '' : `${logoBg} p-0.5`}"
+				class="size-[52px] flex-none rounded-xl border border-gray-100 dark:border-gray-700 overflow-hidden flex items-center justify-center {logoFullBleed ? '' : `${logoBg} p-0.5`}"
 			>
 				<img
 					src={logo}
