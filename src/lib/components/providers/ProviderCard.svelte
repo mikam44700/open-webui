@@ -145,9 +145,9 @@
 	<!-- En-tête : logo + nom + état -->
 	<div class="flex items-center gap-2.5">
 		<div
-			class="flex-none size-10 rounded-xl border border-gray-100 dark:border-gray-700 overflow-hidden flex items-center justify-center {fullBleed
+			class="flex-none size-14 rounded-xl border border-gray-100 dark:border-gray-700 overflow-hidden flex items-center justify-center {fullBleed
 				? ''
-				: 'bg-white p-1.5'}"
+				: 'bg-white p-0.5'}"
 		>
 			<img
 				src={logoUrl}
