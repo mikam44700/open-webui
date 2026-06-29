@@ -1,11 +1,13 @@
 <script lang="ts">
 	import { getContext, createEventDispatcher } from 'svelte';
+	import type { Writable } from 'svelte/store';
+	import type { i18n as i18nType } from 'i18next';
 	import { toast } from 'svelte-sonner';
 
 	import { addCustomConnector } from '$lib/apis/connectors';
 	import Spinner from '$lib/components/common/Spinner.svelte';
 
-	const i18n = getContext('i18n');
+	const i18n = getContext<Writable<i18nType>>('i18n');
 	const dispatch = createEventDispatcher();
 
 	export let open = false;

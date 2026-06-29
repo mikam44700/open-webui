@@ -1,5 +1,7 @@
 <script lang="ts">
 	import { getContext, onMount } from 'svelte';
+	import type { Writable } from 'svelte/store';
+	import type { i18n as i18nType } from 'i18next';
 	import { toast } from 'svelte-sonner';
 
 	import { getCatalog, getConnectors } from '$lib/apis/connectors';
@@ -9,7 +11,7 @@
 	import ConnectorCard from './ConnectorCard.svelte';
 	import AddConnectorModal from './AddConnectorModal.svelte';
 
-	const i18n = getContext('i18n');
+	const i18n = getContext<Writable<i18nType>>('i18n');
 
 	// Vue MCP rangée par catégorie (esprit Intégrations) : le dirigeant voit les connecteurs
 	// utiles regroupés (Productivité, Finance, …). Les connecteurs techniques n'apparaissent

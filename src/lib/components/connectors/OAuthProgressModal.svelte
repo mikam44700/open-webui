@@ -1,9 +1,11 @@
 <script lang="ts">
 	import { getContext, createEventDispatcher, onDestroy } from 'svelte';
+	import type { Writable } from 'svelte/store';
+	import type { i18n as i18nType } from 'i18next';
 	import { getConnectorOAuthStatus } from '$lib/apis/connectors';
 	import Spinner from '$lib/components/common/Spinner.svelte';
 
-	const i18n = getContext('i18n');
+	const i18n = getContext<Writable<i18nType>>('i18n');
 	const dispatch = createEventDispatcher();
 
 	export let connectorId: string;

@@ -1,5 +1,7 @@
 <script lang="ts">
 	import { getContext, onMount } from 'svelte';
+	import type { Writable } from 'svelte/store';
+	import type { i18n as i18nType } from 'i18next';
 	import { toast } from 'svelte-sonner';
 
 	import { getConnectors } from '$lib/apis/connectors';
@@ -7,7 +9,7 @@
 	import Spinner from '$lib/components/common/Spinner.svelte';
 	import ConnectorCard from './ConnectorCard.svelte';
 
-	const i18n = getContext('i18n');
+	const i18n = getContext<Writable<i18nType>>('i18n');
 
 	type Connector = {
 		id: string;

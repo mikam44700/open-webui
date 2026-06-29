@@ -1,5 +1,7 @@
 <script lang="ts">
 	import { getContext, createEventDispatcher, tick } from 'svelte';
+	import type { Writable } from 'svelte/store';
+	import type { i18n as i18nType } from 'i18next';
 	import { toast } from 'svelte-sonner';
 
 	import {
@@ -14,7 +16,7 @@
 	import { CONNECTOR_FR } from '$lib/utils/connectorLabels';
 	import { CONNECTOR_LOGO, CONNECTOR_LOGO_FULL_BLEED } from '$lib/utils/connectorLogos';
 
-	const i18n = getContext('i18n');
+	const i18n = getContext<Writable<i18nType>>('i18n');
 	const dispatch = createEventDispatcher();
 
 	export let entry: {
