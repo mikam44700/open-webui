@@ -62,6 +62,7 @@ import filesystemLogo from '$lib/assets/connectors/filesystem.png';
 import memoryLogo from '$lib/assets/connectors/memory.jpg';
 import mistralLogo from '$lib/assets/connectors/mistral.png';
 import sequentialLogo from '$lib/assets/connectors/sequential-thinking.jpg';
+import elevenlabsLogo from '$lib/assets/connectors/elevenlabs.png';
 
 export const CONNECTOR_LOGO: Record<string, string> = {
 	linear: linearLogo,
@@ -120,7 +121,8 @@ export const CONNECTOR_LOGO: Record<string, string> = {
 	filesystem: filesystemLogo,
 	memory: memoryLogo,
 	mistral: mistralLogo,
-	'sequential-thinking': sequentialLogo
+	'sequential-thinking': sequentialLogo,
+	elevenlabs: elevenlabsLogo
 };
 
 // Logos « carré plein » (fond intégré, dégradés compris) → affichés bord à bord pour
@@ -143,5 +145,6 @@ export const CONNECTOR_LOGO_FULL_BLEED = new Set<string>([
 	'coingecko',
 	'thirdweb',
 	'memory',
-	'sequential-thinking'
+	'sequential-thinking',
+	'elevenlabs'
 ]);
