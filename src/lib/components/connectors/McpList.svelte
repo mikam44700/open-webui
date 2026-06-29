@@ -10,6 +10,7 @@
 	import CatalogCard from './CatalogCard.svelte';
 	import ConnectorCard from './ConnectorCard.svelte';
 	import AddConnectorModal from './AddConnectorModal.svelte';
+	import McpBrowseModal from './McpBrowseModal.svelte';
 
 	const i18n = getContext<Writable<i18nType>>('i18n');
 
@@ -82,6 +83,7 @@
 	let entries: Entry[] = [];
 	let connectors: Connector[] = [];
 	let showAddModal = false;
+	let showBrowse = false;
 
 	$: installedIds = new Set(connectors.map((c) => c.id));
 	// Presets maison non encore installés + catalogue fusionné (registre + moteur).
@@ -157,6 +159,28 @@
 			</svg>
 			{$i18n.t('Ajouter un connecteur personnalisé')}
 		</button>
+
+		<!-- Accès au catalogue complet avec recherche (comme dans Intégrations). -->
+		<div class="flex items-center justify-between mb-4">
+			<div class="text-sm font-medium">{$i18n.t('Connecteurs')}</div>
+			<button
+				type="button"
+				class="text-sm text-gray-500 hover:text-gray-900 dark:hover:text-white transition inline-flex items-center gap-1"
+				on:click={() => (showBrowse = true)}
+			>
+				{$i18n.t('Tout parcourir')}
+				<svg
+					xmlns="http://www.w3.org/2000/svg"
+					fill="none"
+					viewBox="0 0 24 24"
+					stroke-width="2"
+					stroke="currentColor"
+					class="size-4"
+				>
+					<path stroke-linecap="round" stroke-linejoin="round" d="M13.5 4.5 21 12m0 0-7.5 7.5M21 12H3" />
+				</svg>
+			</button>
+		</div>
 
 		<!-- Catégories visibles (le dirigeant). En mode avancé, les entrées expert de ces
 		     mêmes catégories (ex. Finance → Alpaca) viennent s'y ajouter. -->
@@ -234,3 +258,6 @@
 	}}
 	on:close={() => (showAddModal = false)}
 />
+
+<!-- Catalogue complet recherchable (tous les connecteurs, visibles + avancés). -->
+<McpBrowseModal bind:open={showBrowse} entries={allEntries} on:changed={load} />
