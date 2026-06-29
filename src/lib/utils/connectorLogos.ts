@@ -42,6 +42,26 @@ import githubLogo from '$lib/assets/connectors/github.svg';
 import kubernetesLogo from '$lib/assets/connectors/kubernetes.png';
 import playwrightLogo from '$lib/assets/connectors/playwright.svg';
 import puppeteerLogo from '$lib/assets/connectors/puppeteer.png';
+import sentryLogo from '$lib/assets/connectors/sentry.png';
+import vercelLogo from '$lib/assets/connectors/vercel.svg';
+import neonLogo from '$lib/assets/connectors/neon.png';
+import postgresLogo from '$lib/assets/connectors/postgres.png';
+import redisLogo from '$lib/assets/connectors/redis.png';
+import sqliteLogo from '$lib/assets/connectors/sqlite.png';
+import supabaseLogo from '$lib/assets/connectors/supabase.jpg';
+import baseLogo from '$lib/assets/connectors/base.png';
+import ccxtLogo from '$lib/assets/connectors/ccxt.png';
+import coingeckoLogo from '$lib/assets/connectors/coingecko.jpg';
+import etherscanLogo from '$lib/assets/connectors/etherscan.svg';
+import solanaLogo from '$lib/assets/connectors/solana-agent-kit.png';
+import theGraphLogo from '$lib/assets/connectors/the-graph.png';
+import thirdwebLogo from '$lib/assets/connectors/thirdweb.jpg';
+import awsLogo from '$lib/assets/connectors/aws.png';
+import fetchLogo from '$lib/assets/connectors/fetch.png';
+import filesystemLogo from '$lib/assets/connectors/filesystem.png';
+import memoryLogo from '$lib/assets/connectors/memory.jpg';
+import mistralLogo from '$lib/assets/connectors/mistral.png';
+import sequentialLogo from '$lib/assets/connectors/sequential-thinking.jpg';
 
 export const CONNECTOR_LOGO: Record<string, string> = {
 	linear: linearLogo,
@@ -80,7 +100,27 @@ export const CONNECTOR_LOGO: Record<string, string> = {
 	github: githubLogo,
 	kubernetes: kubernetesLogo,
 	playwright: playwrightLogo,
-	puppeteer: puppeteerLogo
+	puppeteer: puppeteerLogo,
+	sentry: sentryLogo,
+	vercel: vercelLogo,
+	neon: neonLogo,
+	postgres: postgresLogo,
+	redis: redisLogo,
+	sqlite: sqliteLogo,
+	supabase: supabaseLogo,
+	base: baseLogo,
+	ccxt: ccxtLogo,
+	coingecko: coingeckoLogo,
+	etherscan: etherscanLogo,
+	'solana-agent-kit': solanaLogo,
+	'the-graph': theGraphLogo,
+	thirdweb: thirdwebLogo,
+	aws: awsLogo,
+	fetch: fetchLogo,
+	filesystem: filesystemLogo,
+	memory: memoryLogo,
+	mistral: mistralLogo,
+	'sequential-thinking': sequentialLogo
 };
 
 // Logos « carré plein » (fond intégré, dégradés compris) → affichés bord à bord pour
@@ -95,5 +135,13 @@ export const CONNECTOR_LOGO_FULL_BLEED = new Set<string>([
 	'alpaca',
 	'meigen-ai-design',
 	'polygon-io',
-	'ableton'
+	'ableton',
+	'redis',
+	'supabase',
+	'base',
+	'ccxt',
+	'coingecko',
+	'thirdweb',
+	'memory',
+	'sequential-thinking'
 ]);
