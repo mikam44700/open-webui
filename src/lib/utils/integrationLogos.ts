@@ -8,7 +8,7 @@ import googleLogo from '$lib/assets/integrations/google/workspace.png';
 import notionLogo from '$lib/assets/integrations/notion-new.png';
 import githubLogo from '$lib/assets/integrations/github-new.svg';
 import airtableLogo from '$lib/assets/integrations/airtable-new.png';
-import emailLogo from '$lib/assets/integrations/email-new.png';
+import emailLogo from '$lib/assets/integrations/email-clean.png';
 import obsidianLogo from '$lib/assets/integrations/obsidian-icon.webp';
 import xLogo from '$lib/assets/integrations/x.svg';
 import appleLogo from '$lib/assets/integrations/apple.svg';
@@ -62,7 +62,7 @@ import gwsCalendar from '$lib/assets/integrations/google/calendar.png';
 import gwsDocs from '$lib/assets/integrations/google/docs.png';
 import gwsContacts from '$lib/assets/integrations/google/contacts.png';
 import gwsMeet from '$lib/assets/integrations/google/meet.png';
-import gwsSlides from '$lib/assets/integrations/google/slides.png';
+import gwsSlides from '$lib/assets/integrations/google/slides-icon.png';
 import gwsAnalytics from '$lib/assets/integrations/google/analytics.svg';
 import gwsSearchConsole from '$lib/assets/integrations/google/search-console.png';
 
