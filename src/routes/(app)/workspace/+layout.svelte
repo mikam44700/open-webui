@@ -60,13 +60,21 @@
 					halo1: 'bg-orange-300/40 dark:bg-orange-500/20',
 					halo2: 'bg-amber-300/30 dark:bg-amber-500/10'
 				}
-			: {
-					strong: 'Vos collègues numériques',
-					sub: 'Créez et activez des agents IA spécialisés — chacun avec sa mission — qui travaillent pour vous.',
-					wrap: 'from-violet-200/70 via-violet-100/50 to-indigo-100/60 dark:from-violet-900/30 dark:via-violet-900/20 dark:to-indigo-900/20',
-					halo1: 'bg-violet-400/30 dark:bg-violet-500/20',
-					halo2: 'bg-indigo-300/30 dark:bg-indigo-500/10'
-				};
+			: workspacePath.includes('/workspace/competences')
+				? {
+						strong: 'La boîte à outils de vos agents',
+						sub: 'Les savoir-faire que vos agents peuvent utiliser (emails, agenda, documents…). Activez ce dont ils ont besoin.',
+						wrap: 'from-emerald-200/70 via-emerald-100/50 to-teal-100/60 dark:from-emerald-900/30 dark:via-emerald-900/20 dark:to-teal-900/20',
+						halo1: 'bg-emerald-400/30 dark:bg-emerald-500/20',
+						halo2: 'bg-teal-300/30 dark:bg-teal-500/10'
+					}
+				: {
+						strong: 'Vos collègues numériques',
+						sub: 'Créez et activez des agents IA spécialisés — chacun avec sa mission — qui travaillent pour vous.',
+						wrap: 'from-violet-200/70 via-violet-100/50 to-indigo-100/60 dark:from-violet-900/30 dark:via-violet-900/20 dark:to-indigo-900/20',
+						halo1: 'bg-violet-400/30 dark:bg-violet-500/20',
+						halo2: 'bg-indigo-300/30 dark:bg-indigo-500/10'
+					};
 
 	onMount(async () => {
 		if (HIDE_NATIVE_KNOWLEDGE && $page.url.pathname.includes('/workspace/knowledge')) {
@@ -91,6 +99,9 @@
 		if ($user?.role !== 'admin') {
 			// La page Agents (et son API /api/v1/agents) est admin-only : tout non-admin est redirigé.
 			if ($page.url.pathname.includes('/workspace/agents')) {
+				goto('/');
+			} else if ($page.url.pathname.includes('/workspace/competences')) {
+				// La page Compétences (réglage des savoir-faire) est admin-only, comme Agents.
 				goto('/');
 			} else if ($page.url.pathname.includes('/models') && !$user?.permissions?.workspace?.models) {
 				goto('/');
@@ -304,6 +315,20 @@
 						>
 							{$i18n.t('Automatisations')}
 							{#if workspacePath.includes('/workspace/automations')}
+								<span
+									class="absolute -bottom-px left-0 right-0 h-0.5 rounded-full bg-gray-900 dark:bg-white"
+								></span>
+							{/if}
+						</a>
+						<a
+							href="/workspace/competences"
+							aria-current={workspacePath.includes('/workspace/competences') ? 'page' : null}
+							class="relative pb-2.5 text-sm transition {workspacePath.includes('/workspace/competences')
+								? 'font-medium text-gray-900 dark:text-white'
+								: 'text-gray-400 hover:text-gray-700 dark:text-gray-500 dark:hover:text-gray-300'}"
+						>
+							{$i18n.t('Compétences')}
+							{#if workspacePath.includes('/workspace/competences')}
 								<span
 									class="absolute -bottom-px left-0 right-0 h-0.5 rounded-full bg-gray-900 dark:bg-white"
 								></span>
