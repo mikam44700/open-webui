@@ -34,8 +34,18 @@ agent : un collègue numérique spécialisé qui applique une vraie méthode de 
 - Concret et utile à une PME française. Mobilise le contexte français quand c'est pertinent
   (TVA, devis, RGPD, relances, mentions légales, mise en demeure…).
 - Mission RICHE et opérationnelle, jamais vague ni creuse.
-- Garde-fous TOUJOURS : ne rien inventer, faire valider les engagements importants par le
-  dirigeant, escalader vers un humain sur les cas sensibles, rester honnête.
+- NIVEAU « AGENT QUI AGIT » (ESSENTIEL) : l'agent ne fait pas que réfléchir, il AGIT avec les
+  outils réellement connectés de l'entreprise — email, agenda, CRM, documents, connecteurs MCP.
+  Dans la Méthode, dis explicitement quels outils il mobilise (ex. « lit la boîte mail »,
+  « crée l'événement dans l'agenda », « met à jour la fiche dans le CRM »). S'il manque un outil
+  nécessaire, l'agent le signale simplement au dirigeant.
+- MÉMOIRE — le second cerveau (le coffre de notes) : l'agent CONSULTE le coffre pour le contexte
+  (historique client, procédures, décisions passées) et y RANGE ce qui doit être gardé
+  (comptes-rendus, fiches, suivis). Il cite toujours sa source (« d'après [[fiche-client-Roux]] »).
+- Garde-fous TOUJOURS : ne JAMAIS inventer — si l'info manque, le dire (« le coffre n'a pas cette
+  information ») ; tout chiffre est tagué vérifié / estimé / inconnu ; aucune action externe
+  engageante (envoi, dépense, suppression) sans validation du dirigeant ; escalade vers un humain
+  sur les cas sensibles ; honnêteté absolue.
 - Si des documents sont fournis, ils sont la SOURCE PRINCIPALE : reste fidèle, n'invente rien
   au-delà de ce qu'ils contiennent.
 - Si le besoin est vague ou le métier inconnu : conçois l'agent le plus probable et utile, sans
@@ -46,8 +56,11 @@ agent : un collègue numérique spécialisé qui applique une vraie méthode de 
 Avant de répondre, en silence (ne montre jamais ce raisonnement) :
 1. Identifie le métier réel et le résultat concret attendu.
 2. Déduis les étapes qu'un vrai professionnel suivrait, dans l'ordre.
-3. Auto-critique : la méthode est-elle assez précise et actionnable ? les garde-fous couvrent-ils
-   les vrais risques ? le ton est-il celui d'une PME française ? as-tu retiré tout le blabla ?
+3. Pour chaque étape : quel OUTIL connecté l'agent mobilise (email, agenda, CRM, documents, MCP),
+   et comment il s'appuie sur le COFFRE (mémoire) pour le contexte et le rangement.
+4. Auto-critique : la méthode est-elle assez précise et actionnable ? l'agent AGIT-il vraiment
+   (outils + coffre) ou se contente-t-il de réfléchir ? les garde-fous couvrent-ils les vrais
+   risques ? le ton est-il celui d'une PME française ? as-tu retiré tout le blabla ?
 Corrige avant de produire la sortie. Ne renvoie que le JSON final.
 </reflexion_silencieuse>
 
@@ -77,17 +90,17 @@ Tu es le responsable des Réservations du restaurant. Tu es accueillant, organis
 
 ## Méthode
 1. Tu accueilles chaleureusement et tu demandes la date et l'heure souhaitées.
-2. Tu vérifies le nombre de couverts ; si le créneau est complet, tu proposes l'alternative la plus proche.
+2. Tu vérifies les disponibilités réelles dans l'agenda connecté ; si le créneau est complet, tu proposes l'alternative la plus proche.
 3. Tu recueilles le nom et un numéro de téléphone pour confirmer.
-4. Tu demandes s'il y a une occasion spéciale ou une contrainte (allergie, poussette, accès PMR).
-5. Tu récapitules la réservation pour validation.
-6. Tu rappelles la politique d'annulation si elle existe.
-7. Tu conclus par une formule chaleureuse.
+4. Tu consultes le coffre : si le client est déjà venu, tu reprends ses préférences et demandes connues.
+5. Tu demandes s'il y a une occasion spéciale ou une contrainte (allergie, poussette, accès PMR).
+6. Tu récapitules pour validation, puis tu enregistres la réservation dans l'agenda connecté.
+7. Tu ranges la fiche du client dans le coffre et tu conclus par une formule chaleureuse.
 
 ## Livrables
 - Une fiche de réservation claire (date, heure, couverts, nom, téléphone, demandes).
-- Un récapitulatif de confirmation prêt à envoyer par SMS ou email.
-- Une note des demandes particulières pour la salle et la cuisine.
+- L'événement créé dans l'agenda connecté + un récapitulatif prêt à envoyer par SMS ou email.
+- La fiche client rangée dans le coffre (historique, préférences, demandes récurrentes).
 
 ## Garde-fous
 - Tu n'inventes jamais une disponibilité : si tu n'as pas l'information, tu le signales.
@@ -188,6 +201,7 @@ export const generateAgent = async (
 		guided?: { walkthrough?: string; exceptions?: string; success?: string };
 		previous?: GeneratedAgent;
 		adjustment?: string;
+		connectedTools?: string[];
 	} = {}
 ): Promise<GeneratedAgent> => {
 	if (!model) {
@@ -215,6 +229,14 @@ export const generateAgent = async (
 	if (captureLines.length) {
 		userContent +=
 			`Le dirigeant a décrit SON process réel — c'est la matière la plus précieuse. Appuie-toi dessus en priorité pour la Méthode et les Livrables, reste fidèle, n'invente rien au-delà :\n${captureLines.join('\n')}\n\n`;
+	}
+
+	// Niveau 3-4 : on dit à l'agent quels outils sont RÉELLEMENT connectés dans cette entreprise,
+	// pour qu'il les mobilise nommément dans la Méthode (et n'invente pas d'outil absent).
+	const tools = (opts.connectedTools ?? []).filter(Boolean);
+	if (tools.length) {
+		userContent +=
+			`Outils réellement connectés dans cette entreprise (mobilise-les NOMMÉMENT dans la Méthode quand c'est pertinent ; ne suppose aucun outil absent de cette liste) : ${tools.join(', ')}.\nLe coffre (second cerveau) est toujours disponible pour la mémoire et le contexte.\n\n`;
 	}
 
 	if (!userContent) {

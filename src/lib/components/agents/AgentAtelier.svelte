@@ -7,6 +7,8 @@
 	import { createAgent } from '$lib/apis/agents';
 	import { uploadFile, getFileById } from '$lib/apis/files';
 	import { generateAgent, MAX_DOCS, type GeneratedAgent, type SourceDoc } from '$lib/agents/generator';
+	import { getIntegrations } from '$lib/apis/integrations';
+	import { getConnectors } from '$lib/apis/connectors';
 
 	const i18n = getContext('i18n');
 	const dispatch = createEventDispatcher();
@@ -164,6 +166,31 @@
 			gSuccess.trim()) &&
 		!uploading;
 
+	// Outils réellement connectés (intégrations + MCP) → injectés au générateur pour le niveau 3-4.
+	let connectedTools: string[] = [];
+	const fetchConnectedTools = async (): Promise<string[]> => {
+		const out: string[] = [];
+		try {
+			const res: any = await getIntegrations(localStorage.token);
+			const list = Array.isArray(res) ? res : (res?.integrations ?? []);
+			for (const it of list) {
+				if (it?.state === 'connected') out.push(it.label || it.name || it.id);
+			}
+		} catch {
+			/* tolérant : si indisponible, on génère sans la liste (niveau 3-4 via le prompt seul) */
+		}
+		try {
+			const res: any = await getConnectors(localStorage.token);
+			const list = Array.isArray(res) ? res : (res?.connectors ?? []);
+			for (const c of list) {
+				if (c?.enabled !== false) out.push(c.label || c.id || c.name);
+			}
+		} catch {
+			/* tolérant */
+		}
+		return [...new Set(out.filter(Boolean))];
+	};
+
 	const generate = async () => {
 		if (!brief.trim() && sources.length === 0) return;
 		phase = 'generating';
@@ -171,9 +198,11 @@
 		startGenMessages();
 		try {
 			if (!model) await loadModels();
+			connectedTools = await fetchConnectedTools();
 			result = await generateAgent(localStorage.token, model, brief.trim(), {
 				sources,
-				guided: { walkthrough: gWalkthrough, exceptions: gExceptions, success: gSuccess }
+				guided: { walkthrough: gWalkthrough, exceptions: gExceptions, success: gSuccess },
+				connectedTools
 			});
 			phase = 'result';
 		} catch (e: any) {
@@ -193,6 +222,7 @@
 			result = await generateAgent(localStorage.token, model, brief.trim(), {
 				sources,
 				guided: { walkthrough: gWalkthrough, exceptions: gExceptions, success: gSuccess },
+				connectedTools,
 				previous: result ?? undefined,
 				adjustment: adjustment.trim() || undefined
 			});
