@@ -13,6 +13,7 @@
 		setAgentSkill,
 		setAgentMcp
 	} from '$lib/apis/agents';
+	import { getCustomSkills } from '$lib/apis/capabilities';
 	import { colorFor, initial, prettifyName } from './utils';
 
 	const i18n = getContext('i18n');
@@ -37,7 +38,14 @@
 	let descTimer: ReturnType<typeof setTimeout>;
 
 	// Outils PAR AGENT (compétences + MCP), avec leur état pour cet agent.
-	type Tool = { name: string; enabled: boolean; description?: string; category?: string };
+	type Tool = {
+		name: string;
+		enabled: boolean;
+		description?: string;
+		category?: string;
+		label?: string;
+		isMaison?: boolean;
+	};
 	let toolsLoading = false;
 	let skills: Tool[] = [];
 	let mcps: Tool[] = [];
@@ -45,7 +53,9 @@
 
 	$: filteredSkills = toolQuery.trim()
 		? skills.filter((s) =>
-				`${s.name} ${s.description ?? ''}`.toLowerCase().includes(toolQuery.toLowerCase())
+				`${s.label ?? ''} ${s.name} ${s.description ?? ''}`
+					.toLowerCase()
+					.includes(toolQuery.toLowerCase())
 			)
 		: skills;
 
@@ -53,13 +63,32 @@
 		if (!agent) return;
 		toolsLoading = true;
 		try {
-			const res = await getAgentTools(localStorage.token, agent.name);
-			skills = (res?.skills ?? []).map((s) => ({
-				name: s.name,
-				enabled: s.enabled,
-				description: s.description,
-				category: s.category
-			}));
+			// On charge en parallèle les outils de l'agent ET nos compétences maison
+			// (pour afficher leur libellé lisible plutôt que l'identifiant technique).
+			const [res, customRes] = await Promise.all([
+				getAgentTools(localStorage.token, agent.name),
+				getCustomSkills(localStorage.token).catch(() => ({ skills: [] }))
+			]);
+			const maison = new Map(
+				(customRes?.skills ?? []).map((c: any) => [c.name, c])
+			);
+			skills = (res?.skills ?? [])
+				.map((s) => {
+					const custom: any = maison.get(s.name);
+					return {
+						name: s.name,
+						enabled: s.enabled,
+						description: custom?.description ?? s.description,
+						category: custom?.category ?? s.category,
+						isMaison: !!custom,
+						label: custom ? custom.label : prettifyName(s.name)
+					};
+				})
+				// Compétences maison (les vôtres) d'abord, puis le reste, par libellé.
+				.sort((a, b) => {
+					if (a.isMaison !== b.isMaison) return a.isMaison ? -1 : 1;
+					return (a.label ?? a.name).localeCompare(b.label ?? b.name);
+				});
 			mcps = (res?.mcps ?? []).map((m) => ({ name: m.id, enabled: m.enabled }));
 		} catch {
 			skills = [];
@@ -280,7 +309,10 @@
 									<label
 										class="flex items-center justify-between gap-2 px-2 py-1.5 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-850 cursor-pointer"
 									>
-										<span class="text-sm truncate" title={s.description ?? ''}>{s.name}</span>
+										<span class="text-sm truncate flex items-center gap-1.5" title={s.description ?? ''}>
+											{#if s.isMaison}<span class="text-[10px]" title={$i18n.t('Compétence maison')}>✨</span>{/if}
+											{s.label ?? s.name}
+										</span>
 										<input
 											type="checkbox"
 											class="accent-black dark:accent-white size-4 shrink-0"

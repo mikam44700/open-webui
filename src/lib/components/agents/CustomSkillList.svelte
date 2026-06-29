@@ -8,8 +8,7 @@
 		getCustomSkills,
 		getCustomSkill,
 		createCustomSkill,
-		deleteCustomSkill,
-		setSkillEnabled
+		deleteCustomSkill
 	} from '$lib/apis/capabilities';
 	import { getModels } from '$lib/apis';
 	import { getIntegrations } from '$lib/apis/integrations';
@@ -20,7 +19,6 @@
 	import Spinner from '$lib/components/common/Spinner.svelte';
 	import Modal from '$lib/components/common/Modal.svelte';
 	import ConfirmDialog from '$lib/components/common/ConfirmDialog.svelte';
-	import Switch from '$lib/components/common/Switch.svelte';
 
 	import { SKILL_CATEGORIES } from '$lib/skills/skill-generator';
 
@@ -273,18 +271,6 @@
 		}
 	};
 
-	// Active/désactive une compétence dans le moteur (réutilise la mécanique native).
-	const toggleEnabled = async (skill: CustomSkill) => {
-		const next = !(skill.enabled ?? true);
-		skills = skills.map((s) => (s.name === skill.name ? { ...s, enabled: next } : s));
-		try {
-			await setSkillEnabled(localStorage.token, skill.name, next);
-		} catch {
-			skills = skills.map((s) => (s.name === skill.name ? { ...s, enabled: !next } : s));
-			toast.error($i18n.t('Impossible de modifier cette compétence'));
-		}
-	};
-
 	const askDelete = (skill: CustomSkill) => {
 		toDelete = skill;
 		showDelete = true;
@@ -329,10 +315,16 @@
 		<div class="flex items-start justify-between gap-3 mb-4">
 			<div>
 				<div class="text-sm text-gray-700 dark:text-gray-200 font-medium">
-					{$i18n.t('Vos compétences sur mesure')}
+					{$i18n.t('Votre bibliothèque de compétences')}
 				</div>
 				<div class="text-xs text-gray-500 mt-1 max-w-2xl">
-					{$i18n.t('Des savoir-faire que vous créez vous-même pour vos agents (une procédure métier, une façon de faire propre à votre entreprise). Une fois créée, une compétence est utilisable par vos agents.')}
+					{$i18n.t('Des savoir-faire sur mesure pour vos agents (une procédure métier, une façon de faire propre à votre entreprise). Ici vous les créez, consultez et supprimez.')}
+				</div>
+				<div class="text-xs text-gray-500 mt-1.5 max-w-2xl flex items-start gap-1.5">
+					<span>💡</span>
+					<span>
+						{$i18n.t('Pour qu’un agent utilise une compétence, attribuez-la dans sa fiche : Agents → Modifier → « Outils de cet agent ».')}
+					</span>
 				</div>
 			</div>
 			<div class="flex-none flex items-center gap-2">
@@ -375,47 +367,24 @@
 									<div
 										role="button"
 										tabindex="0"
-										class="group flex items-start gap-3 border border-gray-100 dark:border-gray-850 rounded-2xl px-4 py-3.5 transition hover:border-gray-200 dark:hover:border-gray-700 hover:shadow-sm cursor-pointer {(skill.enabled ?? true) ? '' : 'opacity-60'}"
+										class="group flex items-start gap-3 border border-gray-100 dark:border-gray-850 rounded-2xl px-4 py-3.5 transition hover:border-gray-200 dark:hover:border-gray-700 hover:shadow-sm cursor-pointer"
 										on:click={() => openDetail(skill)}
 										on:keydown={(e) => (e.key === 'Enter' || e.key === ' ') && openDetail(skill)}
 										title={$i18n.t('Voir la compétence en détail')}
 									>
 										<div class="flex-1 min-w-0">
-											<div class="flex items-center gap-2">
-												<span
-													class="flex-none size-1.5 rounded-full {(skill.enabled ?? true)
-														? 'bg-emerald-500'
-														: 'bg-gray-300 dark:bg-gray-600'}"
-													title={(skill.enabled ?? true) ? $i18n.t('Active') : $i18n.t('Désactivée')}
-												></span>
-												<div class="text-sm font-medium truncate">{skill.label}</div>
-											</div>
+											<div class="text-sm font-medium truncate">{skill.label}</div>
 											{#if skill.description}
 												<div class="text-xs text-gray-500 mt-0.5 line-clamp-2">{skill.description}</div>
 											{/if}
 										</div>
-										<div class="flex-none flex items-center gap-2 self-center">
-											<button
-												class="text-xs text-gray-400 hover:text-red-500 opacity-0 group-hover:opacity-100 transition"
-												title={$i18n.t('Supprimer')}
-												on:click|stopPropagation={() => askDelete(skill)}
-											>
-												{$i18n.t('Supprimer')}
-											</button>
-											<div
-												on:click|stopPropagation
-												on:keydown|stopPropagation
-												role="presentation"
-												title={(skill.enabled ?? true)
-													? $i18n.t('Active — cliquez pour désactiver')
-													: $i18n.t('Désactivée — cliquez pour activer')}
-											>
-												<Switch
-													state={skill.enabled ?? true}
-													on:change={() => toggleEnabled(skill)}
-												/>
-											</div>
-										</div>
+										<button
+											class="flex-none self-center text-xs text-gray-400 hover:text-red-500 opacity-0 group-hover:opacity-100 transition"
+											title={$i18n.t('Supprimer')}
+											on:click|stopPropagation={() => askDelete(skill)}
+										>
+											{$i18n.t('Supprimer')}
+										</button>
 									</div>
 								{/each}
 							</div>
@@ -565,9 +534,17 @@
 				<div class="text-xs text-gray-500 mb-4">{detail.description}</div>
 			{/if}
 			<div
-				class="text-sm text-gray-800 dark:text-gray-100 whitespace-pre-wrap leading-relaxed border-t border-gray-100 dark:border-gray-850 pt-4 max-h-[60vh] overflow-y-auto"
+				class="text-sm text-gray-800 dark:text-gray-100 whitespace-pre-wrap leading-relaxed border-t border-gray-100 dark:border-gray-850 pt-4 max-h-[55vh] overflow-y-auto"
 			>{detail.instructions}</div>
-			<div class="flex justify-end gap-2 mt-5">
+			<div
+				class="text-xs text-gray-500 mt-4 flex items-start gap-1.5 bg-gray-50 dark:bg-gray-850/60 rounded-xl px-3 py-2"
+			>
+				<span>💡</span>
+				<span>
+					{$i18n.t('Pour qu’un agent utilise cette compétence, attribuez-la dans sa fiche : Agents → Modifier → « Outils de cet agent ».')}
+				</span>
+			</div>
+			<div class="flex justify-end gap-2 mt-4">
 				<button
 					class="text-sm px-3.5 py-2 rounded-xl bg-gray-100 dark:bg-gray-850 hover:bg-gray-200 dark:hover:bg-gray-800 transition"
 					on:click={() => (showDetail = false)}
