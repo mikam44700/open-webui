@@ -378,9 +378,9 @@
 								{#if LOGO_BY_ID[p.id]}
 									{@const fb = LOGO_FULL_BLEED.has(p.id)}
 									<div
-										class="size-10 flex-none rounded-xl border border-gray-100 dark:border-gray-700 overflow-hidden flex items-center justify-center {LOGO_BG[
+										class="size-14 flex-none rounded-xl border border-gray-100 dark:border-gray-700 overflow-hidden flex items-center justify-center {LOGO_BG[
 											p.id
-										] ?? (fb ? '' : 'bg-white')} {fb ? '' : 'p-1.5'}"
+										] ?? (fb ? '' : 'bg-white')} {fb ? '' : 'p-0.5'}"
 									>
 										<img
 											src={LOGO_BY_ID[p.id]}
@@ -392,7 +392,7 @@
 									</div>
 								{:else}
 									<div
-										class="size-10 flex-none rounded-xl border border-gray-100 dark:border-gray-700 bg-gray-50 dark:bg-gray-850 flex items-center justify-center text-xl select-none"
+										class="size-14 flex-none rounded-xl border border-gray-100 dark:border-gray-700 bg-gray-50 dark:bg-gray-850 flex items-center justify-center text-2xl select-none"
 									>
 										{p.emoji}
 									</div>
