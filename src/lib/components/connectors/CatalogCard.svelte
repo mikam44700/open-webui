@@ -211,9 +211,9 @@
 	<div class="flex items-start gap-2.5">
 		{#if logoSrc}
 			<div
-				class="size-10 flex-none rounded-xl border border-gray-100 dark:border-gray-700 overflow-hidden flex items-center justify-center {fullBleed
+				class="size-12 flex-none rounded-xl border border-gray-100 dark:border-gray-700 overflow-hidden flex items-center justify-center {fullBleed
 					? ''
-					: 'bg-white p-1.5'}"
+					: 'bg-white p-0.5'}"
 			>
 				<img
 					src={logoSrc}

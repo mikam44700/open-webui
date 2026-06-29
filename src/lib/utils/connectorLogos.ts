@@ -9,12 +9,28 @@ import linearLogo from '$lib/assets/connectors/linear.png';
 import n8nLogo from '$lib/assets/connectors/n8n.svg';
 import unrealEngineLogo from '$lib/assets/connectors/unreal-engine.png';
 import hubspotLogo from '$lib/assets/connectors/hubspot.svg';
+import atlassianLogo from '$lib/assets/connectors/atlassian.png';
+import plaidLogo from '$lib/assets/connectors/plaid.jpg';
+import quickbooksLogo from '$lib/assets/connectors/quickbooks.svg';
+import stripeLogo from '$lib/assets/connectors/stripe.png';
+import canvaLogo from '$lib/assets/connectors/canva.jpg';
+import figmaLogo from '$lib/assets/connectors/figma.svg';
+import higgsfieldLogo from '$lib/assets/connectors/higgsfield.png';
+import braveSearchLogo from '$lib/assets/connectors/brave-search.png';
 
 export const CONNECTOR_LOGO: Record<string, string> = {
 	linear: linearLogo,
 	n8n: n8nLogo,
 	'unreal-engine': unrealEngineLogo,
-	hubspot: hubspotLogo
+	hubspot: hubspotLogo,
+	atlassian: atlassianLogo,
+	plaid: plaidLogo,
+	quickbooks: quickbooksLogo,
+	stripe: stripeLogo,
+	canva: canvaLogo,
+	figma: figmaLogo,
+	higgsfield: higgsfieldLogo,
+	'brave-search': braveSearchLogo
 };
 
 // Logos « carré plein » (fond intégré, dégradés compris) → affichés bord à bord pour
