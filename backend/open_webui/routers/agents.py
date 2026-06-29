@@ -42,6 +42,11 @@ class DescriptionBody(BaseModel):
     description: str
 
 
+class ToggleToolBody(BaseModel):
+    name: str
+    enabled: bool
+
+
 @router.get("/")
 async def list_agents(user=Depends(get_admin_user)):
     """Liste les agents (profils Hermes) avec leur état (admin-only)."""
@@ -82,3 +87,21 @@ async def set_agent_soul(name: str, body: SoulBody, user=Depends(get_admin_user)
 async def set_agent_description(name: str, body: DescriptionBody, user=Depends(get_admin_user)):
     """Met à jour la description d'un agent."""
     return await _bridge("PUT", f"/agents/{name}/description", json=body.model_dump())
+
+
+@router.get("/{name}/tools")
+async def get_agent_tools(name: str, user=Depends(get_admin_user)):
+    """Périmètre d'outils d'un agent : compétences + MCP avec leur état pour cet agent."""
+    return await _bridge("GET", f"/agents/{name}/tools")
+
+
+@router.post("/{name}/tools/skill")
+async def set_agent_skill(name: str, body: ToggleToolBody, user=Depends(get_admin_user)):
+    """Active/désactive une compétence pour cet agent."""
+    return await _bridge("POST", f"/agents/{name}/tools/skill", json=body.model_dump())
+
+
+@router.post("/{name}/tools/mcp")
+async def set_agent_mcp(name: str, body: ToggleToolBody, user=Depends(get_admin_user)):
+    """Active/désactive un connecteur MCP pour cet agent."""
+    return await _bridge("POST", f"/agents/{name}/tools/mcp", json=body.model_dump())

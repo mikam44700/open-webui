@@ -8,7 +8,10 @@
 		getAgentSoul,
 		updateAgentSoul,
 		updateAgentDescription,
-		deleteAgent
+		deleteAgent,
+		getAgentTools,
+		setAgentSkill,
+		setAgentMcp
 	} from '$lib/apis/agents';
 	import { colorFor, initial, prettifyName } from './utils';
 
@@ -33,6 +36,66 @@
 	let soulTimer: ReturnType<typeof setTimeout>;
 	let descTimer: ReturnType<typeof setTimeout>;
 
+	// Outils PAR AGENT (compétences + MCP), avec leur état pour cet agent.
+	type Tool = { name: string; enabled: boolean; description?: string; category?: string };
+	let toolsLoading = false;
+	let skills: Tool[] = [];
+	let mcps: Tool[] = [];
+	let toolQuery = '';
+
+	$: filteredSkills = toolQuery.trim()
+		? skills.filter((s) =>
+				`${s.name} ${s.description ?? ''}`.toLowerCase().includes(toolQuery.toLowerCase())
+			)
+		: skills;
+
+	const loadTools = async () => {
+		if (!agent) return;
+		toolsLoading = true;
+		try {
+			const res = await getAgentTools(localStorage.token, agent.name);
+			skills = (res?.skills ?? []).map((s) => ({
+				name: s.name,
+				enabled: s.enabled,
+				description: s.description,
+				category: s.category
+			}));
+			mcps = (res?.mcps ?? []).map((m) => ({ name: m.id, enabled: m.enabled }));
+		} catch {
+			skills = [];
+			mcps = [];
+		}
+		toolsLoading = false;
+	};
+
+	const toggleSkill = async (s: Tool) => {
+		if (!agent) return;
+		const next = !s.enabled;
+		s.enabled = next;
+		skills = skills; // maj optimiste
+		try {
+			await setAgentSkill(localStorage.token, agent.name, s.name, next);
+		} catch {
+			s.enabled = !next;
+			skills = skills;
+			toast.error($i18n.t('Échec de la mise à jour'));
+		}
+	};
+
+	const toggleMcp = async (m: Tool) => {
+		if (!agent) return;
+		const next = !m.enabled;
+		m.enabled = next;
+		mcps = mcps;
+		try {
+			await setAgentMcp(localStorage.token, agent.name, m.name, next);
+		} catch {
+			m.enabled = !next;
+			mcps = mcps;
+			toast.error($i18n.t('Échec de la mise à jour'));
+		}
+	};
+
 	const inputClass =
 		'w-full text-sm bg-transparent border border-gray-100 dark:border-gray-850 rounded-xl px-3 py-2 outline-none';
 
@@ -48,6 +111,7 @@
 			soul = '';
 		}
 		loading = false;
+		loadTools();
 	};
 
 	$: if (show && agent) load();
@@ -165,6 +229,73 @@
 						<div class="text-[11px] text-gray-400 mt-1">
 							{$i18n.t('Enregistrement automatique. Cette mission guide l’agent à chaque conversation.')}
 						</div>
+					</div>
+
+					<div class="border-t border-gray-100 dark:border-gray-850 pt-4">
+						<div class="text-xs text-gray-500 mb-0.5">{$i18n.t('Outils de cet agent')}</div>
+						<div class="text-[11px] text-gray-400 mb-2">
+							{$i18n.t('Ce que cet agent a le droit d’utiliser. Décochez pour le restreindre.')}
+						</div>
+						{#if toolsLoading}
+							<div class="flex justify-center py-6"><Spinner className="size-4" /></div>
+						{:else}
+							{#if mcps.length}
+								<div class="text-[11px] font-medium text-gray-500 mb-1">
+									{$i18n.t('Connecteurs MCP')}
+								</div>
+								<div class="space-y-0.5 mb-3">
+									{#each mcps as m}
+										<label
+											class="flex items-center justify-between gap-2 px-2 py-1.5 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-850 cursor-pointer"
+										>
+											<span class="text-sm truncate">{m.name}</span>
+											<input
+												type="checkbox"
+												class="accent-black dark:accent-white size-4 shrink-0"
+												checked={m.enabled}
+												on:change={() => toggleMcp(m)}
+											/>
+										</label>
+									{/each}
+								</div>
+							{/if}
+
+							<div class="flex items-center justify-between gap-2 mb-1">
+								<div class="text-[11px] font-medium text-gray-500">
+									{$i18n.t('Compétences')}
+									<span class="text-gray-400">
+										({skills.filter((s) => s.enabled).length}/{skills.length})
+									</span>
+								</div>
+							</div>
+							{#if skills.length > 8}
+								<input
+									bind:value={toolQuery}
+									placeholder={$i18n.t('Filtrer les compétences…')}
+									class="{inputClass} mb-1"
+								/>
+							{/if}
+							<div class="max-h-56 overflow-y-auto space-y-0.5 pr-1">
+								{#each filteredSkills as s}
+									<label
+										class="flex items-center justify-between gap-2 px-2 py-1.5 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-850 cursor-pointer"
+									>
+										<span class="text-sm truncate" title={s.description ?? ''}>{s.name}</span>
+										<input
+											type="checkbox"
+											class="accent-black dark:accent-white size-4 shrink-0"
+											checked={s.enabled}
+											on:change={() => toggleSkill(s)}
+										/>
+									</label>
+								{/each}
+								{#if filteredSkills.length === 0}
+									<div class="text-xs text-gray-400 py-3 text-center">
+										{$i18n.t('Aucune compétence à afficher.')}
+									</div>
+								{/if}
+							</div>
+						{/if}
 					</div>
 
 					{#if !agent.is_default}
