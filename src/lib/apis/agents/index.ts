@@ -58,3 +58,15 @@ export const updateAgentSoul = (token: string, name: string, content: string) =>
 // Description (résumé du rôle)
 export const updateAgentDescription = (token: string, name: string, description: string) =>
 	call(token, 'PUT', `/${encodeURIComponent(name)}/description`, { description });
+
+// Outils PAR AGENT : compétences + connecteurs MCP avec leur état pour cet agent.
+export const getAgentTools = (token: string, name: string) =>
+	call(token, 'GET', `/${encodeURIComponent(name)}/tools`);
+
+// Active/désactive une compétence pour cet agent.
+export const setAgentSkill = (token: string, name: string, skill: string, enabled: boolean) =>
+	call(token, 'POST', `/${encodeURIComponent(name)}/tools/skill`, { name: skill, enabled });
+
+// Active/désactive un connecteur MCP pour cet agent.
+export const setAgentMcp = (token: string, name: string, mcp: string, enabled: boolean) =>
+	call(token, 'POST', `/${encodeURIComponent(name)}/tools/mcp`, { name: mcp, enabled });
