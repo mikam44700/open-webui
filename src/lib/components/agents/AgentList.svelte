@@ -333,9 +333,12 @@
 		{/if}
 </div>
 
+<svelte:window
+	on:keydown={(e) => previewTemplate && e.key === 'Escape' && (previewTemplate = null)}
+/>
+
 <!-- Carte « mission » (modale) — aperçu du SOUL avant activation -->
 {#if previewTemplate}
-	<svelte:window on:keydown={(e) => e.key === 'Escape' && (previewTemplate = null)} />
 	<div
 		class="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm"
 		on:click|self={() => (previewTemplate = null)}
