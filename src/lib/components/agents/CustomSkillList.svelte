@@ -8,7 +8,8 @@
 		getCustomSkills,
 		getCustomSkill,
 		createCustomSkill,
-		deleteCustomSkill
+		deleteCustomSkill,
+		setSkillEnabled
 	} from '$lib/apis/capabilities';
 	import { getModels } from '$lib/apis';
 	import { getIntegrations } from '$lib/apis/integrations';
@@ -19,12 +20,19 @@
 	import Spinner from '$lib/components/common/Spinner.svelte';
 	import Modal from '$lib/components/common/Modal.svelte';
 	import ConfirmDialog from '$lib/components/common/ConfirmDialog.svelte';
+	import Switch from '$lib/components/common/Switch.svelte';
 
 	import { SKILL_CATEGORIES } from '$lib/skills/skill-generator';
 
 	const i18n = getContext('i18n');
 
-	type CustomSkill = { name: string; label: string; description: string; category?: string };
+	type CustomSkill = {
+		name: string;
+		label: string;
+		description: string;
+		category?: string;
+		enabled?: boolean;
+	};
 
 	let loading = true;
 	let bridgeDown = false;
@@ -265,6 +273,18 @@
 		}
 	};
 
+	// Active/désactive une compétence dans le moteur (réutilise la mécanique native).
+	const toggleEnabled = async (skill: CustomSkill) => {
+		const next = !(skill.enabled ?? true);
+		skills = skills.map((s) => (s.name === skill.name ? { ...s, enabled: next } : s));
+		try {
+			await setSkillEnabled(localStorage.token, skill.name, next);
+		} catch {
+			skills = skills.map((s) => (s.name === skill.name ? { ...s, enabled: !next } : s));
+			toast.error($i18n.t('Impossible de modifier cette compétence'));
+		}
+	};
+
 	const askDelete = (skill: CustomSkill) => {
 		toDelete = skill;
 		showDelete = true;
@@ -355,24 +375,47 @@
 									<div
 										role="button"
 										tabindex="0"
-										class="group flex items-start gap-3 border border-gray-100 dark:border-gray-850 rounded-2xl px-4 py-3.5 transition hover:border-gray-200 dark:hover:border-gray-700 hover:shadow-sm cursor-pointer"
+										class="group flex items-start gap-3 border border-gray-100 dark:border-gray-850 rounded-2xl px-4 py-3.5 transition hover:border-gray-200 dark:hover:border-gray-700 hover:shadow-sm cursor-pointer {(skill.enabled ?? true) ? '' : 'opacity-60'}"
 										on:click={() => openDetail(skill)}
 										on:keydown={(e) => (e.key === 'Enter' || e.key === ' ') && openDetail(skill)}
 										title={$i18n.t('Voir la compétence en détail')}
 									>
 										<div class="flex-1 min-w-0">
-											<div class="text-sm font-medium truncate">{skill.label}</div>
+											<div class="flex items-center gap-2">
+												<span
+													class="flex-none size-1.5 rounded-full {(skill.enabled ?? true)
+														? 'bg-emerald-500'
+														: 'bg-gray-300 dark:bg-gray-600'}"
+													title={(skill.enabled ?? true) ? $i18n.t('Active') : $i18n.t('Désactivée')}
+												></span>
+												<div class="text-sm font-medium truncate">{skill.label}</div>
+											</div>
 											{#if skill.description}
 												<div class="text-xs text-gray-500 mt-0.5 line-clamp-2">{skill.description}</div>
 											{/if}
 										</div>
-										<button
-											class="flex-none self-center text-xs text-gray-400 hover:text-red-500 opacity-0 group-hover:opacity-100 transition"
-											title={$i18n.t('Supprimer')}
-											on:click|stopPropagation={() => askDelete(skill)}
-										>
-											{$i18n.t('Supprimer')}
-										</button>
+										<div class="flex-none flex items-center gap-2 self-center">
+											<button
+												class="text-xs text-gray-400 hover:text-red-500 opacity-0 group-hover:opacity-100 transition"
+												title={$i18n.t('Supprimer')}
+												on:click|stopPropagation={() => askDelete(skill)}
+											>
+												{$i18n.t('Supprimer')}
+											</button>
+											<div
+												on:click|stopPropagation
+												on:keydown|stopPropagation
+												role="presentation"
+												title={(skill.enabled ?? true)
+													? $i18n.t('Active — cliquez pour désactiver')
+													: $i18n.t('Désactivée — cliquez pour activer')}
+											>
+												<Switch
+													state={skill.enabled ?? true}
+													on:change={() => toggleEnabled(skill)}
+												/>
+											</div>
+										</div>
 									</div>
 								{/each}
 							</div>
