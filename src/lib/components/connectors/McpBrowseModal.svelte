@@ -33,15 +33,27 @@
 		const hay = `${fr?.name ?? e.label ?? e.name} ${fr?.desc ?? e.description ?? ''}`.toLowerCase();
 		return hay.includes(needle);
 	};
+	// Hors mode avancé : on masque les entrées « expert » même dans une catégorie grand public
+	// (ex. Alpaca/Dune dans Finance, Blender/Ableton dans Création).
 	const itemsFor = (catKey: string) =>
-		entries.filter((e) => (e.category ?? 'other') === catKey && matchesSearch(e));
+		entries.filter(
+			(e) =>
+				(e.category ?? 'other') === catKey &&
+				matchesSearch(e) &&
+				($expertMode || (e.visibility ?? 'visible') === 'visible')
+		);
 
 	// Catégories affichées : grand public toujours, techniques seulement en Réglages avancés.
 	$: visibleCategories = MCP_CATEGORIES.filter((c) => !c.expert || $expertMode);
 	$: anyResult = visibleCategories.some((c) => itemsFor(c.key).length > 0);
-	// Y a-t-il des connecteurs techniques masqués (pour proposer d'activer le mode avancé) ?
+	// Y a-t-il des connecteurs masqués (catégorie technique OU entrée expert) → inciter au mode avancé.
 	$: hiddenExpert =
-		!$expertMode && entries.some((e) => MCP_CATEGORIES.find((c) => c.key === e.category)?.expert);
+		!$expertMode &&
+		entries.some(
+			(e) =>
+				(e.visibility ?? 'visible') === 'expert' ||
+				MCP_CATEGORIES.find((c) => c.key === e.category)?.expert
+		);
 
 	const close = () => {
 		open = false;
