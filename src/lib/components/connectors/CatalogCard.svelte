@@ -30,10 +30,24 @@
 		category?: string;
 		visibility?: 'visible' | 'expert';
 		installable?: boolean;
+		url?: string | null;
+		install_method?: string; // "engine" | "registry" | ""
 		// Connecteur hors catalogue Hermes (ex. HubSpot) : on l'ajoute en « custom »
 		// (http/OAuth) au lieu de passer par `hermes mcp install`.
 		preset?: { transport: 'http' | 'sse'; url: string; auth_type: 'none' | 'key' | 'oauth' };
 	};
+
+	// Config d'ajout « custom » (http + OAuth) pour les connecteurs distants : preset maison
+	// (HubSpot) OU MCP remote du registre (Stripe, Asana…). Même chemin que HubSpot.
+	$: remoteConfig =
+		entry.preset ??
+		(entry.install_method === 'registry' && entry.url
+			? {
+					transport: (entry.transport === 'sse' ? 'sse' : 'http') as 'http' | 'sse',
+					url: entry.url,
+					auth_type: entry.auth_type
+				}
+			: null);
 
 	// Un MCP du registre non encore installable en 1 clic (manifest/auth à câbler ultérieurement).
 	// On l'affiche honnêtement (pas de bouton « Installer » trompeur).
@@ -90,21 +104,21 @@
 	const install = async () => {
 		working = true;
 		try {
-			// Connecteur « preset » (hors catalogue Hermes, ex. HubSpot) : on l'ajoute en
-			// custom (http/OAuth) puis on lance directement la connexion par compte.
-			if (entry.preset) {
+			// Connecteur distant (preset maison HubSpot OU MCP remote du registre) : on l'ajoute
+			// en custom (http/OAuth) puis on lance directement la connexion par compte.
+			if (remoteConfig) {
 				try {
 					await addCustomConnector(localStorage.token, {
 						name: entry.name,
-						transport: entry.preset.transport,
-						url: entry.preset.url,
-						auth_type: entry.preset.auth_type
+						transport: remoteConfig.transport,
+						url: remoteConfig.url,
+						auth_type: remoteConfig.auth_type
 					});
 				} catch (err: any) {
 					// Déjà ajouté précédemment (clic répété) : on poursuit vers l'OAuth.
 					if (err?.error?.code !== 'name_conflict') throw err;
 				}
-				if (entry.preset.auth_type === 'oauth') {
+				if (remoteConfig.auth_type === 'oauth') {
 					await startConnectorOAuth(localStorage.token, entry.name);
 					oauthOpen = true;
 				} else {

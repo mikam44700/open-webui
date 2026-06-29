@@ -26,6 +26,8 @@
 		category?: string;
 		visibility?: 'visible' | 'expert';
 		installable?: boolean;
+		url?: string | null;
+		install_method?: string;
 		// Connecteur hors catalogue Hermes (ajouté en custom http/OAuth au clic).
 		preset?: { transport: 'http' | 'sse'; url: string; auth_type: 'none' | 'key' | 'oauth' };
 	};
