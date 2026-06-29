@@ -1,5 +1,7 @@
 <script lang="ts">
 	import { getContext, createEventDispatcher } from 'svelte';
+	import type { Writable } from 'svelte/store';
+	import type { i18n as i18nType } from 'i18next';
 	import { toast } from 'svelte-sonner';
 
 	import { INTEGRATION_LOGO, INTEGRATION_LOGO_BG, INTEGRATION_LOGO_FULL_BLEED, GOOGLE_SERVICE_LOGO, MICROSOFT_SERVICE_LOGO } from '$lib/utils/integrationLogos';
@@ -16,7 +18,7 @@
 	import GoogleConnectModal from './GoogleConnectModal.svelte';
 	import EmailConnectModal from './EmailConnectModal.svelte';
 
-	const i18n = getContext('i18n');
+	const i18n = getContext<Writable<i18nType>>('i18n');
 	const dispatch = createEventDispatcher();
 
 	export let integration: {
@@ -200,7 +202,7 @@
 	<div class="flex items-start gap-2.5">
 		{#if logo}
 			<div
-				class="size-10 flex-none rounded-xl border border-gray-100 dark:border-gray-700 overflow-hidden flex items-center justify-center {logoFullBleed ? '' : `${logoBg} p-1.5`}"
+				class="size-14 flex-none rounded-xl border border-gray-100 dark:border-gray-700 overflow-hidden flex items-center justify-center {logoFullBleed ? '' : `${logoBg} p-0.5`}"
 			>
 				<img
 					src={logo}

@@ -146,5 +146,6 @@ export const CONNECTOR_LOGO_FULL_BLEED = new Set<string>([
 	'thirdweb',
 	'memory',
 	'sequential-thinking',
-	'elevenlabs'
+	'elevenlabs',
+	'fetch'
 ]);
