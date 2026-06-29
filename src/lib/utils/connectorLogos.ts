@@ -26,6 +26,22 @@ import notionLogo from '$lib/assets/connectors/notion.svg';
 import paypalLogo from '$lib/assets/connectors/paypal.svg';
 import slackLogo from '$lib/assets/connectors/slack.svg';
 import youtubeLogo from '$lib/assets/connectors/youtube.svg';
+import alpacaLogo from '$lib/assets/connectors/alpaca.jpg';
+import duneLogo from '$lib/assets/connectors/dune.png';
+import polygonLogo from '$lib/assets/connectors/polygon-io.png';
+import tradingviewLogo from '$lib/assets/connectors/tradingview.png';
+import abletonLogo from '$lib/assets/connectors/ableton.png';
+import blenderLogo from '$lib/assets/connectors/blender.png';
+import davinciLogo from '$lib/assets/connectors/davinci-resolve.png';
+import meigenLogo from '$lib/assets/connectors/meigen-ai-design.jpg';
+import cloudflareLogo from '$lib/assets/connectors/cloudflare.png';
+import context7Logo from '$lib/assets/connectors/context7.png';
+import dockerHubLogo from '$lib/assets/connectors/docker-hub.png';
+import gitLogo from '$lib/assets/connectors/git.png';
+import githubLogo from '$lib/assets/connectors/github.svg';
+import kubernetesLogo from '$lib/assets/connectors/kubernetes.png';
+import playwrightLogo from '$lib/assets/connectors/playwright.svg';
+import puppeteerLogo from '$lib/assets/connectors/puppeteer.png';
 
 export const CONNECTOR_LOGO: Record<string, string> = {
 	linear: linearLogo,
@@ -48,7 +64,23 @@ export const CONNECTOR_LOGO: Record<string, string> = {
 	notion: notionLogo,
 	paypal: paypalLogo,
 	slack: slackLogo,
-	youtube: youtubeLogo
+	youtube: youtubeLogo,
+	alpaca: alpacaLogo,
+	dune: duneLogo,
+	'polygon-io': polygonLogo,
+	tradingview: tradingviewLogo,
+	ableton: abletonLogo,
+	blender: blenderLogo,
+	'davinci-resolve': davinciLogo,
+	'meigen-ai-design': meigenLogo,
+	cloudflare: cloudflareLogo,
+	context7: context7Logo,
+	'docker-hub': dockerHubLogo,
+	git: gitLogo,
+	github: githubLogo,
+	kubernetes: kubernetesLogo,
+	playwright: playwrightLogo,
+	puppeteer: puppeteerLogo
 };
 
 // Logos « carré plein » (fond intégré, dégradés compris) → affichés bord à bord pour
@@ -59,5 +91,9 @@ export const CONNECTOR_LOGO_FULL_BLEED = new Set<string>([
 	'unreal-engine',
 	'plaid',
 	'stripe',
-	'higgsfield'
+	'higgsfield',
+	'alpaca',
+	'meigen-ai-design',
+	'polygon-io',
+	'ableton'
 ]);
