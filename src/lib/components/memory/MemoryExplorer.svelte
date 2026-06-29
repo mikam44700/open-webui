@@ -14,7 +14,8 @@
 		getMemoryTree,
 		getMemoryStatus,
 		getMemoryNote,
-		saveMemoryNote
+		saveMemoryNote,
+		initMemoryVault
 	} from '$lib/apis/memory';
 	import type { MemoryNode, MemoryStatus } from '$lib/apis/memory';
 
@@ -167,6 +168,23 @@
 		} catch (e) {
 			toast.error(typeof e === 'string' ? e : 'Impossible de créer la note');
 		}
+	};
+
+	// ─── Initialiser la structure du coffre (PARA) ────────────────────────────
+
+	let initializing = false;
+
+	const initVault = async () => {
+		initializing = true;
+		try {
+			const res = await initMemoryVault(localStorage.token);
+			const n = res?.created?.length ?? 0;
+			toast.success(n > 0 ? `Structure créée (${n} dossiers)` : 'Structure déjà en place');
+			await load();
+		} catch (e) {
+			toast.error(typeof e === 'string' ? e : "Impossible d'initialiser le coffre");
+		}
+		initializing = false;
 	};
 
 	// ─── Sauvegarde débouncée ─────────────────────────────────────────────────
@@ -346,6 +364,14 @@ Garde la langue d'origine. Retourne uniquement le texte en markdown.`;
 
 					<div class="flex w-full justify-end gap-1.5">
 						<button
+							class="px-2 py-1.5 rounded-xl border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-850 transition font-medium text-xs flex items-center disabled:opacity-50"
+							on:click={initVault}
+							disabled={initializing}
+							title="Crée la structure de rangement du coffre (Réception, Projets, Domaines…)"
+						>
+							{initializing ? 'Initialisation…' : 'Initialiser le coffre'}
+						</button>
+						<button
 							class="px-2 py-1.5 rounded-xl bg-black text-white dark:bg-white dark:text-black transition font-medium text-sm flex items-center"
 							on:click={newNote}
 						>
@@ -468,8 +494,15 @@ Garde la langue d'origine. Retourne uniquement le texte en markdown.`;
 								Votre mémoire se remplira au fil de vos échanges.
 							</div>
 							<div class="mt-1 text-xs text-gray-300 dark:text-gray-700">
-								Créez votre première note en cliquant sur « Nouvelle note ».
+								Créez votre première note, ou mettez en place le rangement du coffre.
 							</div>
+							<button
+								class="mt-3 px-3 py-1.5 rounded-xl bg-black text-white dark:bg-white dark:text-black transition font-medium text-xs disabled:opacity-50"
+								on:click={initVault}
+								disabled={initializing}
+							>
+								{initializing ? 'Initialisation…' : 'Créer la structure du coffre'}
+							</button>
 						</div>
 					</div>
 				{/if}
