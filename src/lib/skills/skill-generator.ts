@@ -151,3 +151,66 @@ export const generateSkill = async (
 	const content = res?.choices?.[0]?.message?.content ?? '';
 	return parseSkill(content);
 };
+
+// Transforme une compétence EXISTANTE (souvent anglaise, liée à un produit/personne, ou non branchée)
+// en une compétence de qualité « niveau 4 » pour Agent OS : généralisée, en français, branchée aux
+// outils réellement connectés + au coffre, avec garde-fous. C'est le cœur du bouton « Importer une skill ».
+export const transformSkill = async (
+	token: string,
+	model: string,
+	sourceMarkdown: string,
+	opts: { connectedTools?: string[] } = {}
+): Promise<GeneratedSkill> => {
+	if (!model) {
+		throw new Error('Aucun modèle disponible pour transformer la compétence.');
+	}
+	if (!sourceMarkdown.trim()) {
+		throw new Error('Compétence source vide.');
+	}
+
+	let userContent =
+		`Voici une compétence existante (issue d'un dépôt public). Elle est souvent en anglais, liée à ` +
+		`un produit, une personne ou un prix précis, et rarement branchée à de vrais outils. ` +
+		`TRANSFORME-la en compétence « niveau 4 » pour Agent OS :\n` +
+		`- garde l'OSSATURE utile (frameworks, étapes, critères) ;\n` +
+		`- GÉNÉRALISE : retire tout nom de produit, de personne, de prix ou de marque spécifique ;\n` +
+		`- traduis et peaufine en français impeccable, ton PME ;\n` +
+		`- BRANCHE-la : dis quels outils connectés elle mobilise et comment elle s'appuie sur le coffre ;\n` +
+		`- ajoute les garde-fous Agent OS (validation avant action externe, jamais inventer, citer ses sources).\n\n`;
+
+	const tools = (opts.connectedTools ?? []).filter(Boolean);
+	if (tools.length) {
+		userContent +=
+			`Outils réellement connectés (mobilise-les NOMMÉMENT quand c'est pertinent ; n'en suppose aucun absent de la liste) : ${tools.join(', ')}.\nLe coffre (second cerveau) est toujours disponible.\n\n`;
+	}
+
+	userContent += `Compétence source à transformer :\n\n${sourceMarkdown.trim()}`;
+
+	const res = await generateOpenAIChatCompletion(token, {
+		model,
+		stream: false,
+		temperature: 0.6,
+		messages: [
+			{ role: 'system', content: SKILL_GENERATOR_SYSTEM },
+			{ role: 'user', content: userContent }
+		]
+	});
+
+	const content = res?.choices?.[0]?.message?.content ?? '';
+	return parseSkill(content);
+};
+
+// Normalise une URL GitHub (page blob/tree ou raw) vers l'URL brute du SKILL.md.
+export const toRawSkillUrl = (url: string): string => {
+	let u = (url ?? '').trim();
+	if (!u) return u;
+	u = u
+		.replace('https://github.com/', 'https://raw.githubusercontent.com/')
+		.replace('/blob/', '/')
+		.replace('/tree/', '/');
+	// Si l'URL ne pointe pas déjà sur un fichier .md, on vise le SKILL.md du dossier.
+	if (!/\.md(\?.*)?$/i.test(u)) {
+		u = u.replace(/\/+$/, '') + '/SKILL.md';
+	}
+	return u;
+};

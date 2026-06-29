@@ -12,7 +12,7 @@
 	import { getModels } from '$lib/apis';
 	import { getIntegrations } from '$lib/apis/integrations';
 	import { getConnectors } from '$lib/apis/connectors';
-	import { generateSkill } from '$lib/skills/skill-generator';
+	import { generateSkill, transformSkill, toRawSkillUrl } from '$lib/skills/skill-generator';
 
 	import Spinner from '$lib/components/common/Spinner.svelte';
 	import Modal from '$lib/components/common/Modal.svelte';
@@ -38,6 +38,12 @@
 	let genBrief = '';
 	let generating = false;
 	let genError = '';
+
+	// Import d'une skill existante (URL GitHub) → transformée au niveau 4.
+	let showImport = false;
+	let importUrl = '';
+	let importing = false;
+	let importError = '';
 
 	const loadModel = async () => {
 		if (model) return;
@@ -132,6 +138,55 @@
 		loadModel();
 	};
 
+	const openImport = () => {
+		importUrl = '';
+		importError = '';
+		showImport = true;
+		loadModel();
+	};
+
+	// Récupère le SKILL.md d'une URL GitHub, le transforme au niveau 4, et pré-remplit la création.
+	const doImport = async () => {
+		if (!importUrl.trim()) {
+			toast.error($i18n.t('Colle l’URL d’une skill (GitHub)'));
+			return;
+		}
+		importing = true;
+		importError = '';
+		try {
+			const rawUrl = toRawSkillUrl(importUrl);
+			const res = await fetch(rawUrl);
+			if (!res.ok) throw new Error('introuvable');
+			const sourceMarkdown = await res.text();
+			if (!sourceMarkdown.trim() || sourceMarkdown.length < 20) {
+				throw new Error('vide');
+			}
+			if (!model) await loadModel();
+			const tools = await fetchConnectedTools();
+			const result = await transformSkill(localStorage.token, model, sourceMarkdown, {
+				connectedTools: tools
+			});
+			// On bascule sur la modale de création, pré-remplie : le dirigeant relit et ajuste.
+			formLabel = result.label;
+			formDescription = result.description;
+			formInstructions = result.instructions;
+			genBrief = '';
+			genError = '';
+			showImport = false;
+			showCreate = true;
+		} catch (err: any) {
+			const msg = err?.message;
+			importError =
+				msg === 'introuvable'
+					? $i18n.t('SKILL.md introuvable à cette URL. Vérifie le lien (vers le dossier de la skill ou son SKILL.md).')
+					: msg === 'vide'
+						? $i18n.t('Le fichier récupéré est vide.')
+						: $i18n.t('Import impossible. Vérifie l’URL et réessaie.');
+		} finally {
+			importing = false;
+		}
+	};
+
 	const submitCreate = async () => {
 		if (!formLabel.trim()) {
 			toast.error($i18n.t('Donnez un nom à la compétence'));
@@ -215,6 +270,12 @@
 					on:click={openCreate}
 				>
 					✨ {$i18n.t('Générer avec l’IA')}
+				</button>
+				<button
+					class="text-sm px-3.5 py-2 rounded-xl bg-gray-100 dark:bg-gray-850 hover:bg-gray-200 dark:hover:bg-gray-800 transition font-medium"
+					on:click={openImport}
+				>
+					⬇ {$i18n.t('Importer une skill')}
 				</button>
 				<button
 					class="text-sm px-3.5 py-2 rounded-xl bg-gray-100 dark:bg-gray-850 hover:bg-gray-200 dark:hover:bg-gray-800 transition font-medium"
@@ -350,6 +411,55 @@
 				disabled={saving}
 			>
 				{saving ? $i18n.t('Création…') : $i18n.t('Créer')}
+			</button>
+		</div>
+	</div>
+</Modal>
+
+<!-- Modale d'import d'une skill existante -->
+<Modal bind:show={showImport} size="md">
+	<div class="p-5">
+		<div class="text-base font-semibold mb-1">⬇ {$i18n.t('Importer une skill')}</div>
+		<div class="text-xs text-gray-500 mb-4">
+			{$i18n.t('Colle l’adresse d’une compétence trouvée sur GitHub. On la récupère et on la transforme automatiquement au niveau Agent OS (en français, branchée à tes outils, avec garde-fous).')}
+		</div>
+
+		<label class="block text-xs font-medium text-gray-600 dark:text-gray-300 mb-1">
+			{$i18n.t('Adresse de la skill (GitHub)')}
+		</label>
+		<input
+			class="w-full text-sm bg-transparent border border-gray-100 dark:border-gray-850 rounded-xl px-3 py-2 outline-none mb-1"
+			placeholder="https://github.com/.../skills/relance-impayes"
+			bind:value={importUrl}
+			disabled={importing}
+		/>
+		<div class="text-[11px] text-gray-400 mb-3">
+			{$i18n.t('Lien vers le dossier de la skill ou directement son fichier SKILL.md.')}
+		</div>
+
+		{#if importError}
+			<div class="text-xs text-red-500 mb-3">{importError}</div>
+		{/if}
+
+		<div class="flex justify-end gap-2">
+			<button
+				class="text-sm px-3.5 py-2 rounded-xl bg-gray-100 dark:bg-gray-850 hover:bg-gray-200 dark:hover:bg-gray-800 transition"
+				on:click={() => (showImport = false)}
+				disabled={importing}
+			>
+				{$i18n.t('Annuler')}
+			</button>
+			<button
+				class="text-sm px-3.5 py-2 rounded-xl bg-violet-600 text-white hover:bg-violet-700 transition font-medium disabled:opacity-50 flex items-center gap-1.5"
+				on:click={doImport}
+				disabled={importing}
+			>
+				{#if importing}
+					<Spinner className="size-3.5" />
+					{$i18n.t('Récupération + transformation…')}
+				{:else}
+					⬇ {$i18n.t('Récupérer et transformer')}
+				{/if}
 			</button>
 		</div>
 	</div>
