@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { getContext, onMount } from 'svelte';
 	import { goto } from '$app/navigation';
-	import { fly } from 'svelte/transition';
+	import { fly, fade } from 'svelte/transition';
 	import { toast } from 'svelte-sonner';
 
 	import { getAgents, setActiveAgent, createAgent } from '$lib/apis/agents';
@@ -38,11 +38,8 @@
 	// Recherche dans la galerie « Prêts à l'emploi » (façon marketplace).
 	let templateQuery = '';
 
-	// Aperçu de la mission d'un template avant activation (déplie le soul complet).
-	let expandedTemplate: string | null = null;
-	const toggleTemplate = (id: string) => {
-		expandedTemplate = expandedTemplate === id ? null : id;
-	};
+	// Aperçu de la mission d'un template : ouvre une carte (modale) plutôt qu'un pavé déplié.
+	let previewTemplate: (typeof AGENT_TEMPLATES)[number] | null = null;
 
 	$: existingNames = new Set(agents.map((a) => a.name));
 	$: availableTemplates = AGENT_TEMPLATES.filter((t) => !existingNames.has(t.id));
@@ -309,30 +306,16 @@
 										</div>
 									</div>
 									<p
-										class="text-[13px] leading-relaxed text-gray-500 dark:text-gray-400 mt-4 {expandedTemplate ===
-										tpl.id
-											? ''
-											: 'line-clamp-2 min-h-[2.5rem]'}"
+										class="text-[13px] leading-relaxed text-gray-500 dark:text-gray-400 mt-4 line-clamp-2 min-h-[2.5rem]"
 									>
 										{tpl.description}
 									</p>
 
-									{#if expandedTemplate === tpl.id}
-										<div
-											class="mt-3 pt-3 border-t border-gray-100 dark:border-gray-800 text-xs leading-relaxed text-gray-600 dark:text-gray-300 whitespace-pre-line"
-										>
-											{tpl.soul}
-										</div>
-									{/if}
-
 									<button
 										class="mt-2 self-start text-[11px] font-medium text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 transition"
-										on:click={() => toggleTemplate(tpl.id)}
-										aria-expanded={expandedTemplate === tpl.id}
+										on:click={() => (previewTemplate = tpl)}
 									>
-										{expandedTemplate === tpl.id
-											? $i18n.t('Masquer la mission')
-											: $i18n.t('Voir la mission')}
+										{$i18n.t('Voir la mission')}
 									</button>
 
 									<button
@@ -349,6 +332,77 @@
 			{/if}
 		{/if}
 </div>
+
+<!-- Carte « mission » (modale) — aperçu du SOUL avant activation -->
+{#if previewTemplate}
+	<svelte:window on:keydown={(e) => e.key === 'Escape' && (previewTemplate = null)} />
+	<div
+		class="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm"
+		on:click|self={() => (previewTemplate = null)}
+		transition:fade={{ duration: 150 }}
+		role="presentation"
+	>
+		<div
+			class="relative w-full max-w-lg max-h-[85vh] flex flex-col rounded-3xl bg-white dark:bg-gray-900 shadow-2xl border border-gray-100 dark:border-gray-800"
+			in:fly={{ y: 12, duration: 200 }}
+			role="dialog"
+			aria-modal="true"
+		>
+			<!-- En-tête -->
+			<div class="flex items-center gap-3.5 p-5 border-b border-gray-100 dark:border-gray-800">
+				{#if previewTemplate.image}
+					<img
+						src={previewTemplate.image}
+						alt={previewTemplate.label}
+						class="flex-none size-11 rounded-2xl object-cover shadow-sm ring-1 ring-black/5"
+					/>
+				{:else}
+					<div
+						class="flex-none size-11 rounded-2xl flex items-center justify-center text-2xl bg-gray-50 dark:bg-gray-850 shadow-sm ring-1 ring-black/5"
+					>
+						{previewTemplate.emoji}
+					</div>
+				{/if}
+				<div class="min-w-0 flex-1">
+					<div class="text-base font-semibold truncate">{previewTemplate.label}</div>
+					<div class="text-xs text-gray-500 line-clamp-1">{previewTemplate.description}</div>
+				</div>
+				<button
+					class="flex-none p-1.5 -mr-1 rounded-lg text-gray-400 hover:text-gray-700 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-gray-850 transition"
+					on:click={() => (previewTemplate = null)}
+					aria-label={$i18n.t('Fermer')}
+				>
+					<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="size-5">
+						<path
+							d="M6.28 5.22a.75.75 0 0 0-1.06 1.06L8.94 10l-3.72 3.72a.75.75 0 1 0 1.06 1.06L10 11.06l3.72 3.72a.75.75 0 1 0 1.06-1.06L11.06 10l3.72-3.72a.75.75 0 0 0-1.06-1.06L10 8.94 6.28 5.22Z"
+						/>
+					</svg>
+				</button>
+			</div>
+
+			<!-- Corps : la mission (SOUL), défilable -->
+			<div
+				class="flex-1 overflow-y-auto px-5 py-4 text-[13px] leading-relaxed text-gray-600 dark:text-gray-300 whitespace-pre-line"
+			>
+				{previewTemplate.soul}
+			</div>
+
+			<!-- Pied : activer -->
+			<div class="p-4 border-t border-gray-100 dark:border-gray-800">
+				<button
+					class="w-full text-sm font-medium px-3 py-2.5 rounded-xl bg-gray-900 text-white dark:bg-white dark:text-black hover:opacity-90 hover:shadow-md transition-all"
+					on:click={() => {
+						const t = previewTemplate;
+						previewTemplate = null;
+						if (t) installTemplate(t);
+					}}
+				>
+					{$i18n.t('+ Activer')}
+				</button>
+			</div>
+		</div>
+	</div>
+{/if}
 
 <AgentAtelier bind:show={showAtelier} on:created={load} />
 <AgentCreate bind:show={showCreate} on:created={load} />
