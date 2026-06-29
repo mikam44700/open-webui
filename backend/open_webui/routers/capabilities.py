@@ -137,6 +137,12 @@ async def create_custom_skill(body: CustomSkillBody, user=Depends(get_admin_user
     return await _bridge("POST", "/custom-skills", json=body.model_dump())
 
 
+@router.get("/custom-skills/{skill_name}")
+async def get_custom_skill(skill_name: str, user=Depends(get_admin_user)):
+    """Contenu complet d'une compétence maison (procédure incluse)."""
+    return await _bridge("GET", f"/custom-skills/{skill_name}")
+
+
 @router.delete("/custom-skills/{skill_name}")
 async def delete_custom_skill(skill_name: str, user=Depends(get_admin_user)):
     """Supprime une compétence maison."""

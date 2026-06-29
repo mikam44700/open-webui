@@ -6,6 +6,7 @@
 
 	import {
 		getCustomSkills,
+		getCustomSkill,
 		createCustomSkill,
 		deleteCustomSkill
 	} from '$lib/apis/capabilities';
@@ -135,6 +136,25 @@
 	// Confirmation de suppression
 	let showDelete = false;
 	let toDelete: CustomSkill | null = null;
+
+	// Détail d'une compétence (contenu complet, au clic sur une carte)
+	let showDetail = false;
+	let detailLoading = false;
+	let detail: { name: string; label: string; description: string; category: string; instructions: string } | null = null;
+
+	const openDetail = async (skill: CustomSkill) => {
+		showDetail = true;
+		detailLoading = true;
+		detail = null;
+		try {
+			detail = await getCustomSkill(localStorage.token, skill.name);
+		} catch {
+			toast.error($i18n.t('Impossible d’ouvrir cette compétence'));
+			showDetail = false;
+		} finally {
+			detailLoading = false;
+		}
+	};
 
 	const isBridgeDown = (err: any) =>
 		err?.error?.code === 'bridge_unreachable' || err?.error?.code === 'hermes_unavailable';
@@ -333,7 +353,12 @@
 							<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2.5">
 								{#each group.items as skill (skill.name)}
 									<div
-										class="group flex items-start gap-3 border border-gray-100 dark:border-gray-850 rounded-2xl px-4 py-3.5 transition hover:border-gray-200 dark:hover:border-gray-700 hover:shadow-sm"
+										role="button"
+										tabindex="0"
+										class="group flex items-start gap-3 border border-gray-100 dark:border-gray-850 rounded-2xl px-4 py-3.5 transition hover:border-gray-200 dark:hover:border-gray-700 hover:shadow-sm cursor-pointer"
+										on:click={() => openDetail(skill)}
+										on:keydown={(e) => (e.key === 'Enter' || e.key === ' ') && openDetail(skill)}
+										title={$i18n.t('Voir la compétence en détail')}
 									>
 										<div class="flex-1 min-w-0">
 											<div class="text-sm font-medium truncate">{skill.label}</div>
@@ -344,7 +369,7 @@
 										<button
 											class="flex-none self-center text-xs text-gray-400 hover:text-red-500 opacity-0 group-hover:opacity-100 transition"
 											title={$i18n.t('Supprimer')}
-											on:click={() => askDelete(skill)}
+											on:click|stopPropagation={() => askDelete(skill)}
 										>
 											{$i18n.t('Supprimer')}
 										</button>
@@ -476,6 +501,38 @@
 				{saving ? $i18n.t('Création…') : $i18n.t('Créer')}
 			</button>
 		</div>
+	</div>
+</Modal>
+
+<!-- Modale de détail : le contenu complet de la compétence -->
+<Modal bind:show={showDetail} size="lg">
+	<div class="p-5">
+		{#if detailLoading}
+			<div class="flex justify-center py-16"><Spinner className="size-6" /></div>
+		{:else if detail}
+			<div class="flex items-start justify-between gap-3 mb-1">
+				<div class="text-lg font-semibold">{detail.label}</div>
+				<span
+					class="flex-none text-[11px] px-2 py-1 rounded-full bg-emerald-50 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-300"
+				>
+					{detail.category}
+				</span>
+			</div>
+			{#if detail.description}
+				<div class="text-xs text-gray-500 mb-4">{detail.description}</div>
+			{/if}
+			<div
+				class="text-sm text-gray-800 dark:text-gray-100 whitespace-pre-wrap leading-relaxed border-t border-gray-100 dark:border-gray-850 pt-4 max-h-[60vh] overflow-y-auto"
+			>{detail.instructions}</div>
+			<div class="flex justify-end gap-2 mt-5">
+				<button
+					class="text-sm px-3.5 py-2 rounded-xl bg-gray-100 dark:bg-gray-850 hover:bg-gray-200 dark:hover:bg-gray-800 transition"
+					on:click={() => (showDetail = false)}
+				>
+					{$i18n.t('Fermer')}
+				</button>
+			</div>
+		{/if}
 	</div>
 </Modal>
 

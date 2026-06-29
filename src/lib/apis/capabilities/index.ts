@@ -49,6 +49,10 @@ export const setSkillEnabled = (token: string, name: string, enabled: boolean) =
 // Compétences « maison » (sur mesure, créées par le client) — page Compétences de l'Espace de travail.
 export const getCustomSkills = (token: string) => call(token, 'GET', '/custom-skills');
 
+// Contenu complet d'une compétence maison (procédure incluse), pour l'affichage en détail.
+export const getCustomSkill = (token: string, name: string) =>
+	call(token, 'GET', `/custom-skills/${encodeURIComponent(name)}`);
+
 export const createCustomSkill = (
 	token: string,
 	label: string,
