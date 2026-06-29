@@ -1090,7 +1090,7 @@
 	"Headers": "En-têtes HTTP",
 	"Headers must be a valid JSON object": "Les en-têtes doivent être au format JSON valide",
 	"Height": "Hauteur",
-	"Hello, {{name}}": "Bonjour, {{name}}.",
+	"Hello, {{name}}": "Bonjour {{name}}",
 	"Help": "Aide",
 	"Help the community discover great models": "Aidez la communauté à découvrir les meilleurs modèles",
 	"Hex Color": "Couleur Hex",

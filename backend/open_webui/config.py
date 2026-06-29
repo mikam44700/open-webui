@@ -2530,31 +2530,28 @@ except Exception as e:
 if default_prompt_suggestions == []:
     default_prompt_suggestions = [
         {
-            'title': ['Help me study', 'vocabulary for a college entrance exam'],
-            'content': "Help me study vocabulary: write a sentence for me to fill in the blank, and I'll try to pick the correct option.",
+            'title': ['Rédiger un email', 'professionnel et clair'],
+            'content': "Aide-moi à rédiger un email professionnel. Demande-moi d'abord le destinataire, le contexte et l'objectif, puis propose-moi un texte clair et courtois.",
         },
         {
-            'title': ['Give me ideas', "for what to do with my kids' art"],
-            'content': "What are 5 creative things I could do with my kids' art? I don't want to throw them away, but it's also so much clutter.",
+            'title': ['Organiser ma journée', 'selon mes priorités'],
+            'content': "Aide-moi à organiser ma journée. Pose-moi des questions sur mes priorités et mes rendez-vous, puis propose-moi un planning réaliste.",
         },
         {
-            'title': ['Tell me a fun fact', 'about the Roman Empire'],
-            'content': 'Tell me a random fun fact about the Roman Empire',
+            'title': ['Préparer une réunion', 'ordre du jour et points clés'],
+            'content': "J'ai bientôt une réunion importante. Aide-moi à préparer un ordre du jour structuré et la liste des points clés à aborder.",
         },
         {
-            'title': ['Show me a code snippet', "of a website's sticky header"],
-            'content': "Show me a code snippet of a website's sticky header in CSS and JavaScript.",
+            'title': ['Résumer un document', "et en sortir l'essentiel"],
+            'content': "Je vais te donner un document ou un texte. Résume-le et fais-en ressortir les points essentiels et les actions à retenir.",
         },
         {
-            'title': [
-                'Explain options trading',
-                "if I'm familiar with buying and selling stocks",
-            ],
-            'content': "Explain options trading in simple terms if I'm familiar with buying and selling stocks.",
+            'title': ['Structurer une idée', 'en plan d\'action concret'],
+            'content': "J'ai une idée pour mon entreprise mais elle est encore floue. Pose-moi des questions pour la clarifier, puis aide-moi à la transformer en plan d'action concret.",
         },
         {
-            'title': ['Overcome procrastination', 'give me tips'],
-            'content': 'Could you start by asking me about instances when I procrastinate the most and then give me some suggestions to overcome it?',
+            'title': ['Déléguer une tâche', 'et la faire avancer'],
+            'content': "J'ai une tâche à confier. Pose-moi les questions nécessaires pour bien la comprendre, puis aide-moi à la réaliser de bout en bout.",
         },
     ]
 
