@@ -3,17 +3,17 @@
 	import { toast } from 'svelte-sonner';
 
 	import { getCatalog, getConnectors } from '$lib/apis/connectors';
-	import { CONNECTOR_FR } from '$lib/utils/connectorLabels';
+	import { expertMode } from '$lib/stores';
 	import Spinner from '$lib/components/common/Spinner.svelte';
 	import CatalogCard from './CatalogCard.svelte';
 	import ConnectorCard from './ConnectorCard.svelte';
-	import McpBrowseModal from './McpBrowseModal.svelte';
 	import AddConnectorModal from './AddConnectorModal.svelte';
 
 	const i18n = getContext('i18n');
 
-	// Vue MCP « esprit Intégrations » : vedettes du catalogue + « Tout parcourir » (modale)
-	// + section des connecteurs réellement installés (statut honnête via getConnectors).
+	// Vue MCP rangée par catégorie (esprit Intégrations) : le dirigeant voit les connecteurs
+	// utiles regroupés (Productivité, Finance, …). Les connecteurs techniques n'apparaissent
+	// qu'en « Réglages avancés » (store expertMode), dans une zone « Connecteurs avancés ».
 	type Entry = {
 		name: string;
 		description?: string;
@@ -21,6 +21,11 @@
 		auth_type: 'none' | 'key' | 'oauth';
 		installed: boolean;
 		source_url?: string | null;
+		label?: string;
+		icon_url?: string | null;
+		category?: string;
+		visibility?: 'visible' | 'expert';
+		installable?: boolean;
 		// Connecteur hors catalogue Hermes (ajouté en custom http/OAuth au clic).
 		preset?: { transport: 'http' | 'sse'; url: string; auth_type: 'none' | 'key' | 'oauth' };
 	};
@@ -33,9 +38,29 @@
 			transport: 'http',
 			auth_type: 'oauth',
 			installed: false,
+			category: 'productivity',
+			visibility: 'visible',
+			installable: true,
 			preset: { transport: 'http', url: 'https://mcp.hubspot.com/', auth_type: 'oauth' }
 		}
 	];
+
+	// Catégories visibles par défaut (dirigeant). Ordre = ordre d'affichage.
+	const CATEGORIES = [
+		{ key: 'productivity', label: 'Productivité & Bureau', emoji: '💼' },
+		{ key: 'finance', label: 'Finance', emoji: '💳' },
+		{ key: 'creation', label: 'Création & Média', emoji: '🎨' },
+		{ key: 'search', label: 'Recherche', emoji: '🔎' }
+	];
+	// Catégories réservées au mode avancé (zone « Connecteurs avancés »).
+	const EXPERT_CATEGORIES = [
+		{ key: 'devops', label: 'DevOps & Développement', emoji: '🛠️' },
+		{ key: 'database', label: 'Bases de données', emoji: '🗄️' },
+		{ key: 'crypto', label: 'Crypto & Blockchain', emoji: '⛓️' },
+		{ key: 'tools', label: 'Outils techniques', emoji: '🔧' },
+		{ key: 'other', label: 'Autres', emoji: '📦' }
+	];
+
 	type Connector = {
 		id: string;
 		transport: 'stdio' | 'http' | 'sse';
@@ -51,20 +76,20 @@
 	let bridgeDown = false;
 	let entries: Entry[] = [];
 	let connectors: Connector[] = [];
-	let showBrowse = false;
 	let showAddModal = false;
 
-	// Vedettes : presets « maison » (HubSpot…) non encore installés, puis connecteurs
-	// marqués « populaires » dans les libellés FR ; repli sur les premiers non installés.
 	$: installedIds = new Set(connectors.map((c) => c.id));
+	// Presets maison non encore installés + catalogue fusionné (registre + moteur).
 	$: presetFeatured = PRESET_FEATURED.filter((e) => !installedIds.has(e.name));
-	$: notInstalled = entries.filter((e) => !e.installed);
-	$: popular = entries.filter((e) => CONNECTOR_FR[e.name]?.popular);
-	$: base = popular.length > 0 ? popular : notInstalled.length > 0 ? notInstalled : entries;
-	$: featured = [...presetFeatured, ...base].slice(0, 4);
-	// « Tout parcourir » : presets maison (HubSpot…) + catalogue Hermes, pour qu'ils
-	// apparaissent aussi dans la modale (pas seulement en vedette).
-	$: browseEntries = [...presetFeatured, ...entries];
+	$: allEntries = [...presetFeatured, ...entries];
+
+	// Entrées d'une catégorie ; en mode simple on ne garde que les « visible ».
+	const itemsFor = (all: Entry[], catKey: string, includeExpert: boolean): Entry[] =>
+		all.filter(
+			(e) =>
+				(e.category ?? 'other') === catKey &&
+				(includeExpert || (e.visibility ?? 'visible') === 'visible')
+		);
 
 	const isBridgeDown = (err: any) =>
 		err?.error?.code === 'bridge_unreachable' || err?.error?.code === 'hermes_unavailable';
@@ -109,8 +134,7 @@
 			</button>
 		</div>
 	{:else}
-		<!-- Ajout d'un connecteur sur mesure : action mise en avant sous la bannière,
-		     pour que le client sache qu'il peut brancher son propre MCP. -->
+		<!-- Ajout d'un connecteur sur mesure : action mise en avant sous la bannière. -->
 		<button
 			type="button"
 			class="w-full mb-7 flex items-center justify-center gap-2 rounded-2xl border border-dashed border-gray-300 dark:border-gray-700 px-4 py-4 text-sm font-medium text-gray-600 dark:text-gray-300 hover:border-gray-400 hover:bg-gray-50 dark:hover:border-gray-600 dark:hover:bg-white/[0.03] transition"
@@ -129,40 +153,60 @@
 			{$i18n.t('Ajouter un connecteur personnalisé')}
 		</button>
 
-		<!-- Les plus populaires + accès au catalogue complet -->
-		<div class="flex items-center justify-between mb-3">
-			<div class="text-sm font-medium">{$i18n.t('Les plus populaires')}</div>
-			<button
-				type="button"
-				class="text-sm text-gray-500 hover:text-gray-900 dark:hover:text-white transition inline-flex items-center gap-1"
-				on:click={() => (showBrowse = true)}
-			>
-				{$i18n.t('Tout parcourir')}
-				<svg
-					xmlns="http://www.w3.org/2000/svg"
-					fill="none"
-					viewBox="0 0 24 24"
-					stroke-width="2"
-					stroke="currentColor"
-					class="size-4"
-				>
-					<path stroke-linecap="round" stroke-linejoin="round" d="M13.5 4.5 21 12m0 0-7.5 7.5M21 12H3" />
-				</svg>
-			</button>
-		</div>
+		<!-- Catégories visibles (le dirigeant). En mode avancé, les entrées expert de ces
+		     mêmes catégories (ex. Finance → Alpaca) viennent s'y ajouter. -->
+		{#each CATEGORIES as cat (cat.key)}
+			{@const items = itemsFor(allEntries, cat.key, $expertMode)}
+			{#if items.length > 0}
+				<section class="mb-7">
+					<div class="text-sm font-medium mb-3 flex items-center gap-2">
+						<span aria-hidden="true">{cat.emoji}</span>
+						<span>{$i18n.t(cat.label)}</span>
+					</div>
+					<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+						{#each items as entry (entry.name)}
+							<CatalogCard {entry} on:changed={load} />
+						{/each}
+					</div>
+				</section>
+			{/if}
+		{/each}
 
-		{#if featured.length > 0}
-			<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-				{#each featured as entry (entry.name)}
-					<CatalogCard {entry} on:changed={load} />
+		<!-- Zone « Connecteurs avancés » : visible seulement en Réglages avancés. -->
+		{#if $expertMode}
+			{@const advCount = EXPERT_CATEGORIES.reduce(
+				(n, c) => n + itemsFor(allEntries, c.key, true).length,
+				0
+			)}
+			{#if advCount > 0}
+				<div class="flex items-center gap-2 mt-2 mb-5">
+					<div class="h-px flex-1 bg-gray-100 dark:bg-gray-850"></div>
+					<span class="text-xs font-medium text-gray-400 dark:text-gray-500 inline-flex items-center gap-1.5">
+						<span aria-hidden="true">⚡</span>{$i18n.t('Connecteurs avancés')}
+					</span>
+					<div class="h-px flex-1 bg-gray-100 dark:bg-gray-850"></div>
+				</div>
+				{#each EXPERT_CATEGORIES as cat (cat.key)}
+					{@const items = itemsFor(allEntries, cat.key, true)}
+					{#if items.length > 0}
+						<section class="mb-7">
+							<div class="text-sm font-medium mb-3 flex items-center gap-2">
+								<span aria-hidden="true">{cat.emoji}</span>
+								<span>{$i18n.t(cat.label)}</span>
+							</div>
+							<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+								{#each items as entry (entry.name)}
+									<CatalogCard {entry} on:changed={load} />
+								{/each}
+							</div>
+						</section>
+					{/if}
 				{/each}
-			</div>
-		{:else}
-			<div class="text-xs text-gray-500 py-4">{$i18n.t('Catalogue vide')}</div>
+			{/if}
 		{/if}
 
 		<!-- Connecteurs installés -->
-		<div class="text-sm font-medium mt-7 mb-3">{$i18n.t('Connecteurs installés')}</div>
+		<div class="text-sm font-medium mt-2 mb-3">{$i18n.t('Connecteurs installés')}</div>
 		{#if connectors.length > 0}
 			<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
 				{#each connectors as connector (connector.id)}
@@ -176,8 +220,6 @@
 		{/if}
 	{/if}
 </div>
-
-<McpBrowseModal bind:open={showBrowse} entries={browseEntries} on:changed={load} />
 
 <AddConnectorModal
 	bind:open={showAddModal}

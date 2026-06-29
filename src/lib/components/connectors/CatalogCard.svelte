@@ -24,10 +24,20 @@
 		auth_type: 'none' | 'key' | 'oauth';
 		installed: boolean;
 		source_url?: string | null;
+		// Enrichissement « registre des 55 » : libellé/logo distant + classement + installabilité.
+		label?: string;
+		icon_url?: string | null;
+		category?: string;
+		visibility?: 'visible' | 'expert';
+		installable?: boolean;
 		// Connecteur hors catalogue Hermes (ex. HubSpot) : on l'ajoute en « custom »
 		// (http/OAuth) au lieu de passer par `hermes mcp install`.
 		preset?: { transport: 'http' | 'sse'; url: string; auth_type: 'none' | 'key' | 'oauth' };
 	};
+
+	// Un MCP du registre non encore installable en 1 clic (manifest/auth à câbler ultérieurement).
+	// On l'affiche honnêtement (pas de bouton « Installer » trompeur).
+	$: comingSoon = entry.installable === false && !entry.installed && !entry.preset;
 
 	// Accès en langage client (pas de jargon : ni transport http/stdio, ni « OAuth »).
 	const ACCESS_LABEL: Record<string, string> = {
@@ -36,12 +46,16 @@
 		oauth: 'Connexion par compte'
 	};
 
-	// Nom d'affichage + description FR + actions du connecteur (fallback sur les valeurs Hermes brutes).
+	// Nom d'affichage + description FR + actions du connecteur (fallback sur les valeurs du
+	// registre/Hermes brutes : libellé puis nom technique).
 	$: fr = CONNECTOR_FR[entry.name];
-	$: displayName = fr?.name ?? entry.name;
+	$: displayName = fr?.name ?? entry.label ?? entry.name;
 	$: displayDesc = fr?.desc ?? entry.description ?? '';
 	$: actions = fr?.actions ?? [];
-	$: logoSrc = CONNECTOR_LOGO[entry.name];
+	// Logo : local prioritaire (qualité maîtrisée), sinon logo distant du registre.
+	$: logoSrc = CONNECTOR_LOGO[entry.name] ?? entry.icon_url ?? '';
+	// Bord-à-bord seulement pour nos logos locaux « carré plein » ; les logos distants
+	// (icônes SVG du registre) s'affichent en `contain` sur fond blanc.
 	$: fullBleed = CONNECTOR_LOGO_FULL_BLEED.has(entry.name);
 
 	let keyValue = '';
@@ -198,7 +212,24 @@
 		{/if}
 	{/if}
 
-	{#if !entry.installed}
+	{#if comingSoon}
+		<!-- MCP du registre pas encore branché en 1 clic : état honnête, pas de faux bouton. -->
+		<div class="mt-auto flex justify-between items-center gap-2 pt-1">
+			<span class="text-[11px] text-gray-400 dark:text-gray-500">
+				{$i18n.t('Bientôt connectable en 1 clic')}
+			</span>
+			{#if entry.source_url}
+				<a
+					class="text-[11px] text-gray-500 hover:text-gray-900 dark:hover:text-white transition inline-flex items-center gap-0.5"
+					href={entry.source_url}
+					target="_blank"
+					rel="noopener noreferrer"
+				>
+					{$i18n.t('En savoir plus')} ↗
+				</a>
+			{/if}
+		</div>
+	{:else if !entry.installed}
 		<div class="mt-auto flex flex-col gap-2.5">
 			{#if entry.auth_type === 'key' && showKeyInput}
 				<input
