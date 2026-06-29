@@ -4,13 +4,15 @@
 	import type { i18n as i18nType } from 'i18next';
 
 	import { CONNECTOR_FR } from '$lib/utils/connectorLabels';
+	import { MCP_CATEGORIES } from '$lib/utils/mcpCategories';
+	import { expertMode } from '$lib/stores';
 	import CatalogCard from './CatalogCard.svelte';
 
 	const i18n = getContext<Writable<i18nType>>('i18n');
 	const dispatch = createEventDispatcher();
 
-	// Modale « Parcourir les connecteurs MCP » (esprit identique à la modale Intégrations) :
-	// recherche + grille du catalogue complet. Pensée pour accueillir beaucoup de connecteurs.
+	// Modale « Parcourir les connecteurs MCP » : le catalogue complet rangé PAR CATÉGORIE
+	// + recherche. Les catégories techniques (expert) n'apparaissent qu'en « Réglages avancés ».
 	export let open = false;
 	export let entries: any[] = [];
 
@@ -24,13 +26,22 @@
 		'&body=' +
 		encodeURIComponent('Bonjour,\n\nJ’aimerais que vous ajoutiez le connecteur suivant :\n\n');
 
-	$: filtered = entries.filter((e) => {
+	const matchesSearch = (e: any): boolean => {
 		if (!search.trim()) return true;
 		const fr = CONNECTOR_FR[e.name];
 		const needle = search.trim().toLowerCase();
-		const hay = `${fr?.name ?? e.name} ${fr?.desc ?? e.description ?? ''}`.toLowerCase();
+		const hay = `${fr?.name ?? e.label ?? e.name} ${fr?.desc ?? e.description ?? ''}`.toLowerCase();
 		return hay.includes(needle);
-	});
+	};
+	const itemsFor = (catKey: string) =>
+		entries.filter((e) => (e.category ?? 'other') === catKey && matchesSearch(e));
+
+	// Catégories affichées : grand public toujours, techniques seulement en Réglages avancés.
+	$: visibleCategories = MCP_CATEGORIES.filter((c) => !c.expert || $expertMode);
+	$: anyResult = visibleCategories.some((c) => itemsFor(c.key).length > 0);
+	// Y a-t-il des connecteurs techniques masqués (pour proposer d'activer le mode avancé) ?
+	$: hiddenExpert =
+		!$expertMode && entries.some((e) => MCP_CATEGORIES.find((c) => c.key === e.category)?.expert);
 
 	const close = () => {
 		open = false;
@@ -72,17 +83,33 @@
 				</div>
 			</div>
 
-			<!-- Corps -->
+			<!-- Corps : catégories (grand public + techniques si Réglages avancés). -->
 			<div class="flex-1 overflow-y-auto px-5 py-4">
-				{#if filtered.length > 0}
-					<div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-						{#each filtered as entry (entry.name)}
-							<CatalogCard {entry} on:changed={() => dispatch('changed')} />
-						{/each}
-					</div>
+				{#if anyResult}
+					{#each visibleCategories as cat (cat.key)}
+						{@const items = itemsFor(cat.key)}
+						{#if items.length > 0}
+							<section class="mb-6">
+								<div class="text-sm font-medium mb-3 flex items-center gap-2">
+									<span aria-hidden="true">{cat.emoji}</span>
+									<span>{$i18n.t(cat.label)}</span>
+								</div>
+								<div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+									{#each items as entry (entry.name)}
+										<CatalogCard {entry} on:changed={() => dispatch('changed')} />
+									{/each}
+								</div>
+							</section>
+						{/if}
+					{/each}
 				{:else}
 					<div class="text-xs text-gray-500 text-center py-10">
 						{$i18n.t('Aucun connecteur ne correspond.')}
+					</div>
+				{/if}
+				{#if hiddenExpert && !search.trim()}
+					<div class="text-[11px] text-gray-400 dark:text-gray-500 text-center pt-2">
+						{$i18n.t('Active « Réglages avancés » pour voir les connecteurs techniques.')}
 					</div>
 				{/if}
 			</div>

@@ -5,7 +5,6 @@
 	import { toast } from 'svelte-sonner';
 
 	import { getCatalog, getConnectors } from '$lib/apis/connectors';
-	import { expertMode } from '$lib/stores';
 	import Spinner from '$lib/components/common/Spinner.svelte';
 	import CatalogCard from './CatalogCard.svelte';
 	import ConnectorCard from './ConnectorCard.svelte';
@@ -14,9 +13,8 @@
 
 	const i18n = getContext<Writable<i18nType>>('i18n');
 
-	// Vue MCP rangée par catégorie (esprit Intégrations) : le dirigeant voit les connecteurs
-	// utiles regroupés (Productivité, Finance, …). Les connecteurs techniques n'apparaissent
-	// qu'en « Réglages avancés » (store expertMode), dans une zone « Connecteurs avancés ».
+	// Page MCP « esprit Intégrations » : seulement les vedettes essentielles ici ; le catalogue
+	// complet rangé par catégorie vit dans la modale « Tout parcourir » (McpBrowseModal).
 	type Entry = {
 		name: string;
 		description?: string;
@@ -51,21 +49,8 @@
 		}
 	];
 
-	// Catégories visibles par défaut (dirigeant). Ordre = ordre d'affichage.
-	const CATEGORIES = [
-		{ key: 'productivity', label: 'Productivité & Bureau', emoji: '💼' },
-		{ key: 'finance', label: 'Finance', emoji: '💳' },
-		{ key: 'creation', label: 'Création & Média', emoji: '🎨' },
-		{ key: 'search', label: 'Recherche', emoji: '🔎' }
-	];
-	// Catégories réservées au mode avancé (zone « Connecteurs avancés »).
-	const EXPERT_CATEGORIES = [
-		{ key: 'devops', label: 'DevOps & Développement', emoji: '🛠️' },
-		{ key: 'database', label: 'Bases de données', emoji: '🗄️' },
-		{ key: 'crypto', label: 'Crypto & Blockchain', emoji: '⛓️' },
-		{ key: 'tools', label: 'Outils techniques', emoji: '🔧' },
-		{ key: 'other', label: 'Autres', emoji: '📦' }
-	];
+	// Vedettes essentielles affichées sur la page (les autres dans « Tout parcourir »).
+	const FEATURED = ['gmail', 'google-calendar', 'notion', 'slack', 'stripe', 'hubspot'];
 
 	type Connector = {
 		id: string;
@@ -90,13 +75,10 @@
 	$: presetFeatured = PRESET_FEATURED.filter((e) => !installedIds.has(e.name));
 	$: allEntries = [...presetFeatured, ...entries];
 
-	// Entrées d'une catégorie ; en mode simple on ne garde que les « visible ».
-	const itemsFor = (all: Entry[], catKey: string, includeExpert: boolean): Entry[] =>
-		all.filter(
-			(e) =>
-				(e.category ?? 'other') === catKey &&
-				(includeExpert || (e.visibility ?? 'visible') === 'visible')
-		);
+	// Vedettes : les essentiels (dans l'ordre défini), s'ils existent au catalogue.
+	$: featured = FEATURED.map((id) => allEntries.find((e) => e.name === id)).filter(
+		(e): e is Entry => !!e
+	);
 
 	const isBridgeDown = (err: any) =>
 		err?.error?.code === 'bridge_unreachable' || err?.error?.code === 'hermes_unavailable';
@@ -160,9 +142,9 @@
 			{$i18n.t('Ajouter un connecteur personnalisé')}
 		</button>
 
-		<!-- Accès au catalogue complet avec recherche (comme dans Intégrations). -->
-		<div class="flex items-center justify-between mb-4">
-			<div class="text-sm font-medium">{$i18n.t('Connecteurs')}</div>
+		<!-- Les plus populaires + accès au catalogue complet (recherche + catégories). -->
+		<div class="flex items-center justify-between mb-3">
+			<div class="text-sm font-medium">{$i18n.t('Les plus populaires')}</div>
 			<button
 				type="button"
 				class="text-sm text-gray-500 hover:text-gray-900 dark:hover:text-white transition inline-flex items-center gap-1"
@@ -182,60 +164,20 @@
 			</button>
 		</div>
 
-		<!-- Catégories visibles (le dirigeant). En mode avancé, les entrées expert de ces
-		     mêmes catégories (ex. Finance → Alpaca) viennent s'y ajouter. -->
-		{#each CATEGORIES as cat (cat.key)}
-			{@const items = itemsFor(allEntries, cat.key, $expertMode)}
-			{#if items.length > 0}
-				<section class="mb-7">
-					<div class="text-sm font-medium mb-3 flex items-center gap-2">
-						<span aria-hidden="true">{cat.emoji}</span>
-						<span>{$i18n.t(cat.label)}</span>
-					</div>
-					<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-						{#each items as entry (entry.name)}
-							<CatalogCard {entry} on:changed={load} />
-						{/each}
-					</div>
-				</section>
-			{/if}
-		{/each}
-
-		<!-- Zone « Connecteurs avancés » : visible seulement en Réglages avancés. -->
-		{#if $expertMode}
-			{@const advCount = EXPERT_CATEGORIES.reduce(
-				(n, c) => n + itemsFor(allEntries, c.key, true).length,
-				0
-			)}
-			{#if advCount > 0}
-				<div class="flex items-center gap-2 mt-2 mb-5">
-					<div class="h-px flex-1 bg-gray-100 dark:bg-gray-850"></div>
-					<span class="text-xs font-medium text-gray-400 dark:text-gray-500 inline-flex items-center gap-1.5">
-						<span aria-hidden="true">⚡</span>{$i18n.t('Connecteurs avancés')}
-					</span>
-					<div class="h-px flex-1 bg-gray-100 dark:bg-gray-850"></div>
-				</div>
-				{#each EXPERT_CATEGORIES as cat (cat.key)}
-					{@const items = itemsFor(allEntries, cat.key, true)}
-					{#if items.length > 0}
-						<section class="mb-7">
-							<div class="text-sm font-medium mb-3 flex items-center gap-2">
-								<span aria-hidden="true">{cat.emoji}</span>
-								<span>{$i18n.t(cat.label)}</span>
-							</div>
-							<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-								{#each items as entry (entry.name)}
-									<CatalogCard {entry} on:changed={load} />
-								{/each}
-							</div>
-						</section>
-					{/if}
+		{#if featured.length > 0}
+			<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+				{#each featured as entry (entry.name)}
+					<CatalogCard {entry} on:changed={load} />
 				{/each}
-			{/if}
+			</div>
+		{:else}
+			<div class="text-xs text-gray-500 py-4">
+				{$i18n.t('Ouvre « Tout parcourir » pour voir tous les connecteurs.')}
+			</div>
 		{/if}
 
 		<!-- Connecteurs installés -->
-		<div class="text-sm font-medium mt-2 mb-3">{$i18n.t('Connecteurs installés')}</div>
+		<div class="text-sm font-medium mt-7 mb-3">{$i18n.t('Connecteurs installés')}</div>
 		{#if connectors.length > 0}
 			<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
 				{#each connectors as connector (connector.id)}
