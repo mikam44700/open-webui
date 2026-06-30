@@ -98,9 +98,25 @@ export const installSearxng = (token: string) => call(token, 'POST', '/searxng/i
 
 export const uninstallSearxng = (token: string) => call(token, 'POST', '/searxng/uninstall');
 
+// Mise à jour SearXNG (versions épinglées, même principe que le moteur Hermes).
+export const checkSearxngUpdate = (token: string) => call(token, 'POST', '/searxng/update/check');
+
+export const startSearxngUpdate = (token: string) => call(token, 'POST', '/searxng/update/start');
+
+export const getSearxngUpdateStatus = (token: string) =>
+	call(token, 'GET', '/searxng/update/status');
+
 // Crawl4AI : lecture web approfondie installée à la demande (conteneur Docker + connecteur MCP).
 export const getCrawl4aiStatus = (token: string) => call(token, 'GET', '/crawl4ai/status');
 
 export const installCrawl4ai = (token: string) => call(token, 'POST', '/crawl4ai/install');
 
 export const uninstallCrawl4ai = (token: string) => call(token, 'POST', '/crawl4ai/uninstall');
+
+// Mise à jour Crawl4AI (versions épinglées, même principe que le moteur Hermes).
+export const checkCrawl4aiUpdate = (token: string) => call(token, 'POST', '/crawl4ai/update/check');
+
+export const startCrawl4aiUpdate = (token: string) => call(token, 'POST', '/crawl4ai/update/start');
+
+export const getCrawl4aiUpdateStatus = (token: string) =>
+	call(token, 'GET', '/crawl4ai/update/status');

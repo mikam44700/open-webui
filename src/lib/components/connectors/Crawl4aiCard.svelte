@@ -7,9 +7,13 @@
 	import {
 		getCrawl4aiStatus,
 		installCrawl4ai,
-		uninstallCrawl4ai
+		uninstallCrawl4ai,
+		checkCrawl4aiUpdate,
+		startCrawl4aiUpdate,
+		getCrawl4aiUpdateStatus
 	} from '$lib/apis/capabilities';
 	import Spinner from '$lib/components/common/Spinner.svelte';
+	import UpdateButton from './UpdateButton.svelte';
 	import { CONNECTOR_FR } from '$lib/utils/connectorLabels';
 	import { CONNECTOR_LOGO, CONNECTOR_LOGO_FULL_BLEED } from '$lib/utils/connectorLogos';
 
@@ -153,6 +157,14 @@
 		</span>
 		<div class="flex items-center gap-2 flex-none">
 			{#if installed}
+				<UpdateButton
+					enabled={installed}
+					toolLabel={displayName}
+					check={() => checkCrawl4aiUpdate(localStorage.token)}
+					start={() => startCrawl4aiUpdate(localStorage.token)}
+					poll={() => getCrawl4aiUpdateStatus(localStorage.token)}
+					on:updated={refresh}
+				/>
 				<button
 					type="button"
 					class="text-xs px-3 py-1.5 rounded-lg border border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-850 transition disabled:opacity-40 flex items-center gap-1.5"

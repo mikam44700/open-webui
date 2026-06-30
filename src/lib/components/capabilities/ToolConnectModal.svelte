@@ -11,11 +11,15 @@
 		getToolOAuthStatus,
 		getSearxngStatus,
 		installSearxng,
-		uninstallSearxng
+		uninstallSearxng,
+		checkSearxngUpdate,
+		startSearxngUpdate,
+		getSearxngUpdateStatus
 	} from '$lib/apis/capabilities';
 
 	import Spinner from '$lib/components/common/Spinner.svelte';
 	import ConfirmDialog from '$lib/components/common/ConfirmDialog.svelte';
+	import UpdateButton from '$lib/components/connectors/UpdateButton.svelte';
 	import { TOOLSET_FR } from '$lib/utils/toolsetLabels';
 
 	let showDisconnectConfirm = false;
@@ -505,14 +509,24 @@
 										<span class="text-xs text-green-600 dark:text-green-500 flex items-center gap-1.5">
 											● {$i18n.t('Recherche avancée installée et active')}
 										</span>
-										<button
-											class="text-xs px-3 py-1.5 rounded-lg bg-gray-100 dark:bg-gray-850 hover:bg-gray-200 dark:hover:bg-gray-800 transition disabled:opacity-50 flex items-center gap-1.5"
-											on:click={uninstallSearxngNow}
-											disabled={searxngBusy}
-										>
-											{#if searxngBusy}<Spinner className="size-3" />{/if}
-											{$i18n.t('Désinstaller')}
-										</button>
+										<div class="flex items-center gap-2 flex-none">
+											<UpdateButton
+												enabled={searxngStatus.active}
+												toolLabel={$i18n.t('La recherche web')}
+												check={() => checkSearxngUpdate(localStorage.token)}
+												start={() => startSearxngUpdate(localStorage.token)}
+												poll={() => getSearxngUpdateStatus(localStorage.token)}
+												on:updated={refreshSearxngStatus}
+											/>
+											<button
+												class="text-xs px-3 py-1.5 rounded-lg bg-gray-100 dark:bg-gray-850 hover:bg-gray-200 dark:hover:bg-gray-800 transition disabled:opacity-50 flex items-center gap-1.5"
+												on:click={uninstallSearxngNow}
+												disabled={searxngBusy}
+											>
+												{#if searxngBusy}<Spinner className="size-3" />{/if}
+												{$i18n.t('Désinstaller')}
+											</button>
+										</div>
 									</div>
 								{:else}
 									<div class="text-xs text-gray-500 mb-2">

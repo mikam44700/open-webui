@@ -124,6 +124,24 @@ async def searxng_uninstall(user=Depends(get_admin_user)):
     return await _bridge("POST", "/searxng/uninstall")
 
 
+@router.post("/searxng/update/check")
+async def searxng_update_check(user=Depends(get_admin_user)):
+    """Une mise à jour SearXNG est-elle disponible ? (comparaison de version, sans réseau)."""
+    return await _bridge("POST", "/searxng/update/check")
+
+
+@router.post("/searxng/update/start")
+async def searxng_update_start(user=Depends(get_admin_user)):
+    """Lance la mise à jour SearXNG en arrière-plan (suivie via update/status)."""
+    return await _bridge("POST", "/searxng/update/start")
+
+
+@router.get("/searxng/update/status")
+async def searxng_update_status(user=Depends(get_admin_user)):
+    """Progression de la mise à jour SearXNG."""
+    return await _bridge("GET", "/searxng/update/status")
+
+
 # --- Crawl4AI : installation à la demande (lecture web approfondie) ----------
 
 
@@ -143,6 +161,24 @@ async def crawl4ai_install(user=Depends(get_admin_user)):
 async def crawl4ai_uninstall(user=Depends(get_admin_user)):
     """Désinstalle Crawl4AI : retire le connecteur MCP + arrête le conteneur et l'image."""
     return await _bridge("POST", "/crawl4ai/uninstall")
+
+
+@router.post("/crawl4ai/update/check")
+async def crawl4ai_update_check(user=Depends(get_admin_user)):
+    """Une mise à jour Crawl4AI est-elle disponible ? (comparaison de version, sans réseau)."""
+    return await _bridge("POST", "/crawl4ai/update/check")
+
+
+@router.post("/crawl4ai/update/start")
+async def crawl4ai_update_start(user=Depends(get_admin_user)):
+    """Lance la mise à jour Crawl4AI en arrière-plan (suivie via update/status)."""
+    return await _bridge("POST", "/crawl4ai/update/start")
+
+
+@router.get("/crawl4ai/update/status")
+async def crawl4ai_update_status(user=Depends(get_admin_user)):
+    """Progression de la mise à jour Crawl4AI."""
+    return await _bridge("GET", "/crawl4ai/update/status")
 
 
 @router.get("/skills")
