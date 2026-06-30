@@ -1,12 +1,9 @@
 <script lang="ts">
-	// Contenu du menu des commandes Hermes (affiché dans un <Dropdown> par la barre
-	// du chat). Liste les vraies commandes que le gateway Hermes intercepte (donc
-	// qui FONCTIONNENT via le chat, pas seulement dans le terminal). Cliquer émet
-	// 'select' ; le parent insère la commande dans le champ.
-	//
-	// Source : COMMAND_REGISTRY de hermes-agent/hermes_cli/commands.py — on ne
-	// garde que les commandes disponibles côté gateway, francisées et pensées
-	// pour un dirigeant.
+	// Contenu du menu d'actions rapides (affiché dans un <Dropdown> par la barre
+	// du chat, bouton "/"). Chaque action insère une INSTRUCTION EN FRANÇAIS dans
+	// le champ — pas une slash command. L'agent Hermes exécute réellement ces
+	// instructions via ses outils (les slash commands /goal /status… ne sont PAS
+	// interceptées par l'API du chat, seulement par le terminal/messagerie).
 	import { getContext, createEventDispatcher } from 'svelte';
 
 	const i18n = getContext('i18n');
@@ -14,55 +11,82 @@
 
 	let query = '';
 
-	type SlashItem = { name: string; label: string; hint: string; args: boolean };
-	type SlashGroup = { title: string; items: SlashItem[] };
+	// `insert` = texte mis dans le champ. S'il finit par " : " l'utilisateur
+	// complète puis envoie ; sinon l'instruction est déjà prête à envoyer.
+	type ActionItem = { label: string; hint: string; insert: string };
+	type ActionGroup = { title: string; items: ActionItem[] };
 
-	const groups: SlashGroup[] = [
+	const groups: ActionGroup[] = [
 		{
-			title: 'Piloter le travail',
+			title: 'Écrire & communiquer',
 			items: [
-				{ name: 'goal', label: 'Fixer un objectif', hint: "que l'agent poursuit dans le temps", args: true },
-				{ name: 'subgoal', label: 'Ajouter un critère', hint: "à l'objectif en cours", args: true },
-				{ name: 'background', label: 'Lancer en arrière-plan', hint: 'une tâche qui tourne toute seule', args: true },
-				{ name: 'agents', label: 'Voir les agents actifs', hint: 'et les tâches en cours', args: false },
-				{ name: 'status', label: "État de la session", hint: 'modèle, contexte, jetons', args: false },
-				{ name: 'stop', label: 'Tout arrêter', hint: 'stoppe ce qui tourne', args: false }
+				{
+					label: 'Rédiger un email',
+					hint: 'professionnel et clair',
+					insert:
+						"Aide-moi à rédiger un email professionnel. Demande-moi d'abord le destinataire, le contexte et l'objectif, puis propose-moi un texte clair et courtois."
+				},
+				{
+					label: 'Répondre à un message',
+					hint: 'ton juste, réponse prête',
+					insert: 'Aide-moi à répondre à ce message de façon professionnelle : '
+				},
+				{
+					label: 'Rédiger un document',
+					hint: 'première version structurée',
+					insert:
+						"Aide-moi à rédiger un document. Demande-moi le sujet et l'objectif, puis propose une première version structurée."
+				}
 			]
 		},
 		{
-			title: 'Organiser',
+			title: 'Analyser & chercher',
 			items: [
-				{ name: 'kanban', label: 'Tableau de tâches', hint: 'créer, lister, assigner', args: true },
-				{ name: 'new', label: 'Nouvelle conversation', hint: 'repartir de zéro', args: false },
-				{ name: 'resume', label: 'Reprendre une conversation', hint: 'par son nom', args: true },
-				{ name: 'sessions', label: 'Parcourir les conversations', hint: 'historique', args: false },
-				{ name: 'title', label: 'Donner un titre', hint: 'à la conversation', args: true }
+				{
+					label: 'Résumer un document',
+					hint: "et en sortir l'essentiel",
+					insert:
+						'Résume ce document et fais-en ressortir les points essentiels et les actions à retenir : '
+				},
+				{
+					label: 'Rechercher sur le web',
+					hint: 'synthèse à jour et sourcée',
+					insert: 'Fais une recherche à jour sur le web et donne-moi une synthèse sourcée sur : '
+				},
+				{
+					label: 'Analyser un sujet',
+					hint: 'synthèse structurée',
+					insert:
+						'Analyse ce sujet en profondeur et donne-moi une synthèse structurée avec les points clés : '
+				}
 			]
 		},
 		{
-			title: 'Capacités',
+			title: 'Organiser & piloter',
 			items: [
-				{ name: 'skills', label: 'Gérer les compétences', hint: 'chercher, installer, inspecter', args: true },
-				{ name: 'suggestions', label: 'Automatisations suggérées', hint: 'accepter / écarter', args: true },
-				{ name: 'memory', label: 'Valider la mémoire', hint: 'écritures en attente', args: true },
-				{ name: 'insights', label: "Statistiques d'usage", hint: 'analyse de l’activité', args: true }
-			]
-		},
-		{
-			title: 'Réglages',
-			items: [
-				{ name: 'model', label: 'Changer de modèle IA', hint: '', args: true },
-				{ name: 'fast', label: 'Mode rapide', hint: 'normal / rapide', args: true },
-				{ name: 'reasoning', label: 'Niveau de réflexion', hint: 'effort de raisonnement', args: true },
-				{ name: 'voice', label: 'Mode vocal', hint: 'activer / couper', args: true }
-			]
-		},
-		{
-			title: 'Infos & crédits',
-			items: [
-				{ name: 'usage', label: 'Jetons & limites', hint: 'de la session', args: false },
-				{ name: 'credits', label: 'Solde de crédits', hint: 'et recharge', args: false },
-				{ name: 'help', label: 'Toutes les commandes', hint: 'aide Hermes', args: false }
+				{
+					label: 'Organiser ma journée',
+					hint: 'selon mes priorités',
+					insert:
+						'Aide-moi à organiser ma journée. Demande-moi mes priorités et mes rendez-vous, puis propose-moi un planning réaliste.'
+				},
+				{
+					label: 'Préparer une réunion',
+					hint: 'ordre du jour et points clés',
+					insert:
+						"Aide-moi à préparer une réunion : un ordre du jour structuré et les points clés à aborder. Demande-moi d'abord le sujet."
+				},
+				{
+					label: 'Mon tableau de tâches',
+					hint: 'voir ce qui est en cours',
+					insert: 'Montre-moi mon tableau de tâches Kanban et ce qui est en cours.'
+				},
+				{
+					label: 'Structurer une idée',
+					hint: 'en plan d’action concret',
+					insert:
+						"J'ai une idée encore floue. Pose-moi des questions pour la clarifier, puis aide-moi à la transformer en plan d'action concret : "
+				}
 			]
 		}
 	];
@@ -74,17 +98,14 @@
 			.map((g) => ({
 				...g,
 				items: g.items.filter(
-					(it) =>
-						it.name.includes(q) ||
-						it.label.toLowerCase().includes(q) ||
-						it.hint.toLowerCase().includes(q)
+					(it) => it.label.toLowerCase().includes(q) || it.hint.toLowerCase().includes(q)
 				)
 			}))
 			.filter((g) => g.items.length > 0);
 	})();
 
-	const select = (item: SlashItem) => {
-		dispatch('select', { name: item.name, args: item.args });
+	const select = (item: ActionItem) => {
+		dispatch('select', { insert: item.insert });
 		query = '';
 	};
 </script>
@@ -95,7 +116,7 @@
 		<input
 			type="text"
 			bind:value={query}
-			placeholder={$i18n.t('Rechercher une commande…')}
+			placeholder={$i18n.t('Rechercher une action…')}
 			class="w-full bg-transparent px-2 py-1.5 text-sm outline-hidden placeholder:text-gray-400"
 			autofocus
 		/>
@@ -106,26 +127,23 @@
 			<div class="px-3 pt-2 pb-1 text-[11px] font-semibold uppercase tracking-wide text-gray-400 dark:text-gray-500">
 				{group.title}
 			</div>
-			{#each group.items as item (item.name)}
+			{#each group.items as item (item.label)}
 				<button
 					type="button"
-					class="w-full flex items-baseline gap-2 px-3 py-1.5 text-left hover:bg-gray-50 dark:hover:bg-gray-800/60 transition"
+					class="w-full flex flex-col px-3 py-1.5 text-left hover:bg-gray-50 dark:hover:bg-gray-800/60 transition"
 					on:click={() => select(item)}
 				>
-					<span class="shrink-0 text-xs font-mono text-gray-400 dark:text-gray-500">/{item.name}</span>
-					<span class="flex flex-col">
-						<span class="text-sm text-gray-800 dark:text-gray-100 leading-tight">{item.label}</span>
-						{#if item.hint}
-							<span class="text-xs text-gray-400 dark:text-gray-500 leading-tight">{item.hint}</span>
-						{/if}
-					</span>
+					<span class="text-sm text-gray-800 dark:text-gray-100 leading-tight">{item.label}</span>
+					{#if item.hint}
+						<span class="text-xs text-gray-400 dark:text-gray-500 leading-tight">{item.hint}</span>
+					{/if}
 				</button>
 			{/each}
 		{/each}
 
 		{#if filteredGroups.length === 0}
 			<div class="px-3 py-6 text-center text-sm text-gray-400">
-				{$i18n.t('Aucune commande trouvée')}
+				{$i18n.t('Aucune action trouvée')}
 			</div>
 		{/if}
 	</div>

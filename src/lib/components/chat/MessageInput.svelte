@@ -447,18 +447,17 @@
 	// dirigeant non-tech qui ne sait pas qu'il faut taper "/".
 	let showSlashMenu = false;
 
-	// Commande choisie dans le menu : on l'insère dans le champ (avec un espace)
-	// prête à compléter puis envoyer. Le gateway Hermes l'exécutera comme une
-	// vraie commande. L'espace final évite de rouvrir la palette TipTap native.
+	// Action choisie dans le menu : on insère l'instruction française dans le champ,
+	// prête à compléter puis envoyer. L'agent Hermes l'exécute via ses outils
+	// (contrairement aux slash commands, non interceptées par l'API du chat).
 	const onSlashSelect = async (e) => {
-		const { name } = e.detail;
+		const { insert } = e.detail;
 		showSlashMenu = false;
-		if (!chatInputElement) return;
-		const snippet = `/${name} `;
+		if (!chatInputElement || !insert) return;
 		if (!(prompt ?? '').trim()) {
-			chatInputElement.setText(snippet);
+			chatInputElement.setText(insert);
 		} else {
-			chatInputElement.insertContent(` ${snippet}`);
+			chatInputElement.insertContent(` ${insert}`);
 		}
 		await tick();
 		chatInputElement.focus();
