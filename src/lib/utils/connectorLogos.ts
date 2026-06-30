@@ -9,6 +9,7 @@ import linearLogo from '$lib/assets/connectors/linear.png';
 import n8nLogo from '$lib/assets/connectors/n8n.svg';
 import unrealEngineLogo from '$lib/assets/connectors/unreal-engine.png';
 import hubspotLogo from '$lib/assets/connectors/hubspot.svg';
+import crawl4aiLogo from '$lib/assets/connectors/crawl4ai.svg';
 import atlassianLogo from '$lib/assets/connectors/atlassian.svg';
 import plaidLogo from '$lib/assets/connectors/plaid.jpg';
 import quickbooksLogo from '$lib/assets/connectors/quickbooks.svg';
@@ -69,6 +70,7 @@ export const CONNECTOR_LOGO: Record<string, string> = {
 	n8n: n8nLogo,
 	'unreal-engine': unrealEngineLogo,
 	hubspot: hubspotLogo,
+	crawl4ai: crawl4aiLogo,
 	atlassian: atlassianLogo,
 	plaid: plaidLogo,
 	quickbooks: quickbooksLogo,
@@ -128,6 +130,7 @@ export const CONNECTOR_LOGO: Record<string, string> = {
 // Logos « carré plein » (fond intégré, dégradés compris) → affichés bord à bord pour
 // remplir tout le carré. Les autres gardent le fond blanc + une marge.
 export const CONNECTOR_LOGO_FULL_BLEED = new Set<string>([
+	'crawl4ai',
 	'linear',
 	'n8n',
 	'unreal-engine',

@@ -10,6 +10,18 @@ export const CONNECTOR_FR: Record<
 	string,
 	{ name: string; desc: string; actions: string[]; popular?: boolean }
 > = {
+	crawl4ai: {
+		name: 'Crawl4AI',
+		desc: 'Lecture web approfondie, souveraine et gratuite : l’agent lit une page en entier et en extrait l’essentiel proprement. Tourne sur votre machine, sans dépendre d’un service externe.',
+		popular: true,
+		actions: [
+			'Lire une page web et en extraire le texte propre (sans pub ni menus)',
+			'Capturer une page en image',
+			'Enregistrer une page en PDF',
+			'Explorer une page complexe (boutons, contenu qui se charge)',
+			'Récupérer des informations précises sur une page'
+		]
+	},
 	hubspot: {
 		name: 'HubSpot',
 		desc: 'Connecte ton CRM HubSpot : contacts, entreprises, transactions et tickets, pilotés depuis l’agent.',

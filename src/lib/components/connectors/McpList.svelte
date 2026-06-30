@@ -7,6 +7,7 @@
 	import { getCatalog, getConnectors } from '$lib/apis/connectors';
 	import Spinner from '$lib/components/common/Spinner.svelte';
 	import CatalogCard from './CatalogCard.svelte';
+	import Crawl4aiCard from './Crawl4aiCard.svelte';
 	import ConnectorCard from './ConnectorCard.svelte';
 	import AddConnectorModal from './AddConnectorModal.svelte';
 	import McpBrowseModal from './McpBrowseModal.svelte';
@@ -164,13 +165,15 @@
 			</button>
 		</div>
 
-		{#if featured.length > 0}
-			<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-				{#each featured as entry (entry.name)}
-					<CatalogCard {entry} on:changed={load} />
-				{/each}
-			</div>
-		{:else}
+		<!-- Crawl4AI : connecteur MCP « maison » à conteneur Docker local (toujours proposé,
+		     indépendant du catalogue Hermes) → carte dédiée avec bouton Installer/Désinstaller. -->
+		<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+			<Crawl4aiCard on:changed={load} />
+			{#each featured as entry (entry.name)}
+				<CatalogCard {entry} on:changed={load} />
+			{/each}
+		</div>
+		{#if featured.length === 0}
 			<div class="text-xs text-gray-500 py-4">
 				{$i18n.t('Ouvre « Tout parcourir » pour voir tous les connecteurs.')}
 			</div>

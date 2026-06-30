@@ -124,6 +124,27 @@ async def searxng_uninstall(user=Depends(get_admin_user)):
     return await _bridge("POST", "/searxng/uninstall")
 
 
+# --- Crawl4AI : installation à la demande (lecture web approfondie) ----------
+
+
+@router.get("/crawl4ai/status")
+async def crawl4ai_status(user=Depends(get_admin_user)):
+    """État de Crawl4AI (conteneur Docker + connecteur MCP enregistré dans Hermes)."""
+    return await _bridge("GET", "/crawl4ai/status")
+
+
+@router.post("/crawl4ai/install")
+async def crawl4ai_install(user=Depends(get_admin_user)):
+    """Installe Crawl4AI : démarre le conteneur + enregistre le connecteur MCP."""
+    return await _bridge("POST", "/crawl4ai/install")
+
+
+@router.post("/crawl4ai/uninstall")
+async def crawl4ai_uninstall(user=Depends(get_admin_user)):
+    """Désinstalle Crawl4AI : retire le connecteur MCP + arrête le conteneur et l'image."""
+    return await _bridge("POST", "/crawl4ai/uninstall")
+
+
 @router.get("/skills")
 async def list_skills(user=Depends(get_admin_user)):
     """Liste les compétences natives Hermes avec leur état (admin-only)."""
