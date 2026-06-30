@@ -559,7 +559,8 @@
 							<div class="text-xs text-gray-500">
 								{$i18n.t('Aucune clé à saisir pour ce fournisseur.')}
 							</div>
-						{:else}
+						{:else if !isSearxng(provider)}
+							<!-- SearXNG : pas de champ manuel — le bouton « Installer » ci-dessus suffit. -->
 							{#each provider.fields as field}
 								<label class="block mb-2">
 									<span class="text-xs text-gray-600 dark:text-gray-400">{field.label}</span>
