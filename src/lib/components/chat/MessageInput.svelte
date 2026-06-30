@@ -1718,14 +1718,16 @@
 											chatInput?.focus();
 										}}
 									>
+										<Tooltip content={$i18n.t('Ajouter un document')} placement="top">
 										<button
 											type="button"
 											id="input-menu-button"
 											class="bg-transparent hover:bg-gray-100 text-gray-700 dark:text-white dark:hover:bg-gray-800 rounded-full size-8 flex justify-center items-center outline-hidden focus:outline-hidden"
-											aria-label={$i18n.t('More')}
+											aria-label={$i18n.t('Ajouter un document')}
 										>
 											<PlusAlt className="size-5.5" />
 										</button>
+									</Tooltip>
 									</InputMenu>
 
 										<Dropdown bind:show={showSlashMenu} side="bottom" align="start">
@@ -1823,7 +1825,7 @@
 												type="button"
 												id="integration-menu-button"
 												class="bg-transparent hover:bg-gray-100 text-gray-700 dark:text-white dark:hover:bg-gray-800 rounded-full size-8 flex justify-center items-center outline-hidden focus:outline-hidden"
-												aria-label={$i18n.t('Integrations')}
+												aria-label={$i18n.t('Capacités')}
 											>
 												<Component className="size-4.5" strokeWidth="1.5" />
 											</button>
@@ -1832,7 +1834,7 @@
 
 									{#if selectedModelIds.length === 1 && $models.find((m) => m.id === selectedModelIds[0])?.has_user_valves}
 										<div class="ml-1 flex gap-1.5">
-											<Tooltip content={$i18n.t('Valves')} placement="top">
+											<Tooltip content={$i18n.t('Réglages')} placement="top">
 												<button
 													type="button"
 													id="model-valves-button"
@@ -1852,7 +1854,7 @@
 									<div class="ml-1 flex gap-1.5">
 										{#if (selectedToolIds ?? []).length > 0}
 											<Tooltip
-												content={$i18n.t('{{COUNT}} Available Tools', {
+												content={$i18n.t('{{COUNT}} Outils actifs', {
 													COUNT: (selectedToolIds ?? []).length
 												})}
 											>
@@ -1875,7 +1877,7 @@
 
 										{#if (selectedSkillIds ?? []).length > 0}
 											<Tooltip
-												content={$i18n.t('{{COUNT}} Available Skills', {
+												content={$i18n.t('{{COUNT}} Compétences actives', {
 													COUNT: (selectedSkillIds ?? []).length
 												})}
 											>
@@ -1957,7 +1959,7 @@
 										{/each}
 
 										{#if webSearchEnabled}
-											<Tooltip content={$i18n.t('Web Search')} placement="top">
+											<Tooltip content={$i18n.t('Recherche web')} placement="top">
 												<button
 													on:click|preventDefault={() => (webSearchEnabled = !webSearchEnabled)}
 													type="button"
@@ -1975,7 +1977,7 @@
 										{/if}
 
 										{#if imageGenerationEnabled}
-											<Tooltip content={$i18n.t('Image')} placement="top">
+											<Tooltip content={$i18n.t("Génération d'image")} placement="top">
 												<button
 													on:click|preventDefault={() =>
 														(imageGenerationEnabled = !imageGenerationEnabled)}
@@ -1993,7 +1995,7 @@
 										{/if}
 
 										{#if codeInterpreterEnabled}
-											<Tooltip content={$i18n.t('Code Interpreter')} placement="top">
+											<Tooltip content={$i18n.t('Exécution de code')} placement="top">
 												<button
 													aria-label={codeInterpreterEnabled
 														? $i18n.t('Disable Code Interpreter')
