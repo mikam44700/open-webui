@@ -15,8 +15,13 @@
 
 	import { getOAuthClientAuthorizationUrl } from '$lib/apis/configs';
 	import { deleteOAuthSession } from '$lib/apis/auths';
+	import { goto } from '$app/navigation';
 	import { getTools } from '$lib/apis/tools';
 	import { getSkills } from '$lib/apis/skills';
+	import { getIntegrations } from '$lib/apis/integrations';
+	import { getConnectors } from '$lib/apis/connectors';
+	import { INTEGRATION_FR } from '$lib/utils/integrationLabels';
+	import { CONNECTOR_FR } from '$lib/utils/connectorLabels';
 
 	import { toast } from 'svelte-sonner';
 
@@ -63,6 +68,18 @@
 
 	let tools = null;
 	let skills = null;
+
+	// Récapitulatif « Mes connexions » (lecture seule) : QUELLES intégrations et quels
+	// connecteurs MCP sont branchés, par leur NOM (plus parlant qu'un compteur pour un
+	// dirigeant non-tech). Chargé à l'ouverture du menu ; masqué sans bruit si l'API
+	// échoue (droits insuffisants, etc.).
+	let connectionsLoaded = false;
+	let integrationsConnected = 0;
+	let integrationsTotal = 0;
+	let mcpConnected = 0;
+	let mcpTotal = 0;
+	let integrationsConnectedNames: string[] = [];
+	let mcpConnectedNames: string[] = [];
 
 	$: if (show) {
 		init();
@@ -124,6 +141,34 @@
 		}
 
 		selectedSkillIds = selectedSkillIds.filter((id) => Object.keys(skills ?? {}).includes(id));
+
+		// État « Mes connexions » : mêmes sources de vérité que la page Capacités
+		// (intégrations + connecteurs MCP). Non bloquant — en cas d'erreur on masque la section.
+		try {
+			const intRes = await getIntegrations(localStorage.token);
+			const intList = Array.isArray(intRes) ? intRes : (intRes?.integrations ?? []);
+			const intVisible = intList.filter((i) => i?.visible !== false);
+			integrationsTotal = intVisible.length;
+			const intConnected = intVisible.filter(
+				(i) => i?.state === 'connected' || i?.state === 'key_present'
+			);
+			integrationsConnected = intConnected.length;
+			// Nom francisé (« Google », « Notion »…) plutôt que l'id technique.
+			integrationsConnectedNames = intConnected.map(
+				(i) => INTEGRATION_FR[i.id]?.name ?? i.name ?? i.id
+			);
+
+			const connRes = await getConnectors(localStorage.token);
+			const connList = connRes?.connectors ?? [];
+			mcpTotal = connList.length;
+			const connConnected = connList.filter((c) => c?.state === 'connected');
+			mcpConnected = connConnected.length;
+			mcpConnectedNames = connConnected.map((c) => CONNECTOR_FR[c.id]?.name ?? c.name ?? c.id);
+
+			connectionsLoaded = true;
+		} catch (e) {
+			connectionsLoaded = false;
+		}
 	};
 </script>
 
@@ -360,6 +405,112 @@
 								</div>
 							</button>
 						</Tooltip>
+					{/if}
+
+					<!-- Mes connexions : état (branché / non branché) des intégrations et des
+					     connecteurs MCP, en lecture seule, avec un raccourci vers la page complète. -->
+					{#if connectionsLoaded && (integrationsTotal > 0 || mcpTotal > 0)}
+						<div class="mx-2 my-1 border-t border-gray-100 dark:border-gray-800"></div>
+						<div
+							class="px-3 pt-1 pb-1 text-[10px] font-medium uppercase tracking-wider text-gray-400 dark:text-gray-500"
+						>
+							{$i18n.t('Mes connexions')}
+						</div>
+
+						<!-- Intégrations : titre cliquable (→ onglet) puis la LISTE des noms branchés
+						     (Google, Notion…), ou un état honnête si rien n'est branché. -->
+						{#if integrationsTotal > 0}
+							<button
+								class="flex w-full justify-between gap-2 items-center px-3 py-1.5 text-sm cursor-pointer rounded-xl hover:bg-gray-50 dark:hover:bg-gray-800/50"
+								on:click={() => {
+									show = false;
+									goto('/connectors?tab=integrations');
+								}}
+							>
+								<div class="flex-1 truncate">
+									<div class="flex flex-1 gap-2 items-center">
+										<span
+											class="shrink-0 size-2 rounded-full {integrationsConnected > 0
+												? 'bg-green-500'
+												: 'bg-gray-300 dark:bg-gray-600'}"
+										></span>
+										<div class=" truncate">{$i18n.t('Intégrations')}</div>
+									</div>
+								</div>
+								<ChevronRight className="size-3 text-gray-400" />
+							</button>
+
+							{#if integrationsConnectedNames.length > 0}
+								{#each integrationsConnectedNames as name}
+									<button
+										class="flex w-full items-center gap-2 pl-8 pr-3 py-1 text-sm cursor-pointer rounded-xl hover:bg-gray-50 dark:hover:bg-gray-800/50"
+										on:click={() => {
+											show = false;
+											goto('/connectors?tab=integrations');
+										}}
+									>
+										<span class="shrink-0 size-1.5 rounded-full bg-green-500"></span>
+										<span class=" truncate text-gray-700 dark:text-gray-200">{name}</span>
+									</button>
+								{/each}
+							{:else}
+								<div class="pl-8 pr-3 py-1 text-xs text-gray-400 dark:text-gray-500">
+									{$i18n.t('Aucune branchée pour l’instant')}
+								</div>
+							{/if}
+						{/if}
+
+						{#if mcpTotal > 0}
+							<button
+								class="flex w-full justify-between gap-2 items-center px-3 py-1.5 text-sm cursor-pointer rounded-xl hover:bg-gray-50 dark:hover:bg-gray-800/50"
+								on:click={() => {
+									show = false;
+									goto('/connectors?tab=connectors');
+								}}
+							>
+								<div class="flex-1 truncate">
+									<div class="flex flex-1 gap-2 items-center">
+										<span
+											class="shrink-0 size-2 rounded-full {mcpConnected > 0
+												? 'bg-green-500'
+												: 'bg-gray-300 dark:bg-gray-600'}"
+										></span>
+										<div class=" truncate">{$i18n.t('Connecteurs MCP')}</div>
+									</div>
+								</div>
+								<ChevronRight className="size-3 text-gray-400" />
+							</button>
+
+							{#if mcpConnectedNames.length > 0}
+								{#each mcpConnectedNames as name}
+									<button
+										class="flex w-full items-center gap-2 pl-8 pr-3 py-1 text-sm cursor-pointer rounded-xl hover:bg-gray-50 dark:hover:bg-gray-800/50"
+										on:click={() => {
+											show = false;
+											goto('/connectors?tab=connectors');
+										}}
+									>
+										<span class="shrink-0 size-1.5 rounded-full bg-green-500"></span>
+										<span class=" truncate text-gray-700 dark:text-gray-200">{name}</span>
+									</button>
+								{/each}
+							{:else}
+								<div class="pl-8 pr-3 py-1 text-xs text-gray-400 dark:text-gray-500">
+									{$i18n.t('Aucun branché pour l’instant')}
+								</div>
+							{/if}
+						{/if}
+
+						<button
+							class="flex w-full items-center gap-2 px-3 py-1.5 text-xs text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white cursor-pointer rounded-xl hover:bg-gray-50 dark:hover:bg-gray-800/50"
+							on:click={() => {
+								show = false;
+								goto('/connectors?tab=integrations');
+							}}
+						>
+							<span class=" truncate">{$i18n.t('Gérer mes connexions')}</span>
+							<ChevronRight className="size-3" />
+						</button>
 					{/if}
 				</div>
 			{:else if tab === 'tools' && tools}

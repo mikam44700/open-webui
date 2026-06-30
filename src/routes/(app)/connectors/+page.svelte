@@ -5,6 +5,7 @@
 
 	import { mobile, showSidebar, user, expertMode } from '$lib/stores';
 	import { goto } from '$app/navigation';
+	import { page } from '$app/stores';
 
 	import McpList from '$lib/components/connectors/McpList.svelte';
 	import mcpLogo from '$lib/assets/connectors/mcp.svg';
@@ -20,6 +21,16 @@
 	let loaded = false;
 	// Onglet principal de la page Capacités. Par défaut : Modèles IA (1er onglet).
 	let section = 'providers';
+
+	// Lien profond : ?tab=integrations|connectors|tools|… ouvre directement le bon onglet
+	// (ex. « Gérer mes connexions » du chat atterrit sur Intégrations). Validé contre la
+	// liste des onglets connus pour éviter un onglet fantôme.
+	$: {
+		const requested = $page.url.searchParams.get('tab');
+		if (requested && sections.some((s) => s.key === requested)) {
+			section = requested;
+		}
+	}
 
 	// Chaque onglet a sa bannière premium : texte d'accroche + palette dégradée distincte.
 	// Les classes Tailwind sont écrites en toutes lettres (littéraux) pour être compilées.
