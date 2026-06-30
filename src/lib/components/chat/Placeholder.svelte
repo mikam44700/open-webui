@@ -145,7 +145,7 @@
 						class=" text-3xl @sm:text-3xl line-clamp-1 flex items-center"
 						in:fade={{ duration: 100 }}
 					>
-						{$i18n.t('Hello, {{name}}', { name: $user?.name })}
+						{$i18n.t('Hello, {{name}}', { name: ($user?.name ?? '').split(' ')[0] })}
 					</div>
 				</div>
 
