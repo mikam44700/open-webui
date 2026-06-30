@@ -103,6 +103,27 @@ async def get_tool_oauth_status(toolset_name: str, user=Depends(get_admin_user))
     return await _bridge("GET", f"/tools/{toolset_name}/oauth/status")
 
 
+# --- SearXNG : installation à la demande (recherche web souveraine) ----------
+
+
+@router.get("/searxng/status")
+async def searxng_status(user=Depends(get_admin_user)):
+    """État de SearXNG (conteneur Docker + branchement Hermes)."""
+    return await _bridge("GET", "/searxng/status")
+
+
+@router.post("/searxng/install")
+async def searxng_install(user=Depends(get_admin_user)):
+    """Installe SearXNG à la demande : démarre le conteneur + branche Hermes."""
+    return await _bridge("POST", "/searxng/install")
+
+
+@router.post("/searxng/uninstall")
+async def searxng_uninstall(user=Depends(get_admin_user)):
+    """Désinstalle SearXNG : arrête le conteneur + remet la config Hermes à zéro."""
+    return await _bridge("POST", "/searxng/uninstall")
+
+
 @router.get("/skills")
 async def list_skills(user=Depends(get_admin_user)):
     """Liste les compétences natives Hermes avec leur état (admin-only)."""

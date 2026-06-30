@@ -90,3 +90,10 @@ export const startToolOAuth = (token: string, name: string) =>
 
 export const getToolOAuthStatus = (token: string, name: string) =>
 	call(token, 'GET', `/tools/${encodeURIComponent(name)}/oauth/status`);
+
+// SearXNG : recherche web souveraine installée à la demande (conteneur Docker).
+export const getSearxngStatus = (token: string) => call(token, 'GET', '/searxng/status');
+
+export const installSearxng = (token: string) => call(token, 'POST', '/searxng/install');
+
+export const uninstallSearxng = (token: string) => call(token, 'POST', '/searxng/uninstall');

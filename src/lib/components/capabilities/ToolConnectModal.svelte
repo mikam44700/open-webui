@@ -8,7 +8,10 @@
 		testToolKey,
 		disconnectToolProvider,
 		startToolOAuth,
-		getToolOAuthStatus
+		getToolOAuthStatus,
+		getSearxngStatus,
+		installSearxng,
+		uninstallSearxng
 	} from '$lib/apis/capabilities';
 
 	import Spinner from '$lib/components/common/Spinner.svelte';
@@ -184,6 +187,55 @@
 	// Valeurs saisies par clé de champ (jamais pré-remplies pour les secrets déjà présents).
 	let values: Record<string, string> = {};
 
+	// SearXNG : recherche web souveraine installée à la demande (1 clic).
+	let searxngStatus: { installed: boolean; running: boolean; active: boolean } = {
+		installed: false,
+		running: false,
+		active: false
+	};
+	let searxngBusy = false;
+	// Un provider est « SearXNG » s'il déclare le champ SEARXNG_URL (robuste, indépendant du libellé).
+	const isSearxng = (p: Provider) => (p.fields ?? []).some((f) => f.key === 'SEARXNG_URL');
+	$: hasSearxng = providers.some(isSearxng);
+
+	const refreshSearxngStatus = async () => {
+		try {
+			searxngStatus = await getSearxngStatus(localStorage.token);
+		} catch {
+			/* statut indisponible : on laisse les valeurs par défaut */
+		}
+	};
+
+	const installSearxngNow = async () => {
+		searxngBusy = true;
+		try {
+			searxngStatus = await installSearxng(localStorage.token);
+			if (searxngStatus.active) {
+				toast.success($i18n.t('Recherche avancée installée et activée'));
+				dispatch('connected');
+			} else {
+				toast.error($i18n.t('Installation terminée mais non active — réessaie'));
+			}
+		} catch (e) {
+			toast.error($i18n.t('Échec de l’installation de la recherche avancée'));
+		} finally {
+			searxngBusy = false;
+		}
+	};
+
+	const uninstallSearxngNow = async () => {
+		searxngBusy = true;
+		try {
+			searxngStatus = await uninstallSearxng(localStorage.token);
+			toast.success($i18n.t('Recherche avancée désinstallée'));
+			dispatch('disconnected');
+		} catch (e) {
+			toast.error($i18n.t('Échec de la désinstallation'));
+		} finally {
+			searxngBusy = false;
+		}
+	};
+
 	// Suivi OAuth
 	let oauthRunning = false;
 	let oauthAuthUrl: string | null = null;
@@ -214,6 +266,10 @@
 					// pré-remplit le défaut seulement si non sensible et non déjà renseigné
 					if (f.default && !f.present && !f.secret) values[f.key] = f.default;
 				}
+			}
+			// Si l'outil propose SearXNG, on récupère son état d'installation (conteneur).
+			if (providers.some((p) => (p.fields ?? []).some((f) => f.key === 'SEARXNG_URL'))) {
+				await refreshSearxngStatus();
 			}
 		} catch {
 			toast.error($i18n.t('Impossible de charger la connexion de cet outil'));
@@ -439,6 +495,39 @@
 						</div>
 						{#if provider.tag}
 							<div class="text-xs text-gray-500 mb-2">{provider.tag}</div>
+						{/if}
+
+						{#if isSearxng(provider)}
+							<!-- Recherche souveraine : installation/désinstallation en 1 clic (conteneur Docker). -->
+							<div class="mb-3 rounded-xl border border-gray-100 dark:border-gray-850 p-3">
+								{#if searxngStatus.active}
+									<div class="flex items-center justify-between gap-2 flex-wrap">
+										<span class="text-xs text-green-600 dark:text-green-500 flex items-center gap-1.5">
+											● {$i18n.t('Recherche avancée installée et active')}
+										</span>
+										<button
+											class="text-xs px-3 py-1.5 rounded-lg bg-gray-100 dark:bg-gray-850 hover:bg-gray-200 dark:hover:bg-gray-800 transition disabled:opacity-50 flex items-center gap-1.5"
+											on:click={uninstallSearxngNow}
+											disabled={searxngBusy}
+										>
+											{#if searxngBusy}<Spinner className="size-3" />{/if}
+											{$i18n.t('Désinstaller')}
+										</button>
+									</div>
+								{:else}
+									<div class="text-xs text-gray-500 mb-2">
+										{$i18n.t('Recherche web souveraine, installée en un clic — rien à configurer.')}
+									</div>
+									<button
+										class="text-xs px-3 py-1.5 rounded-lg bg-sky-600 hover:bg-sky-700 text-white transition disabled:opacity-50 flex items-center gap-1.5"
+										on:click={installSearxngNow}
+										disabled={searxngBusy}
+									>
+										{#if searxngBusy}<Spinner className="size-3" />{/if}
+										{searxngBusy ? $i18n.t('Installation en cours…') : $i18n.t('Installer')}
+									</button>
+								{/if}
+							</div>
 						{/if}
 
 						{#if provider.kind === 'oauth'}
