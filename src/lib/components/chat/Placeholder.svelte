@@ -6,8 +6,6 @@
 	import { onMount, getContext, tick, createEventDispatcher } from 'svelte';
 	import { blur, fade } from 'svelte/transition';
 
-	const dispatch = createEventDispatcher();
-
 	import { getChatList } from '$lib/apis/chats';
 	import { updateFolderById } from '$lib/apis/folders';
 
@@ -31,6 +29,19 @@
 	import FolderTitle from './Placeholder/FolderTitle.svelte';
 
 	const i18n = getContext('i18n');
+	const dispatch = createEventDispatcher();
+
+	const WELCOME_DISMISSED_KEY = 'hermes-welcome-dismissed';
+	let welcomeDismissed = true; // hidden by default until mount checks localStorage
+
+	onMount(() => {
+		welcomeDismissed = localStorage.getItem(WELCOME_DISMISSED_KEY) === 'true';
+	});
+
+	const dismissWelcome = () => {
+		welcomeDismissed = true;
+		localStorage.setItem(WELCOME_DISMISSED_KEY, 'true');
+	};
 
 	export let createMessagePair: Function;
 	export let stopResponse: Function;
@@ -212,6 +223,35 @@
 			</div>
 		</div>
 	</div>
+
+	{#if !welcomeDismissed && !$selectedFolder}
+		<div
+			class="mx-auto max-w-2xl mt-3 mb-1 font-primary"
+			in:fade={{ duration: 200, delay: 400 }}
+		>
+			<div class="mx-5 relative flex items-start gap-3 rounded-2xl border border-gray-200/60 dark:border-gray-700/50 bg-white/60 dark:bg-gray-800/40 backdrop-blur-sm px-4 py-3 text-left text-sm text-gray-600 dark:text-gray-300 shadow-sm">
+				<div class="flex-1">
+					<p class="font-medium text-gray-700 dark:text-gray-200 mb-1">{$i18n.t('Je peux vous aider à :')}</p>
+					<ul class="space-y-0.5 list-none m-0 p-0">
+						<li>📧 {$i18n.t('Rédiger un email clair et professionnel')}</li>
+						<li>📊 {$i18n.t('Analyser un document et en extraire les points clés')}</li>
+						<li>🔎 {$i18n.t('Faire une recherche et vous faire un point sourcé')}</li>
+					</ul>
+					<p class="mt-2 text-xs text-gray-400 dark:text-gray-500">{$i18n.t('Tapez votre demande ci-dessus ou cliquez sur une suggestion.')}</p>
+				</div>
+				<button
+					type="button"
+					class="shrink-0 ml-1 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 transition"
+					aria-label={$i18n.t('Fermer')}
+					on:click={dismissWelcome}
+				>
+					<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="size-4">
+						<path d="M6.28 5.22a.75.75 0 00-1.06 1.06L8.94 10l-3.72 3.72a.75.75 0 101.06 1.06L10 11.06l3.72 3.72a.75.75 0 101.06-1.06L11.06 10l3.72-3.72a.75.75 0 00-1.06-1.06L10 8.94 6.28 5.22z" />
+					</svg>
+				</button>
+			</div>
+		</div>
+	{/if}
 
 	{#if $selectedFolder}
 		<div

@@ -711,6 +711,10 @@
 					fileItem.content_type = uploadedFile.meta?.content_type || uploadedFile.content_type;
 					fileItem.url = `${uploadedFile.id}`;
 
+					if (!uploadedFile.error) {
+						toast.success($i18n.t('Document chargé : {{name}}', { name: fileItem.name }));
+					}
+
 					files = files;
 				} else {
 					files = files.filter((item) => item?.itemId !== tempItemId);
@@ -1745,11 +1749,11 @@
 											</div>
 										</Dropdown>
 
-									<button
+									<Tooltip content={$i18n.t('Clarifier ma demande')} placement="top">
+										<button
 											type="button"
 											class="bg-transparent hover:bg-gray-100 text-gray-700 dark:text-white dark:hover:bg-gray-800 rounded-full size-8 flex justify-center items-center outline-hidden transition disabled:opacity-30 disabled:cursor-not-allowed"
 											aria-label={$i18n.t('Clarifier ma demande')}
-											title={$i18n.t('Clarifier ma demande')}
 											disabled={enhancing}
 											on:click={enhanceMyPrompt}
 										>
@@ -1788,6 +1792,7 @@
 												</svg>
 											{/if}
 										</button>
+									</Tooltip>
 
 									{#if showWebSearchButton || showImageGenerationButton || showCodeInterpreterButton || showToolsButton || showSkillsButton || (toggleFilters && toggleFilters.length > 0)}
 										<div
@@ -1821,6 +1826,7 @@
 												chatInput?.focus();
 											}}
 										>
+											<Tooltip content={$i18n.t('Capacités')} placement="top">
 											<button
 												type="button"
 												id="integration-menu-button"
@@ -1829,6 +1835,7 @@
 											>
 												<Component className="size-4.5" strokeWidth="1.5" />
 											</button>
+										</Tooltip>
 										</IntegrationsMenu>
 									{/if}
 
@@ -2046,7 +2053,7 @@
 								<div class="self-end flex space-x-1 mr-1 shrink-0 gap-[0.5px]">
 									{#if isActive && prompt === '' && files.length === 0}
 										<div class=" flex items-center">
-											<Tooltip content={$i18n.t('Stop')}>
+											<Tooltip content={$i18n.t('Arrêter la génération')}>
 												<button
 													class="bg-white hover:bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-white dark:hover:bg-gray-800 transition rounded-full p-1.5"
 													on:click={() => {
@@ -2097,7 +2104,7 @@
 
 											{#if $_user?.role === 'admin' || ($_user?.permissions?.chat?.stt ?? true)}
 												<!-- {$i18n.t('Record voice')} -->
-												<Tooltip content={$i18n.t('Dictate')}>
+												<Tooltip content={$i18n.t('Dicter')}>
 													<button
 														id="voice-input-button"
 														class=" text-gray-600 dark:text-gray-300 hover:text-gray-700 dark:hover:text-gray-200 transition rounded-full p-1.5 self-center mr-0.5"
@@ -2149,7 +2156,7 @@
 										{#if prompt === '' && files.length === 0 && ($_user?.role === 'admin' || ($_user?.permissions?.chat?.call ?? true))}
 											<div class=" flex items-center">
 												<!-- {$i18n.t('Call')} -->
-												<Tooltip content={$i18n.t('Voice mode')}>
+												<Tooltip content={$i18n.t('Mode vocal')}>
 													<button
 														class=" bg-black text-white hover:bg-gray-900 dark:bg-white dark:text-black dark:hover:bg-gray-100 transition rounded-full p-1.5 self-center"
 														type="button"

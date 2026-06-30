@@ -9,6 +9,7 @@
 	import { disableSingleTilde } from '$lib/utils/marked/strikethrough-extension';
 	import { mentionExtension } from '$lib/utils/marked/mention-extension';
 	import colonFenceExtension from '$lib/utils/marked/colon-fence-extension';
+	import hermesBadgeExtension from '$lib/utils/marked/hermes-badge-extension';
 
 	import MarkdownTokens from './Markdown/MarkdownTokens.svelte';
 	import footnoteExtension from '$lib/utils/marked/footnote-extension';
@@ -52,6 +53,7 @@
 	marked.use(footnoteExtension(options));
 	marked.use(colonFenceExtension(options));
 	marked.use(disableSingleTilde);
+	marked.use(hermesBadgeExtension());
 	marked.use({
 		extensions: [
 			mentionExtension({ triggerChar: '@' }),

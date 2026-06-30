@@ -136,6 +136,8 @@
 		{:else}
 			<TextToken {token} {done} />
 		{/if}
+	{:else if token.type === 'hermesBadge'}
+		{@html DOMPurify.sanitize(`<span class="${token.variant === 'a-decider' ? 'inline-flex items-center rounded-full px-2 py-0.5 text-xs font-semibold bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-300 border border-red-200/60 dark:border-red-700/40' : token.variant === 'a-surveiller' ? 'inline-flex items-center rounded-full px-2 py-0.5 text-xs font-semibold bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300 border border-amber-200/60 dark:border-amber-700/40' : 'inline-flex items-center rounded-full px-2 py-0.5 text-xs font-semibold bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300 border border-blue-200/60 dark:border-blue-700/40'}">${token.label}</span>`)}
 	{:else if token.type === 'text'}
 		<TextToken {token} {done} />
 	{/if}
