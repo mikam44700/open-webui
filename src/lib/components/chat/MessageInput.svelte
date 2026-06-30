@@ -98,6 +98,7 @@
 	import Dropdown from '../common/Dropdown.svelte';
 
 	import CommandSuggestionList from './MessageInput/CommandSuggestionList.svelte';
+	import HermesSlashMenu from './MessageInput/HermesSlashMenu.svelte';
 	import Knobs from '../icons/Knobs.svelte';
 	import ValvesModal from '../workspace/common/ValvesModal.svelte';
 	import Note from '../icons/Note.svelte';
@@ -438,6 +439,29 @@
 				chatInput.scrollTop = chatInput.scrollHeight;
 			}
 		}
+	};
+
+	// Menu des commandes Hermes (bouton "/" de la barre, à côté du "+"). Le bouton
+	// ouvre une liste des vraies commandes que le gateway Hermes intercepte
+	// (/goal, /agents, /kanban…), francisées et cliquables — découvrable pour un
+	// dirigeant non-tech qui ne sait pas qu'il faut taper "/".
+	let showSlashMenu = false;
+
+	// Commande choisie dans le menu : on l'insère dans le champ (avec un espace)
+	// prête à compléter puis envoyer. Le gateway Hermes l'exécutera comme une
+	// vraie commande. L'espace final évite de rouvrir la palette TipTap native.
+	const onSlashSelect = async (e) => {
+		const { name } = e.detail;
+		showSlashMenu = false;
+		if (!chatInputElement) return;
+		const snippet = `/${name} `;
+		if (!(prompt ?? '').trim()) {
+			chatInputElement.setText(snippet);
+		} else {
+			chatInputElement.insertContent(` ${snippet}`);
+		}
+		await tick();
+		chatInputElement.focus();
 	};
 
 	let command = '';
@@ -1704,6 +1728,21 @@
 											<PlusAlt className="size-5.5" />
 										</button>
 									</InputMenu>
+
+										<Dropdown bind:show={showSlashMenu} side="bottom" align="start">
+											<Tooltip content={$i18n.t('Commandes')} placement="top">
+												<button
+													type="button"
+													class="bg-transparent hover:bg-gray-100 text-gray-700 dark:text-white dark:hover:bg-gray-800 rounded-full size-8 flex justify-center items-center outline-hidden focus:outline-hidden transition {showSlashMenu ? 'bg-gray-100 dark:bg-gray-800' : ''}"
+													aria-label={$i18n.t('Commandes')}
+												>
+													<span class="text-xl font-medium leading-none">/</span>
+												</button>
+											</Tooltip>
+											<div slot="content">
+												<HermesSlashMenu on:select={onSlashSelect} />
+											</div>
+										</Dropdown>
 
 									<button
 											type="button"
