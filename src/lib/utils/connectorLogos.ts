@@ -9,7 +9,7 @@ import linearLogo from '$lib/assets/connectors/linear.png';
 import n8nLogo from '$lib/assets/connectors/n8n.svg';
 import unrealEngineLogo from '$lib/assets/connectors/unreal-engine.png';
 import hubspotLogo from '$lib/assets/connectors/hubspot.svg';
-import crawl4aiLogo from '$lib/assets/connectors/crawl4ai.svg';
+import crawl4aiLogo from '$lib/assets/connectors/crawl4ai.jpg';
 import atlassianLogo from '$lib/assets/connectors/atlassian.svg';
 import plaidLogo from '$lib/assets/connectors/plaid.jpg';
 import quickbooksLogo from '$lib/assets/connectors/quickbooks.svg';
