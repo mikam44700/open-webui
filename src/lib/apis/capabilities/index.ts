@@ -91,21 +91,6 @@ export const startToolOAuth = (token: string, name: string) =>
 export const getToolOAuthStatus = (token: string, name: string) =>
 	call(token, 'GET', `/tools/${encodeURIComponent(name)}/oauth/status`);
 
-// SearXNG : recherche web souveraine installée à la demande (conteneur Docker).
-export const getSearxngStatus = (token: string) => call(token, 'GET', '/searxng/status');
-
-export const installSearxng = (token: string) => call(token, 'POST', '/searxng/install');
-
-export const uninstallSearxng = (token: string) => call(token, 'POST', '/searxng/uninstall');
-
-// Mise à jour SearXNG (versions épinglées, même principe que le moteur Hermes).
-export const checkSearxngUpdate = (token: string) => call(token, 'POST', '/searxng/update/check');
-
-export const startSearxngUpdate = (token: string) => call(token, 'POST', '/searxng/update/start');
-
-export const getSearxngUpdateStatus = (token: string) =>
-	call(token, 'GET', '/searxng/update/status');
-
 // Crawl4AI : lecture web approfondie installée à la demande (conteneur Docker + connecteur MCP).
 export const getCrawl4aiStatus = (token: string) => call(token, 'GET', '/crawl4ai/status');
 

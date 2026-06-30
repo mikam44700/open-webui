@@ -103,45 +103,6 @@ async def get_tool_oauth_status(toolset_name: str, user=Depends(get_admin_user))
     return await _bridge("GET", f"/tools/{toolset_name}/oauth/status")
 
 
-# --- SearXNG : installation à la demande (recherche web souveraine) ----------
-
-
-@router.get("/searxng/status")
-async def searxng_status(user=Depends(get_admin_user)):
-    """État de SearXNG (conteneur Docker + branchement Hermes)."""
-    return await _bridge("GET", "/searxng/status")
-
-
-@router.post("/searxng/install")
-async def searxng_install(user=Depends(get_admin_user)):
-    """Installe SearXNG à la demande : démarre le conteneur + branche Hermes."""
-    return await _bridge("POST", "/searxng/install")
-
-
-@router.post("/searxng/uninstall")
-async def searxng_uninstall(user=Depends(get_admin_user)):
-    """Désinstalle SearXNG : arrête le conteneur + remet la config Hermes à zéro."""
-    return await _bridge("POST", "/searxng/uninstall")
-
-
-@router.post("/searxng/update/check")
-async def searxng_update_check(user=Depends(get_admin_user)):
-    """Une mise à jour SearXNG est-elle disponible ? (comparaison de version, sans réseau)."""
-    return await _bridge("POST", "/searxng/update/check")
-
-
-@router.post("/searxng/update/start")
-async def searxng_update_start(user=Depends(get_admin_user)):
-    """Lance la mise à jour SearXNG en arrière-plan (suivie via update/status)."""
-    return await _bridge("POST", "/searxng/update/start")
-
-
-@router.get("/searxng/update/status")
-async def searxng_update_status(user=Depends(get_admin_user)):
-    """Progression de la mise à jour SearXNG."""
-    return await _bridge("GET", "/searxng/update/status")
-
-
 # --- Crawl4AI : installation à la demande (lecture web approfondie) ----------
 
 
