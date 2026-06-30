@@ -35,8 +35,7 @@
 		showSettings,
 		selectedTerminalId,
 		TTSWorker,
-		temporaryChatEnabled,
-		expertMode
+		temporaryChatEnabled
 	} from '$lib/stores';
 
 	import {
@@ -579,12 +578,8 @@
 		$config?.features?.enable_image_generation &&
 		($_user.role === 'admin' || $_user?.permissions?.features?.image_generation);
 
-	// « Exécution de code » (interpréteur Python sandbox) : jargon technique inutile au
-	// dirigeant non-tech. On le réserve aux « Réglages avancés » (Mode Expert), comme le
-	// reste du technique. Capacité conservée, simplement masquée par défaut.
 	let showCodeInterpreterButton = false;
 	$: showCodeInterpreterButton =
-		$expertMode &&
 		!$selectedTerminalId &&
 		(atSelectedModel?.id ? [atSelectedModel.id] : selectedModels).length ===
 			codeInterpreterCapableModels.length &&

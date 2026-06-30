@@ -10,7 +10,8 @@
 		mobile,
 		settings,
 		toolServers,
-		terminalServers
+		terminalServers,
+		expertMode
 	} from '$lib/stores';
 
 	import { getOAuthClientAuthorizationUrl } from '$lib/apis/configs';
@@ -372,7 +373,10 @@
 						</Tooltip>
 					{/if}
 
-					{#if showCodeInterpreterButton}
+					<!-- « Exécution de code » (interpréteur Python) : jargon inutile au dirigeant non-tech,
+					     réservé aux Réglages avancés. On masque la LIGNE ici, sans toucher au bouton ⊞
+					     du chat (qui reste visible : il porte aussi « Mes connexions »). -->
+					{#if showCodeInterpreterButton && $expertMode}
 						<Tooltip content={$i18n.t('Exécuter du code pour analyser des données')} placement="top-start">
 							<button
 								class="flex w-full justify-between gap-2 items-center px-3 py-1.5 text-sm cursor-pointer rounded-xl hover:bg-gray-50 dark:hover:bg-gray-800/50"
@@ -437,7 +441,6 @@
 										<div class=" truncate">{$i18n.t('Intégrations')}</div>
 									</div>
 								</div>
-								<ChevronRight className="size-3 text-gray-400" />
 							</button>
 
 							{#if integrationsConnectedNames.length > 0}
@@ -478,7 +481,6 @@
 										<div class=" truncate">{$i18n.t('Connecteurs MCP')}</div>
 									</div>
 								</div>
-								<ChevronRight className="size-3 text-gray-400" />
 							</button>
 
 							{#if mcpConnectedNames.length > 0}
