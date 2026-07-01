@@ -10,6 +10,7 @@
 	import McpList from '$lib/components/connectors/McpList.svelte';
 	import mcpLogo from '$lib/assets/connectors/mcp.svg';
 	import ToolsetList from '$lib/components/capabilities/ToolsetList.svelte';
+	import WebSearchList from '$lib/components/capabilities/WebSearchList.svelte';
 	import SkillList from '$lib/components/capabilities/SkillList.svelte';
 	import IntegrationsList from '$lib/components/integrations/IntegrationsList.svelte';
 	import GatewayList from '$lib/components/gateway/GatewayList.svelte';
@@ -86,6 +87,19 @@
 				wrap: 'from-slate-200/70 via-gray-100/50 to-zinc-100/60 dark:from-slate-800/40 dark:via-gray-900/20 dark:to-zinc-900/20',
 				halo1: 'bg-slate-300/40 dark:bg-slate-500/20',
 				halo2: 'bg-zinc-300/30 dark:bg-zinc-500/10'
+			}
+		},
+		{
+			key: 'web-search',
+			label: 'Recherche & web',
+			desc: 'Tous les services de recherche et de navigation web, visibles d’un coup d’œil. Activez et connectez ceux que vous voulez.',
+			banner: {
+				lead: 'Donnez à votre assistant la',
+				strong: 'recherche et la lecture du web',
+				sub: 'Tous les fournisseurs réunis, sans rien chercher.',
+				wrap: 'from-sky-200/70 via-cyan-100/50 to-blue-100/60 dark:from-sky-900/30 dark:via-cyan-900/20 dark:to-blue-900/20',
+				halo1: 'bg-sky-400/30 dark:bg-sky-500/20',
+				halo2: 'bg-cyan-300/30 dark:bg-cyan-500/10'
 			}
 		},
 		{
@@ -265,7 +279,9 @@
 				{/if}
 			</div>
 
-			{#if section === 'tools'}
+			{#if section === 'web-search'}
+				<WebSearchList />
+			{:else if section === 'tools'}
 				<ToolsetList />
 			{:else if section === 'integrations'}
 				<IntegrationsList />

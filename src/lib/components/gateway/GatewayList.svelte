@@ -16,6 +16,10 @@
 	import Spinner from '$lib/components/common/Spinner.svelte';
 	import ConfirmDialog from '$lib/components/common/ConfirmDialog.svelte';
 	import { expertMode } from '$lib/stores';
+	import { CHANNEL_FR } from '$lib/utils/channelLabels';
+
+	// Déroulant « Voir ce que ça fait » ouvert, par canal (id → booléen).
+	let aboutOpen: Record<string, boolean> = {};
 
 	let showRestartConfirm = false;
 	let showRegenConfirm = false;
@@ -408,7 +412,9 @@
 											{st.label}
 										</span>
 									</div>
-									<div class="text-xs text-gray-500 line-clamp-2 mt-0.5">{p.description}</div>
+									<div class="text-xs text-gray-500 mt-0.5">
+										{CHANNEL_FR[p.id]?.desc ?? p.description}
+									</div>
 								</div>
 							</div>
 							<!-- toggle activer/désactiver -->
@@ -430,6 +436,43 @@
 								/>
 							</button>
 						</div>
+
+						{#if CHANNEL_FR[p.id]?.actions?.length}
+							<div class="mt-2">
+								{#if !aboutOpen[p.id]}
+									<button
+										type="button"
+										class="text-xs font-medium text-sky-600 dark:text-sky-400 hover:underline"
+										on:click={() => (aboutOpen = { ...aboutOpen, [p.id]: true })}
+									>
+										{$i18n.t('Voir ce que ça fait')} ›
+									</button>
+								{:else}
+									<div class="flex flex-col gap-1.5">
+										<div
+											class="text-[11px] font-semibold uppercase tracking-wide text-gray-400 dark:text-gray-500"
+										>
+											{$i18n.t('Ce que ça fait')}
+										</div>
+										<ul class="flex flex-col gap-1 pl-0.5">
+											{#each CHANNEL_FR[p.id].actions as action}
+												<li class="flex items-start gap-1.5 text-[11px] text-gray-600 dark:text-gray-400">
+													<span class="flex-none mt-1 size-1 rounded-full bg-gray-400 dark:bg-gray-600"></span>
+													<span>{$i18n.t(action)}</span>
+												</li>
+											{/each}
+										</ul>
+										<button
+											type="button"
+											class="self-start text-xs text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 transition"
+											on:click={() => (aboutOpen = { ...aboutOpen, [p.id]: false })}
+										>
+											{$i18n.t('Masquer')}
+										</button>
+									</div>
+								{/if}
+							</div>
+						{/if}
 
 						<div
 							class="flex items-center gap-1 mt-3 pt-3 border-t border-gray-50 dark:border-gray-850"

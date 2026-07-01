@@ -3,6 +3,7 @@
 
 	import Switch from '$lib/components/common/Switch.svelte';
 	import { TOOLSET_FR } from '$lib/utils/toolsetLabels';
+	import { expertMode } from '$lib/stores';
 
 	import webLogo from '$lib/assets/toolsets/web.jpg';
 	import browserLogo from '$lib/assets/toolsets/browser.jpg';
@@ -90,21 +91,25 @@
 	$: warnMissing = toolset.enabled && needsConnection;
 	// La carte n'est dépliable que si elle a du contenu à montrer.
 	$: hasDetails = providers.length > 0 || connectable;
+	// « Voir les services » (déplier + détail des fournisseurs) est réservé aux Réglages
+	// avancés : le dirigeant non-tech ne voit que la capacité + son interrupteur.
+	$: canExpand = hasDetails && $expertMode;
+	$: if (!$expertMode) expanded = false;
 
 	const toggle = () => {
-		if (hasDetails) expanded = !expanded;
+		if (canExpand) expanded = !expanded;
 	};
 </script>
 
 <div
-	class="border border-gray-100 dark:border-gray-850 rounded-2xl px-5 py-4 h-full transition hover:border-gray-200 dark:hover:border-gray-700 hover:shadow-sm {hasDetails
+	class="border border-gray-100 dark:border-gray-850 rounded-2xl px-5 py-4 h-full transition hover:border-gray-200 dark:hover:border-gray-700 hover:shadow-sm {canExpand
 		? 'cursor-pointer hover:bg-gray-50 dark:hover:bg-white/[0.03]'
 		: ''}"
-	role={hasDetails ? 'button' : undefined}
-	tabindex={hasDetails ? 0 : undefined}
+	role={canExpand ? 'button' : undefined}
+	tabindex={canExpand ? 0 : undefined}
 	on:click={toggle}
 	on:keydown={(e) => {
-		if (hasDetails && (e.key === 'Enter' || e.key === ' ')) {
+		if (canExpand && (e.key === 'Enter' || e.key === ' ')) {
 			e.preventDefault();
 			toggle();
 		}
@@ -151,7 +156,7 @@
 				</div>
 			{/if}
 
-			{#if hasDetails && !expanded}
+			{#if canExpand && !expanded}
 				<div class="text-xs font-medium text-sky-600 dark:text-sky-400 mt-2.5">
 					{$i18n.t('Voir les services')} ›
 				</div>

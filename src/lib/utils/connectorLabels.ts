@@ -10,6 +10,318 @@ export const CONNECTOR_FR: Record<
 	string,
 	{ name: string; desc: string; actions: string[]; popular?: boolean }
 > = {
+	ableton: {
+		name: 'Ableton Live',
+		desc: 'Pilote Ableton Live depuis l’agent.',
+		actions: [
+			'Créer des pistes et des clips MIDI',
+			'Régler les instruments et les effets',
+			'Manipuler un Live Set',
+			'Nécessite Ableton ouvert avec un pont script'
+		]
+	},
+	alpaca: {
+		name: 'Alpaca',
+		desc: 'Trading actions et crypto (marché US).',
+		actions: [
+			'Passer des ordres actions, ETF, options et crypto',
+			'Suivre et gérer un portefeuille',
+			'Démarrer en environnement de test (« paper »)',
+			'Relire chaque ordre avant exécution'
+		]
+	},
+	aws: {
+		name: 'AWS',
+		desc: 'Point d’entrée aux services AWS.',
+		actions: [
+			'Accéder aux services AWS (EC2, S3, Lambda, RDS…)',
+			'Serveur MCP officiel d’AWS Labs',
+			'Restreindre les droits IAM au strict nécessaire'
+		]
+	},
+	base: {
+		name: 'Base',
+		desc: 'Passerelle onchain de Coinbase (Base).',
+		actions: [
+			'Échanger des jetons et envoyer des fonds',
+			'Suivre un portefeuille et utiliser la DeFi',
+			'Non-custodial : vous signez chaque transaction'
+		]
+	},
+	blender: {
+		name: 'Blender',
+		desc: 'Pilote le moteur 3D de Blender.',
+		actions: [
+			'Créer scènes, objets, matériaux et éclairage',
+			'Piloter Blender par instructions',
+			'Nécessite Blender ouvert avec l’add-on'
+		]
+	},
+	ccxt: {
+		name: 'CCXT',
+		desc: 'Données de 20+ plateformes crypto.',
+		actions: [
+			'Lire les données de marché (Binance, Kraken, Bybit…)',
+			'Accès unifié en lecture',
+			'L’exécution d’ordres engage de l’argent réel (prudence)'
+		]
+	},
+	cloudflare: {
+		name: 'Cloudflare',
+		desc: 'Gère votre infrastructure Cloudflare.',
+		actions: [
+			'Piloter Workers, DNS, R2, KV et Zero Trust',
+			'Via l’API Cloudflare',
+			'Autoriser et choisir les accès à la connexion'
+		]
+	},
+	coingecko: {
+		name: 'CoinGecko',
+		desc: 'Prix et données du marché crypto.',
+		actions: [
+			'Consulter prix, capitalisations et historiques',
+			'Serveur officiel CoinGecko',
+			'Offre gratuite limitée (idéale pour la veille)'
+		]
+	},
+	context7: {
+		name: 'Context7',
+		desc: 'Docs à jour des librairies pour l’agent.',
+		actions: [
+			'Récupérer la doc exacte d’une librairie',
+			'Épinglée à la bonne version',
+			'Évite les API inventées (hallucinations)'
+		]
+	},
+	'davinci-resolve': {
+		name: 'DaVinci Resolve',
+		desc: 'Pilote DaVinci Resolve Studio.',
+		actions: [
+			'Montage timeline et gestion des médias',
+			'Étalonnage, Fusion, Fairlight et rendu',
+			'Nécessite Resolve ouvert (scripting local)'
+		]
+	},
+	'docker-hub': {
+		name: 'Docker Hub',
+		desc: 'Cherche et gère des images Docker.',
+		actions: [
+			'Rechercher des images sur Docker Hub',
+			'Gérer les tags',
+			'Communautaire — relire avant un accès en écriture'
+		]
+	},
+	dune: {
+		name: 'Dune',
+		desc: 'Requêtes Dune Analytics onchain.',
+		actions: [
+			'Lancer et lire des requêtes Dune',
+			'Analyser des données onchain',
+			'Crédits API comptés (offre gratuite limitée)'
+		]
+	},
+	etherscan: {
+		name: 'Etherscan',
+		desc: 'Explorateur de blocs Ethereum.',
+		actions: [
+			'Vérifier des contrats et des transactions',
+			'Récupérer des ABI',
+			'Lecture seule, sans risque'
+		]
+	},
+	fetch: {
+		name: 'Fetch',
+		desc: 'Récupère une page web en Markdown.',
+		actions: [
+			'Télécharger le contenu d’une URL',
+			'Le convertir en Markdown pour l’agent'
+		]
+	},
+	filesystem: {
+		name: 'Filesystem',
+		desc: 'Lit et écrit des fichiers locaux.',
+		actions: [
+			'Lire, écrire et chercher des fichiers',
+			'Limité aux dossiers autorisés'
+		]
+	},
+	git: {
+		name: 'Git',
+		desc: 'Gère des dépôts Git locaux.',
+		actions: [
+			'Lire et parcourir un dépôt',
+			'Rechercher dans l’historique',
+			'Manipuler les dépôts Git locaux'
+		]
+	},
+	github: {
+		name: 'GitHub',
+		desc: 'Gère vos dépôts GitHub.',
+		actions: [
+			'Gérer dépôts, issues et pull requests',
+			'Via l’API GitHub'
+		]
+	},
+	kubernetes: {
+		name: 'Kubernetes',
+		desc: 'Inspecte un cluster en langage clair.',
+		actions: [
+			'Inspecter le cluster',
+			'Opérations façon kubectl en langage naturel',
+			'Communautaire — viser d’abord un contexte hors-prod'
+		]
+	},
+	'meigen-ai-design': {
+		name: 'MeiGen AI Design',
+		desc: 'Génération d’images et de vidéos.',
+		actions: [
+			'9 modèles de pointe (GPT Image 2, Veo 3.1, Midjourney…)',
+			'Créer des images et des vidéos',
+			'Sécurisé (SSRF), fichiers auto-supprimés après 24 h'
+		]
+	},
+	memory: {
+		name: 'Memory',
+		desc: 'Mémoire persistante entre les sessions.',
+		actions: [
+			'Mémoriser via un graphe de connaissances',
+			'Retrouver le contexte d’une session à l’autre'
+		]
+	},
+	mistral: {
+		name: 'Mistral AI',
+		desc: 'Toute la surface de Mistral AI.',
+		actions: [
+			'Chat, embeddings, vision et OCR',
+			'Audio Voxtral (transcription et synthèse vocale)',
+			'Agents, modération, fichiers et traitement par lots',
+			'Offre gratuite : 1 milliard de tokens/mois'
+		]
+	},
+	neon: {
+		name: 'Neon',
+		desc: 'Postgres serverless avec branches.',
+		actions: [
+			'Base Postgres serverless',
+			'Migrations testées sur une branche instantanée',
+			'Appliquées seulement une fois validées'
+		]
+	},
+	playwright: {
+		name: 'Playwright',
+		desc: 'Pilote un vrai navigateur.',
+		actions: [
+			'Naviguer, cliquer et remplir des formulaires',
+			'Faire des captures d’écran',
+			'Lancer des tests en langage naturel'
+		]
+	},
+	'polygon-io': {
+		name: 'Polygon.io',
+		desc: 'Données de marché financières.',
+		actions: [
+			'Flux actions, options, forex et crypto',
+			'Agrégats et transactions',
+			'Serveur officiel, données seules (pas d’exécution)'
+		]
+	},
+	postgres: {
+		name: 'Postgres',
+		desc: 'Interroge une base PostgreSQL.',
+		actions: ['Requêter et inspecter la base', 'Lecture seule']
+	},
+	puppeteer: {
+		name: 'Puppeteer',
+		desc: 'Pilote un navigateur sans interface.',
+		actions: ['Naviguer et extraire des pages', 'Faire des captures d’écran']
+	},
+	redis: {
+		name: 'Redis',
+		desc: 'Inspecte une instance Redis.',
+		actions: [
+			'Consulter les clés',
+			'Gérer les caches',
+			'Surveiller la mémoire',
+			'Serveur officiel Redis'
+		]
+	},
+	sentry: {
+		name: 'Sentry',
+		desc: 'Remonte les erreurs de production.',
+		actions: [
+			'Lire issues, traces et détails d’un incident',
+			'Proposer un correctif',
+			'Se marie bien avec GitHub'
+		]
+	},
+	'sequential-thinking': {
+		name: 'Sequential Thinking',
+		desc: 'Raisonnement étape par étape.',
+		actions: [
+			'Brouillon de réflexion structuré',
+			'Idéal pour les problèmes difficiles'
+		]
+	},
+	'solana-agent-kit': {
+		name: 'Solana Agent Kit',
+		desc: 'Actions onchain sur Solana.',
+		actions: [
+			'Transferts, swaps et opérations sur jetons',
+			'Chaîne irréversible : prudence',
+			'Préférer un wallet dédié pour signer'
+		]
+	},
+	sqlite: {
+		name: 'SQLite',
+		desc: 'Interroge une base SQLite locale.',
+		actions: ['Requêter et inspecter la base locale']
+	},
+	supabase: {
+		name: 'Supabase',
+		desc: 'Gère votre backend Supabase.',
+		actions: [
+			'Base de données, authentification, stockage et edge functions',
+			'Piloter par le chat',
+			'Commencer en lecture seule'
+		]
+	},
+	'the-graph': {
+		name: 'The Graph',
+		desc: 'Données onchain via des subgraphs.',
+		actions: [
+			'Interroger des données onchain',
+			'Sans faire tourner d’indexeur',
+			'Lecture seule, faible risque'
+		]
+	},
+	thirdweb: {
+		name: 'thirdweb',
+		desc: 'Contrats intelligents multi-chaînes EVM.',
+		actions: [
+			'Déployer et utiliser des contrats',
+			'Sur les chaînes EVM',
+			'Déploiements irréversibles : tester en testnet'
+		]
+	},
+	tradingview: {
+		name: 'TradingView',
+		desc: 'Graphiques et données de marché.',
+		actions: [
+			'Contexte marché depuis TradingView',
+			'Communautaire (scraping) — fragile aux changements',
+			'À considérer comme « au mieux »'
+		]
+	},
+	vercel: {
+		name: 'Vercel',
+		desc: 'Inspecte vos déploiements Vercel.',
+		actions: [
+			'Voir les déploiements',
+			'Gérer les variables d’environnement',
+			'Lire les logs',
+			'Garder un humain dans la boucle sur ce qui part en prod'
+		]
+	},
 	crawl4ai: {
 		name: 'Crawl4AI',
 		desc: 'Lecture web approfondie, souveraine et gratuite : l’agent lit une page en entier et en extrait l’essentiel proprement. Tourne sur votre machine, sans dépendre d’un service externe.',
@@ -24,7 +336,7 @@ export const CONNECTOR_FR: Record<
 	},
 	hubspot: {
 		name: 'HubSpot',
-		desc: 'Connecte ton CRM HubSpot : contacts, entreprises, transactions et tickets, pilotés depuis l’agent.',
+		desc: 'Votre CRM HubSpot, piloté depuis l’agent.',
 		popular: true,
 		actions: [
 			'Rechercher contacts, entreprises et transactions',
@@ -36,7 +348,7 @@ export const CONNECTOR_FR: Record<
 	},
 	linear: {
 		name: 'Linear',
-		desc: 'Gère tes tickets, projets et commentaires Linear (gestion de projet) directement depuis l’agent.',
+		desc: 'Tickets et projets Linear, depuis l’agent.',
 		actions: [
 			'Rechercher et lister tickets, projets et équipes',
 			'Créer un ticket (titre, description, priorité)',
@@ -47,7 +359,7 @@ export const CONNECTOR_FR: Record<
 	},
 	n8n: {
 		name: 'N8N',
-		desc: 'Pilote et inspecte tes workflows d’automatisation n8n, via un pont local (sans port public exposé).',
+		desc: 'Pilote vos workflows d’automatisation n8n.',
 		actions: [
 			'Lister les workflows existants',
 			'Inspecter le détail d’un workflow (nœuds, connexions)',
@@ -58,7 +370,7 @@ export const CONNECTOR_FR: Record<
 	},
 	'unreal-engine': {
 		name: 'Unreal Engine',
-		desc: 'Pilote l’éditeur Unreal Engine 5.8 en local : manipulation de la scène et automatisation de l’éditeur.',
+		desc: 'Pilote l’éditeur Unreal Engine en local.',
 		actions: [
 			'Créer, déplacer et supprimer des acteurs dans la scène',
 			'Inspecter et modifier les propriétés des objets',

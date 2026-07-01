@@ -97,6 +97,8 @@
 	$: logoSrc = CONNECTOR_LOGO[connector.id];
 	$: fullBleed = CONNECTOR_LOGO_FULL_BLEED.has(connector.id);
 	$: displayName = CONNECTOR_FR[connector.id]?.name ?? connector.id;
+	// Sous-titre gris : phrase courte francisée si dispo, sinon l'URL du serveur (fallback).
+	$: subtitle = CONNECTOR_FR[connector.id]?.desc ?? connector.endpoint;
 	// Capacités (mêmes données FR que le catalogue) — affichées sur demande.
 	$: actions = CONNECTOR_FR[connector.id]?.actions ?? [];
 </script>
@@ -143,8 +145,8 @@
 		{/if}
 		<div class="flex-1 min-w-0">
 			<div class="text-sm font-medium line-clamp-1">{displayName}</div>
-			{#if connector.endpoint}
-				<div class="text-xs text-gray-500 line-clamp-1">{connector.endpoint}</div>
+			{#if subtitle}
+				<div class="text-xs text-gray-500 line-clamp-1">{subtitle}</div>
 			{/if}
 		</div>
 		<span class="flex-none text-[11px] px-2 py-0.5 rounded-full font-medium {state.cls}">

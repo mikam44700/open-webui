@@ -102,6 +102,7 @@
 
 	let googleOpen = false;
 	let emailOpen = false;
+	let aboutExpanded = false;
 	let confirmDisconnect = false;
 	let busy = false;
 	let showField = false;
@@ -215,7 +216,7 @@
 		<div class="flex-1 min-w-0 flex flex-col gap-1">
 			<div class="text-sm font-medium leading-tight line-clamp-1">{name}</div>
 			{#if desc}
-				<div class="text-xs text-gray-500 leading-snug line-clamp-2">{desc}</div>
+				<div class="text-xs text-gray-500 leading-snug">{desc}</div>
 			{/if}
 		</div>
 		<span class="flex-none text-[11px] px-2 py-0.5 rounded-full font-medium {stateCls}">
@@ -247,6 +248,39 @@
 						{s}
 					</span>
 				{/each}
+			</div>
+		{/if}
+	{/if}
+
+	{#if fr?.actions?.length}
+		{#if !aboutExpanded}
+			<button
+				type="button"
+				class="self-start text-xs font-medium text-sky-600 dark:text-sky-400 hover:underline"
+				on:click={() => (aboutExpanded = true)}
+			>
+				{$i18n.t('Voir ce que ça fait')} ›
+			</button>
+		{:else}
+			<div class="flex flex-col gap-1.5">
+				<div class="text-[11px] font-semibold uppercase tracking-wide text-gray-400 dark:text-gray-500">
+					{$i18n.t('Ce que ça fait')}
+				</div>
+				<ul class="flex flex-col gap-1 pl-0.5">
+					{#each fr.actions as action}
+						<li class="flex items-start gap-1.5 text-[11px] text-gray-600 dark:text-gray-400">
+							<span class="flex-none mt-1 size-1 rounded-full bg-gray-400 dark:bg-gray-600"></span>
+							<span>{$i18n.t(action)}</span>
+						</li>
+					{/each}
+				</ul>
+				<button
+					type="button"
+					class="self-start text-xs text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 transition"
+					on:click={() => (aboutExpanded = false)}
+				>
+					{$i18n.t('Masquer')}
+				</button>
 			</div>
 		{/if}
 	{/if}

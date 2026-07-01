@@ -1,8 +1,11 @@
 <script lang="ts">
-	import { getContext, createEventDispatcher } from 'svelte';
+	import { getContext, createEventDispatcher, onMount } from 'svelte';
 
 	import { INTEGRATION_FR, INTEGRATION_CATEGORIES } from '$lib/utils/integrationLabels';
+	import { getToolConnection } from '$lib/apis/capabilities';
+	import { type Provider } from '$lib/utils/toolConnect';
 	import IntegrationCard from './IntegrationCard.svelte';
+	import ToolProviderCatalogCard from './ToolProviderCatalogCard.svelte';
 
 	const i18n = getContext('i18n');
 	const dispatch = createEventDispatcher();
@@ -11,6 +14,39 @@
 	// Les connecteurs MCP ont leur propre page (onglet MCP de Capacités) — pas ici.
 	export let open = false;
 	export let integrations: any[] = [];
+
+	// Fournisseurs d'IA à clé (FAL, Krea, Mistral…) présentés ICI comme des cartes de catalogue,
+	// au même titre que les autres intégrations. Leur « Se connecter » branche la vraie clé du
+	// toolset Hermes correspondant (image_gen / tts). Ajouter une ligne pour en proposer d'autres.
+	const EXTRA_PROVIDER_CARDS = [
+		{ toolset: 'image_gen', slug: 'fal' },
+		{ toolset: 'image_gen', slug: 'krea' },
+		{ toolset: 'tts', slug: 'mistral' }
+	];
+	let extras: { toolsetName: string; provider: Provider }[] = [];
+
+	const loadExtras = async () => {
+		const byToolset = new Map<string, string[]>();
+		for (const e of EXTRA_PROVIDER_CARDS) {
+			byToolset.set(e.toolset, [...(byToolset.get(e.toolset) ?? []), e.slug]);
+		}
+		const out: { toolsetName: string; provider: Provider }[] = [];
+		for (const [toolsetName, slugs] of byToolset) {
+			try {
+				const conn = await getToolConnection(localStorage.token, toolsetName);
+				const providers: Provider[] = conn?.providers ?? [];
+				for (const slug of slugs) {
+					const p = providers.find((pp) => pp.slug === slug);
+					if (p) out.push({ toolsetName, provider: p });
+				}
+			} catch {
+				/* toolset indisponible : on ignore, les autres cartes restent affichées */
+			}
+		}
+		extras = out;
+	};
+
+	onMount(loadExtras);
 
 	let search = '';
 	let category = '';
@@ -37,6 +73,13 @@
 			if (!hay.includes(needle)) return false;
 		}
 		return true;
+	});
+
+	// Les cartes de fournisseurs IA suivent la recherche (par nom) et ne s'affichent pas quand un
+	// filtre par catégorie « app » est actif (elles ne relèvent pas de ces catégories).
+	$: filteredExtras = (category ? [] : extras).filter((e) => {
+		if (!search.trim()) return true;
+		return e.provider.name.toLowerCase().includes(search.trim().toLowerCase());
 	});
 
 	const close = () => {
@@ -144,10 +187,17 @@
 						</div>
 					</div>
 
-					{#if filteredApps.length > 0}
+					{#if filteredApps.length > 0 || filteredExtras.length > 0}
 						<div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
 							{#each filteredApps as integration (integration.id)}
 								<IntegrationCard {integration} on:changed={() => dispatch('changed')} />
+							{/each}
+							{#each filteredExtras as e (e.toolsetName + ':' + e.provider.name)}
+								<ToolProviderCatalogCard
+									toolsetName={e.toolsetName}
+									provider={e.provider}
+									on:changed={() => dispatch('changed')}
+								/>
 							{/each}
 						</div>
 					{:else}
