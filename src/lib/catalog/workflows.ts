@@ -14,6 +14,8 @@ export type Workflow = {
 	description: string;
 	/** Pictogramme simple (emoji) pour repère visuel rapide. */
 	icon: string;
+	/** Image optionnelle (URL/chemin) — si fournie, remplace l'emoji dans la carte. */
+	image?: string;
 	/** Prompt pré-rempli dans le chat. */
 	prompt: string;
 };

@@ -3,7 +3,7 @@
 	import { marked } from 'marked';
 	import DOMPurify from 'dompurify';
 
-	import { getContext, tick, createEventDispatcher } from 'svelte';
+	import { onMount, getContext, tick, createEventDispatcher } from 'svelte';
 	import { blur, fade } from 'svelte/transition';
 
 	import { getChatList } from '$lib/apis/chats';
@@ -40,6 +40,21 @@
 		} else {
 			prompt = p; // repli : au moins le brouillon est posé
 		}
+	};
+
+	// Raccourcis « Pour démarrer » : le client peut les masquer (choix mémorisé), et les rappeler.
+	const STARTERS_HIDDEN_KEY = 'hermes-starters-hidden';
+	let startersHidden = false;
+	onMount(() => {
+		startersHidden = localStorage.getItem(STARTERS_HIDDEN_KEY) === 'true';
+	});
+	const hideStarters = () => {
+		startersHidden = true;
+		localStorage.setItem(STARTERS_HIDDEN_KEY, 'true');
+	};
+	const showStarters = () => {
+		startersHidden = false;
+		localStorage.removeItem(STARTERS_HIDDEN_KEY);
 	};
 
 	export let createMessagePair: Function;
@@ -232,31 +247,58 @@
 		</div>
 	{:else}
 		<!-- Cartes d'action (catalogue métier) : pré-remplissent le chat au clic. Remplace l'ancienne
-		     boîte « Je peux vous aider » + les suggestions natives. -->
+		     boîte « Je peux vous aider » + les suggestions natives. Masquables (choix mémorisé). -->
 		<div class="mx-auto max-w-3xl font-primary mt-3 px-5" in:fade={{ duration: 200, delay: 200 }}>
-			<div class="flex items-center gap-1.5 mb-2.5 text-xs font-medium text-gray-400 dark:text-gray-500">
-				<svg class="w-3.5 h-3.5" viewBox="0 0 20 20" fill="currentColor"><path d="M11 2.5 4 11h4.2l-1 6.5L15 9h-4.2l1-6.5Z"/></svg>
-				{$i18n.t('Pour démarrer')}
-			</div>
-			<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2.5 text-left">
-				{#each WORKFLOWS as w (w.id)}
+			{#if startersHidden}
+				<div class="text-center">
 					<button
 						type="button"
-						class="group flex items-start gap-2.5 px-3.5 py-3 rounded-2xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 hover:-translate-y-0.5 hover:shadow-[0_2px_10px_rgba(0,0,0,0.05)] hover:border-gray-300 dark:hover:border-gray-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-gray-300 dark:focus-visible:ring-gray-700 transition-all duration-200"
-						on:click={() => selectWorkflow(w.prompt)}
+						class="text-xs text-gray-400 dark:text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 transition"
+						on:click={showStarters}
 					>
-						<span class="text-lg leading-none mt-0.5">{w.icon}</span>
-						<span class="flex flex-col min-w-0">
-							<span class="text-sm font-medium text-gray-900 dark:text-white truncate"
-								>{$i18n.t(w.label)}</span
-							>
-							<span class="text-xs text-gray-500 dark:text-gray-400 line-clamp-2 leading-snug"
-								>{$i18n.t(w.description)}</span
-							>
-						</span>
+						{$i18n.t('Afficher les raccourcis')}
 					</button>
-				{/each}
-			</div>
+				</div>
+			{:else}
+				<div class="flex items-center justify-between mb-2.5">
+					<div class="flex items-center gap-1.5 text-xs font-medium text-gray-400 dark:text-gray-500">
+						<svg class="w-3.5 h-3.5" viewBox="0 0 20 20" fill="currentColor"><path d="M11 2.5 4 11h4.2l-1 6.5L15 9h-4.2l1-6.5Z"/></svg>
+						{$i18n.t('Pour démarrer')}
+					</div>
+					<button
+						type="button"
+						class="p-1 -mr-1 rounded-md text-gray-300 dark:text-gray-600 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-850 transition"
+						aria-label={$i18n.t('Masquer les raccourcis')}
+						title={$i18n.t('Masquer les raccourcis')}
+						on:click={hideStarters}
+					>
+						<svg class="w-4 h-4" viewBox="0 0 20 20" fill="currentColor"><path d="M6.28 5.22a.75.75 0 0 0-1.06 1.06L8.94 10l-3.72 3.72a.75.75 0 1 0 1.06 1.06L10 11.06l3.72 3.72a.75.75 0 1 0 1.06-1.06L11.06 10l3.72-3.72a.75.75 0 0 0-1.06-1.06L10 8.94 6.28 5.22Z"/></svg>
+					</button>
+				</div>
+				<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2.5 text-left">
+					{#each WORKFLOWS as w (w.id)}
+						<button
+							type="button"
+							class="group flex items-start gap-2.5 px-3.5 py-3 rounded-2xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 hover:-translate-y-0.5 hover:shadow-[0_2px_10px_rgba(0,0,0,0.05)] hover:border-gray-300 dark:hover:border-gray-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-gray-300 dark:focus-visible:ring-gray-700 transition-all duration-200"
+							on:click={() => selectWorkflow(w.prompt)}
+						>
+							{#if w.image}
+								<img src={w.image} alt="" class="w-5 h-5 mt-0.5 object-contain shrink-0" draggable="false" />
+							{:else}
+								<span class="text-lg leading-none mt-0.5">{w.icon}</span>
+							{/if}
+							<span class="flex flex-col min-w-0">
+								<span class="text-sm font-medium text-gray-900 dark:text-white truncate"
+									>{$i18n.t(w.label)}</span
+								>
+								<span class="text-xs text-gray-500 dark:text-gray-400 line-clamp-2 leading-snug"
+									>{$i18n.t(w.description)}</span
+								>
+							</span>
+						</button>
+					{/each}
+				</div>
+			{/if}
 		</div>
 	{/if}
 </div>
