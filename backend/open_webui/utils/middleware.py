@@ -3933,6 +3933,10 @@ async def streaming_chat_response_handler(response, ctx):
                         int(metadata.get('params', {}).get('stream_delta_chunk_size') or 1),
                     )
                     last_delta_data = None
+                    # Nom du dernier événement SSE nommé reçu de Hermes (le moteur émet
+                    # ses étapes de travail via « event: hermes.tool.progress »), pour
+                    # traduire la ligne « data: » suivante en statut affiché en direct.
+                    pending_sse_event = None
 
                     async def flush_pending_delta_data(threshold: int = 0):
                         nonlocal delta_count
@@ -3956,6 +3960,17 @@ async def streaming_chat_response_handler(response, ctx):
                         if not data.strip():
                             continue
 
+                        # Hermes émet ses étapes de travail sur des lignes SSE nommées
+                        # « event: hermes.tool.progress », juste avant leur « data: ».
+                        # On capte ici le nom d'événement pour traduire l'étape suivante
+                        # en statut affiché (StatusHistory côté front).
+                        if data.startswith('event:'):
+                            ev_name = data[len('event:') :].strip()
+                            pending_sse_event = (
+                                ev_name if ev_name == 'hermes.tool.progress' else None
+                            )
+                            continue
+
                         # "data:" is the prefix for each event
                         if not data.startswith('data:'):
                             continue
@@ -3965,6 +3980,34 @@ async def streaming_chat_response_handler(response, ctx):
 
                         try:
                             data = json.loads(data)
+
+                            # Étape de travail Hermes (« hermes.tool.progress ») → statut
+                            # affiché en direct : « 🔍 Recherche web… », « 📄 Lecture de la
+                            # page… ». Le dirigeant voit l'agent travailler au lieu d'un
+                            # spinner figé. On ne le passe pas au parsing de chunk normal.
+                            if pending_sse_event == 'hermes.tool.progress':
+                                pending_sse_event = None
+                                if isinstance(data, dict) and not getattr(
+                                    request.state, 'direct', False
+                                ):
+                                    label = (
+                                        data.get('label') or data.get('tool') or ''
+                                    ).strip()
+                                    emoji = (data.get('emoji') or '').strip()
+                                    description = f'{emoji} {label}'.strip()
+                                    if description:
+                                        await event_emitter(
+                                            {
+                                                'type': 'status',
+                                                'data': {
+                                                    'action': 'hermes_tool',
+                                                    'description': description,
+                                                    'done': data.get('status')
+                                                    == 'completed',
+                                                },
+                                            }
+                                        )
+                                continue
 
                             data, _ = await process_filter_functions(
                                 request=request,
