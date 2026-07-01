@@ -283,7 +283,11 @@
 							on:click={() => selectWorkflow(w.prompt)}
 						>
 							{#if w.image}
-								<img src={w.image} alt="" class="w-5 h-5 mt-0.5 object-contain shrink-0" draggable="false" />
+								<span
+									class="shrink-0 w-9 h-9 rounded-lg overflow-hidden bg-white dark:bg-gray-800 ring-1 ring-gray-100 dark:ring-gray-800 flex items-center justify-center"
+								>
+									<img src={w.image} alt="" class="w-full h-full object-cover" draggable="false" />
+								</span>
 							{:else}
 								<span class="text-lg leading-none mt-0.5">{w.icon}</span>
 							{/if}
