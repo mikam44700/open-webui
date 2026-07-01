@@ -101,3 +101,12 @@ export const MICROSOFT_SERVICE_LOGO: Record<string, string> = {
 	'To Do': ms365Todo,
 	Contacts: ms365Contacts
 };
+
+// Logo par source de la page Calendrier (clé = id renvoyé par le bridge : google/outlook/calendly).
+// Réutilise les logos officiels déjà présents (Google Agenda « 31 », Outlook Calendar, Calendly).
+export const CALENDAR_SOURCE_LOGO: Record<string, string> = {
+	google: gwsCalendar,
+	outlook: ms365Calendar,
+	calendly: calendlyLogo,
+	'cal-com': calcomLogo
+};

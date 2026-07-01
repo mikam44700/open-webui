@@ -17,6 +17,8 @@
 	import ConfirmDialog from '$lib/components/common/ConfirmDialog.svelte';
 	import Spinner from '$lib/components/common/Spinner.svelte';
 	import Tooltip from '$lib/components/common/Tooltip.svelte';
+	import CalendarConnectPrompt from './CalendarConnectPrompt.svelte';
+	import { CALENDAR_SOURCE_LOGO } from '$lib/utils/integrationLogos';
 
 	const i18n = getContext('i18n');
 
@@ -198,8 +200,8 @@
 <div class="flex flex-col w-full">
 	<div class="flex justify-between items-center mb-4 gap-3">
 		<div class="min-w-0">
-			<div class="text-xl font-medium">{$i18n.t('Calendrier')}</div>
-			<div class="text-xs text-gray-500">{subtitle(activeSourceObj)}</div>
+			<h1 class="text-2xl font-semibold tracking-tight text-gray-900 dark:text-white">{$i18n.t('Calendrier')}</h1>
+			<p class="mt-1.5 text-sm leading-relaxed text-gray-500 dark:text-gray-400">{subtitle(activeSourceObj)}</p>
 		</div>
 		<div class="flex items-center gap-2">
 			{#if connectedSources.length >= 2}
@@ -227,40 +229,57 @@
 		<div class="flex justify-center items-center py-20"><Spinner className="size-5" /></div>
 	{:else if unavailable}
 		<div class="flex flex-col items-center justify-center py-20 text-center">
-			<div class="text-3xl mb-2">🔌</div>
+			<div class="size-12 rounded-2xl bg-amber-50 dark:bg-amber-900/20 flex items-center justify-center mb-3">
+				<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" class="text-amber-500">
+					<path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0Z" />
+					<path d="M12 9v4M12 17h.01" />
+				</svg>
+			</div>
 			<div class="font-medium">{$i18n.t('Agenda momentanément indisponible')}</div>
-			<button class="mt-3 text-sm underline" on:click={load}>{$i18n.t('Réessayer')}</button>
+			<button class="mt-3 text-sm underline text-gray-500 hover:text-gray-900 dark:hover:text-gray-100" on:click={load}>{$i18n.t('Réessayer')}</button>
 		</div>
 	{:else if connectedSources.length === 0}
-		<div class="flex flex-col items-center justify-center py-20 text-center">
-			<div class="text-3xl mb-2">📅</div>
-			<div class="font-medium">{$i18n.t('Connectez un calendrier')}</div>
-			<div class="text-xs text-gray-500 mt-1 max-w-md">
-				{$i18n.t('Pour qu’Agent OS gère votre agenda, connectez Google Agenda, Outlook ou Calendly dans Intégrations.')}
-			</div>
-			<button class="mt-3 px-3 py-1.5 rounded-xl bg-black text-white dark:bg-white dark:text-black text-sm" on:click={() => goto('/connectors?tab=integrations')}>
-				{$i18n.t('Ouvrir Intégrations')}
-			</button>
-		</div>
+		<CalendarConnectPrompt />
 	{:else if events.length === 0}
 		<div class="flex flex-col items-center justify-center py-20 text-center">
-			<div class="text-3xl mb-2">🗓️</div>
+			<div class="size-12 rounded-2xl bg-gray-50 dark:bg-gray-850 flex items-center justify-center mb-3">
+				<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" class="text-gray-400">
+					<rect x="3" y="4" width="18" height="18" rx="3" />
+					<path d="M8 2v4M16 2v4M3 10h18" />
+				</svg>
+			</div>
 			<div class="font-medium">{$i18n.t('Aucun événement à venir')}</div>
+			<div class="text-xs text-gray-400 mt-1">{$i18n.t('Votre agenda est à jour.')}</div>
 		</div>
 	{:else}
 		<div class="grid gap-2">
 			{#each events as e (e.id)}
 				<div class="flex items-center gap-3 px-4 py-3 rounded-2xl border border-gray-100 dark:border-gray-850 hover:bg-gray-50 dark:hover:bg-gray-850/40 transition">
+					{#if e.source && CALENDAR_SOURCE_LOGO[e.source]}
+						<div class="size-8 shrink-0 rounded-lg bg-gray-50 dark:bg-gray-900 flex items-center justify-center p-1.5">
+							<img src={CALENDAR_SOURCE_LOGO[e.source]} alt={e.source} class="max-w-full max-h-full object-contain" />
+						</div>
+					{/if}
 					<div class="flex-1 min-w-0">
 						<div class="text-sm font-medium truncate">{e.title}</div>
-						<div class="text-[11px] text-gray-400 mt-0.5 flex flex-wrap gap-x-3">
-							<span>🕑 {e.when_label}</span>
-							{#if e.location}<span>📍 {e.location}</span>{/if}
+						<div class="text-[11px] text-gray-400 mt-0.5 flex flex-wrap items-center gap-x-3 gap-y-0.5">
+							<span class="inline-flex items-center gap-1">
+								<svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9" /><path d="M12 7v5l3 2" /></svg>
+								{e.when_label}
+							</span>
+							{#if e.location}
+								<span class="inline-flex items-center gap-1 min-w-0">
+									<svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="shrink-0"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z" /><circle cx="12" cy="10" r="3" /></svg>
+									<span class="truncate">{e.location}</span>
+								</span>
+							{/if}
 						</div>
 					</div>
 					{#if canWrite}
 						<Tooltip content={$i18n.t('Supprimer')}>
-							<button class="p-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 text-red-500" on:click={() => confirmDelete(e)} aria-label="Supprimer">🗑</button>
+							<button class="p-1.5 rounded-lg hover:bg-red-50 dark:hover:bg-red-900/20 text-gray-400 hover:text-red-500 transition-colors" on:click={() => confirmDelete(e)} aria-label={$i18n.t('Supprimer')}>
+								<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2m2 0v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6M10 11v6M14 11v6" /></svg>
+							</button>
 						</Tooltip>
 					{/if}
 				</div>
