@@ -241,10 +241,10 @@ export const PROVIDER_ABOUT: Record<string, string[]> = {
 // déroulant « Voir ce que ça fait » (PROVIDER_ABOUT).
 export const PROVIDER_SHORT: Record<string, string> = {
 	duckduckgo: 'Recherche web gratuite, sans clé.',
-	exa: 'Recherche intelligente qui lit les pages.',
-	firecrawl: 'Recherche et lit des pages entières.',
-	brave: 'Moteur de recherche privé et gratuit.',
-	tavily: 'Recherche + lecture de pages pour l’IA.',
+	exa: 'Recherche intelligente qui lit les pages. 1 000 recherches gratuites/mois.',
+	firecrawl: 'Recherche et lit des pages entières. 500 crédits gratuits/mois.',
+	brave: 'Moteur de recherche privé. 2 000 requêtes gratuites/mois.',
+	tavily: 'Recherche + lecture de pages pour l’IA. 1 000 recherches gratuites/mois.',
 	searxng: 'Méta-moteur privé, auto-hébergé.',
 	parallel: 'Recherche approfondie sur plusieurs pages.',
 	xai: 'Recherche web en temps réel (Grok).',
