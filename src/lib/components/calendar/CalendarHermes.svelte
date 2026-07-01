@@ -165,7 +165,7 @@
 			<div class="text-xs text-gray-500 mt-1 max-w-md">
 				{$i18n.t('Pour qu’Agent OS gère votre calendrier, connectez votre compte Google dans Intégrations.')}
 			</div>
-			<button class="mt-3 px-3 py-1.5 rounded-xl bg-black text-white dark:bg-white dark:text-black text-sm" on:click={() => goto('/connectors')}>
+			<button class="mt-3 px-3 py-1.5 rounded-xl bg-black text-white dark:bg-white dark:text-black text-sm" on:click={() => goto('/connectors?tab=integrations')}>
 				{$i18n.t('Ouvrir Intégrations')}
 			</button>
 		</div>

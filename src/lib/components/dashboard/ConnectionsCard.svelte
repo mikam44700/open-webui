@@ -41,7 +41,7 @@
 		{#if integrations.length === 0}
 			<div class="text-xs text-gray-500 py-2">
 				{$i18n.t('Aucune intégration connectée pour l’instant.')}
-				<a href="/connectors" class="underline">{$i18n.t('En connecter une')}</a>
+				<a href="/connectors?tab=integrations" class="underline">{$i18n.t('En connecter une')}</a>
 			</div>
 		{:else}
 			<div class="flex flex-col">

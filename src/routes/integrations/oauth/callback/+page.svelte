@@ -16,7 +16,7 @@
 	// Redirige vers la page Capacités (onglet Intégrations) après un court délai.
 	const redirectToIntegrations = () => {
 		setTimeout(() => {
-			goto('/connectors');
+			goto('/connectors?tab=integrations');
 		}, 1500);
 	};
 
@@ -124,7 +124,7 @@
 			<button
 				type="button"
 				class="text-sm px-4 py-2 rounded-xl bg-black text-white dark:bg-white dark:text-black transition hover:opacity-80"
-				on:click={() => goto('/connectors')}
+				on:click={() => goto('/connectors?tab=integrations')}
 			>
 				Retour aux intégrations
 			</button>

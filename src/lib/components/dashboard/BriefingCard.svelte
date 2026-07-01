@@ -88,7 +88,7 @@
 						<div class="text-xs text-gray-400">{$i18n.t('Rien de prévu aujourd’hui.')}</div>
 					{/if}
 				{:else if briefing.events_status === 'not_connected'}
-					<button class="text-xs text-amber-600 dark:text-amber-400 underline" on:click={() => goto('/connectors')}>
+					<button class="text-xs text-amber-600 dark:text-amber-400 underline" on:click={() => goto('/connectors?tab=integrations')}>
 						{$i18n.t('Connectez Google Agenda dans Intégrations')}
 					</button>
 				{:else}
