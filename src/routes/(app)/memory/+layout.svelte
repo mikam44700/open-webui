@@ -30,26 +30,49 @@
 		return 0;
 	})();
 
-	// Explication sous le titre, spécifique à l'onglet actif (chaque « tiroir » a son rôle).
-	$: memoryDescription = (() => {
+	// Bannière colorée par onglet (même style que Espace de travail / Capacités) : une couleur
+	// par « tiroir » de la mémoire (pastille blanche + sous-titre + halos flous).
+	$: memoryBanner = (() => {
 		const p = $page.url.pathname;
 		if (p.includes('/memory/assistant'))
-			return $i18n.t(
-				"Le caractère de votre assistant : son rôle, son ton, ses règles. Il en tiendra compte dans toutes vos conversations."
-			);
+			return {
+				strong: 'Le caractère de votre assistant',
+				sub: "Décrivez son rôle, son ton, ses règles — il en tiendra compte dans toutes vos conversations.",
+				wrap: 'from-violet-200/70 via-violet-100/50 to-indigo-100/60 dark:from-violet-900/30 dark:via-violet-900/20 dark:to-indigo-900/20',
+				halo1: 'bg-violet-400/30 dark:bg-violet-500/20',
+				halo2: 'bg-indigo-300/30 dark:bg-indigo-500/10'
+			};
 		if (p.includes('/memory/profil'))
-			return $i18n.t(
-				"Qui vous êtes, pour que votre assistant vous connaisse et personnalise ses réponses sans que vous ayez à le répéter."
-			);
+			return {
+				strong: 'Qui vous êtes',
+				sub: 'Décrivez qui vous êtes pour que votre assistant vous connaisse et personnalise ses réponses.',
+				wrap: 'from-rose-200/70 via-rose-100/50 to-orange-100/60 dark:from-rose-900/30 dark:via-rose-900/20 dark:to-orange-900/20',
+				halo1: 'bg-rose-400/30 dark:bg-rose-500/20',
+				halo2: 'bg-orange-300/30 dark:bg-orange-500/10'
+			};
 		if (p.includes('/memory/souvenirs'))
-			return $i18n.t(
-				"Les faits que votre assistant mémorise au fil de vos échanges. Ce tiroir se remplit surtout tout seul — vous gardez la main."
-			);
+			return {
+				strong: "Ce qu'il a retenu",
+				sub: 'Les faits que votre assistant mémorise au fil de vos échanges. Ce tiroir se remplit surtout tout seul.',
+				wrap: 'from-amber-200/70 via-amber-100/50 to-yellow-100/60 dark:from-amber-900/30 dark:via-amber-900/20 dark:to-yellow-900/20',
+				halo1: 'bg-amber-400/30 dark:bg-amber-500/20',
+				halo2: 'bg-yellow-300/30 dark:bg-yellow-500/10'
+			};
 		if (p.includes('/memory/knowledge'))
-			return $i18n.t(
-				"Les bases de connaissances que votre assistant peut consulter pour vous répondre."
-			);
-		return $i18n.t('Tout ce que votre assistant retient pour vous, dans un coffre qui vous appartient.');
+			return {
+				strong: 'Vos bases de connaissances',
+				sub: 'Les documents que votre assistant peut consulter pour vous répondre.',
+				wrap: 'from-emerald-200/70 via-emerald-100/50 to-teal-100/60 dark:from-emerald-900/30 dark:via-emerald-900/20 dark:to-teal-900/20',
+				halo1: 'bg-emerald-400/30 dark:bg-emerald-500/20',
+				halo2: 'bg-teal-300/30 dark:bg-teal-500/10'
+			};
+		return {
+			strong: 'Votre coffre de notes',
+			sub: 'Tout ce que votre assistant retient pour vous, dans un coffre qui vous appartient.',
+			wrap: 'from-sky-200/70 via-sky-100/50 to-blue-100/60 dark:from-sky-900/30 dark:via-sky-900/20 dark:to-blue-900/20',
+			halo1: 'bg-sky-400/30 dark:bg-sky-500/20',
+			halo2: 'bg-blue-300/30 dark:bg-blue-500/10'
+		};
 	})();
 
 	let loaded = false;
@@ -101,11 +124,31 @@
 				<PageHeader
 					eyebrow={$i18n.t('Mémoire')}
 					title={$i18n.t('Le second cerveau de votre entreprise')}
-					description={memoryDescription}
+					description={$i18n.t(
+						'La mémoire de votre assistant, rangée en tiroirs clairs — et un coffre de notes qui vous appartient.'
+					)}
 				/>
 				<div class="mt-4">
 					<SegmentedTabs items={memoryTabs} activeIndex={memoryActiveIndex} />
-				</div>
+					</div>
+
+					<!-- Bannière colorée par onglet (style Espace de travail / Capacités : pastille + halos flous) -->
+					<div class="relative mt-4 overflow-hidden rounded-3xl bg-gradient-to-br {memoryBanner.wrap}">
+						<div
+							class="pointer-events-none absolute -right-12 top-1/2 h-44 w-44 -translate-y-1/2 rounded-full blur-3xl {memoryBanner.halo1}"
+						></div>
+						<div
+							class="pointer-events-none absolute -left-16 -top-10 h-40 w-40 rounded-full blur-3xl {memoryBanner.halo2}"
+						></div>
+						<div class="relative flex flex-col items-center justify-center gap-2 px-6 py-8 text-center">
+							<div
+								class="rounded-full bg-white/90 px-5 py-2 text-sm text-gray-800 shadow-sm backdrop-blur dark:bg-gray-900/80 dark:text-gray-100"
+							>
+								<span class="font-semibold text-gray-900 dark:text-white">{$i18n.t(memoryBanner.strong)}</span>
+							</div>
+							<p class="text-sm text-gray-500 dark:text-gray-400">{$i18n.t(memoryBanner.sub)}</p>
+						</div>
+					</div>
 			</div>
 			<slot />
 		</div>
