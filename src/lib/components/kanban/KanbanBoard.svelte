@@ -35,6 +35,19 @@
 		{ key: 'done', label: 'Terminé' }
 	];
 
+	// Accent couleur par colonne (pastille dans l'en-tête) : repère visuel du flux d'un coup d'œil.
+	const COLUMN_ACCENT: Record<string, string> = {
+		triage: 'bg-slate-400',
+		todo: 'bg-sky-400',
+		ready: 'bg-violet-400',
+		running: 'bg-emerald-400',
+		scheduled: 'bg-amber-400',
+		blocked: 'bg-rose-400',
+		review: 'bg-purple-400',
+		done: 'bg-teal-400',
+		archived: 'bg-gray-400'
+	};
+
 	let loading = true;
 	let bridgeDown = false;
 
@@ -60,6 +73,7 @@
 	let detailLoading = false;
 
 	let draggedId: string | null = null;
+	let dragOverCol: string | null = null;
 	let refreshTimer: ReturnType<typeof setInterval> | null = null;
 
 	const isBridgeDown = (err: any) =>
@@ -234,6 +248,7 @@
 	const onDrop = (toStatus: string) => {
 		const id = draggedId;
 		draggedId = null;
+		dragOverCol = null;
 		if (!id) return;
 		const task = tasks.find((t) => t.id === id);
 		if (!task) return;
@@ -251,6 +266,14 @@
 		if (p >= 5) return { label: 'Élevé', cls: 'bg-amber-500/10 text-amber-600 dark:text-amber-400' };
 		if (p < 0) return { label: 'Bas', cls: 'bg-gray-500/10 text-gray-500' };
 		return null;
+	};
+
+	// Barre de couleur à gauche de la carte : signal de priorité scannable (une seule couleur forte).
+	const prioBar = (p: number) => {
+		if (p >= 10) return 'border-l-red-500';
+		if (p >= 5) return 'border-l-amber-500';
+		if (p < 0) return 'border-l-gray-300 dark:border-l-gray-600';
+		return 'border-l-transparent';
 	};
 
 	const age = (ts: number | null) => {
@@ -322,10 +345,10 @@
 			<div class="flex items-center gap-1 overflow-x-auto scrollbar-none">
 				{#each boards as b (b.slug)}
 					<button
-						class="px-2.5 py-1 text-xs rounded-lg transition whitespace-nowrap {b.slug ===
+						class="px-3 py-1 text-xs rounded-full transition whitespace-nowrap {b.slug ===
 						currentBoard
-							? 'bg-gray-200 dark:bg-gray-800 font-medium'
-							: 'hover:bg-gray-100 dark:hover:bg-gray-850 text-gray-500'}"
+							? 'bg-gray-900 text-white dark:bg-white dark:text-gray-900 font-medium'
+							: 'text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-850'}"
 						on:click={() => onSwitchBoard(b.slug)}
 					>
 						{b.name}
@@ -333,7 +356,7 @@
 					</button>
 				{/each}
 				<button
-					class="px-2 py-1 text-xs rounded-lg hover:bg-gray-100 dark:hover:bg-gray-850 text-gray-400 transition"
+					class="px-2.5 py-1 text-xs rounded-full hover:bg-gray-100 dark:hover:bg-gray-850 text-gray-400 transition"
 					title={$i18n.t('Nouveau board')}
 					on:click={() => (showBoardModal = true)}
 				>
@@ -348,13 +371,13 @@
 				{$i18n.t('Archivées')}
 			</label>
 			<button
-				class="px-2.5 py-1 text-xs rounded-lg bg-gray-100 dark:bg-gray-850 hover:bg-gray-200 dark:hover:bg-gray-800 transition"
+				class="px-3 py-1 text-xs rounded-full bg-gray-100 dark:bg-gray-850 hover:bg-gray-200 dark:hover:bg-gray-800 transition"
 				on:click={() => load()}
 			>
 				{$i18n.t('Rafraîchir')}
 			</button>
 			<button
-				class="px-2.5 py-1 text-xs rounded-lg bg-gray-100 dark:bg-gray-850 hover:bg-gray-200 dark:hover:bg-gray-800 transition disabled:opacity-50"
+				class="px-3 py-1 text-xs rounded-full bg-gray-100 dark:bg-gray-850 hover:bg-gray-200 dark:hover:bg-gray-800 transition disabled:opacity-50"
 				on:click={() => (showDispatchConfirm = true)}
 				disabled={dispatching}
 				title={$i18n.t('Promouvoir les tâches prêtes et lancer les agents')}
@@ -362,51 +385,71 @@
 				{dispatching ? $i18n.t('Dispatch…') : $i18n.t('Dispatch')}
 			</button>
 			<button
-				class="px-2.5 py-1 text-xs rounded-lg bg-black text-white dark:bg-white dark:text-black hover:opacity-90 transition"
+				class="px-3.5 py-1 text-xs rounded-full bg-black text-white dark:bg-white dark:text-black hover:opacity-90 shadow-sm transition"
 				on:click={() => (showTaskModal = true)}
 			>
 				+ {$i18n.t('Nouvelle tâche')}
 			</button>
 		</div>
 
-		<!-- Colonnes -->
-		<div class="flex-1 overflow-x-auto overflow-y-hidden px-3 pb-3">
-			<div class="flex gap-3 h-full min-w-fit">
+		<!-- Colonnes : blocs longs (hauteur de base généreuse), la zone défile en X et en Y
+		     pour atteindre le bas des colonnes bien remplies. -->
+		<div class="flex-1 overflow-auto px-3 pb-3">
+			<div class="flex gap-3 min-w-fit items-start">
 				{#each columns as col (col.key)}
+					{@const over = dragOverCol === col.key}
 					<div
-						class="flex flex-col w-72 shrink-0 rounded-2xl bg-gray-50 dark:bg-gray-850/50"
-						on:dragover|preventDefault
+						class="flex flex-col w-72 shrink-0 min-h-[32rem] rounded-2xl border motion-safe:transition-colors {over
+							? 'bg-sky-100/70 dark:bg-sky-900/30 border-sky-300 dark:border-sky-700'
+							: 'bg-sky-50/50 dark:bg-sky-950/20 border-transparent'}"
+						on:dragover|preventDefault={() => (dragOverCol = col.key)}
 						on:drop|preventDefault={() => onDrop(col.key)}
 						role="list"
 					>
-						<div class="flex items-center justify-between px-3 py-2 text-xs font-semibold text-gray-500">
-							<span>{$i18n.t(col.label)}</span>
-							<span class="opacity-60">{tasksByStatus[col.key]?.length ?? 0}</span>
+						<div class="flex items-center gap-2 px-3 py-2.5">
+							<span class="size-2 rounded-full {COLUMN_ACCENT[col.key] ?? 'bg-gray-400'}"></span>
+							<span class="text-xs font-semibold text-gray-600 dark:text-gray-300">{$i18n.t(col.label)}</span>
+							<span
+								class="ml-auto min-w-[1.25rem] text-center text-[11px] font-medium text-gray-500 dark:text-gray-400 bg-gray-200/70 dark:bg-gray-800 rounded-full px-1.5 py-0.5"
+							>
+								{tasksByStatus[col.key]?.length ?? 0}
+							</span>
 						</div>
-						<div class="flex-1 overflow-y-auto px-2 pb-2 flex flex-col gap-2">
+						<div class="flex-1 px-2 pb-2 flex flex-col gap-2">
 							{#each tasksByStatus[col.key] ?? [] as task (task.id)}
 								{@const p = prio(task.priority)}
+								{@const dragging = draggedId === task.id}
 								<div
-									class="rounded-xl bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800 p-2.5 cursor-pointer hover:border-gray-300 dark:hover:border-gray-700 transition"
+									class="group rounded-xl bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800 border-l-4 {prioBar(
+										task.priority
+									)} p-2.5 cursor-pointer shadow-sm hover:border-gray-200 dark:hover:border-gray-700 motion-safe:transition-all motion-safe:duration-150 hover:shadow-md motion-safe:hover:-translate-y-0.5 {dragging
+										? 'opacity-50 motion-safe:scale-[0.98]'
+										: ''}"
 									draggable="true"
 									on:dragstart={() => (draggedId = task.id)}
+									on:dragend={() => {
+										draggedId = null;
+										dragOverCol = null;
+									}}
 									on:click={() => openDetail(task.id)}
 									role="listitem"
 								>
 									<div class="flex items-start justify-between gap-2">
-										<div class="text-sm font-medium line-clamp-2">{task.title}</div>
+										<div class="text-sm font-medium leading-snug line-clamp-2 text-gray-800 dark:text-gray-100">
+											{task.title}
+										</div>
 										{#if task.status === 'running'}
-											<span class="relative flex size-2 mt-1 shrink-0">
-												<span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
-												<span class="relative inline-flex rounded-full size-2 bg-green-500"></span>
+											<span class="relative flex size-2 mt-1 shrink-0" title={$i18n.t('En cours')}>
+												<span class="motion-safe:animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+												<span class="relative inline-flex rounded-full size-2 bg-emerald-500"></span>
 											</span>
 										{/if}
 									</div>
 
-									<div class="flex items-center gap-1.5 mt-2 flex-wrap">
+									<div class="flex items-center gap-1.5 mt-2.5 flex-wrap">
 										{#if task.assignee}
 											<span
-												class="inline-flex items-center justify-center size-5 rounded-full bg-gray-200 dark:bg-gray-700 text-[9px] font-semibold"
+												class="inline-flex items-center justify-center size-5 rounded-full bg-gradient-to-br from-gray-700 to-gray-900 dark:from-gray-200 dark:to-gray-400 text-white dark:text-gray-900 text-[9px] font-semibold shadow-sm"
 												title={task.assignee}
 											>
 												{initials(task.assignee)}
@@ -422,10 +465,14 @@
 									</div>
 
 									{#if cardActions(task.status).length}
-										<div class="flex items-center gap-1 mt-2 flex-wrap" on:click|stopPropagation role="group">
+										<div
+											class="flex items-center gap-1 mt-2.5 flex-wrap opacity-80 motion-safe:transition group-hover:opacity-100"
+											on:click|stopPropagation
+											role="group"
+										>
 											{#each cardActions(task.status) as a}
 												<button
-													class="px-1.5 py-0.5 text-[10px] rounded-md bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 transition"
+													class="px-2 py-0.5 text-[10px] rounded-md bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 transition"
 													on:click={() => act(task.id, a.verb)}
 												>
 													{$i18n.t(a.label)}
@@ -436,7 +483,13 @@
 								</div>
 							{/each}
 							{#if (tasksByStatus[col.key] ?? []).length === 0}
-								<div class="text-[11px] text-gray-300 dark:text-gray-700 text-center py-4">—</div>
+								<div
+									class="rounded-xl border border-dashed py-6 text-center text-[11px] motion-safe:transition-colors {over
+										? 'border-sky-400 text-sky-600 dark:border-sky-500 dark:text-sky-400'
+										: 'border-gray-200 text-gray-300 dark:border-gray-700 dark:text-gray-600'}"
+								>
+									{over ? $i18n.t('Déposer ici') : $i18n.t('Aucune tâche')}
+								</div>
 							{/if}
 						</div>
 					</div>
