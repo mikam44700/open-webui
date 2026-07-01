@@ -17,6 +17,7 @@
 	import ProviderList from '$lib/components/providers/ProviderList.svelte';
 	import Tooltip from '$lib/components/common/Tooltip.svelte';
 	import Switch from '$lib/components/common/Switch.svelte';
+	import SegmentedTabs from '$lib/components/common/SegmentedTabs.svelte';
 	import Sidebar from '$lib/components/icons/Sidebar.svelte';
 
 	let loaded = false;
@@ -210,24 +211,13 @@
 					</p>
 				{/if}
 
-				<div class="mt-5 flex flex-wrap gap-x-5 gap-y-1 border-b border-gray-200 dark:border-gray-800">
-					{#each visibleSections as s}
-						<button
-							type="button"
-							aria-current={section === s.key ? 'page' : null}
-							class="relative pb-2.5 text-sm transition {section === s.key
-								? 'font-medium text-gray-900 dark:text-white'
-								: 'text-gray-400 hover:text-gray-700 dark:text-gray-500 dark:hover:text-gray-300'}"
-							on:click={() => (section = s.key)}
-						>
-							{$i18n.t(s.label)}
-							{#if section === s.key}
-								<span
-									class="absolute -bottom-px left-0 right-0 h-0.5 rounded-full bg-gray-900 dark:bg-white"
-								></span>
-							{/if}
-						</button>
-					{/each}
+				<!-- Segmented control premium partagé (SegmentedTabs) : pilule glissante + a11y. -->
+				<div class="mt-5">
+					<SegmentedTabs
+						items={visibleSections.map((s) => ({ label: $i18n.t(s.label) }))}
+						activeIndex={visibleSections.findIndex((s) => s.key === section)}
+						on:select={(e) => (section = visibleSections[e.detail].key)}
+					/>
 				</div>
 
 				<!-- Bannière premium : couleur + texte selon l'onglet actif (inspiré Base44). -->

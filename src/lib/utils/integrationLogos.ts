@@ -17,7 +17,7 @@ import hueLogo from '$lib/assets/integrations/hue.svg';
 import microsoft365Logo from '$lib/assets/integrations/microsoft/microsoft365-main.jpg';
 // Logos officiels OAuth 1 clic (Salesforce = SVG vectoriel ; les autres = PNG/JPEG haute def).
 import calendlyLogo from '$lib/assets/integrations/calendly/calendly-logo.png';
-import calcomLogo from '$lib/assets/integrations/calcom/calcom-logo.svg';
+import calcomLogo from '$lib/assets/integrations/calcom/calcom-logo.webp';
 import boxLogo from '$lib/assets/integrations/box/box-logo.png';
 import dropboxLogo from '$lib/assets/integrations/dropbox/dropbox-logo.png';
 import salesforceLogo from '$lib/assets/integrations/salesforce/salesforce-logo.svg';
@@ -54,7 +54,7 @@ export const INTEGRATION_LOGO_BG: Record<string, string> = {
 
 // Logos « carré plein » (fond couleur intégré, ex. Box bleu) → affichés bord-à-bord pour
 // remplir toute la case, sans marge ni fond blanc. Les autres gardent fond + padding.
-export const INTEGRATION_LOGO_FULL_BLEED = new Set<string>(['box']);
+export const INTEGRATION_LOGO_FULL_BLEED = new Set<string>(['box', 'cal-com']);
 
 // Espace Google Workspace : chaque service avec son propre logo (clé = nom du sous-service FR).
 import gwsGmail from '$lib/assets/integrations/google/gmail.png';

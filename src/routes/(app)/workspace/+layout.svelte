@@ -13,6 +13,7 @@
 	import { page } from '$app/stores';
 	import { goto } from '$app/navigation';
 	import Tooltip from '$lib/components/common/Tooltip.svelte';
+	import SegmentedTabs from '$lib/components/common/SegmentedTabs.svelte';
 	import Sidebar from '$lib/components/icons/Sidebar.svelte';
 
 	const i18n = getContext('i18n');
@@ -40,6 +41,20 @@
 
 	// Sous-titre du hub selon l'onglet actif (comme la page Capacités).
 	$: workspacePath = $page.url.pathname;
+	// Onglets de l'en-tête (mode lien) : actif déduit de l'URL.
+	$: workspaceTabs = [
+		{ label: $i18n.t('Agents'), href: '/workspace/agents' },
+		{ label: $i18n.t('Tâches'), href: '/workspace/tasks' },
+		{ label: $i18n.t('Automatisations'), href: '/workspace/automations' },
+		{ label: $i18n.t('Compétences'), href: '/workspace/competences' }
+	];
+	$: workspaceActiveIndex = workspacePath.includes('/workspace/tasks')
+		? 1
+		: workspacePath.includes('/workspace/automations')
+			? 2
+			: workspacePath.includes('/workspace/competences')
+				? 3
+				: 0;
 	// L'onglet « Tâches » (Kanban) a besoin d'une hauteur définie (board plein écran + scroll interne
 	// des colonnes). Les autres onglets défilent normalement (l'en-tête scrolle avec le contenu).
 	$: isWorkspaceBoard = workspacePath.includes('/workspace/tasks');
@@ -280,65 +295,8 @@
 							'Vos agents, vos tâches, vos automatisations et vos compétences — tout ce que votre assistant sait faire.'
 						)}
 					</p>
-					<div
-						class="mt-4 flex flex-wrap gap-x-6 gap-y-1 border-b border-gray-200 dark:border-gray-800"
-					>
-						<a
-							href="/workspace/agents"
-							aria-current={workspacePath.includes('/workspace/agents') ? 'page' : null}
-							class="relative pb-2.5 text-sm transition {workspacePath.includes('/workspace/agents')
-								? 'font-medium text-gray-900 dark:text-white'
-								: 'text-gray-400 hover:text-gray-700 dark:text-gray-500 dark:hover:text-gray-300'}"
-						>
-							{$i18n.t('Agents')}
-							{#if workspacePath.includes('/workspace/agents')}
-								<span
-									class="absolute -bottom-px left-0 right-0 h-0.5 rounded-full bg-gray-900 dark:bg-white"
-								></span>
-							{/if}
-						</a>
-						<a
-							href="/workspace/tasks"
-							aria-current={workspacePath.includes('/workspace/tasks') ? 'page' : null}
-							class="relative pb-2.5 text-sm transition {workspacePath.includes('/workspace/tasks')
-								? 'font-medium text-gray-900 dark:text-white'
-								: 'text-gray-400 hover:text-gray-700 dark:text-gray-500 dark:hover:text-gray-300'}"
-						>
-							{$i18n.t('Tâches')}
-							{#if workspacePath.includes('/workspace/tasks')}
-								<span
-									class="absolute -bottom-px left-0 right-0 h-0.5 rounded-full bg-gray-900 dark:bg-white"
-								></span>
-							{/if}
-						</a>
-						<a
-							href="/workspace/automations"
-							aria-current={workspacePath.includes('/workspace/automations') ? 'page' : null}
-							class="relative pb-2.5 text-sm transition {workspacePath.includes('/workspace/automations')
-								? 'font-medium text-gray-900 dark:text-white'
-								: 'text-gray-400 hover:text-gray-700 dark:text-gray-500 dark:hover:text-gray-300'}"
-						>
-							{$i18n.t('Automatisations')}
-							{#if workspacePath.includes('/workspace/automations')}
-								<span
-									class="absolute -bottom-px left-0 right-0 h-0.5 rounded-full bg-gray-900 dark:bg-white"
-								></span>
-							{/if}
-						</a>
-						<a
-							href="/workspace/competences"
-							aria-current={workspacePath.includes('/workspace/competences') ? 'page' : null}
-							class="relative pb-2.5 text-sm transition {workspacePath.includes('/workspace/competences')
-								? 'font-medium text-gray-900 dark:text-white'
-								: 'text-gray-400 hover:text-gray-700 dark:text-gray-500 dark:hover:text-gray-300'}"
-						>
-							{$i18n.t('Compétences')}
-							{#if workspacePath.includes('/workspace/competences')}
-								<span
-									class="absolute -bottom-px left-0 right-0 h-0.5 rounded-full bg-gray-900 dark:bg-white"
-								></span>
-							{/if}
-						</a>
+					<div class="mt-4">
+						<SegmentedTabs items={workspaceTabs} activeIndex={workspaceActiveIndex} />
 					</div>
 
 					<!-- Bannière colorée par onglet (même taille/style que Capacités : haute + centrée + halos) -->
