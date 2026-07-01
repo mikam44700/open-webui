@@ -65,7 +65,7 @@ import mistralLogo from '$lib/assets/connectors/mistral.png';
 import sequentialLogo from '$lib/assets/connectors/sequential-thinking.jpg';
 import elevenlabsLogo from '$lib/assets/connectors/elevenlabs.png';
 import dataGouvFrLogo from '$lib/assets/connectors/data-gouv-fr.svg';
-import apifyLogo from '$lib/assets/connectors/apify.svg';
+import apifyLogo from '$lib/assets/connectors/apify.webp';
 
 export const CONNECTOR_LOGO: Record<string, string> = {
 	'data-gouv-fr': dataGouvFrLogo,
@@ -134,7 +134,6 @@ export const CONNECTOR_LOGO: Record<string, string> = {
 // Logos « carré plein » (fond intégré, dégradés compris) → affichés bord à bord pour
 // remplir tout le carré. Les autres gardent le fond blanc + une marge.
 export const CONNECTOR_LOGO_FULL_BLEED = new Set<string>([
-	'apify',
 	'data-gouv-fr',
 	'crawl4ai',
 	'linear',
