@@ -20,6 +20,34 @@
 		return `${it.provider.name} ${it.provider.tag ?? ''}`.toLowerCase().includes(needle);
 	});
 
+	// Catégories = type d'outil (chaque carte porte son toolset d'origine). Libellés FR + ordre.
+	const TOOLSET_LABEL: Record<string, string> = {
+		web: 'Recherche web',
+		browser: 'Navigateur automatisé',
+		x_search: 'Recherche sur X'
+	};
+	const TOOLSET_ORDER = ['web', 'browser', 'x_search'];
+
+	// Regroupe les fournisseurs filtrés par type d'outil, dans l'ordre voulu (inconnus à la fin).
+	$: groups = (() => {
+		const byToolset = new Map<string, { toolsetName: string; provider: Provider }[]>();
+		for (const it of filtered) {
+			if (!byToolset.has(it.toolsetName)) byToolset.set(it.toolsetName, []);
+			byToolset.get(it.toolsetName)!.push(it);
+		}
+		const ordered: { key: string; label: string; items: typeof filtered }[] = [];
+		for (const ts of TOOLSET_ORDER) {
+			if (byToolset.has(ts)) {
+				ordered.push({ key: ts, label: TOOLSET_LABEL[ts] ?? ts, items: byToolset.get(ts)! });
+				byToolset.delete(ts);
+			}
+		}
+		for (const [ts, list] of byToolset) {
+			ordered.push({ key: ts, label: TOOLSET_LABEL[ts] ?? ts, items: list });
+		}
+		return ordered;
+	})();
+
 	const close = () => {
 		open = false;
 	};
@@ -58,15 +86,24 @@
 				/>
 
 				{#if filtered.length > 0}
-					<div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-						{#each filtered as it (it.toolsetName + ':' + it.provider.name)}
-							<ToolProviderCatalogCard
-								toolsetName={it.toolsetName}
-								provider={it.provider}
-								on:changed={() => dispatch('changed')}
-							/>
-						{/each}
-					</div>
+					{#each groups as group (group.key)}
+						<div class="mb-6 last:mb-0">
+							<div
+								class="text-xs font-semibold uppercase tracking-wide text-gray-400 dark:text-gray-500 mb-2"
+							>
+								{$i18n.t(group.label)}
+							</div>
+							<div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+								{#each group.items as it (it.toolsetName + ':' + it.provider.name)}
+									<ToolProviderCatalogCard
+										toolsetName={it.toolsetName}
+										provider={it.provider}
+										on:changed={() => dispatch('changed')}
+									/>
+								{/each}
+							</div>
+						</div>
+					{/each}
 				{:else}
 					<div class="text-xs text-gray-500 text-center py-10">
 						{$i18n.t('Aucun fournisseur ne correspond.')}

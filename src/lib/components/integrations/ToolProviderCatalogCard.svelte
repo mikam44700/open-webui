@@ -14,6 +14,7 @@
 		type Provider,
 		LOGO_BY_SLUG,
 		WHITE_BG_SLUGS,
+		LOGO_TIGHT_SLUGS,
 		providerStatus,
 		PROVIDER_ABOUT,
 		PROVIDER_SHORT
@@ -170,7 +171,9 @@
 				class="size-12 flex-none rounded-xl border border-gray-100 dark:border-gray-700 overflow-hidden flex items-center justify-center {WHITE_BG_SLUGS.has(
 					provider.slug
 				)
-					? 'bg-white p-1'
+					? LOGO_TIGHT_SLUGS.has(provider.slug)
+						? 'bg-white'
+						: 'bg-white p-1'
 					: ''}"
 			>
 				<img

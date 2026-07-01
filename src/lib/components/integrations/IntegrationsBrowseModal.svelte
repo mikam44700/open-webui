@@ -82,6 +82,26 @@
 		return e.provider.name.toLowerCase().includes(search.trim().toLowerCase());
 	});
 
+	// Regroupe les intégrations filtrées par catégorie (en-têtes visibles), dans l'ordre officiel.
+	// Une catégorie inconnue (jamais censé arriver) tombe en fin de liste, jamais masquée.
+	$: appGroups = (() => {
+		const byCat = new Map<string, any[]>();
+		for (const it of filteredApps) {
+			const cat = INTEGRATION_FR[it.id]?.category || 'Autres';
+			if (!byCat.has(cat)) byCat.set(cat, []);
+			byCat.get(cat)!.push(it);
+		}
+		const ordered: { key: string; items: any[] }[] = [];
+		for (const c of INTEGRATION_CATEGORIES) {
+			if (byCat.has(c)) {
+				ordered.push({ key: c, items: byCat.get(c)! });
+				byCat.delete(c);
+			}
+		}
+		for (const [c, list] of byCat) ordered.push({ key: c, items: list });
+		return ordered;
+	})();
+
 	const close = () => {
 		open = false;
 	};
@@ -188,18 +208,38 @@
 					</div>
 
 					{#if filteredApps.length > 0 || filteredExtras.length > 0}
-						<div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-							{#each filteredApps as integration (integration.id)}
-								<IntegrationCard {integration} on:changed={() => dispatch('changed')} />
-							{/each}
-							{#each filteredExtras as e (e.toolsetName + ':' + e.provider.name)}
-								<ToolProviderCatalogCard
-									toolsetName={e.toolsetName}
-									provider={e.provider}
-									on:changed={() => dispatch('changed')}
-								/>
-							{/each}
-						</div>
+						{#each appGroups as group (group.key)}
+							<div class="mb-6">
+								<div
+									class="text-xs font-semibold uppercase tracking-wide text-gray-400 dark:text-gray-500 mb-2"
+								>
+									{$i18n.t(group.key)}
+								</div>
+								<div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+									{#each group.items as integration (integration.id)}
+										<IntegrationCard {integration} on:changed={() => dispatch('changed')} />
+									{/each}
+								</div>
+							</div>
+						{/each}
+						{#if filteredExtras.length > 0}
+							<div class="mb-6 last:mb-0">
+								<div
+									class="text-xs font-semibold uppercase tracking-wide text-gray-400 dark:text-gray-500 mb-2"
+								>
+									{$i18n.t('Modèles d’IA & voix')}
+								</div>
+								<div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+									{#each filteredExtras as e (e.toolsetName + ':' + e.provider.name)}
+										<ToolProviderCatalogCard
+											toolsetName={e.toolsetName}
+											provider={e.provider}
+											on:changed={() => dispatch('changed')}
+										/>
+									{/each}
+								</div>
+							</div>
+						{/if}
 					{:else}
 						<div class="text-xs text-gray-500 text-center py-10">
 							{$i18n.t('Aucune intégration ne correspond.')}

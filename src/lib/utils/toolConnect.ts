@@ -6,7 +6,9 @@
 import duckduckgoLogo from '$lib/assets/web-providers/duckduckgo.png';
 import exaLogo from '$lib/assets/web-providers/exa.jpeg';
 import firecrawlLogo from '$lib/assets/web-providers/firecrawl.png';
-import braveLogo from '$lib/assets/web-providers/brave.webp';
+// Réutilise le logo Brave « propre » du catalogue MCP (fond net) plutôt que le .webp
+// de web-providers qui rendait mal (transparence visible) sur la page Recherche & web.
+import braveLogo from '$lib/assets/connectors/brave-search.png';
 import tavilyLogo from '$lib/assets/web-providers/tavily.png';
 import parallelLogo from '$lib/assets/web-providers/parallel.svg';
 import searxngLogo from '$lib/assets/web-providers/searxng.png';
@@ -121,6 +123,10 @@ export const WHITE_BG_SLUGS = new Set([
 	'gemini',
 	'jina'
 ]);
+
+// Logos « larges et courts » (ex. Mistral : bandes horizontales) qui paraissent minuscules
+// avec la marge standard : on les colle aux bords du carré (sans padding) pour les agrandir.
+export const LOGO_TIGHT_SLUGS = new Set(['mistral']);
 
 // Fournisseurs locaux (modèle téléchargé à la 1re utilisation) : pas de clé, mais pas
 // « actif » d'office non plus → libellé neutre « Sans clé · local ».
