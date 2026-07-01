@@ -96,18 +96,6 @@
 			<button class="ml-2 underline" on:click={load}>{$i18n.t('Réessayer')}</button>
 		</div>
 	{:else}
-		<!-- Explication pédagogique -->
-		<div class="mb-4">
-			<h2 class="text-base font-semibold text-gray-900 dark:text-white">
-				{$i18n.t("Le caractère de votre assistant")}
-			</h2>
-			<p class="text-sm text-gray-500 dark:text-gray-400 mt-1">
-				{$i18n.t(
-					"Décrivez comment vous voulez qu'il se comporte : son rôle, son ton, ses règles. Il en tiendra compte dans toutes vos conversations."
-				)}
-			</p>
-		</div>
-
 		<!-- Gabarits prêts à l'emploi -->
 		<div class="mb-3">
 			<div class="text-xs font-medium text-gray-500 dark:text-gray-400 mb-1.5">

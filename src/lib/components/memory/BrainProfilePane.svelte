@@ -67,15 +67,6 @@
 			<button class="ml-2 underline" on:click={load}>{$i18n.t('Réessayer')}</button>
 		</div>
 	{:else}
-		<div class="mb-4">
-			<h2 class="text-base font-semibold text-gray-900 dark:text-white">{$i18n.t('Qui vous êtes')}</h2>
-			<p class="text-sm text-gray-500 dark:text-gray-400 mt-1">
-				{$i18n.t(
-					"Décrivez qui vous êtes pour que votre assistant vous connaisse et personnalise ses réponses, sans que vous ayez à le répéter."
-				)}
-			</p>
-		</div>
-
 		<textarea
 			class="w-full h-[55vh] min-h-[320px] rounded-2xl border {tooLong ? 'border-amber-400' : 'border-gray-200 dark:border-gray-800'} bg-transparent p-4 text-sm leading-relaxed resize-y outline-none focus:border-gray-400 dark:focus:border-gray-600 transition"
 			bind:value={content}

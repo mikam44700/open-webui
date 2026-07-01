@@ -30,6 +30,28 @@
 		return 0;
 	})();
 
+	// Explication sous le titre, spécifique à l'onglet actif (chaque « tiroir » a son rôle).
+	$: memoryDescription = (() => {
+		const p = $page.url.pathname;
+		if (p.includes('/memory/assistant'))
+			return $i18n.t(
+				"Le caractère de votre assistant : son rôle, son ton, ses règles. Il en tiendra compte dans toutes vos conversations."
+			);
+		if (p.includes('/memory/profil'))
+			return $i18n.t(
+				"Qui vous êtes, pour que votre assistant vous connaisse et personnalise ses réponses sans que vous ayez à le répéter."
+			);
+		if (p.includes('/memory/souvenirs'))
+			return $i18n.t(
+				"Les faits que votre assistant mémorise au fil de vos échanges. Ce tiroir se remplit surtout tout seul — vous gardez la main."
+			);
+		if (p.includes('/memory/knowledge'))
+			return $i18n.t(
+				"Les bases de connaissances que votre assistant peut consulter pour vous répondre."
+			);
+		return $i18n.t('Tout ce que votre assistant retient pour vous, dans un coffre qui vous appartient.');
+	})();
+
 	let loaded = false;
 
 	onMount(async () => {
@@ -79,9 +101,7 @@
 				<PageHeader
 					eyebrow={$i18n.t('Mémoire')}
 					title={$i18n.t('Le second cerveau de votre entreprise')}
-					description={$i18n.t(
-						'Tout ce que votre assistant retient pour vous, dans un coffre qui vous appartient.'
-					)}
+					description={memoryDescription}
 				/>
 				<div class="mt-4">
 					<SegmentedTabs items={memoryTabs} activeIndex={memoryActiveIndex} />

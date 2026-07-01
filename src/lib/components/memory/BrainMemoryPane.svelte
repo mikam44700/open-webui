@@ -92,20 +92,12 @@
 			<button class="ml-2 underline" on:click={load}>{$i18n.t('Réessayer')}</button>
 		</div>
 	{:else}
-		<div class="mb-4 flex items-start justify-between gap-4">
-			<div>
-				<h2 class="text-base font-semibold text-gray-900 dark:text-white">{$i18n.t("Ce que votre assistant a retenu")}</h2>
-				<p class="text-sm text-gray-500 dark:text-gray-400 mt-1">
-					{$i18n.t(
-						"Les faits qu'il mémorise au fil de vos échanges. Il se remplit surtout tout seul — vous pouvez corriger ou retirer ce que vous voulez."
-					)}
-				</p>
-			</div>
+		<div class="mb-4 flex items-center justify-end">
 			<button
 				class="shrink-0 px-3 py-1.5 rounded-lg text-xs bg-gray-900 dark:bg-white text-white dark:text-gray-900 transition"
 				on:click={() => (adding = !adding)}
 			>
-				{$i18n.t('Ajouter')}
+				{$i18n.t('Ajouter un souvenir')}
 			</button>
 		</div>
 
