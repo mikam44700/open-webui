@@ -31,6 +31,11 @@ import mistralLogo from '$lib/assets/providers/mistral-color.svg';
 import geminiLogo from '$lib/assets/providers/gemini-color.svg';
 import homeassistantLogo from '$lib/assets/web-providers/homeassistant.png';
 import spotifyLogo from '$lib/assets/web-providers/spotify.png';
+import linkupLogo from '$lib/assets/web-providers/linkup.png';
+import serperLogo from '$lib/assets/web-providers/serper.png';
+import serpapiLogo from '$lib/assets/web-providers/serpapi.png';
+import perplexityLogo from '$lib/assets/web-providers/perplexity.png';
+import jinaLogo from '$lib/assets/web-providers/jina.png';
 
 export type Field = {
 	key: string;
@@ -90,7 +95,12 @@ export const LOGO_BY_SLUG: Record<string, string> = {
 	mistral: mistralLogo,
 	gemini: geminiLogo,
 	homeassistant: homeassistantLogo,
-	spotify: spotifyLogo
+	spotify: spotifyLogo,
+	linkup: linkupLogo,
+	serper: serperLogo,
+	serpapi: serpapiLogo,
+	perplexity: perplexityLogo,
+	jina: jinaLogo
 };
 
 // Logos au tracé sombre/transparent : illisibles sur fond sombre → fond blanc.
@@ -108,7 +118,8 @@ export const WHITE_BG_SLUGS = new Set([
 	'piper',
 	'elevenlabs',
 	'mistral',
-	'gemini'
+	'gemini',
+	'jina'
 ]);
 
 // Fournisseurs locaux (modèle téléchargé à la 1re utilisation) : pas de clé, mais pas
@@ -192,6 +203,31 @@ export const PROVIDER_ABOUT: Record<string, string[]> = {
 		'Navigateur cloud avec mode furtif et proxies intégrés',
 		'Contourne les blocages, navigue de façon anonyme',
 		'Nécessite une clé API et un identifiant de projet'
+	],
+	linkup: [
+		'Recherche web souveraine (société française)',
+		'Réputée pour la fiabilité de ses réponses ; lit les pages',
+		'Offre gratuite généreuse (clé gratuite requise)'
+	],
+	serper: [
+		'Accès direct aux résultats de Google, rapide et bon marché',
+		'Idéal quand vous voulez exactement ce que renvoie Google',
+		'Crédits gratuits à l’inscription ; recherche seule'
+	],
+	jina: [
+		'Recherche web ET lecture de pages en texte propre',
+		'Fonctionne gratuitement sans clé (quota modeste)',
+		'Une clé gratuite augmente les quotas'
+	],
+	serpapi: [
+		'Résultats structurés de plus de 40 moteurs (Google par défaut)',
+		'Fiable et complet, pour de la recherche exigeante',
+		'100 recherches gratuites par mois, puis payant'
+	],
+	perplexity: [
+		'Moteur de réponse en temps réel qui cite ses sources',
+		'Pratique pour les questions d’actualité, liens à l’appui',
+		'Nécessite une clé API'
 	]
 };
 
@@ -213,7 +249,12 @@ export const PROVIDER_SHORT: Record<string, string> = {
 	browserbase: 'Navigateur cloud furtif avec proxies.',
 	fal: 'Nombreux modèles d’images et de vidéo.',
 	krea: 'Génération d’images guidée par référence.',
-	mistral: 'Synthèse vocale multilingue (Voxtral).'
+	mistral: 'Synthèse vocale multilingue (Voxtral).',
+	linkup: 'Recherche souveraine française, fiable.',
+	serper: 'Résultats Google, rapides et bon marché.',
+	serpapi: 'Résultats de 40+ moteurs de recherche.',
+	perplexity: 'Réponses en temps réel, sources citées.',
+	jina: 'Recherche + lecture de pages, gratuit.'
 };
 
 // État affiché par fournisseur. On n'affirme QUE ce qu'on sait avec certitude :
