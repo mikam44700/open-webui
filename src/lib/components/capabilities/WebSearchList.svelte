@@ -1,14 +1,32 @@
 <script lang="ts">
 	import { getContext, onMount } from 'svelte';
+	import type { Writable } from 'svelte/store';
+	import type { i18n as i18nType } from 'i18next';
 
 	import { getToolConnection } from '$lib/apis/capabilities';
+	import { getConnectors } from '$lib/apis/connectors';
 	import Spinner from '$lib/components/common/Spinner.svelte';
 	import ToolProviderCatalogCard from '$lib/components/integrations/ToolProviderCatalogCard.svelte';
 	import WebSearchBrowseModal from '$lib/components/capabilities/WebSearchBrowseModal.svelte';
 	import Crawl4aiCard from '$lib/components/connectors/Crawl4aiCard.svelte';
+	import CatalogCard from '$lib/components/connectors/CatalogCard.svelte';
+	import ConnectorCard from '$lib/components/connectors/ConnectorCard.svelte';
 	import { type Provider, providerStatus } from '$lib/utils/toolConnect';
 
-	const i18n = getContext('i18n');
+	// Apify = connecteur MCP « maison » (extraction web / prospection), présenté ici comme
+	// Crawl4AI : install en 1 clic avec clé API (payant à l'usage), géré une fois branché.
+	const APIFY_ENTRY = {
+		name: 'apify',
+		transport: 'http' as const,
+		auth_type: 'key' as const,
+		installed: false,
+		category: 'search',
+		visibility: 'visible' as const,
+		installable: true,
+		preset: { transport: 'http' as const, url: 'https://mcp.apify.com', auth_type: 'key' as const }
+	};
+
+	const i18n = getContext<Writable<i18nType>>('i18n');
 
 	// Toolsets natifs Hermes agrégés dans cette page (recherche web + navigateur + X).
 	export let names: string[] = ['web', 'browser', 'x_search'];
@@ -18,7 +36,12 @@
 	let loading = true;
 	let bridgeDown = false;
 	let items: Item[] = [];
+	let connectors: any[] = [];
 	let showBrowse = false;
+
+	// Connecteur Apify déjà branché ? (état réel côté bridge, jamais inventé).
+	$: apifyConnector = connectors.find((c) => c.id === 'apify');
+	$: apifyEntry = { ...APIFY_ENTRY, installed: !!apifyConnector };
 
 	// Vedettes « Les plus populaires » : liste choisie à la main (par slug), dans cet ordre.
 	// Tout le reste reste accessible via « Tout parcourir ».
@@ -35,6 +58,8 @@
 		loading = true;
 		bridgeDown = false;
 		try {
+			const conn = await getConnectors(localStorage.token).catch(() => null);
+			connectors = conn?.connectors ?? [];
 			const seen = new Set<string>();
 			const out: Item[] = [];
 			// Chaque toolset chargé en parallèle ; on aplatit et on dédoublonne par nom affiché
@@ -104,6 +129,13 @@
 		<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
 			<!-- Crawl4AI : connecteur MCP « maison » (lecture web approfondie), déplacé ici depuis MCP. -->
 			<Crawl4aiCard on:changed={load} />
+			<!-- Apify : connecteur MCP « maison » (extraction web / prospection). Géré si branché,
+			     sinon proposé à l'installation (clé API requise, payant à l'usage). -->
+			{#if apifyConnector}
+				<ConnectorCard connector={apifyConnector} on:changed={load} />
+			{:else}
+				<CatalogCard entry={apifyEntry} on:changed={load} />
+			{/if}
 			{#each featured as it (it.toolsetName + ':' + it.provider.name)}
 				<ToolProviderCatalogCard toolsetName={it.toolsetName} provider={it.provider} on:changed={load} />
 			{/each}
