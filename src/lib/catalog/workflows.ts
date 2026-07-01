@@ -90,5 +90,23 @@ export const WORKFLOWS: Workflow[] = [
 		prompt:
 			'Aide-moi à rédiger un email professionnel. Demande-moi le destinataire, l’objectif et le ton souhaité, ' +
 			'puis propose un email clair et bien tourné en français.'
+	},
+	{
+		id: 'second-cerveau',
+		label: 'Fouiller mon second cerveau',
+		description: 'Retrouve une info dans vos notes et fait le point.',
+		icon: '🧠',
+		prompt:
+			'Cherche dans mon second cerveau (mes notes) ce que je sais sur un sujet et fais-moi une synthèse ' +
+			'claire, avec les points clés et ce qui manque éventuellement. Demande-moi le sujet si besoin.'
+	},
+	{
+		id: 'deleguer-agent',
+		label: 'Déléguer à un agent',
+		description: 'Confiez une mission à un collègue numérique spécialisé.',
+		icon: '🤖',
+		prompt:
+			'Je veux déléguer une tâche à un agent spécialisé. Demande-moi laquelle et le résultat attendu, ' +
+			'puis propose comment un agent dédié s’en chargerait (mission, méthode, garde-fous) et lance-toi.'
 	}
 ];

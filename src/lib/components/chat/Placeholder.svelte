@@ -32,14 +32,13 @@
 	const dispatch = createEventDispatcher();
 
 	// Clic sur une carte d'action : pré-remplit le chat avec le prompt (l'utilisateur relit puis
-	// envoie — honnêteté D27). Ne déclenche AUCUN envoi automatique.
-	const selectWorkflow = async (p: string) => {
-		prompt = p;
-		await tick();
-		try {
-			messageInput?.focus?.();
-		} catch {
-			// focus indisponible : le prompt est quand même pré-rempli.
+	// envoie — honnêteté D27). `setText` est LA méthode qui met à jour l'éditeur (idem clic natif) ;
+	// on n'appelle PAS submit, donc aucun envoi automatique.
+	const selectWorkflow = (p: string) => {
+		if (messageInput?.setText) {
+			messageInput.setText(p);
+		} else {
+			prompt = p; // repli : au moins le brouillon est posé
 		}
 	};
 
