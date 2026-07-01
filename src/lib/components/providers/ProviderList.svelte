@@ -5,7 +5,6 @@
 	import { getProviders, getActiveProvider } from '$lib/apis/providers';
 
 	import Spinner from '$lib/components/common/Spinner.svelte';
-	import SegmentedTabs from '$lib/components/common/SegmentedTabs.svelte';
 	import ProviderCard from './ProviderCard.svelte';
 	import HermesStatus from './HermesStatus.svelte';
 
@@ -115,16 +114,21 @@
 			{/if}
 		</div>
 
-		<!-- barre d'onglets (segmented control premium partagé) -->
-		<div class="mb-3">
-			<SegmentedTabs
-				items={TABS.map((t) => ({
-					label: $i18n.t(t.label),
-					count: t.key === 'hermes' ? null : countOf(t.key)
-				}))}
-				activeIndex={TABS.findIndex((t) => t.key === activeTab)}
-				on:select={(e) => (activeTab = TABS[e.detail].key)}
-			/>
+		<!-- barre d'onglets — style « puces » IDENTIQUE à celui de l'onglet Outils
+		     (ToolsetList) : puce active foncée + puces grises, passe à la ligne. -->
+		<div class="flex flex-wrap gap-1.5 mb-3">
+			{#each TABS as tab (tab.key)}
+				<button
+					type="button"
+					class="text-xs px-3 py-1.5 rounded-lg transition whitespace-nowrap {activeTab === tab.key
+						? 'bg-gray-900 text-white dark:bg-white dark:text-gray-900 font-medium'
+						: 'bg-gray-50 text-gray-600 dark:bg-gray-850 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800'}"
+					on:click={() => (activeTab = tab.key)}
+				>
+					{$i18n.t(tab.label)}
+					{#if tab.key !== 'hermes'}<span class="opacity-60">({countOf(tab.key)})</span>{/if}
+				</button>
+			{/each}
 		</div>
 
 		<!-- aide de l'onglet courant (masquée pour Moteur : le bandeau santé suffit) -->
