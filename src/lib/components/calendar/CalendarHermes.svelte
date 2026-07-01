@@ -18,6 +18,7 @@
 	import Spinner from '$lib/components/common/Spinner.svelte';
 	import Tooltip from '$lib/components/common/Tooltip.svelte';
 	import CalendarConnectPrompt from './CalendarConnectPrompt.svelte';
+	import PageHeader from '$lib/components/common/PageHeader.svelte';
 	import { CALENDAR_SOURCE_LOGO } from '$lib/utils/integrationLogos';
 
 	const i18n = getContext('i18n');
@@ -200,8 +201,11 @@
 <div class="flex flex-col w-full">
 	<div class="flex justify-between items-center mb-4 gap-3">
 		<div class="min-w-0">
-			<h1 class="text-2xl font-semibold tracking-tight text-gray-900 dark:text-white">{$i18n.t('Calendrier')}</h1>
-			<p class="mt-1.5 text-sm leading-relaxed text-gray-500 dark:text-gray-400">{subtitle(activeSourceObj)}</p>
+			<PageHeader
+				eyebrow={$i18n.t('Calendrier')}
+				title={$i18n.t('Tout votre agenda, piloté pour vous')}
+				description={subtitle(activeSourceObj)}
+			/>
 		</div>
 		<div class="flex items-center gap-2">
 			{#if connectedSources.length >= 2}

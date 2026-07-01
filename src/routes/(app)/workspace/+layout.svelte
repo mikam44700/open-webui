@@ -14,6 +14,7 @@
 	import { goto } from '$app/navigation';
 	import Tooltip from '$lib/components/common/Tooltip.svelte';
 	import SegmentedTabs from '$lib/components/common/SegmentedTabs.svelte';
+	import PageHeader from '$lib/components/common/PageHeader.svelte';
 	import Sidebar from '$lib/components/icons/Sidebar.svelte';
 
 	const i18n = getContext('i18n');
@@ -287,14 +288,13 @@
 				<!-- En-tête du hub « Espace de travail » (style Capacités) : titre + onglets + bannière.
 				     Onglets contenu = défile avec le contenu ; onglet Tâches = en-tête figé + board plein écran. -->
 				<div class="{isWorkspaceBoard ? 'flex-none ' : ''}w-full max-w-7xl mx-auto px-4 pt-4 sm:pt-6">
-					<h1 class="text-2xl font-semibold tracking-tight text-gray-900 dark:text-white">
-						{$i18n.t('Espace de travail')}
-					</h1>
-					<p class="mt-1.5 max-w-2xl text-sm leading-relaxed text-gray-500 dark:text-gray-400">
-						{$i18n.t(
-							'Vos agents, vos tâches, vos automatisations et vos compétences — tout ce que votre assistant sait faire.'
+					<PageHeader
+						eyebrow={$i18n.t('Espace de travail')}
+						title={$i18n.t('Vos collègues numériques')}
+						description={$i18n.t(
+							'Agents, tâches, automatisations et compétences — tout ce que votre assistant sait faire, au même endroit.'
 						)}
-					</p>
+					/>
 					<div class="mt-4">
 						<SegmentedTabs items={workspaceTabs} activeIndex={workspaceActiveIndex} />
 					</div>

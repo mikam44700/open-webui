@@ -18,6 +18,7 @@
 	import Tooltip from '$lib/components/common/Tooltip.svelte';
 	import Switch from '$lib/components/common/Switch.svelte';
 	import SegmentedTabs from '$lib/components/common/SegmentedTabs.svelte';
+	import PageHeader from '$lib/components/common/PageHeader.svelte';
 	import Sidebar from '$lib/components/icons/Sidebar.svelte';
 
 	let loaded = false;
@@ -184,32 +185,30 @@
 		<div class=" flex-1 max-h-full overflow-y-auto @container">
 			<!-- En-tête premium : grand titre + texte d'accroche dynamique + onglets dessous (inspiré Base44). -->
 			<div class="w-full max-w-7xl mx-auto px-3 pt-4 sm:pt-6">
-				<div class="flex items-start justify-between gap-3">
-					<h1 class="text-2xl font-semibold tracking-tight text-gray-900 dark:text-white">
-						{$i18n.t('Capacités')}
-					</h1>
+				<PageHeader
+					eyebrow={$i18n.t('Capacités')}
+					title={$i18n.t('Ce que votre assistant sait faire')}
+					description={activeSection?.desc ? $i18n.t(activeSection.desc) : ''}
+				>
 					<!-- Interrupteur global « Réglages avancés » (ex-Mode Expert) : dévoile le technique
 					     sur toute la page (Compétences, supervision Messagerie, outils techniques).
 					     Discret + infobulle pour ne pas perdre le dirigeant non-technique. -->
-					<Tooltip
-						content={$i18n.t(
-							'Affiche les options techniques (serveurs, clés API, compétences détaillées). Inutile au quotidien — réservé aux réglages avancés.'
-						)}
-						interactive={true}
-					>
-						<label
-							class="flex-none flex items-center gap-2 text-xs text-gray-400 dark:text-gray-500 cursor-pointer select-none pt-1.5"
+					<svelte:fragment slot="actions">
+						<Tooltip
+							content={$i18n.t(
+								'Affiche les options techniques (serveurs, clés API, compétences détaillées). Inutile au quotidien — réservé aux réglages avancés.'
+							)}
+							interactive={true}
 						>
-							{$i18n.t('Réglages avancés')}
-							<Switch state={$expertMode} on:change={() => expertMode.set(!$expertMode)} />
-						</label>
-					</Tooltip>
-				</div>
-				{#if activeSection?.desc}
-					<p class="mt-1.5 max-w-2xl text-sm leading-relaxed text-gray-500 dark:text-gray-400">
-						{$i18n.t(activeSection.desc)}
-					</p>
-				{/if}
+							<label
+								class="flex-none flex items-center gap-2 text-xs text-gray-400 dark:text-gray-500 cursor-pointer select-none"
+							>
+								{$i18n.t('Réglages avancés')}
+								<Switch state={$expertMode} on:change={() => expertMode.set(!$expertMode)} />
+							</label>
+						</Tooltip>
+					</svelte:fragment>
+				</PageHeader>
 
 				<!-- Segmented control premium partagé (SegmentedTabs) : pilule glissante + a11y. -->
 				<div class="mt-5">

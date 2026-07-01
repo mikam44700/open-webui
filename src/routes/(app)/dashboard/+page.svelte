@@ -7,6 +7,7 @@
 
 	import Tooltip from '$lib/components/common/Tooltip.svelte';
 	import SidebarIcon from '$lib/components/icons/Sidebar.svelte';
+	import PageHeader from '$lib/components/common/PageHeader.svelte';
 
 	import HealthCard from '$lib/components/dashboard/HealthCard.svelte';
 	import AlertsBanner from '$lib/components/dashboard/AlertsBanner.svelte';
@@ -226,12 +227,13 @@
 		<div class="flex-1 max-h-full overflow-y-auto @container">
 			<div class="w-full max-w-5xl mx-auto px-3 py-3 flex flex-col gap-3">
 				<div class="px-1 pt-1">
-					<h1 class="text-2xl font-semibold tracking-tight text-gray-900 dark:text-white">
-						{$i18n.t('Tableau de bord')}
-					</h1>
-					<p class="mt-1.5 max-w-2xl text-sm leading-relaxed text-gray-500 dark:text-gray-400">
-						{$i18n.t('L’essentiel de votre journée et l’état de votre assistant, en un coup d’œil.')}
-					</p>
+					<PageHeader
+						eyebrow={$i18n.t('Tableau de bord')}
+						title={$i18n.t('Votre journée en un coup d’œil')}
+						description={$i18n.t(
+							'L’essentiel de votre activité et l’état de votre assistant, réunis ici.'
+						)}
+					/>
 				</div>
 				<AlertsBanner {alerts} {loading} />
 
