@@ -443,25 +443,27 @@ Garde la langue d'origine. Retourne uniquement le texte en markdown.`;
 									</div>
 								{/if}
 
-								<div class="{groupedNotes.length - 1 !== idx ? 'mb-3' : ''} gap-1.5 flex flex-col">
+								<div class="{groupedNotes.length - 1 !== idx ? 'mb-4' : ''} grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2.5">
 									{#each notes as note}
 										<div
-											class="flex cursor-pointer w-full px-3.5 py-1.5 border border-gray-50 dark:border-gray-850/30 bg-transparent dark:hover:bg-gray-850 hover:bg-white rounded-2xl transition"
+											class="group cursor-pointer w-full px-3.5 py-3 border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 rounded-2xl transition-all duration-200 hover:-translate-y-0.5 hover:shadow-[0_2px_10px_rgba(0,0,0,0.05)] hover:border-gray-300 dark:hover:border-gray-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-gray-300 dark:focus-visible:ring-gray-700"
 											on:click={() => openNote(note)}
 											on:keydown={(e) => e.key === 'Enter' && openNote(note)}
 											role="button"
 											tabindex="0"
 										>
-											<div class="w-full flex flex-col justify-between">
-												<div class="flex-1">
-													<div class="flex items-center gap-2 self-center justify-between">
-														<Tooltip content={note.name} className="flex-1" placement="top-start">
-															<div class="text-sm font-medium capitalize flex-1 w-full line-clamp-1">
-																{note.name}
-															</div>
-														</Tooltip>
+											<div class="flex items-center gap-2.5">
+												<span class="shrink-0 flex items-center justify-center w-8 h-8 rounded-lg bg-gray-100 dark:bg-gray-800 text-gray-400 group-hover:text-gray-600 dark:group-hover:text-gray-300 transition">
+													<svg class="w-4 h-4" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M5 3h6l4 4v10H5V3Z" stroke-linejoin="round"/><path d="M11 3v4h4" stroke-linejoin="round"/></svg>
+												</span>
+												<Tooltip content={note.name} className="flex-1 min-w-0" placement="top-start">
+													<div class="text-sm font-medium capitalize line-clamp-1">
+														{note.name}
 													</div>
-												</div>
+													{#if folder}
+														<div class="text-xs text-gray-400 dark:text-gray-500 line-clamp-1">{folder}</div>
+													{/if}
+												</Tooltip>
 											</div>
 										</div>
 									{/each}
