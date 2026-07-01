@@ -17,6 +17,7 @@ import hueLogo from '$lib/assets/integrations/hue.svg';
 import microsoft365Logo from '$lib/assets/integrations/microsoft/microsoft365-main.jpg';
 // Logos officiels OAuth 1 clic (Salesforce = SVG vectoriel ; les autres = PNG/JPEG haute def).
 import calendlyLogo from '$lib/assets/integrations/calendly/calendly-logo.png';
+import calcomLogo from '$lib/assets/integrations/calcom/calcom-logo.svg';
 import boxLogo from '$lib/assets/integrations/box/box-logo.png';
 import dropboxLogo from '$lib/assets/integrations/dropbox/dropbox-logo.png';
 import salesforceLogo from '$lib/assets/integrations/salesforce/salesforce-logo.svg';
@@ -34,6 +35,7 @@ export const INTEGRATION_LOGO: Record<string, string> = {
 	hue: hueLogo,
 	'microsoft-365': microsoft365Logo,
 	calendly: calendlyLogo,
+	'cal-com': calcomLogo,
 	box: boxLogo,
 	dropbox: dropboxLogo,
 	salesforce: salesforceLogo,

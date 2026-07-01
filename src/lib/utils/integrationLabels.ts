@@ -130,6 +130,16 @@ export const INTEGRATION_FR: Record<string, IntegrationMeta> = {
 			'Suivre les rendez-vous pris'
 		]
 	},
+	'cal-com': {
+		name: 'Cal.com',
+		desc: 'Prise de rendez-vous open source (alternative à Calendly).',
+		category: 'Productivité',
+		actions: [
+			'Partager votre lien de réservation',
+			'Consulter vos disponibilités',
+			'Suivre les rendez-vous pris'
+		]
+	},
 	box: {
 		name: 'Box',
 		desc: 'Stockage de fichiers sécurisé (Box).',

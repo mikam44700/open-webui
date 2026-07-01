@@ -4,11 +4,12 @@
 	import { goto } from '$app/navigation';
 
 	import {
-		getCalendarStatus,
+		getCalendarSources,
 		getEvents,
 		createEvent,
 		deleteEvent,
-		type CalendarEvent
+		type CalendarEvent,
+		type CalendarSource
 	} from '$lib/apis/calendar-hermes';
 	import { validateEventForm } from '$lib/calendar/event-form';
 
@@ -19,9 +20,15 @@
 
 	const i18n = getContext('i18n');
 
+	// Fuseau du navigateur (ex. « Europe/Paris ») : indispensable pour Outlook et Calendly,
+	// qui raisonnent en UTC côté API. Google gère son propre fuseau via la skill.
+	const tz = Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC';
+	const LS_KEY = 'agentos.calendar.source';
+
 	let loading = true;
-	let connected = false;
 	let unavailable = false;
+	let sources: CalendarSource[] = [];
+	let activeSource: string = '';
 	let events: CalendarEvent[] = [];
 
 	let showModal = false;
@@ -31,28 +38,74 @@
 	let showDeleteConfirm = false;
 	let deleteTarget: CalendarEvent | null = null;
 
+	$: connectedSources = sources.filter((s) => s.connected);
+	$: activeSourceObj = sources.find((s) => s.id === activeSource) ?? null;
+	$: canWrite = !!activeSourceObj?.can_write;
+	$: activeLabel = activeSourceObj?.label ?? 'calendrier';
+
+	const subtitle = (src: CalendarSource | null): string => {
+		if (!src) return $i18n.t('Votre agenda, géré par Agent OS.');
+		if (src.id === 'calendly') return $i18n.t('Vos rendez-vous Calendly, dans Agent OS.');
+		return $i18n.t('Votre agenda {{name}}, géré par Agent OS.', { name: src.label });
+	};
+
+	const loadEvents = async () => {
+		if (!activeSource) {
+			events = [];
+			return;
+		}
+		const now = new Date();
+		const end = new Date(now.getTime() + 60 * 24 * 3600 * 1000);
+		const res = await getEvents(
+			localStorage.token,
+			activeSource,
+			now.toISOString(),
+			end.toISOString(),
+			tz
+		);
+		events = res?.events ?? [];
+	};
+
 	const load = async () => {
 		loading = true;
 		unavailable = false;
 		try {
-			const status = await getCalendarStatus(localStorage.token);
-			connected = !!status?.connected;
-			if (!connected) {
+			const res = await getCalendarSources(localStorage.token);
+			sources = res?.sources ?? [];
+			const connected = sources.filter((s) => s.connected);
+			if (connected.length === 0) {
+				activeSource = '';
 				events = [];
 				return;
 			}
-			// Fenêtre : maintenant -> +60 jours
-			const now = new Date();
-			const end = new Date(now.getTime() + 60 * 24 * 3600 * 1000);
-			const res = await getEvents(localStorage.token, now.toISOString(), end.toISOString());
-			events = res?.events ?? [];
+			// Restaure le dernier calendrier consulté s'il est toujours connecté, sinon la
+			// source par défaut (1re connectée).
+			const saved = localStorage.getItem(LS_KEY);
+			const savedOk = saved && connected.some((s) => s.id === saved);
+			activeSource = savedOk ? (saved as string) : (res?.default ?? connected[0].id);
+			await loadEvents();
 		} catch (err: any) {
-			// 409 google_not_connected géré comme "non connecté", sinon indisponible
-			if (err?.error?.code === 'google_not_connected') {
-				connected = false;
+			if (typeof err?.code === 'string' && err.code.endsWith('_not_connected')) {
+				// La source a été déconnectée entre-temps : on recharge la liste des sources.
+				events = [];
 			} else {
 				unavailable = true;
 			}
+		} finally {
+			loading = false;
+		}
+	};
+
+	const switchSource = async (id: string) => {
+		if (id === activeSource) return;
+		activeSource = id;
+		localStorage.setItem(LS_KEY, id);
+		loading = true;
+		unavailable = false;
+		try {
+			await loadEvents();
+		} catch (err) {
+			unavailable = true;
 		} finally {
 			loading = false;
 		}
@@ -66,11 +119,11 @@
 		}
 		saving = true;
 		try {
-			await createEvent(localStorage.token, v.body);
+			await createEvent(localStorage.token, { ...v.body, source: activeSource, tz });
 			toast.success($i18n.t('Événement ajouté à votre agenda'));
 			showModal = false;
 			form = { title: '', startLocal: '', endLocal: '', location: '' };
-			await load();
+			await loadEvents();
 		} catch (err) {
 			toast.error(typeof err === 'string' ? err : $i18n.t('Ajout impossible'));
 		} finally {
@@ -86,7 +139,7 @@
 	const doDelete = async () => {
 		if (!deleteTarget) return;
 		try {
-			await deleteEvent(localStorage.token, deleteTarget.id);
+			await deleteEvent(localStorage.token, deleteTarget.id, activeSource);
 			events = events.filter((x) => x.id !== deleteTarget!.id);
 			toast.success($i18n.t('Événement supprimé'));
 		} catch (err) {
@@ -129,6 +182,11 @@
 				<span class="text-gray-600 dark:text-gray-300">{$i18n.t('Lieu (optionnel)')}</span>
 				<input class="w-full mt-1 px-3 py-2 rounded-lg bg-gray-50 dark:bg-gray-850 outline-none text-sm" bind:value={form.location} />
 			</label>
+			{#if activeSourceObj}
+				<div class="text-[11px] text-gray-400">
+					{$i18n.t('Sera ajouté à : {{name}}', { name: activeLabel })}
+				</div>
+			{/if}
 		</div>
 		<div class="flex justify-end gap-2 mt-4">
 			<button class="px-3 py-1.5 rounded-lg text-sm hover:bg-gray-100 dark:hover:bg-gray-850" on:click={() => (showModal = false)}>{$i18n.t('Annuler')}</button>
@@ -138,16 +196,31 @@
 </Modal>
 
 <div class="flex flex-col w-full">
-	<div class="flex justify-between items-center mb-4">
-		<div>
+	<div class="flex justify-between items-center mb-4 gap-3">
+		<div class="min-w-0">
 			<div class="text-xl font-medium">{$i18n.t('Calendrier')}</div>
-			<div class="text-xs text-gray-500">{$i18n.t('Votre agenda Google, géré par Agent OS.')}</div>
+			<div class="text-xs text-gray-500">{subtitle(activeSourceObj)}</div>
 		</div>
-		{#if connected}
-			<button class="px-3 py-1.5 rounded-xl bg-black text-white dark:bg-white dark:text-black text-sm font-medium" on:click={() => (showModal = true)}>
-				+ {$i18n.t('Nouvel événement')}
-			</button>
-		{/if}
+		<div class="flex items-center gap-2">
+			{#if connectedSources.length >= 2}
+				<!-- Plusieurs calendriers connectés : le client bascule de l'un à l'autre (jamais de mélange). -->
+				<select
+					class="px-3 py-1.5 rounded-xl bg-gray-50 dark:bg-gray-850 text-sm outline-none border border-gray-100 dark:border-gray-800"
+					value={activeSource}
+					on:change={(e) => switchSource((e.target as HTMLSelectElement).value)}
+					aria-label={$i18n.t('Choisir le calendrier')}
+				>
+					{#each connectedSources as s (s.id)}
+						<option value={s.id}>{s.label}</option>
+					{/each}
+				</select>
+			{/if}
+			{#if canWrite && connectedSources.length > 0 && !unavailable}
+				<button class="px-3 py-1.5 rounded-xl bg-black text-white dark:bg-white dark:text-black text-sm font-medium whitespace-nowrap" on:click={() => (showModal = true)}>
+					+ {$i18n.t('Nouvel événement')}
+				</button>
+			{/if}
+		</div>
 	</div>
 
 	{#if loading}
@@ -158,12 +231,12 @@
 			<div class="font-medium">{$i18n.t('Agenda momentanément indisponible')}</div>
 			<button class="mt-3 text-sm underline" on:click={load}>{$i18n.t('Réessayer')}</button>
 		</div>
-	{:else if !connected}
+	{:else if connectedSources.length === 0}
 		<div class="flex flex-col items-center justify-center py-20 text-center">
 			<div class="text-3xl mb-2">📅</div>
-			<div class="font-medium">{$i18n.t('Connectez votre Google Agenda')}</div>
+			<div class="font-medium">{$i18n.t('Connectez un calendrier')}</div>
 			<div class="text-xs text-gray-500 mt-1 max-w-md">
-				{$i18n.t('Pour qu’Agent OS gère votre calendrier, connectez votre compte Google dans Intégrations.')}
+				{$i18n.t('Pour qu’Agent OS gère votre agenda, connectez Google Agenda, Outlook ou Calendly dans Intégrations.')}
 			</div>
 			<button class="mt-3 px-3 py-1.5 rounded-xl bg-black text-white dark:bg-white dark:text-black text-sm" on:click={() => goto('/connectors?tab=integrations')}>
 				{$i18n.t('Ouvrir Intégrations')}
@@ -185,9 +258,11 @@
 							{#if e.location}<span>📍 {e.location}</span>{/if}
 						</div>
 					</div>
-					<Tooltip content={$i18n.t('Supprimer')}>
-						<button class="p-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 text-red-500" on:click={() => confirmDelete(e)} aria-label="Supprimer">🗑</button>
-					</Tooltip>
+					{#if canWrite}
+						<Tooltip content={$i18n.t('Supprimer')}>
+							<button class="p-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 text-red-500" on:click={() => confirmDelete(e)} aria-label="Supprimer">🗑</button>
+						</Tooltip>
+					{/if}
 				</div>
 			{/each}
 		</div>
