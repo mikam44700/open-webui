@@ -3,7 +3,7 @@
 	import { marked } from 'marked';
 	import DOMPurify from 'dompurify';
 
-	import { onMount, getContext, tick, createEventDispatcher } from 'svelte';
+	import { getContext, tick, createEventDispatcher } from 'svelte';
 	import { blur, fade } from 'svelte/transition';
 
 	import { getChatList } from '$lib/apis/chats';
@@ -21,7 +21,7 @@
 	import { sanitizeResponseContent, extractCurlyBraceWords } from '$lib/utils';
 	import { WEBUI_API_BASE_URL, WEBUI_BASE_URL } from '$lib/constants';
 
-	import Suggestions from './Suggestions.svelte';
+	import { WORKFLOWS } from '$lib/catalog/workflows';
 	import Tooltip from '$lib/components/common/Tooltip.svelte';
 	import EyeSlash from '$lib/components/icons/EyeSlash.svelte';
 	import MessageInput from './MessageInput.svelte';
@@ -31,16 +31,16 @@
 	const i18n = getContext('i18n');
 	const dispatch = createEventDispatcher();
 
-	const WELCOME_DISMISSED_KEY = 'hermes-welcome-dismissed';
-	let welcomeDismissed = true; // hidden by default until mount checks localStorage
-
-	onMount(() => {
-		welcomeDismissed = localStorage.getItem(WELCOME_DISMISSED_KEY) === 'true';
-	});
-
-	const dismissWelcome = () => {
-		welcomeDismissed = true;
-		localStorage.setItem(WELCOME_DISMISSED_KEY, 'true');
+	// Clic sur une carte d'action : pré-remplit le chat avec le prompt (l'utilisateur relit puis
+	// envoie — honnêteté D27). Ne déclenche AUCUN envoi automatique.
+	const selectWorkflow = async (p: string) => {
+		prompt = p;
+		await tick();
+		try {
+			messageInput?.focus?.();
+		} catch {
+			// focus indisponible : le prompt est quand même pré-rempli.
+		}
 	};
 
 	export let createMessagePair: Function;
@@ -224,35 +224,6 @@
 		</div>
 	</div>
 
-	{#if !welcomeDismissed && !$selectedFolder}
-		<div
-			class="mx-auto max-w-2xl mt-3 mb-1 font-primary"
-			in:fade={{ duration: 200, delay: 400 }}
-		>
-			<div class="mx-5 relative flex items-start gap-3 rounded-2xl border border-gray-200/60 dark:border-gray-700/50 bg-white/60 dark:bg-gray-800/40 backdrop-blur-sm px-4 py-3 text-left text-sm text-gray-600 dark:text-gray-300 shadow-sm">
-				<div class="flex-1">
-					<p class="font-medium text-gray-700 dark:text-gray-200 mb-1">{$i18n.t('Je peux vous aider à :')}</p>
-					<ul class="space-y-0.5 list-none m-0 p-0">
-						<li>📧 {$i18n.t('Rédiger un email clair et professionnel')}</li>
-						<li>📊 {$i18n.t('Analyser un document et en extraire les points clés')}</li>
-						<li>🔎 {$i18n.t('Faire une recherche et vous faire un point sourcé')}</li>
-					</ul>
-					<p class="mt-2 text-xs text-gray-400 dark:text-gray-500">{$i18n.t('Tapez votre demande ci-dessus ou cliquez sur une suggestion.')}</p>
-				</div>
-				<button
-					type="button"
-					class="shrink-0 ml-1 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 transition"
-					aria-label={$i18n.t('Fermer')}
-					on:click={dismissWelcome}
-				>
-					<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="size-4">
-						<path d="M6.28 5.22a.75.75 0 00-1.06 1.06L8.94 10l-3.72 3.72a.75.75 0 101.06 1.06L10 11.06l3.72 3.72a.75.75 0 101.06-1.06L11.06 10l3.72-3.72a.75.75 0 00-1.06-1.06L10 8.94 6.28 5.22z" />
-					</svg>
-				</button>
-			</div>
-		</div>
-	{/if}
-
 	{#if $selectedFolder}
 		<div
 			class="mx-auto px-4 md:max-w-3xl md:px-6 font-primary min-h-62"
@@ -261,16 +232,31 @@
 			<FolderPlaceholder folder={$selectedFolder} />
 		</div>
 	{:else}
-		<div class="mx-auto max-w-2xl font-primary mt-2" in:fade={{ duration: 200, delay: 200 }}>
-			<div class="mx-5">
-				<Suggestions
-					suggestionPrompts={atSelectedModel?.info?.meta?.suggestion_prompts ??
-						models[selectedModelIdx]?.info?.meta?.suggestion_prompts ??
-						$config?.default_prompt_suggestions ??
-						[]}
-					inputValue={prompt}
-					{onSelect}
-				/>
+		<!-- Cartes d'action (catalogue métier) : pré-remplissent le chat au clic. Remplace l'ancienne
+		     boîte « Je peux vous aider » + les suggestions natives. -->
+		<div class="mx-auto max-w-3xl font-primary mt-3 px-5" in:fade={{ duration: 200, delay: 200 }}>
+			<div class="flex items-center gap-1.5 mb-2.5 text-xs font-medium text-gray-400 dark:text-gray-500">
+				<svg class="w-3.5 h-3.5" viewBox="0 0 20 20" fill="currentColor"><path d="M11 2.5 4 11h4.2l-1 6.5L15 9h-4.2l1-6.5Z"/></svg>
+				{$i18n.t('Pour démarrer')}
+			</div>
+			<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2.5 text-left">
+				{#each WORKFLOWS as w (w.id)}
+					<button
+						type="button"
+						class="group flex items-start gap-2.5 px-3.5 py-3 rounded-2xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 hover:-translate-y-0.5 hover:shadow-[0_2px_10px_rgba(0,0,0,0.05)] hover:border-gray-300 dark:hover:border-gray-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-gray-300 dark:focus-visible:ring-gray-700 transition-all duration-200"
+						on:click={() => selectWorkflow(w.prompt)}
+					>
+						<span class="text-lg leading-none mt-0.5">{w.icon}</span>
+						<span class="flex flex-col min-w-0">
+							<span class="text-sm font-medium text-gray-900 dark:text-white truncate"
+								>{$i18n.t(w.label)}</span
+							>
+							<span class="text-xs text-gray-500 dark:text-gray-400 line-clamp-2 leading-snug"
+								>{$i18n.t(w.description)}</span
+							>
+						</span>
+					</button>
+				{/each}
 			</div>
 		</div>
 	{/if}

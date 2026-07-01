@@ -14,7 +14,6 @@
 	import ConnectionsCard from '$lib/components/dashboard/ConnectionsCard.svelte';
 	import ActivityCard from '$lib/components/dashboard/ActivityCard.svelte';
 	import QuickActionsCard from '$lib/components/dashboard/QuickActionsCard.svelte';
-	import WorkflowsCard from '$lib/components/dashboard/WorkflowsCard.svelte';
 	import OnboardingCard from '$lib/components/dashboard/OnboardingCard.svelte';
 	import BriefingCard from '$lib/components/dashboard/BriefingCard.svelte';
 	import { deriveOnboardingSteps } from '$lib/onboarding/steps';
@@ -242,8 +241,6 @@
 				{/if}
 
 				<BriefingCard />
-
-				<WorkflowsCard />
 
 				<div class="grid grid-cols-1 md:grid-cols-2 gap-3">
 					<HealthCard {bricks} {loading} />
