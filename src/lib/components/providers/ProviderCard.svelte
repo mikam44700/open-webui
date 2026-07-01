@@ -7,6 +7,7 @@
 	import Spinner from '$lib/components/common/Spinner.svelte';
 	import ProviderOAuth from './ProviderOAuth.svelte';
 	import { getModelPresentation } from '$lib/catalog/model-badges';
+	import { PROVIDER_INFO } from '$lib/catalog/provider-info';
 	import { PROVIDER_LOGO_FULL_BLEED } from '$lib/utils/providerLogos';
 	import {
 		setProviderKey,
@@ -40,6 +41,9 @@
 	$: configured = provider.state !== 'not_configured';
 	// Présentation métier curée (libellé humain + badges) — repli neutre si inconnu (D27).
 	$: presentation = getModelPresentation(provider.id);
+	// Infos client : phrase grise courte, « Voir ce que ça fait », lien « Obtenir la clé ».
+	$: info = PROVIDER_INFO[provider.id] ?? {};
+	let aboutOpen = false;
 	// La plupart des logos sont en PNG ; seuls ces quelques-uns restent en SVG.
 	const SVG_LOGOS = new Set(['api']);
 	// Nous Portal : forcer le logo « NOUS RESEARCH » (boîte) côté front, sans dépendre du
@@ -140,7 +144,7 @@
 </script>
 
 <div
-	class="flex flex-col gap-2.5 p-4 rounded-2xl border border-gray-100 dark:border-gray-850 transition hover:border-gray-200 dark:hover:border-gray-700 hover:shadow-sm"
+	class="flex flex-col gap-2.5 h-full p-4 rounded-2xl border border-gray-100 dark:border-gray-850 transition hover:border-gray-200 dark:hover:border-gray-700 hover:shadow-sm"
 >
 	<!-- En-tête : logo + nom + état -->
 	<div class="flex items-center gap-2.5">
@@ -159,11 +163,9 @@
 		</div>
 		<div class="flex-1 min-w-0">
 			<div class="text-sm font-medium line-clamp-1">{provider.label}</div>
-			{#if presentation.humanLabel}
-				<div class="text-xs text-gray-500 line-clamp-1">{presentation.humanLabel}</div>
-			{:else}
-				<div class="text-xs text-gray-500 line-clamp-1">{provider.models?.length ?? 0} {$i18n.t('modèles')}</div>
-			{/if}
+			<div class="text-xs text-gray-500 line-clamp-1">
+				{info.desc ?? presentation.humanLabel ?? `${provider.models?.length ?? 0} ${$i18n.t('modèles')}`}
+			</div>
 		</div>
 		{#if provider.state !== 'not_configured'}
 			<Badge type={badge.type} content={$i18n.t(badge.label)} />
@@ -182,6 +184,43 @@
 		</div>
 	{/if}
 
+	<!-- Voir ce que ça fait (déroulant façon MCP / Intégrations). -->
+	{#if info.about?.length}
+		{#if !aboutOpen}
+			<button
+				type="button"
+				class="self-start text-xs font-medium text-sky-600 dark:text-sky-400 hover:underline"
+				on:click={() => (aboutOpen = true)}
+			>
+				{$i18n.t('Voir ce que ça fait')} ›
+			</button>
+		{:else}
+			<div class="flex flex-col gap-1.5">
+				<div class="text-[11px] font-semibold uppercase tracking-wide text-gray-400 dark:text-gray-500">
+					{$i18n.t('Ce que ça fait')}
+				</div>
+				<ul class="flex flex-col gap-1 pl-0.5">
+					{#each info.about as line}
+						<li class="flex items-start gap-1.5 text-[11px] text-gray-600 dark:text-gray-400">
+							<span class="flex-none mt-1 size-1 rounded-full bg-gray-400 dark:bg-gray-600"></span>
+							<span>{$i18n.t(line)}</span>
+						</li>
+					{/each}
+				</ul>
+				<button
+					type="button"
+					class="self-start text-xs text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 transition"
+					on:click={() => (aboutOpen = false)}
+				>
+					{$i18n.t('Masquer')}
+				</button>
+			</div>
+		{/if}
+	{/if}
+
+	<!-- Bloc de connexion collé en bas : aligne champ + Tester/Enregistrer entre les cartes,
+	     quels que soient les badges/description au-dessus. -->
+	<div class="mt-auto flex flex-col gap-2.5">
 	<!-- Action de connexion selon la catégorie -->
 	{#if provider.category === 'oauth'}
 		<ProviderOAuth {provider} on:connected={() => dispatch('changed')} />
@@ -203,23 +242,37 @@
 				{show ? $i18n.t('Masquer') : $i18n.t('Afficher')}
 			</button>
 		</div>
-		<div class="flex items-center justify-end gap-2">
-			<button
-				type="button"
-				class="text-xs px-2 py-1 rounded-lg text-gray-500 hover:text-gray-800 dark:hover:text-gray-200 transition disabled:opacity-40"
-				disabled={!value || testing}
-				on:click={testKey}
-			>
-				{#if testing}<Spinner className="size-3.5" />{:else}{$i18n.t('Tester')}{/if}
-			</button>
-			<button
-				type="button"
-				class="text-xs px-3 py-1.5 rounded-lg bg-black text-white dark:bg-white dark:text-black transition disabled:opacity-40"
-				disabled={!value || saving}
-				on:click={saveKey}
-			>
-				{#if saving}<Spinner className="size-3.5" />{:else}{$i18n.t('Enregistrer')}{/if}
-			</button>
+		<div class="flex items-center justify-between gap-2">
+			{#if info.keyUrl}
+				<a
+					href={info.keyUrl}
+					target="_blank"
+					rel="noopener"
+					class="text-xs text-sky-600 dark:text-sky-400 hover:underline"
+				>
+					{$i18n.t('Obtenir la clé')} ›
+				</a>
+			{:else}
+				<span></span>
+			{/if}
+			<div class="flex items-center gap-2">
+				<button
+					type="button"
+					class="text-xs px-2 py-1 rounded-lg text-gray-500 hover:text-gray-800 dark:hover:text-gray-200 transition disabled:opacity-40"
+					disabled={!value || testing}
+					on:click={testKey}
+				>
+					{#if testing}<Spinner className="size-3.5" />{:else}{$i18n.t('Tester')}{/if}
+				</button>
+				<button
+					type="button"
+					class="text-xs px-3 py-1.5 rounded-lg bg-black text-white dark:bg-white dark:text-black transition disabled:opacity-40"
+					disabled={!value || saving}
+					on:click={saveKey}
+				>
+					{#if saving}<Spinner className="size-3.5" />{:else}{$i18n.t('Enregistrer')}{/if}
+				</button>
+			</div>
 		</div>
 	{:else if provider.id === 'bedrock'}
 		<!-- AWS Bedrock : credentials AWS (lus par le SDK de Hermes) -->
@@ -291,4 +344,5 @@
 			</button>
 		</div>
 	{/if}
+	</div>
 </div>
