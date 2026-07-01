@@ -219,14 +219,20 @@
 						</Tooltip>
 					</div>
 				{/if}
-				<div class="ml-2 py-0.5 self-center flex items-center w-full">
-					<div class="text-sm font-medium py-1">{$i18n.t('Tableau de bord')}</div>
-				</div>
+				<div class="ml-2 py-0.5 self-center flex items-center w-full"></div>
 			</div>
 		</nav>
 
 		<div class="flex-1 max-h-full overflow-y-auto @container">
 			<div class="w-full max-w-5xl mx-auto px-3 py-3 flex flex-col gap-3">
+				<div class="px-1 pt-1">
+					<h1 class="text-2xl font-semibold tracking-tight text-gray-900 dark:text-white">
+						{$i18n.t('Tableau de bord')}
+					</h1>
+					<p class="mt-1.5 max-w-2xl text-sm leading-relaxed text-gray-500 dark:text-gray-400">
+						{$i18n.t('L’essentiel de votre journée et l’état de votre assistant, en un coup d’œil.')}
+					</p>
+				</div>
 				<AlertsBanner {alerts} {loading} />
 
 				{#if !loading}

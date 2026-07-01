@@ -55,33 +55,7 @@
 				{/if}
 
 				<div class="ml-2 py-0.5 self-center flex items-center justify-between w-full">
-					<div class="">
-						<div
-							class="flex gap-1 scrollbar-none overflow-x-auto w-fit text-center text-sm font-medium bg-transparent py-1 touch-auto pointer-events-auto"
-						>
-							<a
-								draggable="false"
-								aria-current={$page.url.pathname === '/memory' ? 'page' : null}
-								class="min-w-fit p-1.5 {$page.url.pathname === '/memory'
-									? ''
-									: 'text-gray-300 dark:text-gray-600 hover:text-gray-700 dark:hover:text-white'} transition select-none"
-								href="/memory"
-							>
-								{$i18n.t('Mémoire')}
-							</a>
-
-							<a
-								draggable="false"
-								aria-current={$page.url.pathname.includes('/memory/knowledge') ? 'page' : null}
-								class="min-w-fit p-1.5 {$page.url.pathname.includes('/memory/knowledge')
-									? ''
-									: 'text-gray-300 dark:text-gray-600 hover:text-gray-700 dark:hover:text-white'} transition select-none"
-								href="/memory/knowledge"
-							>
-								{$i18n.t('Knowledge')}
-							</a>
-						</div>
-					</div>
+					<div></div>
 
 					<div class=" self-center flex items-center gap-1">
 						{#if $user !== undefined && $user !== null}
@@ -116,6 +90,41 @@
 		</nav>
 
 		<div class=" flex-1 max-h-full overflow-y-auto @container px-3 md:px-[18px]">
+			<!-- En-tête « Mémoire » (style Capacités / Espace de travail) : titre + phrase + onglets soulignés. -->
+			<div class="pt-3 sm:pt-4">
+				<h1 class="text-2xl font-semibold tracking-tight text-gray-900 dark:text-white">
+					{$i18n.t('Mémoire')}
+				</h1>
+				<p class="mt-1.5 max-w-2xl text-sm leading-relaxed text-gray-500 dark:text-gray-400">
+					{$i18n.t('Le second cerveau de votre entreprise : tout ce que votre assistant retient pour vous.')}
+				</p>
+				<div class="mt-4 flex flex-wrap gap-x-6 gap-y-1 border-b border-gray-200 dark:border-gray-800">
+					<a
+						href="/memory"
+						aria-current={$page.url.pathname === '/memory' ? 'page' : null}
+						class="relative pb-2.5 text-sm transition {$page.url.pathname === '/memory'
+							? 'font-medium text-gray-900 dark:text-white'
+							: 'text-gray-400 hover:text-gray-700 dark:text-gray-500 dark:hover:text-gray-300'}"
+					>
+						{$i18n.t('Mémoire')}
+						{#if $page.url.pathname === '/memory'}
+							<span class="absolute -bottom-px left-0 right-0 h-0.5 rounded-full bg-gray-900 dark:bg-white"></span>
+						{/if}
+					</a>
+					<a
+						href="/memory/knowledge"
+						aria-current={$page.url.pathname.includes('/memory/knowledge') ? 'page' : null}
+						class="relative pb-2.5 text-sm transition {$page.url.pathname.includes('/memory/knowledge')
+							? 'font-medium text-gray-900 dark:text-white'
+							: 'text-gray-400 hover:text-gray-700 dark:text-gray-500 dark:hover:text-gray-300'}"
+					>
+						{$i18n.t('Knowledge')}
+						{#if $page.url.pathname.includes('/memory/knowledge')}
+							<span class="absolute -bottom-px left-0 right-0 h-0.5 rounded-full bg-gray-900 dark:bg-white"></span>
+						{/if}
+					</a>
+				</div>
+			</div>
 			<slot />
 		</div>
 	</div>

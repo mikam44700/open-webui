@@ -275,6 +275,11 @@
 					<h1 class="text-2xl font-semibold tracking-tight text-gray-900 dark:text-white">
 						{$i18n.t('Espace de travail')}
 					</h1>
+					<p class="mt-1.5 max-w-2xl text-sm leading-relaxed text-gray-500 dark:text-gray-400">
+						{$i18n.t(
+							'Vos agents, vos tâches, vos automatisations et vos compétences — tout ce que votre assistant sait faire.'
+						)}
+					</p>
 					<div
 						class="mt-4 flex flex-wrap gap-x-6 gap-y-1 border-b border-gray-200 dark:border-gray-800"
 					>

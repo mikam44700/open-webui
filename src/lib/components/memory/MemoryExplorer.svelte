@@ -352,35 +352,9 @@ Garde la langue d'origine. Retourne uniquement le texte en markdown.`;
 {#if view === 'list'}
 	<div class="w-full min-h-full h-full px-3 md:px-[18px]">
 		{#if loaded}
-			<!-- Header : titre + compteur + bouton nouvelle note -->
-			<div class="flex flex-col gap-1 px-1 mt-1.5 mb-3">
-				<div class="flex justify-between items-center">
-					<div class="flex items-center md:self-center text-xl font-medium px-0.5 gap-2 shrink-0">
-						<div>Mémoire</div>
-						<div class="text-lg font-medium text-gray-500 dark:text-gray-500">
-							{allNotes.length}
-						</div>
-					</div>
-
-					<div class="flex w-full justify-end gap-1.5">
-						<button
-							class="px-2 py-1.5 rounded-xl border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-850 transition font-medium text-xs flex items-center disabled:opacity-50"
-							on:click={initVault}
-							disabled={initializing}
-							title="Crée la structure de rangement du coffre (Réception, Projets, Domaines…)"
-						>
-							{initializing ? 'Initialisation…' : 'Initialiser le coffre'}
-						</button>
-						<button
-							class="px-2 py-1.5 rounded-xl bg-black text-white dark:bg-white dark:text-black transition font-medium text-sm flex items-center"
-							on:click={newNote}
-						>
-							<Plus className="size-3" strokeWidth="2.5" />
-							<div class="ml-1 text-xs">Nouvelle note</div>
-						</button>
-					</div>
-				</div>
-
+			<!-- Barre d'actions du coffre (le titre + la phrase sont dans l'en-tête du layout).
+			     Statut honnête à gauche, actions à droite. -->
+			<div class="flex flex-wrap items-center justify-between gap-2 px-1 mt-3 mb-3">
 				<!-- Statut honnête -->
 				{#if status}
 					<div class="flex items-center gap-1.5 px-0.5 text-xs text-gray-500 dark:text-gray-500">
@@ -408,6 +382,24 @@ Garde la langue d'origine. Retourne uniquement le texte en markdown.`;
 						{/if}
 					</div>
 				{/if}
+
+				<div class="flex justify-end gap-1.5 shrink-0 ml-auto">
+					<button
+						class="px-2 py-1.5 rounded-xl border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-850 transition font-medium text-xs flex items-center disabled:opacity-50"
+						on:click={initVault}
+						disabled={initializing}
+						title="Crée la structure de rangement du coffre (Réception, Projets, Domaines…)"
+					>
+						{initializing ? 'Initialisation…' : 'Initialiser le coffre'}
+					</button>
+					<button
+						class="px-2 py-1.5 rounded-xl bg-black text-white dark:bg-white dark:text-black transition font-medium text-sm flex items-center"
+						on:click={newNote}
+					>
+						<Plus className="size-3" strokeWidth="2.5" />
+						<div class="ml-1 text-xs">Nouvelle note</div>
+					</button>
+				</div>
 			</div>
 
 			<!-- Panneau recherche (markup identique à Notes.svelte) -->
