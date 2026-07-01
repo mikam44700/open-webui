@@ -41,6 +41,10 @@ class AwsBody(BaseModel):
     region: str | None = None
 
 
+class ReasoningBody(BaseModel):
+    effort: str
+
+
 async def _bridge(method: str, path: str, json: dict | None = None):
     """Appelle le Providers Bridge avec la clé partagée. 503 si injoignable."""
     session = await get_session()
@@ -86,6 +90,24 @@ async def get_active(user=Depends(get_admin_user)):
 async def set_active(body: ActiveSelection, user=Depends(get_admin_user)):
     """Change le cerveau actif. S'applique aux nouvelles conversations."""
     return await _bridge("POST", "/active", json=body.model_dump())
+
+
+@router.post("/model-capabilities")
+async def model_capabilities(body: ActiveSelection, user=Depends(get_admin_user)):
+    """Capacités du modèle (reasoning/vision/outils/contexte) — adapte l'UI par modèle."""
+    return await _bridge("POST", "/model-capabilities", json=body.model_dump())
+
+
+@router.get("/reasoning")
+async def get_reasoning(user=Depends(get_admin_user)):
+    """Niveau d'intelligence actif (effort de raisonnement global du moteur)."""
+    return await _bridge("GET", "/reasoning")
+
+
+@router.post("/reasoning")
+async def set_reasoning(body: ReasoningBody, user=Depends(get_admin_user)):
+    """Change le niveau d'intelligence global. S'applique aux nouvelles conversations."""
+    return await _bridge("POST", "/reasoning", json=body.model_dump())
 
 
 @router.put("/{provider_id}/key")
