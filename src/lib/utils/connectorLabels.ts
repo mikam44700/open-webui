@@ -10,6 +10,18 @@ export const CONNECTOR_FR: Record<
 	string,
 	{ name: string; desc: string; actions: string[]; popular?: boolean }
 > = {
+	'data-gouv-fr': {
+		name: 'data.gouv.fr',
+		desc: 'Accès aux données publiques ouvertes de l’État français (data.gouv.fr). Souverain, gratuit, sans clé : la plateforme officielle est déjà hébergée.',
+		popular: true,
+		actions: [
+			'Rechercher parmi les jeux de données publics de l’État',
+			'Lire un fichier de données ouvert (CSV, Excel)',
+			'Trouver les API officielles (entreprises SIRENE, adresses)',
+			'Rechercher une administration ou un organisme public',
+			'Consulter les statistiques d’un jeu de données'
+		]
+	},
 	ableton: {
 		name: 'Ableton Live',
 		desc: 'Pilote Ableton Live depuis l’agent.',

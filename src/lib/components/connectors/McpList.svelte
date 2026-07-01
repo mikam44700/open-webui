@@ -46,11 +46,24 @@
 			visibility: 'visible',
 			installable: true,
 			preset: { transport: 'http', url: 'https://mcp.hubspot.com/', auth_type: 'oauth' }
+		},
+		{
+			// Serveur MCP officiel de data.gouv.fr (déjà hébergé par l'État, transport
+			// « streamable HTTP » → déclaré en `http` côté bridge, Hermes le résout au runtime).
+			// Read-only, aucune clé → install directe en 1 clic (auth_type: none).
+			name: 'data-gouv-fr',
+			transport: 'http',
+			auth_type: 'none',
+			installed: false,
+			category: 'search',
+			visibility: 'visible',
+			installable: true,
+			preset: { transport: 'http', url: 'https://mcp.data.gouv.fr/mcp', auth_type: 'none' }
 		}
 	];
 
 	// Vedettes essentielles affichées sur la page (les autres dans « Tout parcourir »).
-	const FEATURED = ['gmail', 'google-calendar', 'notion', 'slack', 'stripe', 'hubspot'];
+	const FEATURED = ['gmail', 'google-calendar', 'notion', 'slack', 'stripe', 'hubspot', 'data-gouv-fr'];
 
 	type Connector = {
 		id: string;

@@ -64,8 +64,10 @@ import memoryLogo from '$lib/assets/connectors/memory.jpg';
 import mistralLogo from '$lib/assets/connectors/mistral.png';
 import sequentialLogo from '$lib/assets/connectors/sequential-thinking.jpg';
 import elevenlabsLogo from '$lib/assets/connectors/elevenlabs.png';
+import dataGouvFrLogo from '$lib/assets/connectors/data-gouv-fr.svg';
 
 export const CONNECTOR_LOGO: Record<string, string> = {
+	'data-gouv-fr': dataGouvFrLogo,
 	linear: linearLogo,
 	n8n: n8nLogo,
 	'unreal-engine': unrealEngineLogo,
