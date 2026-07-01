@@ -10,6 +10,19 @@ export const CONNECTOR_FR: Record<
 	string,
 	{ name: string; desc: string; actions: string[]; popular?: boolean }
 > = {
+	apify: {
+		name: 'Apify',
+		desc: 'Extraction web et prospection via les 5000+ robots d’Apify (Google Maps, LinkedIn…). Nécessite une clé API Apify — payant à l’usage : chaque extraction est facturée.',
+		popular: true,
+		actions: [
+			'Trouver des prospects locaux (Google Maps : nom, adresse, téléphone)',
+			'Collecter des contacts et données B2B (annuaires, réseaux…)',
+			'Extraire des données de milliers de sites (5000+ robots prêts)',
+			'Chercher un robot précis et le lancer à la demande',
+			'Récupérer les résultats structurés d’une extraction',
+			'Payant à l’usage : chaque extraction est facturée par Apify'
+		]
+	},
 	'data-gouv-fr': {
 		name: 'data.gouv.fr',
 		desc: 'Accès aux données publiques ouvertes de l’État français (data.gouv.fr). Souverain, gratuit, sans clé : la plateforme officielle est déjà hébergée.',

@@ -114,6 +114,13 @@
 
 	const install = async () => {
 		working = true;
+		// Preset à clé (ex. Apify) : exiger le token avant d'ajouter le connecteur.
+		if (remoteConfig?.auth_type === 'key' && !keyValue) {
+			if (!showKeyInput) await toggleKeyInput();
+			toast.error($i18n.t('Saisis la clé API d’abord'));
+			working = false;
+			return;
+		}
 		try {
 			// Connecteur distant (preset maison HubSpot OU MCP remote du registre) : on l'ajoute
 			// en custom (http/OAuth) puis on lance directement la connexion par compte.
@@ -132,6 +139,13 @@
 				if (remoteConfig.auth_type === 'oauth') {
 					await startConnectorOAuth(localStorage.token, entry.name);
 					oauthOpen = true;
+				} else if (remoteConfig.auth_type === 'key') {
+					// La clé (token) est posée après l'ajout : remplit la variable d'env
+					// référencée par l'en-tête Authorization du connecteur.
+					await setConnectorKey(localStorage.token, entry.name, keyValue);
+					keyValue = '';
+					toast.success($i18n.t('Connecteur installé.'));
+					dispatch('changed');
 				} else {
 					toast.success($i18n.t('Connecteur installé.'));
 					dispatch('changed');

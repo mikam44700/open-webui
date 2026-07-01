@@ -59,11 +59,24 @@
 			visibility: 'visible',
 			installable: true,
 			preset: { transport: 'http', url: 'https://mcp.data.gouv.fr/mcp', auth_type: 'none' }
+		},
+		{
+			// Serveur MCP officiel d'Apify (déjà hébergé, streamable HTTP → `http` côté bridge).
+			// Extraction web / prospection (Google Maps, LinkedIn…). Clé API Apify requise
+			// (auth_type: key → saisie du token dans la carte, payant à l'usage côté Apify).
+			name: 'apify',
+			transport: 'http',
+			auth_type: 'key',
+			installed: false,
+			category: 'search',
+			visibility: 'visible',
+			installable: true,
+			preset: { transport: 'http', url: 'https://mcp.apify.com', auth_type: 'key' }
 		}
 	];
 
 	// Vedettes essentielles affichées sur la page (les autres dans « Tout parcourir »).
-	const FEATURED = ['gmail', 'google-calendar', 'notion', 'slack', 'stripe', 'hubspot', 'data-gouv-fr'];
+	const FEATURED = ['gmail', 'google-calendar', 'notion', 'slack', 'stripe', 'hubspot', 'data-gouv-fr', 'apify'];
 
 	type Connector = {
 		id: string;
