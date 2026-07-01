@@ -58,7 +58,7 @@
 	const cancel = () => (content = original);
 </script>
 
-<div class="max-w-3xl mx-auto py-4">
+<div class="w-full py-4">
 	{#if !loaded}
 		<div class="flex justify-center py-16"><Spinner /></div>
 	{:else if loadError}
@@ -77,7 +77,7 @@
 		</div>
 
 		<textarea
-			class="w-full h-56 rounded-2xl border {tooLong ? 'border-amber-400' : 'border-gray-200 dark:border-gray-800'} bg-transparent p-4 text-sm resize-y outline-none focus:border-gray-400 dark:focus:border-gray-600 transition"
+			class="w-full h-[55vh] min-h-[320px] rounded-2xl border {tooLong ? 'border-amber-400' : 'border-gray-200 dark:border-gray-800'} bg-transparent p-4 text-sm leading-relaxed resize-y outline-none focus:border-gray-400 dark:focus:border-gray-600 transition"
 			bind:value={content}
 			placeholder={$i18n.t(
 				'Ex. : Je dirige une PME de conseil de 12 personnes. Je préfère les réponses directes en français. Mes clients sont surtout des artisans.'

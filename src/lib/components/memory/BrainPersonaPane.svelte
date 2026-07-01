@@ -87,7 +87,7 @@
 	};
 </script>
 
-<div class="max-w-3xl mx-auto py-4">
+<div class="w-full py-4">
 	{#if !loaded}
 		<div class="flex justify-center py-16"><Spinner /></div>
 	{:else if loadError}
@@ -127,7 +127,7 @@
 		</div>
 
 		<textarea
-			class="w-full h-72 rounded-2xl border border-gray-200 dark:border-gray-800 bg-transparent p-4 text-sm resize-y outline-none focus:border-gray-400 dark:focus:border-gray-600 transition"
+			class="w-full h-[60vh] min-h-[360px] rounded-2xl border border-gray-200 dark:border-gray-800 bg-transparent p-4 text-sm leading-relaxed resize-y outline-none focus:border-gray-400 dark:focus:border-gray-600 transition"
 			bind:value={content}
 			placeholder={$i18n.t(
 				"Ex. : Tu es mon bras droit exécutif. Tu vas droit au but, en français. Tu n'inventes jamais."

@@ -83,7 +83,7 @@
 	};
 </script>
 
-<div class="max-w-3xl mx-auto py-4">
+<div class="w-full py-4">
 	{#if !loaded}
 		<div class="flex justify-center py-16"><Spinner /></div>
 	{:else if loadError}
@@ -112,7 +112,7 @@
 		{#if adding}
 			<div class="rounded-2xl border border-gray-200 dark:border-gray-800 p-3 mb-3">
 				<textarea
-					class="w-full h-20 bg-transparent text-sm resize-y outline-none"
+					class="w-full h-32 bg-transparent text-sm leading-relaxed resize-y outline-none"
 					bind:value={newContent}
 					placeholder={$i18n.t('Ex. : Je préfère être appelé le matin.')}
 					spellcheck="false"
@@ -140,7 +140,7 @@
 				{#each entries as entry (entry.index)}
 					<div class="rounded-2xl border border-gray-200 dark:border-gray-800 p-3">
 						{#if editingIndex === entry.index}
-							<textarea class="w-full h-20 bg-transparent text-sm resize-y outline-none" bind:value={editContent} spellcheck="false"></textarea>
+							<textarea class="w-full h-32 bg-transparent text-sm leading-relaxed resize-y outline-none" bind:value={editContent} spellcheck="false"></textarea>
 							<div class="flex justify-end gap-2 mt-2">
 								<button class="px-3 py-1.5 rounded-lg text-xs border border-gray-200 dark:border-gray-800" on:click={() => (editingIndex = null)}>
 									{$i18n.t('Annuler')}
