@@ -284,7 +284,7 @@
 						>
 							{#if w.image}
 								<span
-									class="shrink-0 w-9 h-9 rounded-lg overflow-hidden bg-white dark:bg-gray-800 ring-1 ring-gray-100 dark:ring-gray-800 flex items-center justify-center"
+									class="shrink-0 w-7 h-7 mt-0.5 rounded-md overflow-hidden bg-white dark:bg-gray-800 ring-1 ring-gray-100 dark:ring-gray-800 flex items-center justify-center"
 								>
 									<img src={w.image} alt="" class="w-full h-full object-cover" draggable="false" />
 								</span>
