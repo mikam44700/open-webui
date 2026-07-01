@@ -12,12 +12,23 @@
 	import PageHeader from '$lib/components/common/PageHeader.svelte';
 	import Sidebar from '$lib/components/icons/Sidebar.svelte';
 
-	// Onglets Mémoire (mode lien) : actif déduit de l'URL.
+	// Onglets Mémoire (mode lien) : actif déduit de l'URL. Métaphore « les tiroirs de la mémoire
+	// de mon assistant » — le coffre + les 3 réglages du cerveau (SOUL.md/USER.md/MEMORY.md). Cf. specs/017.
 	$: memoryTabs = [
-		{ label: $i18n.t('Mémoire'), href: '/memory' },
-		{ label: $i18n.t('Knowledge'), href: '/memory/knowledge' }
+		{ label: $i18n.t('Mes notes'), href: '/memory' },
+		{ label: $i18n.t('Mon assistant'), href: '/memory/assistant' },
+		{ label: $i18n.t('Mon profil'), href: '/memory/profil' },
+		{ label: $i18n.t("Ce qu'il a retenu"), href: '/memory/souvenirs' },
+		{ label: $i18n.t('Connaissances'), href: '/memory/knowledge' }
 	];
-	$: memoryActiveIndex = $page.url.pathname.includes('/memory/knowledge') ? 1 : 0;
+	$: memoryActiveIndex = (() => {
+		const p = $page.url.pathname;
+		if (p.includes('/memory/assistant')) return 1;
+		if (p.includes('/memory/profil')) return 2;
+		if (p.includes('/memory/souvenirs')) return 3;
+		if (p.includes('/memory/knowledge')) return 4;
+		return 0;
+	})();
 
 	let loaded = false;
 

@@ -66,3 +66,49 @@ export const initMemoryVault = (token: string): Promise<{ created: string[] }> =
 // Dépose une note dans la Boîte de réception (zone d'écriture sûre de l'agent).
 export const writeInboxNote = (token: string, title: string, content: string): Promise<NoteContent> =>
 	call(token, 'POST', '/inbox', { title, content });
+
+// ─── Réglages du cerveau (feature 017) : Persona / Profil / Souvenirs ───────
+
+export type PersonaContent = { content: string };
+export type ProfileContent = { content: string; char_count: number; char_limit: number };
+export type MemoryEntry = { index: number; content: string };
+export type MemoryEntriesResponse = {
+	entries: MemoryEntry[];
+	char_count: number;
+	char_limit: number;
+};
+
+// Persona (SOUL.md) — le caractère de l'assistant.
+export const getPersona = (token: string): Promise<PersonaContent> => call(token, 'GET', '/persona');
+
+export const savePersona = (
+	token: string,
+	content: string,
+	allowEmpty = false
+): Promise<PersonaContent> => call(token, 'PUT', '/persona', { content, allow_empty: allowEmpty });
+
+// Gabarit FR par défaut à charger dans l'éditeur (n'écrit rien sur disque).
+export const resetPersona = (token: string): Promise<PersonaContent> =>
+	call(token, 'POST', '/persona/reset');
+
+// Profil (USER.md) — qui est le dirigeant.
+export const getProfile = (token: string): Promise<ProfileContent> => call(token, 'GET', '/profile');
+
+export const saveProfile = (token: string, content: string): Promise<ProfileContent> =>
+	call(token, 'PUT', '/profile', { content });
+
+// Souvenirs (MEMORY.md) — ce que l'assistant a retenu.
+export const getEntries = (token: string): Promise<MemoryEntriesResponse> =>
+	call(token, 'GET', '/entries');
+
+export const addEntry = (token: string, content: string): Promise<MemoryEntriesResponse> =>
+	call(token, 'POST', '/entries', { content });
+
+export const updateEntry = (
+	token: string,
+	index: number,
+	content: string
+): Promise<MemoryEntriesResponse> => call(token, 'PUT', `/entries/${index}`, { content });
+
+export const removeEntry = (token: string, index: number): Promise<MemoryEntriesResponse> =>
+	call(token, 'DELETE', `/entries/${index}`);

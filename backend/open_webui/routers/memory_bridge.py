@@ -64,3 +64,69 @@ async def init_memory_vault(user=Depends(get_admin_user)):
 async def write_inbox_note(body: InboxNoteBody, user=Depends(get_admin_user)):
     """Dépose une note dans la Boîte de réception (zone d'écriture sûre de l'agent)."""
     return await _bridge("POST", "/memory/inbox", json=body.model_dump())
+
+
+# ── Réglages du cerveau (feature 017) : Persona / Profil / Souvenirs ──────────
+
+
+class ContentBody(BaseModel):
+    content: str
+
+
+class PersonaWriteBody(BaseModel):
+    content: str
+    allow_empty: bool = False
+
+
+@router.get("/persona")
+async def get_persona(user=Depends(get_admin_user)):
+    """Personnalité de l'assistant (SOUL.md)."""
+    return await _bridge("GET", "/memory/persona")
+
+
+@router.put("/persona")
+async def put_persona(body: PersonaWriteBody, user=Depends(get_admin_user)):
+    """Écrit la personnalité (sauvegarde explicite)."""
+    return await _bridge("PUT", "/memory/persona", json=body.model_dump())
+
+
+@router.post("/persona/reset")
+async def reset_persona(user=Depends(get_admin_user)):
+    """Gabarit FR par défaut à charger dans l'éditeur (n'écrit pas sur disque)."""
+    return await _bridge("POST", "/memory/persona/reset")
+
+
+@router.get("/profile")
+async def get_profile(user=Depends(get_admin_user)):
+    """Profil du dirigeant (USER.md)."""
+    return await _bridge("GET", "/memory/profile")
+
+
+@router.put("/profile")
+async def put_profile(body: ContentBody, user=Depends(get_admin_user)):
+    """Écrit le profil du dirigeant."""
+    return await _bridge("PUT", "/memory/profile", json=body.model_dump())
+
+
+@router.get("/entries")
+async def get_entries(user=Depends(get_admin_user)):
+    """Liste des souvenirs (MEMORY.md)."""
+    return await _bridge("GET", "/memory/entries")
+
+
+@router.post("/entries")
+async def add_entry(body: ContentBody, user=Depends(get_admin_user)):
+    """Ajoute un souvenir."""
+    return await _bridge("POST", "/memory/entries", json=body.model_dump())
+
+
+@router.put("/entries/{index}")
+async def update_entry(index: int, body: ContentBody, user=Depends(get_admin_user)):
+    """Modifie le souvenir ``index``."""
+    return await _bridge("PUT", f"/memory/entries/{index}", json=body.model_dump())
+
+
+@router.delete("/entries/{index}")
+async def delete_entry(index: int, user=Depends(get_admin_user)):
+    """Supprime le souvenir ``index`` (confirmation côté UI)."""
+    return await _bridge("DELETE", f"/memory/entries/{index}")
