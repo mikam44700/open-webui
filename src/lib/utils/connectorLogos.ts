@@ -135,6 +135,7 @@ export const CONNECTOR_LOGO: Record<string, string> = {
 // remplir tout le carré. Les autres gardent le fond blanc + une marge.
 export const CONNECTOR_LOGO_FULL_BLEED = new Set<string>([
 	'apify',
+	'data-gouv-fr',
 	'crawl4ai',
 	'linear',
 	'n8n',
