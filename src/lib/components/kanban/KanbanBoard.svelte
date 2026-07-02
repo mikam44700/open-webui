@@ -385,7 +385,7 @@
 				{dispatching ? $i18n.t('Dispatch…') : $i18n.t('Dispatch')}
 			</button>
 			<button
-				class="px-3.5 py-1 text-xs rounded-full bg-black text-white dark:bg-white dark:text-black hover:opacity-90 shadow-sm transition"
+				class="px-3.5 py-1 text-xs rounded-full btn-premium bg-black text-white dark:bg-white dark:text-black hover:opacity-90 shadow-sm transition"
 				on:click={() => (showTaskModal = true)}
 			>
 				+ {$i18n.t('Nouvelle tâche')}
@@ -531,7 +531,7 @@
 				<button class="px-3 py-1.5 text-sm rounded-lg bg-gray-100 dark:bg-gray-850 hover:bg-gray-200 dark:hover:bg-gray-800 transition" on:click={() => (showTaskModal = false)}>
 					{$i18n.t('Annuler')}
 				</button>
-				<button class="px-3 py-1.5 text-sm rounded-lg bg-black text-white dark:bg-white dark:text-black hover:opacity-90 transition disabled:opacity-40" on:click={submitTask} disabled={!nt.title.trim() || creatingTask}>
+				<button class="px-3 py-1.5 text-sm rounded-lg btn-premium bg-black text-white dark:bg-white dark:text-black hover:opacity-90 transition disabled:opacity-40" on:click={submitTask} disabled={!nt.title.trim() || creatingTask}>
 					{$i18n.t('Créer')}
 				</button>
 			</div>
@@ -553,7 +553,7 @@
 				<button class="px-3 py-1.5 text-sm rounded-lg bg-gray-100 dark:bg-gray-850 hover:bg-gray-200 dark:hover:bg-gray-800 transition" on:click={() => (showBoardModal = false)}>
 					{$i18n.t('Annuler')}
 				</button>
-				<button class="px-3 py-1.5 text-sm rounded-lg bg-black text-white dark:bg-white dark:text-black hover:opacity-90 transition disabled:opacity-40" on:click={submitBoard} disabled={!nb.slug.trim() || creatingBoard}>
+				<button class="px-3 py-1.5 text-sm rounded-lg btn-premium bg-black text-white dark:bg-white dark:text-black hover:opacity-90 transition disabled:opacity-40" on:click={submitBoard} disabled={!nb.slug.trim() || creatingBoard}>
 					{$i18n.t('Créer')}
 				</button>
 			</div>

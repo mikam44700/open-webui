@@ -406,7 +406,7 @@
 				<div class="flex items-center gap-2 shrink-0 justify-end">
 					{#if !disabled}
 						<button
-							class="px-4 py-1 text-sm font-medium bg-black text-white dark:bg-white dark:text-black rounded-full hover:opacity-90 transition shadow-xs"
+							class="px-4 py-1 text-sm font-medium btn-premium bg-black text-white dark:bg-white dark:text-black rounded-full hover:opacity-90 transition shadow-xs"
 							on:click={() => (showEditModal = true)}
 						>
 							{$i18n.t('Edit')}

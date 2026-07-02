@@ -133,7 +133,7 @@
 			</div>
 		</div>
 		<button
-			class="px-3 py-1.5 rounded-xl bg-black text-white dark:bg-white dark:text-black text-sm font-medium"
+			class="px-3 py-1.5 rounded-xl btn-premium bg-black text-white dark:bg-white dark:text-black text-sm font-medium"
 			on:click={openCreate}
 		>
 			+ {$i18n.t('Nouvelle automatisation')}

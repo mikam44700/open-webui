@@ -193,7 +193,7 @@
 		</div>
 		<div class="flex justify-end gap-2 mt-4">
 			<button class="px-3 py-1.5 rounded-lg text-sm hover:bg-gray-100 dark:hover:bg-gray-850" on:click={() => (showModal = false)}>{$i18n.t('Annuler')}</button>
-			<button class="px-3 py-1.5 rounded-lg text-sm bg-black text-white dark:bg-white dark:text-black disabled:opacity-50" disabled={saving} on:click={submit}>{$i18n.t('Ajouter')}</button>
+			<button class="px-3 py-1.5 rounded-lg text-sm btn-premium bg-black text-white dark:bg-white dark:text-black disabled:opacity-50" disabled={saving} on:click={submit}>{$i18n.t('Ajouter')}</button>
 		</div>
 	</div>
 </Modal>
@@ -222,7 +222,7 @@
 				</select>
 			{/if}
 			{#if canWrite && connectedSources.length > 0 && !unavailable}
-				<button class="px-3 py-1.5 rounded-xl bg-black text-white dark:bg-white dark:text-black text-sm font-medium whitespace-nowrap" on:click={() => (showModal = true)}>
+				<button class="px-3 py-1.5 rounded-xl btn-premium bg-black text-white dark:bg-white dark:text-black text-sm font-medium whitespace-nowrap" on:click={() => (showModal = true)}>
 					+ {$i18n.t('Nouvel événement')}
 				</button>
 			{/if}

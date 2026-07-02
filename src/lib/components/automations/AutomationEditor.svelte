@@ -255,7 +255,7 @@
 
 				{#if isDirty}
 					<button
-						class="px-3 py-1 text-sm bg-black text-white dark:bg-white dark:text-black rounded-full hover:opacity-90 transition flex items-center gap-1.5"
+						class="px-3 py-1 text-sm btn-premium bg-black text-white dark:bg-white dark:text-black rounded-full hover:opacity-90 transition flex items-center gap-1.5"
 						on:click={saveHandler}
 						disabled={saving}
 						type="button"

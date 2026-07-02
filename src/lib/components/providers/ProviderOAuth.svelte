@@ -76,7 +76,7 @@
 	<div>
 		<button
 			type="button"
-			class="text-sm px-3 py-1.5 rounded-xl bg-black text-white dark:bg-white dark:text-black transition disabled:opacity-50 inline-flex items-center gap-2"
+			class="text-sm px-3 py-1.5 rounded-xl btn-premium bg-black text-white dark:bg-white dark:text-black transition disabled:opacity-50 inline-flex items-center gap-2"
 			disabled={status === 'running'}
 			on:click={connect}
 		>

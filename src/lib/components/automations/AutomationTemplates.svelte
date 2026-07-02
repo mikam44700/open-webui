@@ -14,7 +14,7 @@
 	{#each automationTemplates as t (t.id)}
 		<button
 			type="button"
-			class="text-left p-3 rounded-2xl border border-gray-100 dark:border-gray-850 hover:border-gray-300 dark:hover:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-850/40 transition min-w-0 overflow-hidden"
+			class="text-left p-3 rounded-2xl border border-gray-100 dark:border-gray-850 hover:border-gray-300 dark:hover:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-850/40 card-lift min-w-0 overflow-hidden"
 			on:click={() => select(t)}
 		>
 			<div class="flex items-start gap-2.5 min-w-0">

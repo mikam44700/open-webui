@@ -119,7 +119,7 @@
 						href={authUrl}
 						target="_blank"
 						rel="noopener noreferrer"
-						class="text-sm text-center px-3 py-2 rounded-xl bg-black text-white dark:bg-white dark:text-black transition"
+						class="text-sm text-center px-3 py-2 rounded-xl btn-premium bg-black text-white dark:bg-white dark:text-black transition"
 					>
 						{$i18n.t('Se connecter avec Google')}
 					</a>
@@ -131,7 +131,7 @@
 					/>
 					<div class="flex justify-end">
 						<button
-							class="text-xs px-3 py-1.5 rounded-lg bg-black text-white dark:bg-white dark:text-black transition disabled:opacity-40"
+							class="text-xs px-3 py-1.5 rounded-lg btn-premium bg-black text-white dark:bg-white dark:text-black transition disabled:opacity-40"
 							disabled={busy || !code.trim()}
 							on:click={submitCode}
 						>

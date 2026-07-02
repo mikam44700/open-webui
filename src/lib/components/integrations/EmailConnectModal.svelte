@@ -120,7 +120,7 @@
 
 				<div class="flex justify-end pt-1">
 					<button
-						class="text-xs px-3 py-1.5 rounded-lg bg-black text-white dark:bg-white dark:text-black transition disabled:opacity-40"
+						class="text-xs px-3 py-1.5 rounded-lg btn-premium bg-black text-white dark:bg-white dark:text-black transition disabled:opacity-40"
 						disabled={busy}
 						on:click={connect}
 					>

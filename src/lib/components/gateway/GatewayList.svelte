@@ -667,7 +667,7 @@
 					{$i18n.t('Fermer')}
 				</button>
 				<button
-					class="px-3 py-1.5 text-sm rounded-lg bg-black text-white dark:bg-white dark:text-black hover:opacity-90 transition disabled:opacity-40"
+					class="px-3 py-1.5 text-sm rounded-lg btn-premium bg-black text-white dark:bg-white dark:text-black hover:opacity-90 transition disabled:opacity-40"
 					on:click={() => savePlatform(p)}
 					disabled={!hasDraft(p) || busy === p.id}
 				>

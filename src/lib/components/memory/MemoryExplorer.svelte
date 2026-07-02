@@ -393,7 +393,7 @@ Garde la langue d'origine. Retourne uniquement le texte en markdown.`;
 						{initializing ? 'Initialisation…' : 'Initialiser le coffre'}
 					</button>
 					<button
-						class="px-2 py-1.5 rounded-xl bg-black text-white dark:bg-white dark:text-black transition font-medium text-sm flex items-center"
+						class="px-2 py-1.5 rounded-xl btn-premium bg-black text-white dark:bg-white dark:text-black transition font-medium text-sm flex items-center"
 						on:click={newNote}
 					>
 						<Plus className="size-3" strokeWidth="2.5" />
@@ -491,7 +491,7 @@ Garde la langue d'origine. Retourne uniquement le texte en markdown.`;
 								Créez votre première note, ou mettez en place le rangement du coffre.
 							</div>
 							<button
-								class="mt-3 px-3 py-1.5 rounded-xl bg-black text-white dark:bg-white dark:text-black transition font-medium text-xs disabled:opacity-50"
+								class="mt-3 px-3 py-1.5 rounded-xl btn-premium bg-black text-white dark:bg-white dark:text-black transition font-medium text-xs disabled:opacity-50"
 								on:click={initVault}
 								disabled={initializing}
 							>

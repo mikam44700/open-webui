@@ -97,7 +97,7 @@
 				on:click={() => (show = false)}>{$i18n.t('Annuler')}</button
 			>
 			<button
-				class="text-sm px-4 py-1.5 rounded-xl bg-black text-white dark:bg-white dark:text-black hover:opacity-90 transition disabled:opacity-50"
+				class="text-sm px-4 py-1.5 rounded-xl btn-premium bg-black text-white dark:bg-white dark:text-black hover:opacity-90 transition disabled:opacity-50"
 				disabled={saving}
 				on:click={submit}
 			>

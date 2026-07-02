@@ -169,7 +169,7 @@
 					{$i18n.t('Annuler')}
 				</button>
 				<button
-					class="text-xs px-3 py-1.5 rounded-lg bg-black text-white dark:bg-white dark:text-black transition disabled:opacity-40"
+					class="text-xs px-3 py-1.5 rounded-lg btn-premium bg-black text-white dark:bg-white dark:text-black transition disabled:opacity-40"
 					disabled={saving}
 					on:click={submit}
 				>

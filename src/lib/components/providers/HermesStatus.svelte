@@ -346,7 +346,7 @@
 			</button>
 			<button
 				type="button"
-				class="text-sm px-3.5 py-2 rounded-xl bg-black text-white dark:bg-white dark:text-black hover:opacity-90 transition disabled:opacity-50 inline-flex items-center gap-2"
+				class="text-sm px-3.5 py-2 rounded-xl btn-premium bg-black text-white dark:bg-white dark:text-black hover:opacity-90 transition disabled:opacity-50 inline-flex items-center gap-2"
 				disabled={updateState === 'running'}
 				on:click={() => (showUpdateConfirm = true)}
 			>

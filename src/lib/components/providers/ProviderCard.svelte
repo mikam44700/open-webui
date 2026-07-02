@@ -149,7 +149,7 @@
 </script>
 
 <div
-	class="flex flex-col gap-2.5 h-full p-4 rounded-2xl border border-gray-100 dark:border-gray-850 transition hover:border-gray-200 dark:hover:border-gray-700 hover:shadow-sm"
+	class="flex flex-col gap-2.5 h-full p-4 rounded-2xl border border-gray-100 dark:border-gray-850 card-lift hover:border-gray-200 dark:hover:border-gray-700"
 >
 	<!-- En-tête : logo + nom + état -->
 	<div class="flex items-center gap-2.5">
@@ -292,7 +292,7 @@
 				</button>
 				<button
 					type="button"
-					class="text-xs px-3 py-1.5 rounded-lg bg-black text-white dark:bg-white dark:text-black transition disabled:opacity-40"
+					class="text-xs px-3 py-1.5 rounded-lg btn-premium bg-black text-white dark:bg-white dark:text-black transition disabled:opacity-40"
 					disabled={!value || saving}
 					on:click={saveKey}
 				>
@@ -327,7 +327,7 @@
 			<div class="flex items-center justify-end">
 				<button
 					type="button"
-					class="text-xs px-3 py-1.5 rounded-lg bg-black text-white dark:bg-white dark:text-black transition disabled:opacity-40"
+					class="text-xs px-3 py-1.5 rounded-lg btn-premium bg-black text-white dark:bg-white dark:text-black transition disabled:opacity-40"
 					disabled={!awsKeyId || !awsSecret || savingAws}
 					on:click={saveAws}
 				>

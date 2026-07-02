@@ -512,7 +512,7 @@
 
 				<div class="mt-8 flex justify-center">
 					<button
-						class="text-sm font-medium px-6 py-3 rounded-2xl bg-black text-white dark:bg-white dark:text-black hover:opacity-90 transition disabled:opacity-40 disabled:cursor-not-allowed shadow-sm"
+						class="text-sm font-medium px-6 py-3 rounded-2xl btn-premium bg-black text-white dark:bg-white dark:text-black hover:opacity-90 transition disabled:opacity-40 disabled:cursor-not-allowed shadow-sm"
 						disabled={!canGenerate}
 						on:click={generate}
 					>
@@ -613,7 +613,7 @@
 					<div class="text-lg font-medium">{$i18n.t('La génération a échoué')}</div>
 					<div class="text-sm text-gray-500 max-w-sm">{errorMsg}</div>
 					<button
-						class="mt-3 text-sm px-5 py-2.5 rounded-2xl bg-black text-white dark:bg-white dark:text-black hover:opacity-90 transition"
+						class="mt-3 text-sm px-5 py-2.5 rounded-2xl btn-premium bg-black text-white dark:bg-white dark:text-black hover:opacity-90 transition"
 						on:click={generate}>{$i18n.t('Réessayer')}</button
 					>
 				</div>
@@ -647,7 +647,7 @@
 							>
 						{/if}
 						<button
-							class="text-sm font-medium px-5 py-2 rounded-xl bg-black text-white dark:bg-white dark:text-black hover:opacity-90 transition disabled:opacity-50"
+							class="text-sm font-medium px-5 py-2 rounded-xl btn-premium bg-black text-white dark:bg-white dark:text-black hover:opacity-90 transition disabled:opacity-50"
 							disabled={activating}
 							on:click={activate}
 						>

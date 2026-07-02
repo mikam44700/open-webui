@@ -17,7 +17,7 @@
 
 	<a
 		href="/"
-		class="flex items-center justify-center gap-2 px-3 py-2 rounded-xl bg-black text-white dark:bg-white dark:text-black text-sm font-medium transition hover:opacity-90"
+		class="flex items-center justify-center gap-2 px-3 py-2 rounded-xl btn-premium bg-black text-white dark:bg-white dark:text-black text-sm font-medium transition hover:opacity-90"
 	>
 		{$i18n.t('Nouveau chat')}
 	</a>
