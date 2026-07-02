@@ -195,7 +195,7 @@
 			</div>
 		{/if}
 		<div class="flex-1 min-w-0 flex flex-col gap-1">
-			<div class="text-sm font-medium leading-tight line-clamp-1">{provider.name}</div>
+			<div class="text-sm font-medium leading-tight">{provider.name}</div>
 			{#if shortDesc}
 				<div class="text-xs text-gray-500 leading-snug">{shortDesc}</div>
 			{/if}

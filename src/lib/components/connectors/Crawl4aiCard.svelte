@@ -15,7 +15,7 @@
 	import Spinner from '$lib/components/common/Spinner.svelte';
 	import ActiveBadge from '$lib/components/common/ActiveBadge.svelte';
 	import UpdateButton from './UpdateButton.svelte';
-	import { CONNECTOR_FR } from '$lib/utils/connectorLabels';
+	import { CONNECTOR_FR, CONNECTOR_TAGS } from '$lib/utils/connectorLabels';
 	import { CONNECTOR_LOGO, CONNECTOR_LOGO_FULL_BLEED } from '$lib/utils/connectorLogos';
 
 	const i18n = getContext<Writable<i18nType>>('i18n');
@@ -33,6 +33,8 @@
 	const SHORT_DESC = 'Lecture web approfondie, souveraine et gratuite.';
 	$: displayDesc = SHORT_DESC;
 	$: actions = fr?.actions ?? [];
+	// Tags de capacités (pastilles courtes) — cohérent avec les autres cartes MCP.
+	$: tags = CONNECTOR_TAGS[NAME] ?? [];
 	$: logoSrc = CONNECTOR_LOGO[NAME] ?? '';
 	$: fullBleed = CONNECTOR_LOGO_FULL_BLEED.has(NAME);
 
@@ -105,7 +107,7 @@
 		{/if}
 		<div class="flex-1 min-w-0 flex flex-col gap-1">
 			<div class="flex items-center gap-1.5 min-w-0">
-				<span class="text-sm font-medium leading-tight line-clamp-1">{displayName}</span>
+				<span class="text-sm font-medium leading-tight">{displayName}</span>
 				{#if showMcpBadge}
 					<span
 						class="flex-none text-[10px] px-1.5 py-0.5 rounded bg-gray-100 dark:bg-gray-850 text-gray-500"
@@ -128,6 +130,17 @@
 			</span>
 		{/if}
 	</div>
+
+	{#if tags.length > 0}
+		<div class="flex flex-wrap gap-1">
+			{#each tags as t}
+				<span
+					class="text-[11px] px-2 py-0.5 rounded-full bg-gray-100 dark:bg-gray-850 text-gray-600 dark:text-gray-300"
+					>{$i18n.t(t)}</span
+				>
+			{/each}
+		</div>
+	{/if}
 
 	{#if actions.length > 0}
 		{#if !expanded}

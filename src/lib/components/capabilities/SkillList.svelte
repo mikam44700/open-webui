@@ -154,9 +154,9 @@
 									class="flex items-start gap-3 border border-gray-100 dark:border-gray-850 rounded-2xl px-4 py-3.5 transition hover:border-gray-200 dark:hover:border-gray-700 hover:shadow-sm"
 								>
 									<div class="flex-1 min-w-0">
-										<div class="text-sm font-medium truncate">{skill.title}</div>
+										<div class="text-sm font-medium">{skill.title}</div>
 										{#if skill.desc}
-											<div class="text-xs text-gray-500 mt-0.5 line-clamp-2">{skill.desc}</div>
+											<div class="text-xs text-gray-500 mt-0.5">{skill.desc}</div>
 										{/if}
 										{#if $expertMode}
 											<div class="text-[10px] text-gray-400 mt-1 font-mono truncate">{skill.name}</div>

@@ -404,7 +404,7 @@
 								{/if}
 								<div class="min-w-0">
 									<div class="flex items-center gap-2">
-										<span class="text-sm font-medium truncate">{p.name}</span>
+										<span class="text-sm font-medium">{p.name}</span>
 										{#if st.label}
 											<span
 												class="inline-flex items-center px-1.5 py-0.5 rounded-full text-[10px] font-medium {toneClass(

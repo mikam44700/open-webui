@@ -132,8 +132,8 @@
 			/>
 		</div>
 		<div class="flex-1 min-w-0">
-			<div class="text-sm font-medium line-clamp-1">{provider.label}</div>
-			<div class="text-xs text-gray-500 line-clamp-2">
+			<div class="text-sm font-medium">{provider.label}</div>
+			<div class="text-xs text-gray-500">
 				{info.desc ?? $i18n.t('Combine plusieurs cerveaux')}
 			</div>
 		</div>

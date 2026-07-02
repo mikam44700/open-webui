@@ -29,7 +29,6 @@ import edgeLogo from '$lib/assets/web-providers/edge.jpg';
 import elevenlabsLogo from '$lib/assets/web-providers/elevenlabs.png';
 import kittenLogo from '$lib/assets/web-providers/kitten.webp';
 import piperLogo from '$lib/assets/web-providers/piper.svg';
-import mistralLogo from '$lib/assets/providers/mistral-color.svg';
 import geminiLogo from '$lib/assets/providers/gemini-color.svg';
 import homeassistantLogo from '$lib/assets/web-providers/homeassistant.png';
 import spotifyLogo from '$lib/assets/web-providers/spotify.png';
@@ -94,7 +93,9 @@ export const LOGO_BY_SLUG: Record<string, string> = {
 	elevenlabs: elevenlabsLogo,
 	kitten: kittenLogo,
 	piper: piperLogo,
-	mistral: mistralLogo,
+	// Même asset que l'onglet Modèles IA (PNG recadré, servi depuis /static) → logo « gros »
+	// et identique, au lieu du SVG 24×24 (castle plus petit dans le canvas).
+	mistral: '/assets/providers/mistral-color.png',
 	gemini: geminiLogo,
 	homeassistant: homeassistantLogo,
 	spotify: spotifyLogo,

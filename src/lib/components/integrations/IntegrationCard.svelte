@@ -215,7 +215,7 @@
 			</div>
 		{/if}
 		<div class="flex-1 min-w-0 flex flex-col gap-1">
-			<div class="text-sm font-medium leading-tight line-clamp-1">{name}</div>
+			<div class="text-sm font-medium leading-tight">{name}</div>
 			{#if desc}
 				<div class="text-xs text-gray-500 leading-snug">{desc}</div>
 			{/if}
