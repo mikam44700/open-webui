@@ -510,7 +510,7 @@
 							</button>
 							<div class="flex-1"></div>
 							<button
-								class="px-2.5 py-1 text-xs font-medium rounded-lg border border-gray-200 dark:border-gray-700 hover:bg-gray-100 dark:hover:bg-gray-850 transition"
+								class="px-3 py-2 text-xs font-medium rounded-lg btn-premium bg-black text-white dark:bg-white dark:text-black"
 								on:click={() => openModal(p)}
 							>
 								{p.configured ? $i18n.t('Détails') : $i18n.t('Configurer')}
