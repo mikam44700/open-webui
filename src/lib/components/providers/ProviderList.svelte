@@ -6,6 +6,7 @@
 
 	import Spinner from '$lib/components/common/Spinner.svelte';
 	import ProviderCard from './ProviderCard.svelte';
+	import MoaConfig from './MoaConfig.svelte';
 	import HermesStatus from './HermesStatus.svelte';
 	import { groupProviders, MULTIAGENT_IDS } from '$lib/catalog/provider-taxonomy';
 
@@ -221,11 +222,16 @@
 		{:else if tabItems.length > 0}
 			<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2.5">
 				{#each tabItems as provider (provider.id)}
-					<ProviderCard
-						{provider}
-						activeModelId={active?.provider_id === provider.id ? active.model_id : ''}
-						on:changed={load}
-					/>
+					{#if provider.id === 'moa'}
+						<!-- Mixture of Agents : carte de configuration dédiée (proposeurs + agrégateur). -->
+						<MoaConfig {provider} {providers} on:changed={load} />
+					{:else}
+						<ProviderCard
+							{provider}
+							activeModelId={active?.provider_id === provider.id ? active.model_id : ''}
+							on:changed={load}
+						/>
+					{/if}
 				{/each}
 			</div>
 		{:else}

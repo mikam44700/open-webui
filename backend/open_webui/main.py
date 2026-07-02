@@ -488,6 +488,7 @@ from open_webui.routers import (
     calendar,
     calendar_hermes,
     google_services_hermes,
+    moa_hermes,
     channels,
     chats,
     configs,
@@ -1481,6 +1482,7 @@ app.include_router(calendar.router, prefix='/api/v1/calendars', tags=['calendars
 # utilise ce proxy ; le router natif ci-dessus reste monté (base locale) mais inerte cote UI.
 app.include_router(calendar_hermes.router, prefix='/api/v1/calendar', tags=['calendar'])
 app.include_router(google_services_hermes.router, prefix='/api/v1/google', tags=['google'])
+app.include_router(moa_hermes.router, prefix='/api/v1/moa', tags=['moa'])
 # Briefing du jour assemblé par Hermes (feature 015).
 app.include_router(briefing.router, prefix='/api/v1/briefing', tags=['briefing'])
 # Canal « Agent OS » : Hermes publie ses briefings dans un canal de l'app (feature 015).
