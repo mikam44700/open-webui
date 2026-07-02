@@ -76,12 +76,22 @@ const GROUP_BY_ID: Record<string, ProviderGroup> = {
 	custom: 'custom'
 };
 
-export const REGION_LABEL: Record<ProviderRegion, string> = {
-	us: '🇺🇸 États-Unis',
-	cn: '🇨🇳 Chine',
-	eu: '🇪🇺 Europe',
-	intl: '🌍 International',
-	local: '💻 Local'
+/** Drapeau / pictogramme affiché sur la carte (léger). */
+export const REGION_FLAG: Record<ProviderRegion, string> = {
+	us: '🇺🇸',
+	cn: '🇨🇳',
+	eu: '🇪🇺',
+	intl: '🌍',
+	local: '💻'
+};
+
+/** Nom complet, montré au survol (infobulle) pour rester clair. */
+export const REGION_NAME: Record<ProviderRegion, string> = {
+	us: 'États-Unis',
+	cn: 'Chine',
+	eu: 'Europe',
+	intl: 'International',
+	local: 'Local'
 };
 
 /** Origine / juridiction par identifiant de fournisseur (souveraineté). */
@@ -139,10 +149,16 @@ export const getProviderGroup = (id?: string | null): ProviderGroup | null =>
 export const getProviderRegion = (id?: string | null): ProviderRegion | null =>
 	(id && REGION_BY_ID[id]) || null;
 
-/** Libellé région prêt à afficher (drapeau + pays), ou null si origine inconnue. */
-export const getProviderRegionLabel = (id?: string | null): string | null => {
+/** Drapeau à afficher sur la carte, ou null si origine inconnue. */
+export const getProviderRegionFlag = (id?: string | null): string | null => {
 	const r = getProviderRegion(id);
-	return r ? REGION_LABEL[r] : null;
+	return r ? REGION_FLAG[r] : null;
+};
+
+/** Nom complet de l'origine (pour l'infobulle), ou null si inconnue. */
+export const getProviderRegionName = (id?: string | null): string | null => {
+	const r = getProviderRegion(id);
+	return r ? REGION_NAME[r] : null;
 };
 
 export type ProviderGroupBucket<T> = { key: string; label: string; items: T[] };

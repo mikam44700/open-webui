@@ -3,7 +3,8 @@ import {
 	GROUP_ORDER,
 	getProviderGroup,
 	getProviderRegion,
-	getProviderRegionLabel,
+	getProviderRegionFlag,
+	getProviderRegionName,
 	groupProviders
 } from './provider-taxonomy';
 
@@ -52,11 +53,13 @@ describe('provider-taxonomy', () => {
 		expect(withoutRegion).toEqual(['custom']);
 	});
 
-	it('formate le libellé région avec drapeau + pays', () => {
-		expect(getProviderRegionLabel('anthropic')).toBe('🇺🇸 États-Unis');
-		expect(getProviderRegionLabel('alibaba')).toBe('🇨🇳 Chine');
-		expect(getProviderRegionLabel('openrouter')).toBe('🌍 International');
-		expect(getProviderRegionLabel('custom')).toBeNull();
+	it('affiche le drapeau seul, et le nom complet pour l’infobulle', () => {
+		expect(getProviderRegionFlag('anthropic')).toBe('🇺🇸');
+		expect(getProviderRegionName('anthropic')).toBe('États-Unis');
+		expect(getProviderRegionFlag('alibaba')).toBe('🇨🇳');
+		expect(getProviderRegionFlag('openrouter')).toBe('🌍');
+		expect(getProviderRegionFlag('custom')).toBeNull();
+		expect(getProviderRegionName('custom')).toBeNull();
 	});
 
 	it('sépare les deux axes : DeepSeek est un « grand nom » ET d’origine chinoise', () => {
@@ -106,6 +109,7 @@ describe('provider-taxonomy', () => {
 	it('marque les modèles locaux comme « Local » (souveraineté maximale)', () => {
 		expect(getProviderRegion('lmstudio')).toBe('local');
 		expect(getProviderRegion('ollama-local')).toBe('local');
-		expect(getProviderRegionLabel('lmstudio')).toBe('💻 Local');
+		expect(getProviderRegionFlag('lmstudio')).toBe('💻');
+		expect(getProviderRegionName('lmstudio')).toBe('Local');
 	});
 });
