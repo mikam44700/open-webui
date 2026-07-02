@@ -167,7 +167,7 @@
 		</div>
 		<div class="flex-1 min-w-0">
 			<div class="text-sm font-medium line-clamp-1">{provider.label}</div>
-			<div class="text-xs text-gray-500 line-clamp-1">
+			<div class="text-xs text-gray-500 line-clamp-2">
 				{info.desc ?? presentation.humanLabel ?? `${provider.models?.length ?? 0} ${$i18n.t('modèles')}`}
 			</div>
 		</div>

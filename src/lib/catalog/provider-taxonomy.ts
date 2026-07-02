@@ -147,6 +147,8 @@ const REGION_BY_ID: Record<string, ProviderRegion> = {
 	fireworks: 'us',
 	perplexity: 'us',
 	'baidu-ernie': 'cn',
+	// Sur-mesure : pas un pays -> pictogramme monde (🌍).
+	custom: 'intl',
 	// --- Autres onglets : Comptes (OAuth), Local, Autres ---
 	// Comptes (connexion par compte / OAuth)
 	nous: 'us',

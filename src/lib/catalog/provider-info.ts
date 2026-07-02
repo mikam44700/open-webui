@@ -49,6 +49,18 @@ export const PROVIDER_INFO: Record<string, ProviderInfo> = {
 		keyUrl: 'https://console.groq.com/keys',
 		about: ['Réponses très rapides', 'Bon marché']
 	},
+	vertex: {
+		desc: 'Modèles Gemini via Google Cloud (entreprise).',
+		keyUrl: 'https://console.cloud.google.com/vertex-ai',
+		about: ['Les modèles Gemini côté Google Cloud', 'Pour un usage entreprise / facturation GCP']
+	},
+	moa: {
+		desc: 'Combine plusieurs modèles pour une meilleure réponse (technique, pas un fournisseur).',
+		about: [
+			'« Mixture of Agents » : interroge plusieurs modèles et fusionne leurs réponses',
+			'Intégré au moteur — pas une marque, pas de site dédié'
+		]
+	},
 	cerebras: {
 		desc: 'Inférence ultra-rapide (Cerebras).',
 		keyUrl: 'https://cloud.cerebras.ai/',

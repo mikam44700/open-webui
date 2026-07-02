@@ -48,9 +48,10 @@ describe('provider-taxonomy', () => {
 		expect(unclassified).toEqual([]);
 	});
 
-	it('donne une région à tous sauf « custom » (sur-mesure = origine neutre)', () => {
+	it('donne une région à tous les fournisseurs « api » (custom = 🌍, pas un pays)', () => {
 		const withoutRegion = API_PROVIDER_IDS.filter((id) => getProviderRegion(id) === null);
-		expect(withoutRegion).toEqual(['custom']);
+		expect(withoutRegion).toEqual([]);
+		expect(getProviderRegion('custom')).toBe('intl');
 	});
 
 	it('affiche le drapeau seul, et le nom complet pour l’infobulle', () => {
@@ -58,8 +59,7 @@ describe('provider-taxonomy', () => {
 		expect(getProviderRegionName('anthropic')).toBe('États-Unis');
 		expect(getProviderRegionFlag('alibaba')).toBe('🇨🇳');
 		expect(getProviderRegionFlag('openrouter')).toBe('🌍');
-		expect(getProviderRegionFlag('custom')).toBeNull();
-		expect(getProviderRegionName('custom')).toBeNull();
+		expect(getProviderRegionFlag('custom')).toBe('🌍');
 	});
 
 	it('sépare les deux axes : DeepSeek est un « grand nom » ET d’origine chinoise', () => {
