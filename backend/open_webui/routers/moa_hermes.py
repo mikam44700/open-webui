@@ -33,3 +33,9 @@ async def set_moa_config(body: dict, user=Depends(get_admin_user)):
 async def activate_moa(user=Depends(get_admin_user)):
     """Active MoA comme cerveau (le chat l'utilise alors automatiquement)."""
     return await _bridge("POST", "/moa/activate")
+
+
+@router.post("/deactivate")
+async def deactivate_moa(user=Depends(get_admin_user)):
+    """Éteint MoA : revient au cerveau précédent."""
+    return await _bridge("POST", "/moa/deactivate")

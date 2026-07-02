@@ -43,3 +43,5 @@ export const setMoaConfig = (
 ): Promise<MoaConfig> => req(token, 'POST', '/config', { reference_models, aggregator });
 
 export const activateMoa = (token: string): Promise<MoaConfig> => req(token, 'POST', '/activate');
+
+export const deactivateMoa = (token: string): Promise<MoaConfig> => req(token, 'POST', '/deactivate');

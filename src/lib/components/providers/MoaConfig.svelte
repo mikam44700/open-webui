@@ -5,10 +5,11 @@
 
 	import Spinner from '$lib/components/common/Spinner.svelte';
 	import Badge from '$lib/components/common/Badge.svelte';
+	import Switch from '$lib/components/common/Switch.svelte';
 	import { getModelPresentation } from '$lib/catalog/model-badges';
 	import { PROVIDER_INFO } from '$lib/catalog/provider-info';
 	import { PROVIDER_LOGO_FULL_BLEED } from '$lib/utils/providerLogos';
-	import { getMoaConfig, setMoaConfig, activateMoa } from '$lib/apis/moa-hermes';
+	import { getMoaConfig, setMoaConfig, activateMoa, deactivateMoa } from '$lib/apis/moa-hermes';
 
 	const i18n = getContext('i18n');
 	const dispatch = createEventDispatcher();
@@ -35,9 +36,10 @@
 	let selected = new Set<string>();
 	let aggregator = '';
 	let loading = true;
-	let saving = false;
 	let activating = false;
 	let active = false;
+	// Force le re-rendu de l'interrupteur pour qu'il reflète TOUJOURS `active` (même après échec).
+	let nonce = 0;
 
 	$: presentation = getModelPresentation(provider.id);
 	$: info = PROVIDER_INFO[provider.id] ?? {};
@@ -60,46 +62,54 @@
 		}
 	});
 
-	const toggle = (id: string) => {
-		const n = new Set(selected);
-		n.has(id) ? n.delete(id) : n.add(id);
-		selected = n;
-	};
-
 	const buildPayload = () => {
 		const refs = proposers.map((o) => ({ provider: o.provider, model: o.model }));
 		const agg = options.find((o) => o.provider === aggregator);
 		return { refs, agg };
 	};
 
-	const save = async () => {
-		if (!canSave) return;
-		saving = true;
+	// Si MoA est actif et qu'on modifie la sélection, on resauvegarde en silence pour que
+	// la config active reste à jour.
+	const persistIfActive = async () => {
+		if (!active || !canSave) return;
 		try {
 			const { refs, agg } = buildPayload();
 			await setMoaConfig(localStorage.token, refs, agg!);
-			toast.success($i18n.t('Configuration enregistrée'));
-		} catch (e: any) {
-			toast.error(e?.error?.message ?? e?.message ?? $i18n.t('Échec de l’enregistrement'));
-		} finally {
-			saving = false;
+		} catch {
+			// silencieux : la sauvegarde explicite se refait à la prochaine bascule
 		}
 	};
 
-	const activate = async () => {
-		if (!canSave) return;
+	const toggle = (id: string) => {
+		const n = new Set(selected);
+		n.has(id) ? n.delete(id) : n.add(id);
+		selected = n;
+		void persistIfActive();
+	};
+
+	// Interrupteur ON/OFF : allume (enregistre + active) ou éteint (revient au cerveau précédent).
+	const onSwitch = async () => {
 		activating = true;
 		try {
-			const { refs, agg } = buildPayload();
-			await setMoaConfig(localStorage.token, refs, agg!);
-			await activateMoa(localStorage.token);
-			active = true;
-			toast.success($i18n.t('Mixture of Agents activé — le chat combine désormais vos cerveaux'));
+			if (!active) {
+				const { refs, agg } = buildPayload();
+				await setMoaConfig(localStorage.token, refs, agg!);
+				await activateMoa(localStorage.token);
+				active = true;
+				toast.success(
+					$i18n.t('Mixture of Agents activé — le chat combine désormais vos cerveaux')
+				);
+			} else {
+				await deactivateMoa(localStorage.token);
+				active = false;
+				toast.success($i18n.t('Mixture of Agents éteint — retour à votre cerveau habituel'));
+			}
 			dispatch('changed');
 		} catch (e: any) {
-			toast.error(e?.error?.message ?? e?.message ?? $i18n.t('Échec de l’activation'));
+			toast.error(e?.error?.message ?? e?.message ?? $i18n.t('Changement impossible'));
 		} finally {
 			activating = false;
+			nonce++; // resynchronise l'interrupteur sur l'état réel (succès comme échec)
 		}
 	};
 </script>
@@ -181,6 +191,7 @@
 			</div>
 			<select
 				bind:value={aggregator}
+				on:change={persistIfActive}
 				class="text-sm bg-transparent border border-gray-100 dark:border-gray-850 rounded-xl px-3 py-2 outline-none"
 			>
 				<option value="">{$i18n.t('Choisir un modèle…')}</option>
@@ -189,36 +200,37 @@
 				{/each}
 			</select>
 
-			<!-- Actions -->
-			<div class="flex items-center justify-between gap-2 pt-1">
-				<span class="text-[11px] text-gray-400">
-					{proposers.length}
-					{$i18n.t('cerveau(x) sélectionné(s)')}
-				</span>
-				<div class="flex items-center gap-2">
-					<button
-						type="button"
-						class="text-xs px-2 py-1 rounded-lg text-gray-500 hover:text-gray-800 dark:hover:text-gray-200 transition disabled:opacity-40"
-						disabled={!canSave || saving}
-						on:click={save}
-					>
-						{#if saving}<Spinner className="size-3.5" />{:else}{$i18n.t('Enregistrer')}{/if}
-					</button>
-					<button
-						type="button"
-						class="text-xs px-3 py-1.5 rounded-lg bg-black text-white dark:bg-white dark:text-black transition disabled:opacity-40"
-						disabled={!canSave || activating}
-						on:click={activate}
-					>
-						{#if activating}<Spinner className="size-3.5" />{:else}{$i18n.t('Activer')}{/if}
-					</button>
+			<!-- Interrupteur ON/OFF (le point d'activation depuis Modèles IA) -->
+			<div
+				class="mt-1 flex items-center justify-between gap-2 pt-2 border-t border-gray-100 dark:border-gray-850"
+			>
+				<div class="min-w-0">
+					<div class="text-sm text-gray-900 dark:text-white">
+						{$i18n.t('Utiliser Mixture of Agents')}
+					</div>
+					<div class="text-[11px] text-gray-400">
+						{#if active}
+							{$i18n.t('Actif — le chat combine vos cerveaux')}
+						{:else if canSave}
+							{proposers.length} {$i18n.t('cerveaux + un chef, prêt à activer')}
+						{:else}
+							{$i18n.t('Choisis au moins 2 cerveaux + un chef de synthèse')}
+						{/if}
+					</div>
 				</div>
+				{#if activating}
+					<Spinner className="size-4" />
+				{:else if active || canSave}
+					{#key nonce}
+						<Switch state={active} on:change={onSwitch} />
+					{/key}
+				{:else}
+					<!-- pas encore configurable : interrupteur inactif visuel -->
+					<div class="opacity-40 pointer-events-none">
+						<Switch state={false} />
+					</div>
+				{/if}
 			</div>
-			{#if !canSave}
-				<div class="text-[11px] text-gray-400">
-					{$i18n.t('Choisis au moins 2 cerveaux + un chef de synthèse.')}
-				</div>
-			{/if}
 		{/if}
 	</div>
 </div>
