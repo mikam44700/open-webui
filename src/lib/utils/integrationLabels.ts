@@ -87,6 +87,17 @@ export const INTEGRATION_FR: Record<string, IntegrationMeta> = {
 		category: 'Réseaux sociaux',
 		actions: ['Publier des posts', 'Rechercher des posts et fils', 'Lire votre fil']
 	},
+	linkedin: {
+		name: 'LinkedIn',
+		desc: 'Publier des posts sur LinkedIn, avec votre compte.',
+		category: 'Réseaux sociaux',
+		popular: true,
+		actions: [
+			'Publier des posts sur votre fil',
+			'Publier avec une image',
+			'Au nom de votre compte'
+		]
+	},
 	apple: {
 		name: 'Apple',
 		desc: 'Notes, Rappels et iMessage sur Mac.',

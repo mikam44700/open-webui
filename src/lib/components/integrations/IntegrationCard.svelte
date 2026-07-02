@@ -85,7 +85,8 @@
 		'google-meet',
 		'google-slides',
 		'google-analytics',
-		'google-search-console'
+		'google-search-console',
+		'linkedin'
 	]);
 	$: isCentralOAuth = CENTRAL_OAUTH_IDS.has(integration.id);
 
