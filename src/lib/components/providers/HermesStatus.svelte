@@ -77,14 +77,22 @@
 			const r = await checkHermesUpdate(localStorage.token);
 			const out = r?.output ?? '';
 			checkOutput = out || $i18n.t('Aucune information.');
-			// Le bridge renvoie un texte technique en anglais : on le traduit en un
-			// message clair pour le dirigeant (le texte brut reste dans le détail replié).
-			if (/up[\s-]?to[\s-]?date|already|aucune mise|déjà à jour|no update/i.test(out)) {
-				checkResult = { tone: 'uptodate', msg: 'Votre moteur est déjà à jour.' };
-			} else if (/update available|behind|disponible|derrière|new version|à installer/i.test(out)) {
-				checkResult = { tone: 'update', msg: 'Une mise à jour est disponible.' };
+			// Détection déterministe PAR VERSION (le bridge compare la version locale à
+			// origin/main). On n'interprète plus le texte technique anglais — fragile et
+			// trompeur : un simple correctif sur `main` qui ne change pas le numéro de
+			// version ne doit pas faire croire au client qu'une mise à jour l'attend.
+			const clean = (v) => (v ? String(v).replace(/^v/i, '') : '');
+			if (r?.available) {
+				const to = r?.latest_version ? ` (v${clean(r.latest_version)})` : '';
+				checkResult = { tone: 'update', msg: `Une mise à jour est disponible.${to}` };
+			} else if (r?.current_version) {
+				checkResult = {
+					tone: 'uptodate',
+					msg: `Votre moteur est à jour — dernière version v${clean(r.current_version)}.`
+				};
 			} else {
-				checkResult = { tone: 'unknown', msg: 'Vérification terminée.' };
+				// Comparaison impossible (hors-ligne, git indisponible) : rester honnête.
+				checkResult = { tone: 'unknown', msg: 'Vérification impossible pour le moment.' };
 			}
 		} catch {
 			toast.error($i18n.t('Échec de la vérification'));
