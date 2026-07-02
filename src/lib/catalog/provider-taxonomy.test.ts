@@ -132,10 +132,11 @@ describe('provider-taxonomy', () => {
 		expect(noRegion).toEqual([]);
 	});
 
-	it('place Mistral en 🇪🇺 souverain et Cohere en 🇨🇦', () => {
+	it('place Mistral en 🇫🇷 France et Cohere en 🇨🇦', () => {
 		expect(getProviderGroup('mistral')).toBe('grands-noms');
-		expect(getProviderRegion('mistral')).toBe('eu');
-		expect(getProviderRegionFlag('mistral')).toBe('🇪🇺');
+		expect(getProviderRegion('mistral')).toBe('fr');
+		expect(getProviderRegionFlag('mistral')).toBe('🇫🇷');
+		expect(getProviderRegionName('mistral')).toBe('France');
 		expect(getProviderRegionFlag('cohere')).toBe('🇨🇦');
 		expect(getProviderRegionName('cohere')).toBe('Canada');
 	});

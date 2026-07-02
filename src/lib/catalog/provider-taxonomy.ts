@@ -18,7 +18,7 @@
  */
 
 export type ProviderGroup = 'grands-noms' | 'passerelle' | 'hebergement' | 'chinois' | 'custom';
-export type ProviderRegion = 'us' | 'cn' | 'eu' | 'ca' | 'intl' | 'local';
+export type ProviderRegion = 'us' | 'cn' | 'eu' | 'fr' | 'ca' | 'intl' | 'local';
 
 /** Ordre officiel d'affichage des sections. */
 export const GROUP_ORDER: ProviderGroup[] = [
@@ -89,6 +89,7 @@ export const REGION_FLAG: Record<ProviderRegion, string> = {
 	us: '🇺🇸',
 	cn: '🇨🇳',
 	eu: '🇪🇺',
+	fr: '🇫🇷',
 	ca: '🇨🇦',
 	intl: '🌍',
 	local: '💻'
@@ -99,6 +100,7 @@ export const REGION_NAME: Record<ProviderRegion, string> = {
 	us: 'États-Unis',
 	cn: 'Chine',
 	eu: 'Europe',
+	fr: 'France',
 	ca: 'Canada',
 	intl: 'International',
 	local: 'Local'
@@ -139,7 +141,7 @@ const REGION_BY_ID: Record<string, ProviderRegion> = {
 	gmi: 'intl',
 	huggingface: 'intl',
 	// Nouveaux fournisseurs natifs (plugins model-provider)
-	mistral: 'eu', // 🇪🇺 souverain
+	mistral: 'fr', // 🇫🇷 France (origine) — « champion européen » reste dans la description
 	cohere: 'ca', // 🇨🇦 Canada
 	groq: 'us',
 	cerebras: 'us',

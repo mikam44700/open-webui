@@ -136,6 +136,7 @@ export const PROVIDER_INFO: Record<string, ProviderInfo> = {
 	},
 	'opencode-zen': {
 		desc: 'OpenCode Zen — passerelle multi-modèles.',
+		keyUrl: 'https://opencode.ai/',
 		about: [
 			'Un seul compte pour accéder à plusieurs modèles',
 			'Pratique pour tester sans créer 10 comptes'
@@ -143,6 +144,7 @@ export const PROVIDER_INFO: Record<string, ProviderInfo> = {
 	},
 	'opencode-go': {
 		desc: 'OpenCode Go — passerelle multi-modèles.',
+		keyUrl: 'https://opencode.ai/',
 		about: [
 			'Un seul compte pour accéder à plusieurs modèles',
 			'Alternative légère pour jongler entre plusieurs IA'
@@ -192,6 +194,7 @@ export const PROVIDER_INFO: Record<string, ProviderInfo> = {
 	},
 	gmi: {
 		desc: 'GMI Cloud — modèles open source hébergés.',
+		keyUrl: 'https://console.gmicloud.ai/',
 		about: [
 			'Faites tourner des modèles ouverts sans infra à gérer',
 			'Facturation à l’usage, économique'
@@ -241,6 +244,7 @@ export const PROVIDER_INFO: Record<string, ProviderInfo> = {
 	},
 	'alibaba-coding-plan': {
 		desc: 'Qwen — forfait spécial code (Alibaba).',
+		keyUrl: 'https://bailian.console.alibabacloud.com',
 		about: [
 			'Les modèles Qwen optimisés pour la programmation',
 			'Forfait pensé pour les développeurs'
@@ -255,6 +259,7 @@ export const PROVIDER_INFO: Record<string, ProviderInfo> = {
 	},
 	'tencent-tokenhub': {
 		desc: 'Tencent TokenHub — l’IA du géant Tencent.',
+		keyUrl: 'https://console.cloud.tencent.com/hunyuan/api-key',
 		about: [
 			'Accès aux modèles Hunyuan de Tencent',
 			'Hébergé par l’un des plus grands groupes chinois'
@@ -302,6 +307,7 @@ export const PROVIDER_INFO: Record<string, ProviderInfo> = {
 	},
 	stepfun: {
 		desc: 'StepFun — modèles multimodaux chinois.',
+		keyUrl: 'https://platform.stepfun.com/',
 		about: [
 			'À l’aise en texte et en image',
 			'Forfait Step Plan'
