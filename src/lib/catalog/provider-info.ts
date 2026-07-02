@@ -105,8 +105,8 @@ export const PROVIDER_INFO: Record<string, ProviderInfo> = {
 		desc: 'GitHub Copilot — l’assistant des développeurs.',
 		keyUrl: 'https://github.com/settings/tokens',
 		about: [
-			'Accès aux modèles via votre abonnement Copilot',
-			'Pensé avant tout pour le code'
+			'Pensé avant tout pour le code',
+			'Nécessite un abonnement GitHub Copilot (forfait mensuel)'
 		]
 	},
 
@@ -116,7 +116,8 @@ export const PROVIDER_INFO: Record<string, ProviderInfo> = {
 		keyUrl: 'https://console.sakana.ai',
 		about: [
 			'Un système multi-agents livré comme UN seul modèle : il assemble tout seul une équipe d’IA selon la difficulté',
-			'Zéro réglage : tu entres ta clé, ça marche dans le chat (variantes « fugu » rapide et « fugu-ultra » qualité max)'
+			'Zéro réglage : tu entres ta clé, ça marche dans le chat (variantes « fugu » rapide et « fugu-ultra » qualité max)',
+			'Au choix : paiement à l’usage OU abonnement mensuel (Standard / Pro / Max)'
 		]
 	},
 
@@ -257,7 +258,7 @@ export const PROVIDER_INFO: Record<string, ProviderInfo> = {
 		keyUrl: 'https://bailian.console.alibabacloud.com',
 		about: [
 			'Les modèles Qwen optimisés pour la programmation',
-			'Forfait pensé pour les développeurs'
+			'Abonnement mensuel à prix fixe (forfait « Qwen Code »), pas de facturation au token'
 		]
 	},
 	xiaomi: {
@@ -280,7 +281,8 @@ export const PROVIDER_INFO: Record<string, ProviderInfo> = {
 		keyUrl: 'https://z.ai/manage-apikey/apikey-list',
 		about: [
 			'Bons généralistes, forts en chinois et en code',
-			'Rapport qualité/prix intéressant'
+			'Rapport qualité/prix intéressant',
+			'Aussi disponible en abonnement mensuel : « GLM Coding Plan »'
 		]
 	},
 	'kimi-coding': {
@@ -288,7 +290,7 @@ export const PROVIDER_INFO: Record<string, ProviderInfo> = {
 		keyUrl: 'https://platform.moonshot.ai/console/api-keys',
 		about: [
 			'Avale des documents entiers d’un seul coup',
-			'Forfait orienté code'
+			'Aussi disponible en abonnement mensuel : « Kimi Code »'
 		]
 	},
 	'kimi-coding-cn': {
@@ -296,7 +298,8 @@ export const PROVIDER_INFO: Record<string, ProviderInfo> = {
 		keyUrl: 'https://platform.moonshot.cn/console/api-keys',
 		about: [
 			'Les mêmes modèles Kimi, serveurs en Chine',
-			'Très grande fenêtre de contexte'
+			'Très grande fenêtre de contexte',
+			'Aussi disponible en abonnement mensuel (Coding Plan)'
 		]
 	},
 	minimax: {
