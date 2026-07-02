@@ -13,5 +13,6 @@ export const PROVIDER_LOGO_FULL_BLEED = new Set<string>([
 	'lmstudio', // LM Studio — carré violet
 	'moonshot', // Kimi / Moonshot — carré noir
 	'gemini-color', // Google AI Studio — carré noir (étincelle)
-	'nous-research' // Nous Portal — carré noir « NOUS RESEARCH »
+	'nous-research', // Nous Portal — carré noir « NOUS RESEARCH »
+	'groq-color' // Groq — carré orange plein (mot-symbole blanc)
 ]);
