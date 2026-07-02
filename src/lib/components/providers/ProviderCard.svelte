@@ -239,6 +239,14 @@
 	<!-- Action de connexion selon la catégorie -->
 	{#if provider.category === 'oauth'}
 		<ProviderOAuth {provider} on:connected={() => dispatch('changed')} />
+	{:else if provider.id === 'moa'}
+		<!-- Mixture of Agents : technique interne du moteur, AUCUNE clé propre —
+		     il combine les modèles déjà connectés. Pas de champ clé (ce serait trompeur). -->
+		<div class="text-xs text-gray-500 leading-relaxed">
+			{$i18n.t(
+				'Pas de clé à saisir : Mixture of Agents combine les modèles que vous avez déjà connectés pour produire une meilleure réponse. Il se règle dans les options avancées du moteur.'
+			)}
+		</div>
 	{:else if provider.category === 'api' || provider.category === 'local'}
 		<div class="flex items-center gap-2">
 			<input
