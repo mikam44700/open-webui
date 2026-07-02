@@ -18,7 +18,15 @@
  */
 
 export type ProviderGroup = 'grands-noms' | 'passerelle' | 'hebergement' | 'chinois' | 'custom';
-export type ProviderRegion = 'us' | 'cn' | 'eu' | 'fr' | 'ca' | 'intl' | 'local';
+export type ProviderRegion = 'us' | 'cn' | 'eu' | 'fr' | 'ca' | 'jp' | 'intl' | 'local';
+
+/**
+ * Fournisseurs « multi-agents » (cerveaux combinés) : affichés dans l'onglet dédié
+ * « Cerveaux combinés », et EXCLUS de l'onglet « Clés API » pour éviter le doublon.
+ * - sakana : système multi-agents livré comme un seul modèle (clé simple).
+ * - moa : Mixture of Agents, technique interne du moteur (config des modèles à combiner).
+ */
+export const MULTIAGENT_IDS = new Set<string>(['sakana', 'moa']);
 
 /** Ordre officiel d'affichage des sections. */
 export const GROUP_ORDER: ProviderGroup[] = [
@@ -91,6 +99,7 @@ export const REGION_FLAG: Record<ProviderRegion, string> = {
 	eu: '🇪🇺',
 	fr: '🇫🇷',
 	ca: '🇨🇦',
+	jp: '🇯🇵',
 	intl: '🌍',
 	local: '💻'
 };
@@ -102,6 +111,7 @@ export const REGION_NAME: Record<ProviderRegion, string> = {
 	eu: 'Europe',
 	fr: 'France',
 	ca: 'Canada',
+	jp: 'Japon',
 	intl: 'International',
 	local: 'Local'
 };
@@ -149,6 +159,7 @@ const REGION_BY_ID: Record<string, ProviderRegion> = {
 	fireworks: 'us',
 	perplexity: 'us',
 	'baidu-ernie': 'cn',
+	sakana: 'jp', // 🇯🇵 Sakana AI (Japon)
 	// Sur-mesure : pas un pays -> pictogramme monde (🌍).
 	custom: 'intl',
 	// --- Autres onglets : Comptes (OAuth), Local, Autres ---

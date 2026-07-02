@@ -7,7 +7,7 @@
 	import Spinner from '$lib/components/common/Spinner.svelte';
 	import ProviderCard from './ProviderCard.svelte';
 	import HermesStatus from './HermesStatus.svelte';
-	import { groupProviders } from '$lib/catalog/provider-taxonomy';
+	import { groupProviders, MULTIAGENT_IDS } from '$lib/catalog/provider-taxonomy';
 
 	const i18n = getContext('i18n');
 
@@ -36,6 +36,11 @@
 			hint: 'Connecte-toi avec ton compte — un clic ouvre le navigateur pour autoriser.'
 		},
 		{ key: 'api', label: 'Clés API', hint: 'Colle ta clé API, teste-la, puis enregistre.' },
+		{
+			key: 'multiagent',
+			label: 'Cerveaux combinés',
+			hint: 'Plusieurs cerveaux qui réfléchissent ensemble pour une meilleure réponse.'
+		},
 		{ key: 'local', label: 'Local', hint: 'Indique l’adresse de ton serveur local.' },
 		{ key: 'other', label: 'Autres', hint: 'Modèles IA à authentification externe (AWS, Copilot).' }
 	];
@@ -51,8 +56,20 @@
 
 	$: filtered = providers;
 
-	const countOf = (key: string) => filtered.filter((p) => p.category === key).length;
-	$: tabItems = filtered.filter((p) => p.category === activeTab);
+	// Les fournisseurs multi-agents (Sakana, MoA) ont leur propre onglet « Cerveaux
+	// combinés » et sont EXCLUS de « Clés API » (sinon doublon).
+	const inMulti = (p: Provider) => MULTIAGENT_IDS.has(p.id);
+	const countOf = (key: string) => {
+		if (key === 'multiagent') return filtered.filter(inMulti).length;
+		if (key === 'api') return filtered.filter((p) => p.category === 'api' && !inMulti(p)).length;
+		return filtered.filter((p) => p.category === key).length;
+	};
+	$: tabItems =
+		activeTab === 'multiagent'
+			? filtered.filter(inMulti)
+			: activeTab === 'api'
+				? filtered.filter((p) => p.category === 'api' && !inMulti(p))
+				: filtered.filter((p) => p.category === activeTab);
 	$: currentTab = TABS.find((t) => t.key === activeTab) ?? TABS[0];
 	// Onglet « Clés API » : on range les ~30 fournisseurs en sections (Les grands noms,
 	// Une seule clé plein de modèles, Plateformes d'hébergement, Modèles chinois, Sur-mesure).
@@ -136,9 +153,43 @@
 			{/each}
 		</div>
 
-		<!-- aide de l'onglet courant (masquée pour Moteur : le bandeau santé suffit) -->
-		{#if activeTab !== 'hermes'}
+		<!-- aide de l'onglet courant (masquée pour Moteur + Cerveaux combinés : encart dédié) -->
+		{#if activeTab !== 'hermes' && activeTab !== 'multiagent'}
 			<div class="text-xs text-gray-500 mb-3 px-0.5">{$i18n.t(currentTab.hint)}</div>
+		{/if}
+
+		<!-- Encart pédagogique « Cerveaux combinés » -->
+		{#if activeTab === 'multiagent'}
+			<div
+				class="mb-4 rounded-2xl border border-gray-100 dark:border-gray-850 bg-gray-50/60 dark:bg-gray-850/40 p-4"
+			>
+				<div class="text-sm font-medium mb-1">
+					{$i18n.t('Plusieurs cerveaux, une meilleure réponse')}
+				</div>
+				<p class="text-xs text-gray-600 dark:text-gray-400 leading-relaxed">
+					{$i18n.t(
+						'Au lieu d’un seul modèle, plusieurs IA réfléchissent en parallèle puis un « chef de synthèse » combine le meilleur de chacune. Résultat souvent plus fiable — mais plus lent et plus coûteux (plusieurs modèles travaillent). À réserver aux décisions importantes, pas au quotidien.'
+					)}
+				</p>
+				<ul class="mt-2 flex flex-col gap-1">
+					<li class="flex items-start gap-1.5 text-xs text-gray-600 dark:text-gray-400">
+						<span class="flex-none mt-1 size-1 rounded-full bg-gray-400 dark:bg-gray-600"></span>
+						<span
+							>{$i18n.t(
+								'Sakana Fugu : le plus simple — tu entres ta clé, la combinaison est gérée pour toi.'
+							)}</span
+						>
+					</li>
+					<li class="flex items-start gap-1.5 text-xs text-gray-600 dark:text-gray-400">
+						<span class="flex-none mt-1 size-1 rounded-full bg-gray-400 dark:bg-gray-600"></span>
+						<span
+							>{$i18n.t(
+								'Mixture of Agents : tu choisis toi-même quels cerveaux (déjà connectés) combiner.'
+							)}</span
+						>
+					</li>
+				</ul>
+			</div>
 		{/if}
 
 		<!-- contenu de l'onglet -->

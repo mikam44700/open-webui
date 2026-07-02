@@ -110,6 +110,16 @@ export const PROVIDER_INFO: Record<string, ProviderInfo> = {
 		]
 	},
 
+	// ── Cerveaux combinés (multi-agents) ──────────────────────
+	sakana: {
+		desc: 'Sakana Fugu — plusieurs cerveaux en un seul, prêt à l’emploi.',
+		keyUrl: 'https://console.sakana.ai',
+		about: [
+			'Un système multi-agents livré comme UN seul modèle : il assemble tout seul une équipe d’IA selon la difficulté',
+			'Zéro réglage : tu entres ta clé, ça marche dans le chat (variantes « fugu » rapide et « fugu-ultra » qualité max)'
+		]
+	},
+
 	// ── Une seule clé, plein de modèles (passerelles) ─────────
 	openrouter: {
 		desc: 'Une seule clé pour des centaines de modèles.',

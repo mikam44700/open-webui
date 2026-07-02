@@ -101,7 +101,9 @@ const PROVIDER_PRESENTATION: Record<string, ModelPresentation> = {
 	'copilot-acp': { badges: ['Code'] },
 	custom: { badges: ['Polyvalent'] },
 	// MoA (technique interne du moteur) : combine plusieurs modèles → généraliste, qualité.
-	moa: { badges: ['Polyvalent', 'Premium'] }
+	moa: { badges: ['Polyvalent', 'Premium'] },
+	// Sakana Fugu : multi-agents livré comme un seul modèle → qualité, polyvalent.
+	sakana: { badges: ['Polyvalent', 'Premium'] }
 	// mistral : legacy `mistral` ci-dessus. lmstudio / ollama-local : gérés par LOCAL_PROVIDERS.
 };
 
