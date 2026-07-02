@@ -133,13 +133,18 @@
 					</div>
 
 					<!-- Bannière colorée par onglet (style Espace de travail / Capacités : pastille + halos flous) -->
-					<div class="relative mt-4 overflow-hidden rounded-3xl bg-gradient-to-br {memoryBanner.wrap}">
+					<div
+						class="relative mt-4 overflow-hidden rounded-3xl bg-gradient-to-br hero-modern ring-1 ring-inset ring-white/50 dark:ring-white/10 {memoryBanner.wrap}"
+					>
 						<div
 							class="pointer-events-none absolute -right-12 top-1/2 h-44 w-44 -translate-y-1/2 rounded-full blur-3xl {memoryBanner.halo1}"
 						></div>
 						<div
 							class="pointer-events-none absolute -left-16 -top-10 h-40 w-40 rounded-full blur-3xl {memoryBanner.halo2}"
 						></div>
+						<!-- Matière moderne (mesh + grain), color-agnostique. -->
+						<div class="hero-mesh pointer-events-none absolute inset-0"></div>
+						<div class="hero-grain pointer-events-none absolute inset-0"></div>
 						<div class="relative flex flex-col items-center justify-center gap-2 px-6 py-8 text-center">
 							<div
 								class="rounded-full bg-white/90 px-5 py-2 text-sm text-gray-800 shadow-sm backdrop-blur dark:bg-gray-900/80 dark:text-gray-100"

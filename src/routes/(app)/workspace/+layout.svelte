@@ -301,7 +301,7 @@
 
 					<!-- Bannière colorée par onglet (même taille/style que Capacités : haute + centrée + halos) -->
 					<div
-						class="relative mt-4 overflow-hidden rounded-3xl bg-gradient-to-br {workspaceBanner.wrap}"
+						class="relative mt-4 overflow-hidden rounded-3xl bg-gradient-to-br hero-modern ring-1 ring-inset ring-white/50 dark:ring-white/10 {workspaceBanner.wrap}"
 					>
 						<div
 							class="pointer-events-none absolute -right-12 top-1/2 h-44 w-44 -translate-y-1/2 rounded-full blur-3xl {workspaceBanner.halo1}"
@@ -309,6 +309,9 @@
 						<div
 							class="pointer-events-none absolute -left-16 -top-10 h-40 w-40 rounded-full blur-3xl {workspaceBanner.halo2}"
 						></div>
+						<!-- Matière moderne (mesh + grain), color-agnostique. -->
+						<div class="hero-mesh pointer-events-none absolute inset-0"></div>
+						<div class="hero-grain pointer-events-none absolute inset-0"></div>
 						<div
 							class="relative flex flex-col items-center justify-center gap-2 px-6 py-8 text-center"
 						>

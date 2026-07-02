@@ -222,8 +222,8 @@
 				<!-- Bannière premium : couleur + texte selon l'onglet actif (inspiré Base44). -->
 				{#if activeSection?.banner}
 					<div
-						class="relative mt-4 overflow-hidden rounded-3xl bg-gradient-to-br {activeSection.banner
-							.wrap}"
+						class="relative mt-4 overflow-hidden rounded-3xl bg-gradient-to-br hero-modern ring-1 ring-inset ring-white/50 dark:ring-white/10 {activeSection
+							.banner.wrap}"
 					>
 						<div
 							class="pointer-events-none absolute -right-12 top-1/2 h-44 w-44 -translate-y-1/2 rounded-full blur-3xl {activeSection
@@ -233,6 +233,9 @@
 							class="pointer-events-none absolute -left-16 -top-10 h-40 w-40 rounded-full blur-3xl {activeSection
 								.banner.halo2}"
 						></div>
+						<!-- Matière moderne (mesh + grain), color-agnostique — tous les onglets. -->
+						<div class="hero-mesh pointer-events-none absolute inset-0"></div>
+						<div class="hero-grain pointer-events-none absolute inset-0"></div>
 						{#if activeSection?.logo}
 							<div
 								class="pointer-events-none absolute left-6 top-1/2 hidden -translate-y-1/2 sm:left-10 sm:flex"
