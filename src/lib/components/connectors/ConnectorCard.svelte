@@ -109,12 +109,12 @@
 </script>
 
 <div
-	class="flex flex-col gap-2.5 p-4 rounded-2xl border border-gray-100 dark:border-gray-850 transition hover:border-gray-200 dark:hover:border-gray-700 hover:shadow-sm {connector.enabled
+	class="flex flex-col gap-2.5 p-4 rounded-2xl border border-gray-100 dark:border-gray-850 h-full transition hover:border-gray-200 dark:hover:border-gray-700 hover:shadow-sm {connector.enabled
 		? ''
 		: 'opacity-60'}"
 >
-	<!-- En-tête : logo connecteur (ou icône générique) + nom + état -->
-	<div class="flex items-center gap-2.5">
+	<!-- En-tête : logo connecteur (ou icône générique) + nom -->
+	<div class="flex items-start gap-2.5">
 		{#if logoSrc}
 			<div
 				class="flex-none size-12 rounded-xl border border-gray-100 dark:border-gray-700 overflow-hidden flex items-center justify-center {fullBleed
@@ -148,9 +148,9 @@
 				</svg>
 			</div>
 		{/if}
-		<div class="flex-1 min-w-0">
+		<div class="flex-1 min-w-0 flex flex-col gap-1">
 			<div class="flex items-center gap-1.5 min-w-0">
-				<span class="text-sm font-medium">{displayName}</span>
+				<span class="text-sm font-medium leading-tight">{displayName}</span>
 				{#if showMcpBadge}
 					<span
 						class="flex-none text-[10px] px-1.5 py-0.5 rounded bg-gray-100 dark:bg-gray-850 text-gray-500"
@@ -159,25 +159,26 @@
 				{/if}
 			</div>
 			{#if subtitle}
-				<div class="text-xs text-gray-500">{subtitle}</div>
+				<div class="text-xs text-gray-500 leading-snug">{subtitle}</div>
 			{/if}
 		</div>
-		{#if connector.state === 'connected'}
-			<span class="flex-none"><ActiveBadge /></span>
-		{:else}
-			<span class="flex-none text-[11px] px-2 py-0.5 rounded-full font-medium {state.cls}">
-				{$i18n.t(state.label)}
-			</span>
-		{/if}
 	</div>
 
-	<!-- Type d'accès, en langage client (pas de jargon technique) -->
-	<div class="flex items-center gap-1.5">
+	<!-- Type d'accès (langage client) + état de connexion, sur une même ligne qui passe à la ligne au besoin.
+	     L'état est sorti de l'en-tête pour ne plus écraser le nom/description sur une carte étroite. -->
+	<div class="flex flex-wrap items-center gap-1.5">
 		<span
 			class="text-[11px] px-2 py-0.5 rounded-full bg-gray-100 dark:bg-gray-850 text-gray-600 dark:text-gray-300"
 		>
 			{$i18n.t(ACCESS_LABEL[connector.auth_type] ?? connector.auth_type)}
 		</span>
+		{#if connector.state === 'connected'}
+			<ActiveBadge />
+		{:else}
+			<span class="text-[11px] px-2 py-0.5 rounded-full font-medium {state.cls}">
+				{$i18n.t(state.label)}
+			</span>
+		{/if}
 	</div>
 
 	{#if tags.length > 0}
@@ -226,7 +227,7 @@
 	{/if}
 
 	<!-- Actions : tester / activer-désactiver / supprimer -->
-	<div class="flex items-center justify-end gap-2 pt-2 border-t border-gray-100 dark:border-gray-850">
+	<div class="mt-auto flex items-center justify-end gap-2 pt-2 border-t border-gray-100 dark:border-gray-850">
 		<button
 			type="button"
 			class="text-xs px-2 py-1 rounded-lg text-gray-500 hover:text-gray-800 dark:hover:text-gray-200 transition disabled:opacity-40"
