@@ -6,6 +6,7 @@
 
 	import { setConnectorEnabled, testConnector, deleteConnector } from '$lib/apis/connectors';
 	import Spinner from '$lib/components/common/Spinner.svelte';
+	import ActiveBadge from '$lib/components/common/ActiveBadge.svelte';
 	import { CONNECTOR_FR } from '$lib/utils/connectorLabels';
 	import { CONNECTOR_LOGO, CONNECTOR_LOGO_FULL_BLEED } from '$lib/utils/connectorLogos';
 
@@ -159,9 +160,13 @@
 				<div class="text-xs text-gray-500 line-clamp-1">{subtitle}</div>
 			{/if}
 		</div>
-		<span class="flex-none text-[11px] px-2 py-0.5 rounded-full font-medium {state.cls}">
-			{$i18n.t(state.label)}
-		</span>
+		{#if connector.state === 'connected'}
+			<span class="flex-none"><ActiveBadge /></span>
+		{:else}
+			<span class="flex-none text-[11px] px-2 py-0.5 rounded-full font-medium {state.cls}">
+				{$i18n.t(state.label)}
+			</span>
+		{/if}
 	</div>
 
 	<!-- Type d'accès, en langage client (pas de jargon technique) -->

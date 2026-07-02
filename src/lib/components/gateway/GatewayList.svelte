@@ -112,7 +112,8 @@
 			case 'ready':
 				return { label: $i18n.t('Prêt'), tone: 'muted' };
 			default:
-				return { label: $i18n.t('Désactivé'), tone: 'muted' };
+				// « Désactivé » : redondant avec l'interrupteur on/off → pas de chip.
+				return { label: '', tone: 'muted' };
 		}
 	};
 
@@ -404,13 +405,15 @@
 								<div class="min-w-0">
 									<div class="flex items-center gap-2">
 										<span class="text-sm font-medium truncate">{p.name}</span>
-										<span
-											class="inline-flex items-center px-1.5 py-0.5 rounded-full text-[10px] font-medium {toneClass(
-												st.tone
-											)}"
-										>
-											{st.label}
-										</span>
+										{#if st.label}
+											<span
+												class="inline-flex items-center px-1.5 py-0.5 rounded-full text-[10px] font-medium {toneClass(
+													st.tone
+												)}"
+											>
+												{st.label}
+											</span>
+										{/if}
 									</div>
 									<div class="text-xs text-gray-500 mt-0.5">
 										{CHANNEL_FR[p.id]?.desc ?? p.description}

@@ -13,6 +13,7 @@
 		getCrawl4aiUpdateStatus
 	} from '$lib/apis/capabilities';
 	import Spinner from '$lib/components/common/Spinner.svelte';
+	import ActiveBadge from '$lib/components/common/ActiveBadge.svelte';
 	import UpdateButton from './UpdateButton.svelte';
 	import { CONNECTOR_FR } from '$lib/utils/connectorLabels';
 	import { CONNECTOR_LOGO, CONNECTOR_LOGO_FULL_BLEED } from '$lib/utils/connectorLogos';
@@ -110,6 +111,9 @@
 						class="flex-none text-[10px] px-1.5 py-0.5 rounded bg-gray-100 dark:bg-gray-850 text-gray-500"
 						>{$i18n.t('MCP')}</span
 					>
+				{/if}
+				{#if installed}
+					<span class="flex-none"><ActiveBadge /></span>
 				{/if}
 			</div>
 			{#if displayDesc}

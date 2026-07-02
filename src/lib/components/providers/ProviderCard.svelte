@@ -4,6 +4,7 @@
 	import { WEBUI_BASE_URL } from '$lib/constants';
 
 	import Badge from '$lib/components/common/Badge.svelte';
+	import ActiveBadge from '$lib/components/common/ActiveBadge.svelte';
 	import Spinner from '$lib/components/common/Spinner.svelte';
 	import ProviderOAuth from './ProviderOAuth.svelte';
 	import { getModelPresentation } from '$lib/catalog/model-badges';
@@ -181,8 +182,10 @@
 					{regionFlag}
 				</span>
 			{/if}
-			{#if provider.state !== 'not_configured'}
-				<Badge type={badge.type} content={$i18n.t(badge.label)} />
+			{#if provider.state === 'active'}
+				<ActiveBadge />
+			{:else if provider.state === 'configured'}
+				<Badge type="info" content={$i18n.t('Configuré')} />
 			{/if}
 		</div>
 	</div>

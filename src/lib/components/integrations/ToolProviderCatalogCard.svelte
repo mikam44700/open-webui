@@ -10,6 +10,7 @@
 		getToolOAuthStatus
 	} from '$lib/apis/capabilities';
 	import Spinner from '$lib/components/common/Spinner.svelte';
+	import ActiveBadge from '$lib/components/common/ActiveBadge.svelte';
 	import {
 		type Provider,
 		LOGO_BY_SLUG,
@@ -62,6 +63,10 @@
 		none: { label: 'Non connecté', cls: 'text-gray-600 bg-gray-500/10 dark:text-gray-400' }
 	};
 	$: badge = BADGE[status] ?? BADGE.none;
+	// Actif = réellement connecté/vérifié → pastille verte clignotante « Actif ».
+	$: connectedActive = status === 'detected' || status === 'active';
+	// Non connecté = redondant (le bouton « Se connecter » suffit) → pas de chip.
+	$: hideBadge = status === 'disconnected' || status === 'none';
 
 	// Suivi OAuth (propre à ce fournisseur).
 	let oauthRunning = false;
@@ -192,9 +197,13 @@
 				<div class="text-xs text-gray-500 leading-snug">{shortDesc}</div>
 			{/if}
 		</div>
-		<span class="flex-none text-[11px] px-2 py-0.5 rounded-full font-medium {badge.cls}">
-			{$i18n.t(badge.label)}
-		</span>
+		{#if connectedActive}
+			<span class="flex-none"><ActiveBadge /></span>
+		{:else if !hideBadge}
+			<span class="flex-none text-[11px] px-2 py-0.5 rounded-full font-medium {badge.cls}">
+				{$i18n.t(badge.label)}
+			</span>
+		{/if}
 	</div>
 
 	{#if about.length > 0}
