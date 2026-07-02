@@ -310,7 +310,7 @@
 				{#if isKeyLike && !isCentralOAuth && showField}
 					<button
 						type="button"
-						class="text-xs px-3 py-1.5 rounded-lg bg-black text-white dark:bg-white dark:text-black transition disabled:opacity-40"
+						class="text-xs px-3 py-2 rounded-lg bg-black text-white dark:bg-white dark:text-black btn-premium disabled:opacity-40"
 						disabled={busy || !fieldValue.trim()}
 						on:click={onSave}
 					>
@@ -366,7 +366,7 @@
 				{:else if keyPresent}
 					<button
 						type="button"
-						class="text-xs px-3 py-1.5 rounded-lg bg-black text-white dark:bg-white dark:text-black transition disabled:opacity-40"
+						class="text-xs px-3 py-2 rounded-lg bg-black text-white dark:bg-white dark:text-black btn-premium disabled:opacity-40"
 						disabled={busy}
 						on:click={onTest}
 					>
@@ -383,7 +383,7 @@
 					<!-- Intégration OAuth centralisée non connectée : 1 clic → redirection fournisseur -->
 					<button
 						type="button"
-						class="text-xs px-3 py-1.5 rounded-lg bg-black text-white dark:bg-white dark:text-black transition disabled:opacity-40"
+						class="text-xs px-3 py-2 rounded-lg bg-black text-white dark:bg-white dark:text-black btn-premium disabled:opacity-40"
 						disabled={busy}
 						on:click={onConnectOAuth}
 					>
@@ -392,7 +392,7 @@
 				{:else if isGoogle}
 					<button
 						type="button"
-						class="text-xs px-3 py-1.5 rounded-lg bg-black text-white dark:bg-white dark:text-black transition"
+						class="text-xs px-3 py-2 rounded-lg bg-black text-white dark:bg-white dark:text-black btn-premium"
 						on:click={() => (googleOpen = true)}
 					>
 						{$i18n.t('Connecter')}
@@ -400,7 +400,7 @@
 				{:else if isEmail}
 					<button
 						type="button"
-						class="text-xs px-3 py-1.5 rounded-lg bg-black text-white dark:bg-white dark:text-black transition"
+						class="text-xs px-3 py-2 rounded-lg bg-black text-white dark:bg-white dark:text-black btn-premium"
 						on:click={() => (emailOpen = true)}
 					>
 						{$i18n.t('Connecter')}
@@ -408,7 +408,7 @@
 				{:else if isKeyLike && !isCentralOAuth}
 					<button
 						type="button"
-						class="text-xs px-3 py-1.5 rounded-lg bg-black text-white dark:bg-white dark:text-black transition"
+						class="text-xs px-3 py-2 rounded-lg bg-black text-white dark:bg-white dark:text-black btn-premium"
 						on:click={openField}
 					>
 						{$i18n.t('Connecter')}

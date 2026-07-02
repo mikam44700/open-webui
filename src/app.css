@@ -839,3 +839,64 @@ body {
 #note-content-container .ProseMirror {
 	padding-bottom: 2rem; /* space for the bottom toolbar */
 }
+
+/* ==========================================================================
+   Cartes & boutons premium — micro-états ciselés (Stripe / Linear / Vercel).
+   Reutilisable partout : `card-lift` sur une carte, `btn-premium` sur un CTA plein.
+   Le premium vient de la completude des micro-etats (hover / focus / active /
+   motion), pas de la decoration. Motion definie et coherente, jamais les defauts.
+   ========================================================================== */
+
+/* Carte : leger soulevement + ombre au survol (metaphore physique, subtile). */
+.card-lift {
+	@apply transition-all duration-200 ease-out;
+}
+.card-lift:hover {
+	@apply -translate-y-0.5 shadow-md;
+}
+
+/* Bouton primaire (fond plein) : focus clavier visible, feedback de pression,
+   + effet « shine » (balayage de lumiere) declenche UNE fois au survol. */
+.btn-premium {
+	position: relative;
+	overflow: hidden;
+	@apply transition-all duration-200 ease-out;
+}
+.btn-premium:active {
+	transform: scale(0.97);
+}
+.btn-premium:focus-visible {
+	outline: none;
+	@apply ring-2 ring-offset-1 ring-gray-900/25 ring-offset-white dark:ring-white/30 dark:ring-offset-gray-900;
+}
+/* Reflet diagonal. Fond noir (mode clair) -> reflet blanc translucide. */
+.btn-premium::after {
+	content: '';
+	position: absolute;
+	inset: 0;
+	background: linear-gradient(120deg, transparent 30%, rgba(255, 255, 255, 0.28) 50%, transparent 70%);
+	transform: translateX(-130%);
+	transition: transform 0.6s ease;
+	pointer-events: none;
+}
+.btn-premium:hover::after {
+	transform: translateX(130%);
+}
+/* Mode sombre : le CTA passe en fond blanc -> reflet sombre (le blanc serait invisible). */
+.dark .btn-premium::after {
+	background: linear-gradient(120deg, transparent 30%, rgba(0, 0, 0, 0.16) 50%, transparent 70%);
+}
+
+/* Respect des preferences systeme : pas de mouvement pour qui l'a desactive. */
+@media (prefers-reduced-motion: reduce) {
+	.card-lift,
+	.card-lift:hover {
+		transform: none;
+	}
+	.btn-premium::after {
+		display: none;
+	}
+	.btn-premium:active {
+		transform: none;
+	}
+}

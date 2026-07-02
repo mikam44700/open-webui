@@ -171,7 +171,7 @@
 </script>
 
 <div
-	class="flex flex-col gap-2.5 p-4 rounded-2xl border border-gray-100 dark:border-gray-850 h-full transition hover:border-gray-200 dark:hover:border-gray-700 hover:shadow-sm"
+	class="flex flex-col gap-2.5 p-4 rounded-2xl border border-gray-100 dark:border-gray-850 h-full card-lift hover:border-gray-200 dark:hover:border-gray-700"
 >
 	<div class="flex items-start gap-2.5">
 		{#if provider.slug && LOGO_BY_SLUG[provider.slug]}
@@ -283,7 +283,7 @@
 				{#if isKey && showField}
 					<button
 						type="button"
-						class="text-xs px-3 py-1.5 rounded-lg bg-black text-white dark:bg-white dark:text-black transition disabled:opacity-40"
+						class="text-xs px-3 py-2 rounded-lg bg-black text-white dark:bg-white dark:text-black btn-premium disabled:opacity-40"
 						disabled={busy || !fieldValue.trim()}
 						on:click={onSave}
 					>
@@ -302,7 +302,7 @@
 				{:else if isKey && saved}
 					<button
 						type="button"
-						class="text-xs px-3 py-1.5 rounded-lg bg-black text-white dark:bg-white dark:text-black transition disabled:opacity-40"
+						class="text-xs px-3 py-2 rounded-lg bg-black text-white dark:bg-white dark:text-black btn-premium disabled:opacity-40"
 						disabled={busy}
 						on:click={onTest}
 					>
@@ -319,7 +319,7 @@
 				{:else if isKey}
 					<button
 						type="button"
-						class="text-xs px-3 py-1.5 rounded-lg bg-black text-white dark:bg-white dark:text-black transition"
+						class="text-xs px-3 py-2 rounded-lg bg-black text-white dark:bg-white dark:text-black btn-premium"
 						on:click={openField}
 					>
 						{$i18n.t('Se connecter')}
@@ -327,7 +327,7 @@
 				{:else if isOAuth && status !== 'detected'}
 					<button
 						type="button"
-						class="text-xs px-3 py-1.5 rounded-lg bg-black text-white dark:bg-white dark:text-black transition disabled:opacity-40"
+						class="text-xs px-3 py-2 rounded-lg bg-black text-white dark:bg-white dark:text-black btn-premium disabled:opacity-40"
 						disabled={busy || oauthRunning}
 						on:click={startOAuth}
 					>
