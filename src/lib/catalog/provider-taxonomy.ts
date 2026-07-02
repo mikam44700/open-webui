@@ -18,7 +18,7 @@
  */
 
 export type ProviderGroup = 'grands-noms' | 'passerelle' | 'hebergement' | 'chinois' | 'custom';
-export type ProviderRegion = 'us' | 'cn' | 'eu' | 'intl' | 'local';
+export type ProviderRegion = 'us' | 'cn' | 'eu' | 'ca' | 'intl' | 'local';
 
 /** Ordre officiel d'affichage des sections. */
 export const GROUP_ORDER: ProviderGroup[] = [
@@ -47,6 +47,9 @@ const GROUP_BY_ID: Record<string, ProviderGroup> = {
 	xai: 'grands-noms',
 	deepseek: 'grands-noms',
 	copilot: 'grands-noms',
+	mistral: 'grands-noms',
+	cohere: 'grands-noms',
+	perplexity: 'grands-noms',
 	// Une seule clé, plein de modèles (passerelles / agrégateurs)
 	openrouter: 'passerelle',
 	moa: 'passerelle',
@@ -61,6 +64,10 @@ const GROUP_BY_ID: Record<string, ProviderGroup> = {
 	arcee: 'hebergement',
 	gmi: 'hebergement',
 	'azure-foundry': 'hebergement',
+	groq: 'hebergement',
+	cerebras: 'hebergement',
+	together: 'hebergement',
+	fireworks: 'hebergement',
 	// Modèles chinois (labos / endpoints Chine)
 	alibaba: 'chinois',
 	'alibaba-coding-plan': 'chinois',
@@ -72,6 +79,7 @@ const GROUP_BY_ID: Record<string, ProviderGroup> = {
 	stepfun: 'chinois',
 	minimax: 'chinois',
 	'minimax-cn': 'chinois',
+	'baidu-ernie': 'chinois',
 	// Sur-mesure
 	custom: 'custom'
 };
@@ -81,6 +89,7 @@ export const REGION_FLAG: Record<ProviderRegion, string> = {
 	us: '🇺🇸',
 	cn: '🇨🇳',
 	eu: '🇪🇺',
+	ca: '🇨🇦',
 	intl: '🌍',
 	local: '💻'
 };
@@ -90,6 +99,7 @@ export const REGION_NAME: Record<ProviderRegion, string> = {
 	us: 'États-Unis',
 	cn: 'Chine',
 	eu: 'Europe',
+	ca: 'Canada',
 	intl: 'International',
 	local: 'Local'
 };
@@ -128,6 +138,15 @@ const REGION_BY_ID: Record<string, ProviderRegion> = {
 	novita: 'intl',
 	gmi: 'intl',
 	huggingface: 'intl',
+	// Nouveaux fournisseurs natifs (plugins model-provider)
+	mistral: 'eu', // 🇪🇺 souverain
+	cohere: 'ca', // 🇨🇦 Canada
+	groq: 'us',
+	cerebras: 'us',
+	together: 'us',
+	fireworks: 'us',
+	perplexity: 'us',
+	'baidu-ernie': 'cn',
 	// --- Autres onglets : Comptes (OAuth), Local, Autres ---
 	// Comptes (connexion par compte / OAuth)
 	nous: 'us',

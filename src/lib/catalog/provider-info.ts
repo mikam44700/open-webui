@@ -49,6 +49,36 @@ export const PROVIDER_INFO: Record<string, ProviderInfo> = {
 		keyUrl: 'https://console.groq.com/keys',
 		about: ['Réponses très rapides', 'Bon marché']
 	},
+	cerebras: {
+		desc: 'Inférence ultra-rapide (Cerebras).',
+		keyUrl: 'https://cloud.cerebras.ai/',
+		about: ['Débit record sur modèles open source', 'Réponses quasi instantanées']
+	},
+	together: {
+		desc: 'Grand catalogue de modèles open source (Together AI).',
+		keyUrl: 'https://api.together.ai/',
+		about: ['Llama, DeepSeek, Qwen et bien d’autres', 'Bon rapport qualité / prix']
+	},
+	fireworks: {
+		desc: 'Modèles open source hébergés, rapides (Fireworks AI).',
+		keyUrl: 'https://fireworks.ai/account/api-keys',
+		about: ['Llama, DeepSeek et autres modèles ouverts', 'Rapide et économique']
+	},
+	cohere: {
+		desc: 'Les modèles Command de Cohere (entreprise, RAG).',
+		keyUrl: 'https://dashboard.cohere.com/api-keys',
+		about: ['Spécialiste entreprise et recherche documentaire (RAG)', 'Modèles Command']
+	},
+	perplexity: {
+		desc: 'Perplexity Sonar — réponses avec recherche web intégrée.',
+		keyUrl: 'https://www.perplexity.ai/settings/api',
+		about: ['Répond en cherchant sur le web en direct', 'Idéal pour l’actualité et les sources']
+	},
+	'baidu-ernie': {
+		desc: 'Baidu ERNIE (Qianfan) — modèles ERNIE 4.5 / X1.',
+		keyUrl: 'https://console.bce.baidu.com/iam/#/iam/apikey',
+		about: ['Grands modèles chinois de Baidu', 'Endpoint Qianfan (compatible OpenAI)']
+	},
 	deepseek: {
 		desc: 'Modèles DeepSeek, économiques et doués en code.',
 		keyUrl: 'https://platform.deepseek.com/api_keys',

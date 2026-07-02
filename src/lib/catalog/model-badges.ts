@@ -55,7 +55,15 @@ const PROVIDER_PRESENTATION: Record<string, ModelPresentation> = {
 	gmi: { badges: ['Économique'] },
 	// Onglet Comptes (OAuth) : mêmes qualifications que leurs équivalents par clé.
 	'minimax-oauth': { badges: ['Économique'] },
-	'qwen-oauth': { badges: ['Économique'] }
+	'qwen-oauth': { badges: ['Économique'] },
+	// Fournisseurs natifs ajoutés (plugins model-provider).
+	mistral: { badges: ['Économique', 'Rapide'] },
+	groq: { badges: ['Rapide'] },
+	cerebras: { badges: ['Rapide'] },
+	together: { badges: ['Économique'] },
+	fireworks: { badges: ['Rapide', 'Économique'] },
+	'baidu-ernie': { badges: ['Économique'] }
+	// cohere / perplexity : pas de badge budget forcé (non défendable — D27).
 };
 
 /** Présentation neutre (repli) : aucun badge, pas de libellé humain. */

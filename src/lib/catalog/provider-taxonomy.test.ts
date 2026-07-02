@@ -112,4 +112,31 @@ describe('provider-taxonomy', () => {
 		expect(getProviderRegionFlag('lmstudio')).toBe('💻');
 		expect(getProviderRegionName('lmstudio')).toBe('Local');
 	});
+
+	// --- Fournisseurs natifs ajoutés (plugins model-provider) ---
+	const NEW_NATIVE_IDS = [
+		'mistral',
+		'groq',
+		'cerebras',
+		'together',
+		'fireworks',
+		'cohere',
+		'perplexity',
+		'baidu-ernie'
+	];
+
+	it('classe les 8 nouveaux fournisseurs natifs (groupe + région)', () => {
+		const noGroup = NEW_NATIVE_IDS.filter((id) => getProviderGroup(id) === null);
+		const noRegion = NEW_NATIVE_IDS.filter((id) => getProviderRegion(id) === null);
+		expect(noGroup).toEqual([]);
+		expect(noRegion).toEqual([]);
+	});
+
+	it('place Mistral en 🇪🇺 souverain et Cohere en 🇨🇦', () => {
+		expect(getProviderGroup('mistral')).toBe('grands-noms');
+		expect(getProviderRegion('mistral')).toBe('eu');
+		expect(getProviderRegionFlag('mistral')).toBe('🇪🇺');
+		expect(getProviderRegionFlag('cohere')).toBe('🇨🇦');
+		expect(getProviderRegionName('cohere')).toBe('Canada');
+	});
 });
