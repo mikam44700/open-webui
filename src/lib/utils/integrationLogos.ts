@@ -12,6 +12,9 @@ import emailLogo from '$lib/assets/integrations/email-clean.png';
 import obsidianLogo from '$lib/assets/integrations/obsidian-icon.webp';
 import xLogo from '$lib/assets/integrations/x.svg';
 import linkedinLogo from '$lib/assets/integrations/linkedin.svg';
+import tiktokLogo from '$lib/assets/integrations/tiktok.svg';
+import facebookLogo from '$lib/assets/integrations/facebook.svg';
+import instagramLogo from '$lib/assets/integrations/instagram.svg';
 import appleLogo from '$lib/assets/integrations/apple.svg';
 import hueLogo from '$lib/assets/integrations/hue.svg';
 // Logo principal Microsoft 365
@@ -33,6 +36,9 @@ export const INTEGRATION_LOGO: Record<string, string> = {
 	obsidian: obsidianLogo,
 	x: xLogo,
 	linkedin: linkedinLogo,
+	tiktok: tiktokLogo,
+	facebook: facebookLogo,
+	instagram: instagramLogo,
 	apple: appleLogo,
 	hue: hueLogo,
 	'microsoft-365': microsoft365Logo,
@@ -56,7 +62,14 @@ export const INTEGRATION_LOGO_BG: Record<string, string> = {
 
 // Logos « carré plein » (fond couleur intégré, ex. Box bleu) → affichés bord-à-bord pour
 // remplir toute la case, sans marge ni fond blanc. Les autres gardent fond + padding.
-export const INTEGRATION_LOGO_FULL_BLEED = new Set<string>(['box', 'cal-com', 'linkedin']);
+export const INTEGRATION_LOGO_FULL_BLEED = new Set<string>([
+	'box',
+	'cal-com',
+	'linkedin',
+	'tiktok',
+	'facebook',
+	'instagram'
+]);
 
 // Espace Google Workspace : chaque service avec son propre logo (clé = nom du sous-service FR).
 import gwsGmail from '$lib/assets/integrations/google/gmail.png';

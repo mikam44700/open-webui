@@ -86,7 +86,10 @@
 		'google-slides',
 		'google-analytics',
 		'google-search-console',
-		'linkedin'
+		'linkedin',
+		'tiktok',
+		'facebook',
+		'instagram'
 	]);
 	$: isCentralOAuth = CENTRAL_OAUTH_IDS.has(integration.id);
 
@@ -100,7 +103,16 @@
 		'google-search-console'
 	]);
 	$: isGoogleDirect = GOOGLE_DIRECT_IDS.has(integration.id);
-	$: oauthProviderId = isGoogleDirect ? 'google-workspace' : integration.id;
+
+	// Facebook + Instagram partagent un SEUL OAuth Meta (un seul meta_token.json), comme les
+	// services Google partagent google_token.json. La connexion passe par le fournisseur « meta ».
+	const META_IDS = new Set(['facebook', 'instagram']);
+	$: isMeta = META_IDS.has(integration.id);
+	$: oauthProviderId = isGoogleDirect
+		? 'google-workspace'
+		: isMeta
+			? 'meta'
+			: integration.id;
 
 	let googleOpen = false;
 	let emailOpen = false;

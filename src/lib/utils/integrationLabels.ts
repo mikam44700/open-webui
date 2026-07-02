@@ -98,6 +98,27 @@ export const INTEGRATION_FR: Record<string, IntegrationMeta> = {
 			'Au nom de votre compte'
 		]
 	},
+	tiktok: {
+		name: 'TikTok',
+		desc: 'Publier des vidéos sur TikTok, avec votre compte.',
+		category: 'Réseaux sociaux',
+		popular: true,
+		actions: ['Publier une vidéo', 'Depuis une URL vidéo', 'Au nom de votre compte']
+	},
+	facebook: {
+		name: 'Facebook',
+		desc: 'Publier sur votre Page Facebook, avec votre compte.',
+		category: 'Réseaux sociaux',
+		popular: true,
+		actions: ['Publier sur votre Page', 'Publier un lien', 'Au nom de votre Page']
+	},
+	instagram: {
+		name: 'Instagram',
+		desc: 'Publier photos et vidéos sur Instagram (compte pro).',
+		category: 'Réseaux sociaux',
+		popular: true,
+		actions: ['Publier une photo', 'Publier une vidéo (Reels)', 'Compte professionnel']
+	},
 	apple: {
 		name: 'Apple',
 		desc: 'Notes, Rappels et iMessage sur Mac.',
