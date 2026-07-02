@@ -64,6 +64,15 @@
 
 	$: connected = providers.filter((p) => p.state !== 'not_configured' && (p.models?.length ?? 0) > 0);
 	$: activeProviderLabel = providers.find((p) => p.id === active?.provider_id)?.label ?? '';
+	// Nom lisible du cerveau actif : pour les cerveaux « combinés » (Mixture of Agents) ou
+	// tout modèle dont l'id est générique (« default »), on montre le NOM du fournisseur
+	// (ex. « Mixture of Agents ») plutôt que l'id brut « default ». Sinon on garde l'id du
+	// modèle (ex. « gpt-5.5 », « fugu »).
+	$: activeBrainName = !active
+		? ''
+		: active.model_id && active.model_id !== 'default'
+			? active.model_id
+			: (providers.find((p) => p.id === active.provider_id)?.label ?? active.model_id);
 	$: activeLevel = LEVELS.find((l) => l.effort === effort) ?? null;
 	// On masque l'intelligence seulement si on SAIT que le modèle ne raisonne pas.
 	$: showIntelligence = !caps || caps.reasoning !== false;
@@ -149,7 +158,7 @@
 			aria-expanded={open}
 		>
 			<span class="font-medium text-gray-900 dark:text-white truncate">
-				{loading ? $i18n.t('Chargement…') : active?.model_id || $i18n.t('Cerveau')}
+				{loading ? $i18n.t('Chargement…') : activeBrainName || $i18n.t('Cerveau')}
 			</span>
 			{#if activeLevel}
 				<span
@@ -183,7 +192,7 @@
 				<!-- En-tête : modèle actif + ses capacités (le menu s'adapte à CE modèle) -->
 				<div class="px-2 pb-2 pt-1">
 					<div class="truncate text-sm font-medium text-gray-900 dark:text-white">
-						{active?.model_id || $i18n.t('Cerveau')}
+						{activeBrainName || $i18n.t('Cerveau')}
 					</div>
 					{#if activeProviderLabel}
 						<div class="text-[11px] text-gray-400">{activeProviderLabel}</div>
