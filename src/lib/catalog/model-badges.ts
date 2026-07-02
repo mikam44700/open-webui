@@ -56,14 +56,18 @@ const PROVIDER_PRESENTATION: Record<string, ModelPresentation> = {
 	// Onglet Comptes (OAuth) : mêmes qualifications que leurs équivalents par clé.
 	'minimax-oauth': { badges: ['Économique'] },
 	'qwen-oauth': { badges: ['Économique'] },
-	// Fournisseurs natifs ajoutés (plugins model-provider).
-	mistral: { badges: ['Économique', 'Rapide'] },
-	groq: { badges: ['Rapide'] },
+	// Fournisseurs natifs ajoutés (plugins model-provider) — max 2 tags.
+	// (mistral et groq sont déjà qualifiés plus haut : pas de doublon.)
 	cerebras: { badges: ['Rapide'] },
 	together: { badges: ['Économique'] },
 	fireworks: { badges: ['Rapide', 'Économique'] },
-	'baidu-ernie': { badges: ['Économique'] }
-	// cohere / perplexity : pas de badge budget forcé (non défendable — D27).
+	'baidu-ernie': { badges: ['Économique'] },
+	// Tags d'avantage complémentaires (défendables — D27, max 2 par carte).
+	nvidia: { badges: ['Rapide'] },
+	arcee: { badges: ['Économique'] },
+	xiaomi: { badges: ['Économique'] },
+	'alibaba-coding-plan': { badges: ['Économique'] }
+	// cohere / perplexity / azure-foundry / tencent / stepfun : pas de tag forcé (non défendable).
 };
 
 /** Présentation neutre (repli) : aucun badge, pas de libellé humain. */

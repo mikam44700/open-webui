@@ -2,6 +2,9 @@
 // déroulant « Voir ce que ça fait », et lien « Obtenir la clé » (page officielle où récupérer
 // sa clé API). Clé = identifiant Hermes du fournisseur (source : bridge hermes_adapter).
 // Un id absent retombe proprement (pas de desc dédiée, pas de lien).
+//
+// Règle rédaction (pour un dirigeant non-tech) : desc = 1 phrase « qui c'est + pour quoi »,
+// about = 2 puces concrètes (ce qu'on obtient + quand c'est le bon choix). Zéro jargon nu.
 
 export type ProviderInfo = {
 	desc?: string;
@@ -10,230 +13,364 @@ export type ProviderInfo = {
 };
 
 export const PROVIDER_INFO: Record<string, ProviderInfo> = {
+	// ── Les grands noms ───────────────────────────────────────
 	'openai-api': {
-		desc: 'Les modèles GPT d’OpenAI (par clé).',
+		desc: 'Les modèles GPT d’OpenAI (les créateurs de ChatGPT).',
 		keyUrl: 'https://platform.openai.com/api-keys',
-		about: ['Modèles GPT : raisonnement, rédaction, code', 'Qualité premium', 'Facturation à l’usage']
+		about: [
+			'Excellents pour le raisonnement, la rédaction et le code',
+			'La référence du marché — facturation à l’usage'
+		]
 	},
 	'openai-codex': {
-		desc: 'GPT-5.5 via votre compte OpenAI Codex.',
-		about: ['Réutilise votre abonnement ChatGPT / Codex', 'Aucune clé à saisir']
+		desc: 'GPT-5.5 via votre abonnement OpenAI Codex.',
+		about: [
+			'Réutilise votre compte ChatGPT / Codex, sans nouvelle clé',
+			'Idéal si vous payez déjà OpenAI'
+		]
 	},
 	anthropic: {
 		desc: 'Les modèles Claude d’Anthropic.',
 		keyUrl: 'https://console.anthropic.com/settings/keys',
-		about: ['Modèles Claude : analyse, rédaction longue, code', 'Qualité premium', 'Facturation à l’usage']
+		about: [
+			'Excellents en analyse, rédaction longue et code',
+			'Réputés fiables et prudents — qualité premium'
+		]
 	},
 	gemini: {
-		desc: 'Les modèles Gemini de Google.',
+		desc: 'Les modèles Gemini de Google (AI Studio).',
 		keyUrl: 'https://aistudio.google.com/app/apikey',
-		about: ['Modèles Gemini rapides et multimodaux', 'Bon rapport qualité / prix']
+		about: [
+			'Rapides et multimodaux (texte, image, audio, vidéo)',
+			'Offre gratuite généreuse pour démarrer sans carte'
+		]
 	},
 	google: {
-		desc: 'Google AI Studio (modèles Gemini).',
+		desc: 'Google AI Studio — les modèles Gemini.',
 		keyUrl: 'https://aistudio.google.com/app/apikey',
-		about: ['Accès aux modèles Gemini', 'Offre gratuite pour démarrer']
+		about: [
+			'Accès direct aux modèles Gemini de Google',
+			'Offre gratuite pour tester sans engagement'
+		]
 	},
 	mistral: {
-		desc: 'Les modèles de Mistral AI.',
+		desc: 'Mistral AI — le champion européen 🇪🇺.',
 		keyUrl: 'https://console.mistral.ai/api-keys',
-		about: ['Modèles européens', 'Bon rapport qualité / prix']
-	},
-	openrouter: {
-		desc: 'Des centaines de modèles avec une seule clé.',
-		keyUrl: 'https://openrouter.ai/keys',
-		about: ['Une clé pour de nombreux modèles', 'Idéal pour comparer et économiser']
-	},
-	groq: {
-		desc: 'Inférence ultra-rapide (Groq).',
-		keyUrl: 'https://console.groq.com/keys',
-		about: ['Réponses très rapides', 'Bon marché']
+		about: [
+			'Modèles souverains, entreprise française',
+			'Bon rapport qualité/prix, à l’aise en français et en code'
+		]
 	},
 	vertex: {
-		desc: 'Modèles Gemini via Google Cloud (entreprise).',
+		desc: 'Les modèles Gemini via Google Cloud (entreprise).',
 		keyUrl: 'https://console.cloud.google.com/vertex-ai',
-		about: ['Les modèles Gemini côté Google Cloud', 'Pour un usage entreprise / facturation GCP']
+		about: [
+			'Les mêmes modèles Gemini, côté Google Cloud',
+			'Pour les entreprises déjà sur GCP (facturation unifiée)'
+		]
+	},
+	deepseek: {
+		desc: 'DeepSeek — très puissant et parmi les moins chers.',
+		keyUrl: 'https://platform.deepseek.com/api_keys',
+		about: [
+			'Excellent en raisonnement et en code',
+			'Un des meilleurs rapports qualité/prix du marché'
+		]
+	},
+	xai: {
+		desc: 'Les modèles Grok de xAI (l’IA d’Elon Musk).',
+		keyUrl: 'https://console.x.ai',
+		about: [
+			'Ton direct, à l’aise avec l’actualité et la culture web',
+			'Recherche web en temps réel intégrée'
+		]
+	},
+	cohere: {
+		desc: 'Cohere — spécialiste entreprise et documents.',
+		keyUrl: 'https://dashboard.cohere.com/api-keys',
+		about: [
+			'Fort pour interroger VOS documents (recherche intelligente)',
+			'Modèles Command, pensés pour le monde pro'
+		]
+	},
+	perplexity: {
+		desc: 'Perplexity Sonar — l’IA qui cherche sur le web.',
+		keyUrl: 'https://www.perplexity.ai/settings/api',
+		about: [
+			'Répond en direct en citant ses sources',
+			'Idéal pour l’actualité, la veille et la recherche'
+		]
+	},
+	copilot: {
+		desc: 'GitHub Copilot — l’assistant des développeurs.',
+		keyUrl: 'https://github.com/settings/tokens',
+		about: [
+			'Accès aux modèles via votre abonnement Copilot',
+			'Pensé avant tout pour le code'
+		]
+	},
+
+	// ── Une seule clé, plein de modèles (passerelles) ─────────
+	openrouter: {
+		desc: 'Une seule clé pour des centaines de modèles.',
+		keyUrl: 'https://openrouter.ai/keys',
+		about: [
+			'Accédez à OpenAI, Claude, Llama… via un seul compte',
+			'Idéal pour comparer les modèles et optimiser les coûts'
+		]
 	},
 	moa: {
 		desc: 'Combine plusieurs modèles pour une meilleure réponse (technique, pas un fournisseur).',
 		about: [
-			'« Mixture of Agents » : interroge plusieurs modèles et fusionne leurs réponses',
+			'Interroge plusieurs modèles et fusionne leurs réponses',
 			'Intégré au moteur — pas une marque, pas de site dédié'
 		]
 	},
+	kilocode: {
+		desc: 'Kilo Code — passerelle multi-modèles pour le code.',
+		keyUrl: 'https://app.kilocode.ai',
+		about: [
+			'Un seul accès à plusieurs modèles de programmation',
+			'Basculez d’un modèle à l’autre sans multiplier les clés'
+		]
+	},
+	'opencode-zen': {
+		desc: 'OpenCode Zen — passerelle multi-modèles.',
+		about: [
+			'Un seul compte pour accéder à plusieurs modèles',
+			'Pratique pour tester sans créer 10 comptes'
+		]
+	},
+	'opencode-go': {
+		desc: 'OpenCode Go — passerelle multi-modèles.',
+		about: [
+			'Un seul compte pour accéder à plusieurs modèles',
+			'Alternative légère pour jongler entre plusieurs IA'
+		]
+	},
+
+	// ── Plateformes d’hébergement (open source / infra) ───────
+	novita: {
+		desc: 'NovitaAI — modèles open source hébergés, pas chers.',
+		keyUrl: 'https://novita.ai/settings/key-management',
+		about: [
+			'Faites tourner Llama, DeepSeek… sans gérer de serveur',
+			'Facturation à l’usage, économique'
+		]
+	},
+	nvidia: {
+		desc: 'NVIDIA NIM — modèles open source optimisés.',
+		keyUrl: 'https://build.nvidia.com',
+		about: [
+			'Modèles ouverts servis sur l’infrastructure NVIDIA',
+			'Inférence optimisée, prête pour l’entreprise'
+		]
+	},
+	huggingface: {
+		desc: 'Hugging Face — la plus grande bibliothèque de modèles ouverts.',
+		keyUrl: 'https://huggingface.co/settings/tokens',
+		about: [
+			'Des milliers de modèles open source via un seul compte',
+			'Parfait pour explorer au-delà des grands noms'
+		]
+	},
+	'ollama-cloud': {
+		desc: 'Ollama Cloud — vos modèles ouverts dans le cloud.',
+		keyUrl: 'https://ollama.com/settings/keys',
+		about: [
+			'La simplicité d’Ollama, sans mobiliser votre machine',
+			'Pour faire tourner des modèles ouverts à distance'
+		]
+	},
+	arcee: {
+		desc: 'Arcee AI — petits modèles spécialisés et efficaces.',
+		keyUrl: 'https://models.arcee.ai',
+		about: [
+			'Modèles compacts, taillés pour l’entreprise',
+			'Bon compromis entre performance et coût'
+		]
+	},
+	gmi: {
+		desc: 'GMI Cloud — modèles open source hébergés.',
+		about: [
+			'Faites tourner des modèles ouverts sans infra à gérer',
+			'Facturation à l’usage, économique'
+		]
+	},
+	'azure-foundry': {
+		desc: 'Azure AI Foundry — l’IA côté Microsoft.',
+		keyUrl: 'https://ai.azure.com',
+		about: [
+			'Modèles hébergés sur le cloud Azure',
+			'Pour les entreprises déjà chez Microsoft'
+		]
+	},
 	cerebras: {
-		desc: 'Inférence ultra-rapide (Cerebras).',
+		desc: 'Cerebras — la vitesse record.',
 		keyUrl: 'https://cloud.cerebras.ai/',
-		about: ['Débit record sur modèles open source', 'Réponses quasi instantanées']
+		about: [
+			'Réponses quasi instantanées (puce dédiée à l’IA)',
+			'Idéal quand la rapidité prime'
+		]
 	},
 	together: {
-		desc: 'Grand catalogue de modèles open source (Together AI).',
+		desc: 'Together AI — grand catalogue de modèles ouverts.',
 		keyUrl: 'https://api.together.ai/',
-		about: ['Llama, DeepSeek, Qwen et bien d’autres', 'Bon rapport qualité / prix']
+		about: [
+			'Llama, DeepSeek, Qwen et bien d’autres au même endroit',
+			'Bon rapport qualité/prix'
+		]
 	},
 	fireworks: {
-		desc: 'Modèles open source hébergés, rapides (Fireworks AI).',
+		desc: 'Fireworks AI — modèles ouverts rapides et pas chers.',
 		keyUrl: 'https://fireworks.ai/account/api-keys',
-		about: ['Llama, DeepSeek et autres modèles ouverts', 'Rapide et économique']
+		about: [
+			'Llama, DeepSeek et autres modèles ouverts',
+			'Bon équilibre entre vitesse et prix'
+		]
 	},
-	cohere: {
-		desc: 'Les modèles Command de Cohere (entreprise, RAG).',
-		keyUrl: 'https://dashboard.cohere.com/api-keys',
-		about: ['Spécialiste entreprise et recherche documentaire (RAG)', 'Modèles Command']
+
+	// ── Modèles chinois ───────────────────────────────────────
+	alibaba: {
+		desc: 'Qwen — les modèles d’Alibaba, très polyvalents.',
+		keyUrl: 'https://bailian.console.alibabacloud.com',
+		about: [
+			'Bons généralistes, multilingues et doués en code',
+			'Du petit modèle rapide au très puissant'
+		]
 	},
-	perplexity: {
-		desc: 'Perplexity Sonar — réponses avec recherche web intégrée.',
-		keyUrl: 'https://www.perplexity.ai/settings/api',
-		about: ['Répond en cherchant sur le web en direct', 'Idéal pour l’actualité et les sources']
+	'alibaba-coding-plan': {
+		desc: 'Qwen — forfait spécial code (Alibaba).',
+		about: [
+			'Les modèles Qwen optimisés pour la programmation',
+			'Forfait pensé pour les développeurs'
+		]
 	},
-	'baidu-ernie': {
-		desc: 'Baidu ERNIE (Qianfan) — modèles ERNIE 4.5 / X1.',
-		keyUrl: 'https://console.bce.baidu.com/iam/#/iam/apikey',
-		about: ['Grands modèles chinois de Baidu', 'Endpoint Qianfan (compatible OpenAI)']
+	xiaomi: {
+		desc: 'Xiaomi MiMo — modèles ouverts de Xiaomi.',
+		about: [
+			'Modèles légers, orientés raisonnement',
+			'Alternative open source économique'
+		]
 	},
-	deepseek: {
-		desc: 'Modèles DeepSeek, économiques et doués en code.',
-		keyUrl: 'https://platform.deepseek.com/api_keys',
-		about: ['Très économique', 'Bon en raisonnement et en code']
-	},
-	xai: {
-		desc: 'Les modèles Grok de xAI (par clé).',
-		keyUrl: 'https://console.x.ai',
-		about: ['Modèles Grok', 'Recherche web en temps réel']
-	},
-	'xai-oauth': {
-		desc: 'Grok via votre compte X (SuperGrok / Premium+).',
-		about: ['Réutilise votre abonnement X', 'Aucune clé à saisir']
+	'tencent-tokenhub': {
+		desc: 'Tencent TokenHub — l’IA du géant Tencent.',
+		about: [
+			'Accès aux modèles Hunyuan de Tencent',
+			'Hébergé par l’un des plus grands groupes chinois'
+		]
 	},
 	zai: {
-		desc: 'Les modèles GLM de Z.AI.',
+		desc: 'Z.AI — les modèles GLM (Zhipu AI).',
 		keyUrl: 'https://z.ai/manage-apikey/apikey-list',
-		about: ['Modèles GLM', 'Bon rapport qualité / prix']
+		about: [
+			'Bons généralistes, forts en chinois et en code',
+			'Rapport qualité/prix intéressant'
+		]
 	},
 	'kimi-coding': {
-		desc: 'Kimi (Moonshot), plan codage.',
+		desc: 'Kimi (Moonshot) — champion du contexte long.',
 		keyUrl: 'https://platform.moonshot.ai/console/api-keys',
-		about: ['Modèles Kimi', 'Grande fenêtre de contexte']
+		about: [
+			'Avale des documents entiers d’un seul coup',
+			'Forfait orienté code'
+		]
 	},
 	'kimi-coding-cn': {
-		desc: 'Kimi (Moonshot), endpoint Chine.',
+		desc: 'Kimi (Moonshot) — accès depuis la Chine.',
 		keyUrl: 'https://platform.moonshot.cn/console/api-keys',
-		about: ['Modèles Kimi (Chine)']
+		about: [
+			'Les mêmes modèles Kimi, serveurs en Chine',
+			'Très grande fenêtre de contexte'
+		]
 	},
 	minimax: {
-		desc: 'Les modèles MiniMax.',
+		desc: 'MiniMax — texte, voix et vidéo.',
 		keyUrl: 'https://www.minimax.io/platform',
-		about: ['Texte et audio', 'Économique']
+		about: [
+			'Modèles multimodaux (texte + audio)',
+			'Économique'
+		]
 	},
 	'minimax-cn': {
-		desc: 'MiniMax, endpoint Chine.',
+		desc: 'MiniMax — accès depuis la Chine.',
 		keyUrl: 'https://platform.minimaxi.com',
-		about: ['Modèles MiniMax (Chine)']
+		about: [
+			'Les mêmes modèles MiniMax, serveurs en Chine',
+			'Multimodal (texte + audio)'
+		]
+	},
+	stepfun: {
+		desc: 'StepFun — modèles multimodaux chinois.',
+		about: [
+			'À l’aise en texte et en image',
+			'Forfait Step Plan'
+		]
+	},
+	'baidu-ernie': {
+		desc: 'Baidu ERNIE — les grands modèles de Baidu.',
+		keyUrl: 'https://console.bce.baidu.com/iam/#/iam/apikey',
+		about: [
+			'Modèles ERNIE 4.5 / X1, très forts en chinois',
+			'Via la plateforme Qianfan (compatible OpenAI)'
+		]
+	},
+
+	// ── Comptes (OAuth) ───────────────────────────────────────
+	'xai-oauth': {
+		desc: 'Grok via votre compte X (SuperGrok / Premium+).',
+		about: [
+			'Réutilise votre abonnement X, sans clé à saisir',
+			'Pratique si vous êtes déjà abonné'
+		]
 	},
 	'minimax-oauth': {
 		desc: 'MiniMax via votre compte.',
-		about: ['Connexion par compte', 'Aucune clé à saisir']
-	},
-	alibaba: {
-		desc: 'Qwen Cloud (Alibaba).',
-		keyUrl: 'https://bailian.console.alibabacloud.com',
-		about: ['Modèles Qwen', 'Large gamme de tailles']
-	},
-	'alibaba-coding-plan': {
-		desc: 'Alibaba, plan codage (Qwen).',
-		about: ['Modèles Qwen orientés code']
+		about: ['Connexion par compte, sans clé à saisir', 'Multimodal (texte + audio)']
 	},
 	'qwen-oauth': {
 		desc: 'Qwen via votre compte (Portal).',
-		about: ['Connexion par compte', 'Aucune clé à saisir']
-	},
-	xiaomi: {
-		desc: 'Les modèles MiMo de Xiaomi.',
-		about: ['Modèles MiMo']
-	},
-	nvidia: {
-		desc: 'NVIDIA NIM (modèles hébergés).',
-		keyUrl: 'https://build.nvidia.com',
-		about: ['Modèles hébergés par NVIDIA']
-	},
-	huggingface: {
-		desc: 'Hugging Face (modèles open source).',
-		keyUrl: 'https://huggingface.co/settings/tokens',
-		about: ['Accès à de nombreux modèles open source']
-	},
-	'ollama-cloud': {
-		desc: 'Ollama Cloud (modèles hébergés).',
-		keyUrl: 'https://ollama.com/settings/keys',
-		about: ['Modèles Ollama dans le cloud']
-	},
-	lmstudio: {
-		desc: 'LM Studio (modèles sur votre machine).',
-		about: ['Tourne en local', 'Confidentiel, hors ligne', 'Indiquez l’adresse du serveur local']
-	},
-	'ollama-local': {
-		desc: 'Modèle local via Ollama.',
-		about: ['Tourne sur votre machine', 'Confidentiel : aucune donnée ne sort']
-	},
-	'opencode-zen': {
-		desc: 'OpenCode Zen (passerelle de modèles).',
-		about: ['Accès à de nombreux modèles']
-	},
-	'opencode-go': {
-		desc: 'OpenCode Go (passerelle de modèles).',
-		about: ['Accès à de nombreux modèles']
-	},
-	novita: {
-		desc: 'NovitaAI (modèles hébergés).',
-		keyUrl: 'https://novita.ai/settings/key-management',
-		about: ['Modèles hébergés', 'Économique']
-	},
-	'tencent-tokenhub': {
-		desc: 'Tencent TokenHub.',
-		about: ['Modèles hébergés par Tencent']
-	},
-	copilot: {
-		desc: 'GitHub Copilot (par clé).',
-		keyUrl: 'https://github.com/settings/tokens',
-		about: ['Modèles via GitHub Copilot']
-	},
-	'copilot-acp': {
-		desc: 'GitHub Copilot (compte de la machine).',
-		about: ['Réutilise le login Copilot de la machine', 'Rien à configurer']
-	},
-	stepfun: {
-		desc: 'StepFun (Step Plan).',
-		about: ['Modèles StepFun']
-	},
-	arcee: {
-		desc: 'Arcee AI.',
-		keyUrl: 'https://models.arcee.ai',
-		about: ['Modèles Arcee']
-	},
-	gmi: {
-		desc: 'GMI Cloud (modèles hébergés).',
-		about: ['Modèles hébergés par GMI']
-	},
-	kilocode: {
-		desc: 'Kilo Code (passerelle de modèles).',
-		keyUrl: 'https://app.kilocode.ai',
-		about: ['Plusieurs modèles pour le code']
-	},
-	'azure-foundry': {
-		desc: 'Azure AI Foundry (Microsoft).',
-		keyUrl: 'https://ai.azure.com',
-		about: ['Modèles hébergés sur Azure']
-	},
-	bedrock: {
-		desc: 'AWS Bedrock (modèles via votre compte AWS).',
-		keyUrl: 'https://console.aws.amazon.com/bedrock',
-		about: ['Accès aux modèles via AWS', 'Identifiants AWS requis']
+		about: ['Connexion par compte, sans clé à saisir', 'Accès aux modèles Qwen d’Alibaba']
 	},
 	nous: {
-		desc: 'Nous Portal (modèles Nous Research).',
-		about: ['Connexion par compte', 'Modèles Nous Research']
+		desc: 'Nous Portal — les modèles de Nous Research.',
+		about: ['Connexion par votre compte Nous', 'Modèles de la communauté Nous Research']
+	},
+
+	// ── Local (sur votre machine) ─────────────────────────────
+	lmstudio: {
+		desc: 'LM Studio — des modèles sur votre propre machine.',
+		about: [
+			'Tourne en local : confidentiel et hors ligne',
+			'Indiquez l’adresse de votre serveur LM Studio'
+		]
+	},
+	'ollama-local': {
+		desc: 'Ollama — un modèle sur votre machine.',
+		about: [
+			'Tourne chez vous, aucune donnée ne sort',
+			'Gratuit et totalement confidentiel'
+		]
+	},
+
+	// ── Autres ────────────────────────────────────────────────
+	'copilot-acp': {
+		desc: 'GitHub Copilot (compte de la machine).',
+		about: ['Réutilise le login Copilot déjà présent', 'Rien à configurer']
+	},
+	bedrock: {
+		desc: 'AWS Bedrock — l’IA via votre compte Amazon.',
+		keyUrl: 'https://console.aws.amazon.com/bedrock',
+		about: [
+			'Accès à Claude, Llama… depuis AWS',
+			'Pour les entreprises déjà sur Amazon Web Services'
+		]
 	},
 	custom: {
 		desc: 'Fournisseur personnalisé (compatible OpenAI).',
-		about: ['Branchez n’importe quelle API compatible OpenAI']
+		about: [
+			'Branchez n’importe quelle API compatible OpenAI',
+			'Idéal pour un modèle maison ou un serveur privé'
+		]
 	}
 };
