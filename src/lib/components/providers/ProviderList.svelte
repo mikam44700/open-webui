@@ -8,7 +8,12 @@
 	import ProviderCard from './ProviderCard.svelte';
 	import MoaConfig from './MoaConfig.svelte';
 	import HermesStatus from './HermesStatus.svelte';
-	import { groupProviders, MULTIAGENT_IDS } from '$lib/catalog/provider-taxonomy';
+	import {
+		groupProviders,
+		MULTIAGENT_IDS,
+		isExpertProvider
+	} from '$lib/catalog/provider-taxonomy';
+	import { expertMode } from '$lib/stores';
 
 	const i18n = getContext('i18n');
 
@@ -55,22 +60,38 @@
 	// Onglet par défaut : Moteur (santé du moteur), première chose que voit le dirigeant.
 	let activeTab = 'hermes';
 
+	// Onglets réservés au mode Expert (Réglages avancés) : masqués au dirigeant par défaut.
+	const EXPERT_TABS = new Set<string>(['multiagent', 'other']);
+
 	$: filtered = providers;
 
 	// Les fournisseurs multi-agents (Sakana, MoA) ont leur propre onglet « Cerveaux
 	// combinés » et sont EXCLUS de « Clés API » (sinon doublon).
 	const inMulti = (p: Provider) => MULTIAGENT_IDS.has(p.id);
-	const countOf = (key: string) => {
-		if (key === 'multiagent') return filtered.filter(inMulti).length;
-		if (key === 'api') return filtered.filter((p) => p.category === 'api' && !inMulti(p)).length;
-		return filtered.filter((p) => p.category === key).length;
-	};
+	// Un fournisseur « Expert » n'est visible que si le mode Expert est actif (réactif).
+	$: canShow = (p: Provider) => $expertMode || !isExpertProvider(p.id);
+
+	// Onglets visibles : on retire « Cerveaux combinés » et « Autres » hors mode Expert.
+	$: visibleTabs = $expertMode ? TABS : TABS.filter((t) => !EXPERT_TABS.has(t.key));
+	// Filet de sécurité : si on quitte le mode Expert alors qu'un onglet Expert est ouvert,
+	// on retombe sur « Moteur » (jamais coincé sur un onglet devenu invisible).
+	$: if (!$expertMode && EXPERT_TABS.has(activeTab)) activeTab = 'hermes';
+
+	// Compteurs par onglet (réactifs au mode Expert via canShow).
+	$: counts = {
+		oauth: filtered.filter((p) => p.category === 'oauth' && canShow(p)).length,
+		api: filtered.filter((p) => p.category === 'api' && !inMulti(p) && canShow(p)).length,
+		multiagent: filtered.filter(inMulti).length,
+		local: filtered.filter((p) => p.category === 'local' && canShow(p)).length,
+		other: filtered.filter((p) => p.category === 'other' && canShow(p)).length
+	} as Record<string, number>;
+
 	$: tabItems =
 		activeTab === 'multiagent'
 			? filtered.filter(inMulti)
 			: activeTab === 'api'
-				? filtered.filter((p) => p.category === 'api' && !inMulti(p))
-				: filtered.filter((p) => p.category === activeTab);
+				? filtered.filter((p) => p.category === 'api' && !inMulti(p) && canShow(p))
+				: filtered.filter((p) => p.category === activeTab && canShow(p));
 	$: currentTab = TABS.find((t) => t.key === activeTab) ?? TABS[0];
 	// Onglet « Clés API » : on range les ~30 fournisseurs en sections (Les grands noms,
 	// Une seule clé plein de modèles, Plateformes d'hébergement, Modèles chinois, Sur-mesure).
@@ -140,7 +161,7 @@
 		<!-- barre d'onglets — style « puces » IDENTIQUE à celui de l'onglet Outils
 		     (ToolsetList) : puce active foncée + puces grises, passe à la ligne. -->
 		<div class="flex flex-wrap gap-1.5 mb-3">
-			{#each TABS as tab (tab.key)}
+			{#each visibleTabs as tab (tab.key)}
 				<button
 					type="button"
 					class="text-xs px-3 py-1.5 rounded-lg transition whitespace-nowrap {activeTab === tab.key
@@ -149,7 +170,7 @@
 					on:click={() => (activeTab = tab.key)}
 				>
 					{$i18n.t(tab.label)}
-					{#if tab.key !== 'hermes'}<span class="opacity-60">({countOf(tab.key)})</span>{/if}
+					{#if tab.key !== 'hermes'}<span class="opacity-60">({counts[tab.key]})</span>{/if}
 				</button>
 			{/each}
 		</div>

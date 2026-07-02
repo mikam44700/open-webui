@@ -28,6 +28,44 @@ export type ProviderRegion = 'us' | 'cn' | 'eu' | 'fr' | 'ca' | 'jp' | 'intl' | 
  */
 export const MULTIAGENT_IDS = new Set<string>(['sakana', 'moa']);
 
+/**
+ * Fournisseurs de « Clés API » masqués par défaut, révélés uniquement en mode Expert
+ * (Réglages avancés). Choix produit : ne présenter au dirigeant non-tech que les
+ * fournisseurs courants ; les spécialisés / techniques restent accessibles mais
+ * discrets. Aucune fonction retirée — seulement la visibilité, et c'est réversible.
+ */
+export const EXPERT_PROVIDER_IDS = new Set<string>([
+	'copilot', // GitHub Copilot
+	'vertex', // Google Vertex
+	'cohere', // Cohere
+	'kilocode', // Kilo Code
+	'opencode-zen', // OpenCode (Zen)
+	'opencode-go', // OpenCode (Go)
+	'novita', // NovitaAI
+	'arcee', // Arcee AI
+	'gmi', // GMI Cloud
+	'azure-foundry', // Azure Foundry
+	'cerebras', // Cerebras
+	'fireworks', // Fireworks AI
+	'groq', // Groq
+	'together', // Together AI
+	'xiaomi', // Xiaomi
+	'tencent-tokenhub', // Tencent
+	'stepfun', // StepFun
+	'baidu-ernie', // Baidu ERNIE
+	'huggingface', // Hugging Face (Clés API)
+	'alibaba', // Qwen (Modèles chinois)
+	'alibaba-coding-plan', // Qwen coding plan (Modèles chinois)
+	'qwen-oauth', // Qwen (Comptes / OAuth)
+	'minimax-cn', // MiniMax — endpoint Chine (doublon de `minimax` international)
+	'kimi-coding-cn', // Kimi / Moonshot — endpoint Chine (doublon de `kimi-coding`)
+	'custom' // Sur-mesure (endpoint personnalisé)
+]);
+
+/** Vrai si le fournisseur n'apparaît qu'en mode Expert (Réglages avancés). */
+export const isExpertProvider = (id?: string | null): boolean =>
+	!!id && EXPERT_PROVIDER_IDS.has(id);
+
 /** Ordre officiel d'affichage des sections. */
 export const GROUP_ORDER: ProviderGroup[] = [
 	'grands-noms',

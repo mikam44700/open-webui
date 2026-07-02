@@ -312,10 +312,10 @@ export const PROVIDER_INFO: Record<string, ProviderInfo> = {
 		]
 	},
 	minimax: {
-		desc: 'MiniMax — texte, voix et vidéo.',
+		desc: 'MiniMax — IA de conversation, aussi voix et vidéo.',
 		keyUrl: 'https://www.minimax.io/platform',
 		about: [
-			'Modèles multimodaux (texte + audio)',
+			'Modèle de chat (LLM), en plus voix et vidéo',
 			'Économique'
 		]
 	},
