@@ -84,4 +84,28 @@ describe('provider-taxonomy', () => {
 		expect(last.label).toBe('Autres');
 		expect(last.items).toEqual([{ id: 'un-provider-du-futur' }]);
 	});
+
+	// --- Onglets Comptes (OAuth), Local, Autres : badges région aussi (pas de sections) ---
+	const OTHER_TAB_IDS = [
+		'nous',
+		'openai-codex',
+		'xai-oauth',
+		'minimax-oauth',
+		'qwen-oauth', // Comptes
+		'lmstudio',
+		'ollama-local', // Local
+		'copilot-acp',
+		'bedrock' // Autres
+	];
+
+	it('donne une région à tous les fournisseurs des onglets Comptes / Local / Autres', () => {
+		const withoutRegion = OTHER_TAB_IDS.filter((id) => getProviderRegion(id) === null);
+		expect(withoutRegion).toEqual([]);
+	});
+
+	it('marque les modèles locaux comme « Local » (souveraineté maximale)', () => {
+		expect(getProviderRegion('lmstudio')).toBe('local');
+		expect(getProviderRegion('ollama-local')).toBe('local');
+		expect(getProviderRegionLabel('lmstudio')).toBe('💻 Local');
+	});
 });

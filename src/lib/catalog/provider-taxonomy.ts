@@ -18,7 +18,7 @@
  */
 
 export type ProviderGroup = 'grands-noms' | 'passerelle' | 'hebergement' | 'chinois' | 'custom';
-export type ProviderRegion = 'us' | 'cn' | 'eu' | 'intl';
+export type ProviderRegion = 'us' | 'cn' | 'eu' | 'intl' | 'local';
 
 /** Ordre officiel d'affichage des sections. */
 export const GROUP_ORDER: ProviderGroup[] = [
@@ -80,7 +80,8 @@ export const REGION_LABEL: Record<ProviderRegion, string> = {
 	us: '🇺🇸 États-Unis',
 	cn: '🇨🇳 Chine',
 	eu: '🇪🇺 Europe',
-	intl: '🌍 International'
+	intl: '🌍 International',
+	local: '💻 Local'
 };
 
 /** Origine / juridiction par identifiant de fournisseur (souveraineté). */
@@ -116,7 +117,20 @@ const REGION_BY_ID: Record<string, ProviderRegion> = {
 	'opencode-go': 'intl',
 	novita: 'intl',
 	gmi: 'intl',
-	huggingface: 'intl'
+	huggingface: 'intl',
+	// --- Autres onglets : Comptes (OAuth), Local, Autres ---
+	// Comptes (connexion par compte / OAuth)
+	nous: 'us',
+	'openai-codex': 'us',
+	'xai-oauth': 'us',
+	'minimax-oauth': 'cn',
+	'qwen-oauth': 'cn',
+	// Local (modèles sur la machine du client) → souveraineté maximale
+	lmstudio: 'local',
+	'ollama-local': 'local',
+	// Autres (authentification externe)
+	'copilot-acp': 'us',
+	bedrock: 'us'
 };
 
 export const getProviderGroup = (id?: string | null): ProviderGroup | null =>

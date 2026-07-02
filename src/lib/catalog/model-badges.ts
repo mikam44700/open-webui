@@ -52,7 +52,10 @@ const PROVIDER_PRESENTATION: Record<string, ModelPresentation> = {
 	'kimi-coding-cn': { badges: ['Économique'] },
 	huggingface: { badges: ['Économique'] },
 	novita: { badges: ['Économique'] },
-	gmi: { badges: ['Économique'] }
+	gmi: { badges: ['Économique'] },
+	// Onglet Comptes (OAuth) : mêmes qualifications que leurs équivalents par clé.
+	'minimax-oauth': { badges: ['Économique'] },
+	'qwen-oauth': { badges: ['Économique'] }
 };
 
 /** Présentation neutre (repli) : aucun badge, pas de libellé humain. */
