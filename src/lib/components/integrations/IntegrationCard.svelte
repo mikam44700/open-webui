@@ -15,6 +15,7 @@
 	} from '$lib/apis/integrations';
 	import { tick } from 'svelte';
 	import Spinner from '$lib/components/common/Spinner.svelte';
+	import ActiveBadge from '$lib/components/common/ActiveBadge.svelte';
 	import GoogleConnectModal from './GoogleConnectModal.svelte';
 	import EmailConnectModal from './EmailConnectModal.svelte';
 
@@ -219,9 +220,13 @@
 				<div class="text-xs text-gray-500 leading-snug">{desc}</div>
 			{/if}
 		</div>
-		<span class="flex-none text-[11px] px-2 py-0.5 rounded-full font-medium {stateCls}">
-			{$i18n.t(stateLabel)}
-		</span>
+		{#if isConnected}
+			<span class="flex-none"><ActiveBadge /></span>
+		{:else if integration.state !== 'not_connected'}
+			<span class="flex-none text-[11px] px-2 py-0.5 rounded-full font-medium {stateCls}">
+				{$i18n.t(stateLabel)}
+			</span>
+		{/if}
 	</div>
 
 	{#if subservices.length > 0}
