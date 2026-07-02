@@ -1,5 +1,7 @@
 <script lang="ts">
 	import { getContext, onMount, onDestroy } from 'svelte';
+	import type { Writable } from 'svelte/store';
+	import type { i18n as i18nType } from 'i18next';
 	import { toast } from 'svelte-sonner';
 
 	import {
@@ -15,7 +17,7 @@
 
 	let showUpdateConfirm = false;
 
-	const i18n = getContext('i18n');
+	const i18n = getContext<Writable<i18nType>>('i18n');
 
 	let loading = true;
 	let status: any = null;
@@ -24,7 +26,7 @@
 	let checkOutput = '';
 	let checkResult: { tone: 'update' | 'uptodate' | 'unknown'; msg: string } | null = null;
 
-	let updateState: 'idle' | 'running' | 'success' | 'error' = 'idle';
+	let updateState: 'idle' | 'running' | 'success' | 'error' | 'rolled_back' = 'idle';
 	let updateLog = '';
 	let poller: ReturnType<typeof setInterval> | null = null;
 
@@ -108,6 +110,11 @@
 					updateState = 'success';
 					toast.success($i18n.t('Moteur mis à jour'));
 					await loadStatus();
+				} else if (st.rolled_back) {
+					// La MAJ a échoué mais le filet a fonctionné : moteur restauré à l'état d'avant.
+					updateState = 'rolled_back';
+					toast.error($i18n.t('Mise à jour annulée : ton assistant a été restauré'));
+					await loadStatus();
 				} else {
 					updateState = 'error';
 					toast.error($i18n.t('Échec de la mise à jour'));
@@ -119,9 +126,25 @@
 		}
 	};
 
+	// Format court d'une date ISO en français (ex. « 2 juillet 2026 »).
+	const formatDate = (iso: string): string => {
+		try {
+			return new Date(iso).toLocaleDateString('fr-FR', {
+				day: 'numeric',
+				month: 'long',
+				year: 'numeric'
+			});
+		} catch {
+			return iso;
+		}
+	};
+
 	const update = async () => {
 		updateState = 'running';
 		updateLog = '';
+		// Efface le message « Une mise à jour est disponible » du check précédent
+		// (sinon il resterait affiché à tort une fois le moteur à jour).
+		checkResult = null;
 		try {
 			await startHermesUpdate(localStorage.token);
 			stopPolling();
@@ -248,6 +271,16 @@
 			<span class="font-medium text-right text-gray-900 dark:text-gray-100">{versionShort}</span>
 		</div>
 
+		<!-- Date de la dernière mise à jour (déduite de la dernière sauvegarde pre-update) -->
+		{#if status.last_update}
+			<div class="flex items-center justify-between text-sm">
+				<span class="text-gray-500">{$i18n.t('Dernière mise à jour')}</span>
+				<span class="font-medium text-right text-gray-900 dark:text-gray-100">
+					{formatDate(status.last_update)}
+				</span>
+			</div>
+		{/if}
+
 		{#if $expertMode && status.version}
 			<div
 				class="text-[11px] leading-relaxed text-gray-400 dark:text-gray-500 break-all border-t border-gray-100 dark:border-gray-850 pt-2"
@@ -270,12 +303,21 @@
 		{#if updateState === 'running'}
 			<div class="inline-flex items-center gap-2 text-xs font-medium text-amber-600 dark:text-amber-400">
 				<Spinner className="size-3.5" />
-				{$i18n.t('Mise à jour en cours, ne ferme pas la page…')}
+				{$i18n.t('Mise à jour en cours, ne ferme pas la page… (compte 2 à 5 minutes)')}
 			</div>
 		{:else if updateState === 'success'}
 			<div class="inline-flex items-center gap-1.5 text-xs font-medium text-emerald-600 dark:text-emerald-400">
 				<span class="size-1.5 rounded-full bg-emerald-500"></span>
 				{$i18n.t('Le moteur est à jour ✓')}
+			</div>
+		{:else if updateState === 'rolled_back'}
+			<div class="flex items-start gap-1.5 text-xs font-medium text-amber-600 dark:text-amber-400">
+				<span class="size-1.5 rounded-full bg-amber-500 mt-1 shrink-0"></span>
+				<span
+					>{$i18n.t(
+						'La mise à jour a échoué, mais ton assistant a été restauré à la version précédente — il fonctionne normalement. Tu peux réessayer plus tard.'
+					)}</span
+				>
 			</div>
 		{:else if updateState === 'error'}
 			<div class="inline-flex items-center gap-1.5 text-xs font-medium text-red-600 dark:text-red-400">
@@ -364,7 +406,7 @@
 	bind:show={showUpdateConfirm}
 	title={$i18n.t('Mettre à jour le moteur ?')}
 	message={$i18n.t(
-		'Le moteur va être mis à jour vers la dernière version, avec une sauvegarde automatique au préalable. Le service peut être interrompu quelques instants.'
+		'Le moteur va être mis à jour vers la dernière version, avec une sauvegarde automatique au préalable. Compte 2 à 5 minutes : le service peut être interrompu quelques instants, puis il redémarre tout seul.'
 	)}
 	confirmLabel={$i18n.t('Mettre à jour')}
 	onConfirm={update}
