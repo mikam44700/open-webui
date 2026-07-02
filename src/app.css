@@ -852,7 +852,7 @@ body {
 	@apply transition-all duration-200 ease-out;
 }
 .card-lift:hover {
-	@apply -translate-y-0.5 shadow-md;
+	@apply -translate-y-1 shadow-lg;
 }
 
 /* Bouton primaire (fond plein) : focus clavier visible, feedback de pression,
@@ -860,10 +860,17 @@ body {
 .btn-premium {
 	position: relative;
 	overflow: hidden;
+	/* Ombre au repos : le CTA "flotte" (relief visible sans survol). */
+	box-shadow: 0 1px 2px rgba(0, 0, 0, 0.18), 0 2px 8px rgba(0, 0, 0, 0.12);
 	@apply transition-all duration-200 ease-out;
 }
+.btn-premium:hover {
+	transform: translateY(-1px);
+	box-shadow: 0 8px 20px rgba(0, 0, 0, 0.24);
+}
 .btn-premium:active {
-	transform: scale(0.97);
+	transform: translateY(0) scale(0.98);
+	box-shadow: 0 1px 2px rgba(0, 0, 0, 0.22);
 }
 .btn-premium:focus-visible {
 	outline: none;
@@ -874,7 +881,7 @@ body {
 	content: '';
 	position: absolute;
 	inset: 0;
-	background: linear-gradient(120deg, transparent 30%, rgba(255, 255, 255, 0.28) 50%, transparent 70%);
+	background: linear-gradient(120deg, transparent 25%, rgba(255, 255, 255, 0.55) 50%, transparent 75%);
 	transform: translateX(-130%);
 	transition: transform 0.6s ease;
 	pointer-events: none;
@@ -884,7 +891,7 @@ body {
 }
 /* Mode sombre : le CTA passe en fond blanc -> reflet sombre (le blanc serait invisible). */
 .dark .btn-premium::after {
-	background: linear-gradient(120deg, transparent 30%, rgba(0, 0, 0, 0.16) 50%, transparent 70%);
+	background: linear-gradient(120deg, transparent 25%, rgba(0, 0, 0, 0.28) 50%, transparent 75%);
 }
 
 /* Respect des preferences systeme : pas de mouvement pour qui l'a desactive. */
@@ -896,6 +903,7 @@ body {
 	.btn-premium::after {
 		display: none;
 	}
+	.btn-premium:hover,
 	.btn-premium:active {
 		transform: none;
 	}
