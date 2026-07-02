@@ -52,7 +52,6 @@ const GROUP_BY_ID: Record<string, ProviderGroup> = {
 	perplexity: 'grands-noms',
 	// Une seule clé, plein de modèles (passerelles / agrégateurs)
 	openrouter: 'passerelle',
-	moa: 'passerelle',
 	kilocode: 'passerelle',
 	'opencode-zen': 'passerelle',
 	'opencode-go': 'passerelle',
@@ -80,8 +79,9 @@ const GROUP_BY_ID: Record<string, ProviderGroup> = {
 	minimax: 'chinois',
 	'minimax-cn': 'chinois',
 	'baidu-ernie': 'chinois',
-	// Sur-mesure
-	custom: 'custom'
+	// Sur-mesure : endpoint personnalisé + MoA (technique interne, pas un vrai fournisseur)
+	custom: 'custom',
+	moa: 'custom'
 };
 
 /** Drapeau / pictogramme affiché sur la carte (léger). */
