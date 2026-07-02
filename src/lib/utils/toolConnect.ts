@@ -143,6 +143,35 @@ export const CATEGORY_LABEL: Record<string, string> = {
 	paid: 'Payant'
 };
 
+// Tags de capacités (pastilles courtes, style « subservices » des Intégrations) — 2 à 3 mots.
+// Complètent la description : d'un coup d'œil, ce que fait le fournisseur. Keyés par slug.
+export const PROVIDER_TAGS: Record<string, string[]> = {
+	// Recherche & web
+	duckduckgo: ['Recherche web', 'Sans clé', 'Gratuit'],
+	exa: ['Recherche', 'Lecture de pages', 'Sémantique'],
+	firecrawl: ['Recherche', 'Lecture de pages', 'Crawl'],
+	brave: ['Recherche web', 'Privé', 'Local'],
+	tavily: ['Recherche', 'Lecture de pages', "Pour l'IA"],
+	parallel: ['Recherche approfondie', 'Multi-pages'],
+	searxng: ['Méta-moteur', 'Privé', 'Auto-hébergé'],
+	xai: ['Recherche web', 'Temps réel', 'Grok'],
+	nous: ['Recherche web', 'Abonnement Nous'],
+	linkup: ['Recherche', 'Souverain', 'Français'],
+	serper: ['Résultats Google', 'Rapide', 'Bon marché'],
+	jina: ['Recherche', 'Lecture de pages', 'Gratuit'],
+	serpapi: ['Multi-moteurs', 'Résultats Google'],
+	perplexity: ['Réponses', 'Temps réel', 'Sources citées'],
+	// Navigateurs automatisés
+	chromium: ['Navigateur', 'Local', 'Privé'],
+	camofox: ['Navigateur', 'Anti-détection', 'Auto-hébergé'],
+	'browser-use': ['Navigateur', 'Cloud', 'À distance'],
+	browserbase: ['Navigateur', 'Cloud', 'Proxies'],
+	// Modèles d'IA & voix (cartes extra des Intégrations)
+	fal: ['Images', 'Vidéos', 'Nombreux modèles'],
+	krea: ['Images', 'Génération guidée'],
+	mistral: ['Voix', 'Multilingue', 'Voxtral']
+};
+
 // « Ce que ça fait » par fournisseur (slug) : puces affichées dans le déroulant des cartes.
 // Les fournisseurs sans entrée retombent sur leur description courte (tag) → le lien
 // « Voir ce que ça fait » apparaît partout.

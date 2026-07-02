@@ -4,6 +4,18 @@
 
 export type ChannelMeta = { desc: string; actions: string[] };
 
+// Tags de capacités (pastilles courtes, style « subservices ») — 2 à 3 mots. Keyés par `p.id`.
+export const CHANNEL_TAGS: Record<string, string[]> = {
+	telegram: ['Messages', 'Réponses auto', 'Bot'],
+	discord: ['Serveurs', 'Canaux', 'Bot'],
+	slack: ['Canaux', 'Fils', 'App Slack'],
+	whatsapp_cloud: ['Messages', 'Réponses auto', 'API Cloud'],
+	signal: ['Messages', 'Réponses auto', 'signal-cli'],
+	email: ['E-mails', 'Réponses auto', 'IMAP/SMTP'],
+	sms: ['SMS', 'Réponses auto', 'Twilio'],
+	bluebubbles: ['iMessage', 'Réponses auto', 'BlueBubbles']
+};
+
 export const CHANNEL_FR: Record<string, ChannelMeta> = {
 	telegram: {
 		desc: 'Vos agents répondent dans Telegram.',

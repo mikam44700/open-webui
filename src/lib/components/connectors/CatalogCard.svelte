@@ -14,7 +14,7 @@
 	} from '$lib/apis/connectors';
 	import Spinner from '$lib/components/common/Spinner.svelte';
 	import OAuthProgressModal from './OAuthProgressModal.svelte';
-	import { CONNECTOR_FR } from '$lib/utils/connectorLabels';
+	import { CONNECTOR_FR, CONNECTOR_TAGS } from '$lib/utils/connectorLabels';
 	import { CONNECTOR_LOGO, CONNECTOR_LOGO_FULL_BLEED } from '$lib/utils/connectorLogos';
 
 	const i18n = getContext<Writable<i18nType>>('i18n');
@@ -80,6 +80,8 @@
 	$: displayName = fr?.name ?? entry.label ?? entry.name;
 	$: displayDesc = fr?.desc ?? entry.description ?? '';
 	$: actions = fr?.actions ?? [];
+	// Tags de capacités (pastilles courtes) — d'un coup d'œil, ce que fait le connecteur.
+	$: tags = CONNECTOR_TAGS[entry.name] ?? [];
 	// Logo : local prioritaire (qualité maîtrisée), sinon logo distant du registre.
 	$: logoSrc = CONNECTOR_LOGO[entry.name] ?? entry.icon_url ?? '';
 	// Bord-à-bord seulement pour nos logos locaux « carré plein » ; les logos distants
@@ -260,6 +262,17 @@
 			</span>
 		{/if}
 	</div>
+
+	{#if tags.length > 0}
+		<div class="flex flex-wrap gap-1">
+			{#each tags as t}
+				<span
+					class="text-[11px] px-2 py-0.5 rounded-full bg-gray-100 dark:bg-gray-850 text-gray-600 dark:text-gray-300"
+					>{$i18n.t(t)}</span
+				>
+			{/each}
+		</div>
+	{/if}
 
 	{#if actions.length > 0}
 		{#if !expanded}

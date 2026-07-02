@@ -16,7 +16,7 @@
 	import Spinner from '$lib/components/common/Spinner.svelte';
 	import ConfirmDialog from '$lib/components/common/ConfirmDialog.svelte';
 	import { expertMode } from '$lib/stores';
-	import { CHANNEL_FR } from '$lib/utils/channelLabels';
+	import { CHANNEL_FR, CHANNEL_TAGS } from '$lib/utils/channelLabels';
 
 	// Déroulant « Voir ce que ça fait » ouvert, par canal (id → booléen).
 	let aboutOpen: Record<string, boolean> = {};
@@ -439,6 +439,17 @@
 								/>
 							</button>
 						</div>
+
+						{#if CHANNEL_TAGS[p.id]?.length}
+							<div class="mt-2 flex flex-wrap gap-1">
+								{#each CHANNEL_TAGS[p.id] as t}
+									<span
+										class="text-[11px] px-2 py-0.5 rounded-full bg-gray-100 dark:bg-gray-850 text-gray-600 dark:text-gray-300"
+										>{$i18n.t(t)}</span
+									>
+								{/each}
+							</div>
+						{/if}
 
 						{#if CHANNEL_FR[p.id]?.actions?.length}
 							<div class="mt-2">

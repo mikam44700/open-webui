@@ -18,7 +18,8 @@
 		LOGO_TIGHT_SLUGS,
 		providerStatus,
 		PROVIDER_ABOUT,
-		PROVIDER_SHORT
+		PROVIDER_SHORT,
+		PROVIDER_TAGS
 	} from '$lib/utils/toolConnect';
 
 	const i18n = getContext('i18n');
@@ -42,6 +43,8 @@
 		(provider.slug && PROVIDER_ABOUT[provider.slug]) || (provider.tag ? [provider.tag] : []);
 	// Phrase grise courte (non coupée) : version dédiée si dispo, sinon la description du bridge.
 	$: shortDesc = (provider.slug && PROVIDER_SHORT[provider.slug]) || provider.tag || '';
+	// Tags de capacités (pastilles courtes) — d'un coup d'œil, ce que fait le fournisseur.
+	$: tags = (provider.slug && PROVIDER_TAGS[provider.slug]) || [];
 
 	$: field = provider.fields?.[0] ?? null;
 	$: status = providerStatus(provider);
@@ -205,6 +208,17 @@
 			</span>
 		{/if}
 	</div>
+
+	{#if tags.length > 0}
+		<div class="flex flex-wrap gap-1">
+			{#each tags as t}
+				<span
+					class="text-[11px] px-2 py-0.5 rounded-full bg-gray-100 dark:bg-gray-850 text-gray-600 dark:text-gray-300"
+					>{$i18n.t(t)}</span
+				>
+			{/each}
+		</div>
+	{/if}
 
 	{#if about.length > 0}
 		{#if !aboutExpanded}

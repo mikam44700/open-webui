@@ -7,7 +7,7 @@
 	import { setConnectorEnabled, testConnector, deleteConnector } from '$lib/apis/connectors';
 	import Spinner from '$lib/components/common/Spinner.svelte';
 	import ActiveBadge from '$lib/components/common/ActiveBadge.svelte';
-	import { CONNECTOR_FR } from '$lib/utils/connectorLabels';
+	import { CONNECTOR_FR, CONNECTOR_TAGS } from '$lib/utils/connectorLabels';
 	import { CONNECTOR_LOGO, CONNECTOR_LOGO_FULL_BLEED } from '$lib/utils/connectorLogos';
 
 	const i18n = getContext<Writable<i18nType>>('i18n');
@@ -104,6 +104,8 @@
 	$: subtitle = CONNECTOR_FR[connector.id]?.desc ?? connector.endpoint;
 	// Capacités (mêmes données FR que le catalogue) — affichées sur demande.
 	$: actions = CONNECTOR_FR[connector.id]?.actions ?? [];
+	// Tags de capacités (pastilles courtes) — cohérent avec le catalogue.
+	$: tags = CONNECTOR_TAGS[connector.id] ?? [];
 </script>
 
 <div
@@ -177,6 +179,17 @@
 			{$i18n.t(ACCESS_LABEL[connector.auth_type] ?? connector.auth_type)}
 		</span>
 	</div>
+
+	{#if tags.length > 0}
+		<div class="flex flex-wrap gap-1">
+			{#each tags as t}
+				<span
+					class="text-[11px] px-2 py-0.5 rounded-full bg-gray-100 dark:bg-gray-850 text-gray-600 dark:text-gray-300"
+					>{$i18n.t(t)}</span
+				>
+			{/each}
+		</div>
+	{/if}
 
 	<!-- Ce que ça fait : replié par défaut, déployé au clic (comme le catalogue + l'onglet Outils) -->
 	{#if actions.length > 0}
