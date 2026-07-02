@@ -7,6 +7,7 @@
 	import Spinner from '$lib/components/common/Spinner.svelte';
 	import ProviderCard from './ProviderCard.svelte';
 	import HermesStatus from './HermesStatus.svelte';
+	import { groupProviders } from '$lib/catalog/provider-taxonomy';
 
 	const i18n = getContext('i18n');
 
@@ -53,6 +54,10 @@
 	const countOf = (key: string) => filtered.filter((p) => p.category === key).length;
 	$: tabItems = filtered.filter((p) => p.category === activeTab);
 	$: currentTab = TABS.find((t) => t.key === activeTab) ?? TABS[0];
+	// Onglet « Clés API » : on range les ~30 fournisseurs en sections (Les grands noms,
+	// Une seule clé plein de modèles, Plateformes d'hébergement, Modèles chinois, Sur-mesure).
+	// Les autres onglets restent en grille plate (peu d'items).
+	$: apiGroups = activeTab === 'api' ? groupProviders(tabItems) : [];
 
 	const isBridgeDown = (err: any) => err?.error?.code === 'bridge_unreachable';
 
@@ -139,6 +144,29 @@
 		<!-- contenu de l'onglet -->
 		{#if activeTab === 'hermes'}
 			<HermesStatus />
+		{:else if activeTab === 'api' && tabItems.length > 0}
+			<!-- Clés API : rangées par sections (familiarité + fonction). -->
+			<div class="flex flex-col gap-6">
+				{#each apiGroups as group (group.key)}
+					<div>
+						<div
+							class="text-xs font-semibold uppercase tracking-wide text-gray-400 dark:text-gray-500 mb-2 px-0.5"
+						>
+							{$i18n.t(group.label)}
+							<span class="opacity-60">({group.items.length})</span>
+						</div>
+						<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2.5">
+							{#each group.items as provider (provider.id)}
+								<ProviderCard
+									{provider}
+									activeModelId={active?.provider_id === provider.id ? active.model_id : ''}
+									on:changed={load}
+								/>
+							{/each}
+						</div>
+					</div>
+				{/each}
+			</div>
 		{:else if tabItems.length > 0}
 			<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2.5">
 				{#each tabItems as provider (provider.id)}

@@ -7,6 +7,7 @@
 	import Spinner from '$lib/components/common/Spinner.svelte';
 	import ProviderOAuth from './ProviderOAuth.svelte';
 	import { getModelPresentation } from '$lib/catalog/model-badges';
+	import { getProviderRegionLabel } from '$lib/catalog/provider-taxonomy';
 	import { PROVIDER_INFO } from '$lib/catalog/provider-info';
 	import { PROVIDER_LOGO_FULL_BLEED } from '$lib/utils/providerLogos';
 	import {
@@ -43,6 +44,8 @@
 	$: presentation = getModelPresentation(provider.id);
 	// Infos client : phrase grise courte, « Voir ce que ça fait », lien « Obtenir la clé ».
 	$: info = PROVIDER_INFO[provider.id] ?? {};
+	// Origine / juridiction du fournisseur (souveraineté) — libellé drapeau + pays, ou null.
+	$: regionLabel = getProviderRegionLabel(provider.id);
 	let aboutOpen = false;
 	// La plupart des logos sont en PNG ; seuls ces quelques-uns restent en SVG.
 	const SVG_LOGOS = new Set(['api']);
@@ -167,9 +170,19 @@
 				{info.desc ?? presentation.humanLabel ?? `${provider.models?.length ?? 0} ${$i18n.t('modèles')}`}
 			</div>
 		</div>
-		{#if provider.state !== 'not_configured'}
-			<Badge type={badge.type} content={$i18n.t(badge.label)} />
-		{/if}
+		<div class="flex-none flex items-center gap-1.5">
+			{#if regionLabel}
+				<span
+					class="text-[10px] px-1.5 py-0.5 rounded-md bg-gray-50 dark:bg-gray-850 text-gray-500 dark:text-gray-400 border border-gray-100 dark:border-gray-800 whitespace-nowrap"
+					title={$i18n.t('Origine du fournisseur (pas une garantie d’hébergement des données)')}
+				>
+					{regionLabel}
+				</span>
+			{/if}
+			{#if provider.state !== 'not_configured'}
+				<Badge type={badge.type} content={$i18n.t(badge.label)} />
+			{/if}
+		</div>
 	</div>
 
 	<!-- Badges métier curés (US3) : affichés seulement s'ils reflètent la nature réelle (D27). -->

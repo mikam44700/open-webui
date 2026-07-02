@@ -31,14 +31,28 @@ const LOCAL_PROVIDERS = new Set(['ollama', 'ollama-local', 'localai', 'llamacpp'
  */
 const PROVIDER_PRESENTATION: Record<string, ModelPresentation> = {
 	openai: { badges: ['Premium', 'Rapide'] },
+	// L'onglet « Clés API » expose OpenAI sous l'id `openai-api` (et non `openai`) :
+	// on qualifie donc explicitement cet id, sinon la carte n'avait aucun badge.
+	'openai-api': { badges: ['Premium', 'Rapide'] },
 	'openai-codex': { humanLabel: 'GPT-5.5 via OpenAI Codex', badges: ['Premium'] },
 	anthropic: { badges: ['Premium'] },
 	google: { badges: ['Rapide'] },
 	gemini: { badges: ['Rapide'] },
+	vertex: { badges: ['Premium'] },
 	mistral: { badges: ['Économique', 'Rapide'] },
 	openrouter: { badges: ['Économique'] },
 	groq: { badges: ['Rapide', 'Économique'] },
-	bedrock: { badges: ['Premium'] }
+	bedrock: { badges: ['Premium'] },
+	// Réputés économiques (bon rapport qualité/prix, défendable — D27).
+	deepseek: { badges: ['Économique'] },
+	alibaba: { badges: ['Économique'] },
+	zai: { badges: ['Économique'] },
+	minimax: { badges: ['Économique'] },
+	'kimi-coding': { badges: ['Économique'] },
+	'kimi-coding-cn': { badges: ['Économique'] },
+	huggingface: { badges: ['Économique'] },
+	novita: { badges: ['Économique'] },
+	gmi: { badges: ['Économique'] }
 };
 
 /** Présentation neutre (repli) : aucun badge, pas de libellé humain. */
