@@ -99,9 +99,10 @@ const PROVIDER_PRESENTATION: Record<string, ModelPresentation> = {
 	'qwen-oauth': { badges: ['Polyvalent'] },
 	nous: { badges: ['Open source'] },
 	'copilot-acp': { badges: ['Code'] },
-	custom: { badges: ['Polyvalent'] }
+	custom: { badges: ['Polyvalent'] },
+	// MoA (technique interne du moteur) : combine plusieurs modèles → généraliste, qualité.
+	moa: { badges: ['Polyvalent', 'Premium'] }
 	// mistral : legacy `mistral` ci-dessus. lmstudio / ollama-local : gérés par LOCAL_PROVIDERS.
-	// moa : technique interne, pas de badge (pas un vrai fournisseur).
 };
 
 /** Présentation neutre (repli) : aucun badge, pas de libellé humain. */
