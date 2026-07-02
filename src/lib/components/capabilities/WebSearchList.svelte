@@ -127,14 +127,15 @@
 		</div>
 
 		<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-			<!-- Crawl4AI : connecteur MCP « maison » (lecture web approfondie), déplacé ici depuis MCP. -->
-			<Crawl4aiCard on:changed={load} />
+			<!-- Crawl4AI : connecteur MCP « maison » (lecture web approfondie), déplacé ici depuis MCP.
+			     Badge « MCP » affiché ICI (Recherche & web) pour distinguer des fournisseurs natifs. -->
+			<Crawl4aiCard showMcpBadge on:changed={load} />
 			<!-- Apify : connecteur MCP « maison » (extraction web / prospection). Géré si branché,
 			     sinon proposé à l'installation (clé API requise, payant à l'usage). -->
 			{#if apifyConnector}
-				<ConnectorCard connector={apifyConnector} on:changed={load} />
+				<ConnectorCard connector={apifyConnector} showMcpBadge on:changed={load} />
 			{:else}
-				<CatalogCard entry={apifyEntry} on:changed={load} />
+				<CatalogCard entry={apifyEntry} showMcpBadge on:changed={load} />
 			{/if}
 			{#each featured as it (it.toolsetName + ':' + it.provider.name)}
 				<ToolProviderCatalogCard toolsetName={it.toolsetName} provider={it.provider} on:changed={load} />

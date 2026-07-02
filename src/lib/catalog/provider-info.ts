@@ -219,6 +219,14 @@ export const PROVIDER_INFO: Record<string, ProviderInfo> = {
 			'Pour les entreprises déjà chez Microsoft'
 		]
 	},
+	groq: {
+		desc: 'Groq — inférence ultra-rapide.',
+		keyUrl: 'https://console.groq.com/keys',
+		about: [
+			'Réponses très rapides sur modèles open source (Llama…)',
+			'Bon marché'
+		]
+	},
 	cerebras: {
 		desc: 'Cerebras — la vitesse record.',
 		keyUrl: 'https://cloud.cerebras.ai/',
@@ -263,6 +271,7 @@ export const PROVIDER_INFO: Record<string, ProviderInfo> = {
 	},
 	xiaomi: {
 		desc: 'Xiaomi MiMo — modèles ouverts de Xiaomi.',
+		keyUrl: 'https://platform.xiaomimimo.com',
 		about: [
 			'Modèles légers, orientés raisonnement',
 			'Alternative open source économique'

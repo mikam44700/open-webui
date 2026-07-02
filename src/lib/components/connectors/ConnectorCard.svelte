@@ -12,6 +12,8 @@
 	const i18n = getContext<Writable<i18nType>>('i18n');
 	const dispatch = createEventDispatcher();
 
+	// Badge « MCP » : affiché seulement dans « Recherche & web » (redondant dans l'onglet MCP).
+	export let showMcpBadge = false;
 	export let connector: {
 		id: string;
 		transport: 'stdio' | 'http' | 'sse';
@@ -146,10 +148,12 @@
 		<div class="flex-1 min-w-0">
 			<div class="flex items-center gap-1.5 min-w-0">
 				<span class="text-sm font-medium line-clamp-1">{displayName}</span>
-				<span
-					class="flex-none text-[10px] px-1.5 py-0.5 rounded bg-gray-100 dark:bg-gray-850 text-gray-500"
-					>{$i18n.t('MCP')}</span
-				>
+				{#if showMcpBadge}
+					<span
+						class="flex-none text-[10px] px-1.5 py-0.5 rounded bg-gray-100 dark:bg-gray-850 text-gray-500"
+						>{$i18n.t('MCP')}</span
+					>
+				{/if}
 			</div>
 			{#if subtitle}
 				<div class="text-xs text-gray-500 line-clamp-1">{subtitle}</div>
