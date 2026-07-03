@@ -119,6 +119,10 @@ Tu es le bibliothécaire-mémoire de la boîte. Tu ne fais pas le travail des au
 	{
 		id: 'assistant-administratif',
 		label: 'Assistant administratif',
+		firstName: 'Emma',
+		role: 'Assistant administratif',
+		image: '/assets/agents/emma.png',
+		gradient: 'linear-gradient(135deg, #0EA5E9, #2563EB)',
 		emoji: '🗓️',
 		description:
 			'Il tient votre quotidien : tri des mails, gestion de l’agenda, prise et rappel des rendez-vous.',
