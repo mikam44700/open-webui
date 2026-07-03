@@ -4,6 +4,8 @@
 export type AgentTemplate = {
 	id: string; // identifiant de profil suggéré
 	label: string; // nom d'affichage
+	firstName?: string; // prénom seul (affichage vedette) — cf. Avatar.md
+	role?: string; // fonction seule (sous-titre)
 	emoji: string; // avatar provisoire (en attendant les illustrations 3D)
 	image?: string; // URL/chemin d'une mascotte illustrée (prioritaire sur l'emoji quand fournie)
 	description: string; // résumé du rôle (carte)
@@ -14,7 +16,10 @@ export const AGENT_TEMPLATES: AgentTemplate[] = [
 	{
 		id: 'mike-chef-orchestre',
 		label: 'Mike, chef d’orchestre',
+		firstName: 'Mike',
+		role: 'Chef d’orchestre',
 		emoji: '🎼',
+		image: '/assets/agents/mike.png',
 		description:
 			'Votre bras droit qui coordonne toute l’équipe : il comprend votre demande, la découpe et oriente chaque tâche vers le bon agent.',
 		soul: `Tu es Mike, le chef d’orchestre d’Agent OS — le bras droit du dirigeant qui coordonne toute l’équipe d’agents IA.

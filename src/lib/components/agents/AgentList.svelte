@@ -9,6 +9,7 @@
 	import AgentCreate from './AgentCreate.svelte';
 	import AgentEditor from './AgentEditor.svelte';
 	import AgentAtelier from './AgentAtelier.svelte';
+	import MikeHero from './MikeHero.svelte';
 	import { AGENT_TEMPLATES } from './templates';
 	import { gradientFor, initial, prettifyName } from './utils';
 
@@ -41,8 +42,23 @@
 	// Aperçu de la mission d'un template : ouvre une carte (modale) plutôt qu'un pavé déplié.
 	let previewTemplate: (typeof AGENT_TEMPLATES)[number] | null = null;
 
+	// Mike, chef d'orchestre — mis en vedette en tête de page (hero premium).
+	const mikeTpl = AGENT_TEMPLATES.find((t) => t.id === 'mike-chef-orchestre') ?? null;
+	// Repli d'avatar si le PNG n'est pas (encore) présent → jamais d'image cassée.
+	let imgError: Record<string, boolean> = {};
+
+	const matchesMike = (a: Agent): boolean =>
+		!!mikeTpl &&
+		(a.name === mikeTpl.id ||
+			a.name === mikeTpl.label ||
+			prettifyName(a.name ?? '')
+				.toLowerCase()
+				.startsWith('mike'));
+
 	$: existingNames = new Set(agents.map((a) => a.name));
 	$: availableTemplates = AGENT_TEMPLATES.filter((t) => !existingNames.has(t.id));
+	$: mikeAgent = agents.find(matchesMike);
+	$: mikeActive = !!mikeAgent?.active;
 	$: filteredTemplates = availableTemplates.filter((t) => {
 		const q = templateQuery.trim().toLowerCase();
 		if (!q) return true;
@@ -102,6 +118,39 @@
 		}
 	};
 
+	// « Parler à Mike » : s'il existe déjà, on l'active ; sinon on le crée puis on l'active.
+	const talkToMike = async () => {
+		if (!mikeTpl) return;
+		if (mikeAgent) {
+			await activate(mikeAgent);
+			return;
+		}
+		try {
+			await createAgent(localStorage.token, {
+				name: mikeTpl.label,
+				description: mikeTpl.description,
+				soul: mikeTpl.soul
+			});
+			await load();
+			const created = agents.find(matchesMike);
+			if (created) {
+				await activate(created);
+			} else {
+				toast.success($i18n.t('{{name}} ajouté', { name: 'Mike' }));
+			}
+		} catch (err: any) {
+			if (err?.error?.code === 'exists') {
+				toast.error($i18n.t('Cet agent existe déjà'));
+			} else {
+				toast.error($i18n.t('Impossible d’ajouter cet agent'));
+			}
+		}
+	};
+
+	const showMikeMission = () => {
+		if (mikeTpl) previewTemplate = mikeTpl;
+	};
+
 	onMount(load);
 </script>
 
@@ -142,6 +191,16 @@
 				</button>
 			</div>
 		{:else}
+			<!-- Mike, chef d'orchestre — en vedette -->
+			{#if mikeTpl}
+				<MikeHero
+					tpl={mikeTpl}
+					active={mikeActive}
+					on:talk={talkToMike}
+					on:mission={showMikeMission}
+				/>
+			{/if}
+
 			<!-- Mes agents -->
 			<section class="mb-11">
 				<div class="flex items-baseline gap-2 mb-4">
@@ -288,10 +347,11 @@
 									class="group flex flex-col rounded-2xl p-4 bg-gray-50/60 dark:bg-gray-900/40 border border-gray-100 dark:border-gray-800 hover:bg-white dark:hover:bg-gray-900 hover:border-gray-200 dark:hover:border-gray-700 hover:shadow-[0_14px_34px_-16px_rgba(0,0,0,0.22)] hover:-translate-y-0.5 transition-all duration-200"
 								>
 									<div class="flex items-center gap-3.5">
-										{#if tpl.image}
+										{#if tpl.image && !imgError[tpl.id]}
 											<img
 												src={tpl.image}
 												alt={tpl.label}
+												on:error={() => (imgError = { ...imgError, [tpl.id]: true })}
 												class="flex-none size-11 rounded-2xl object-cover shadow-sm ring-1 ring-black/5 group-hover:scale-105 transition-transform"
 											/>
 										{:else}
@@ -353,10 +413,12 @@
 		>
 			<!-- En-tête -->
 			<div class="flex items-center gap-3.5 p-5 border-b border-gray-100 dark:border-gray-800">
-				{#if previewTemplate.image}
+				{#if previewTemplate.image && !imgError[previewTemplate.id]}
 					<img
 						src={previewTemplate.image}
 						alt={previewTemplate.label}
+						on:error={() =>
+							previewTemplate && (imgError = { ...imgError, [previewTemplate.id]: true })}
 						class="flex-none size-11 rounded-2xl object-cover shadow-sm ring-1 ring-black/5"
 					/>
 				{:else}
