@@ -62,13 +62,18 @@
 	</div>
 
 	<!-- Avatar : portrait détouré qui déborde, ou emoji en pastille givrée -->
-	<div class="pointer-events-none absolute bottom-0 right-0 z-0 h-[150px] w-[132px]">
+	<div class="pointer-events-none absolute bottom-0 right-0 z-0 h-[176px] w-[148px]">
 		{#if showImage}
+			<!-- halo clair derrière le perso : le détache du fond même si les couleurs se ressemblent -->
+			<div
+				class="absolute inset-0 bg-[radial-gradient(circle_at_66%_72%,rgba(255,255,255,0.20),transparent_62%)]"
+			></div>
 			<img
 				src={image}
 				alt={name}
 				on:error={() => (imgError = true)}
-				class="absolute bottom-0 right-1 h-full w-auto object-contain object-bottom drop-shadow-[0_10px_20px_rgba(0,0,0,0.25)]"
+				style="filter: drop-shadow(0 0 2px rgba(255,255,255,0.55)) drop-shadow(0 12px 22px rgba(0,0,0,0.35));"
+				class="absolute bottom-0 right-1 h-full w-auto object-contain object-bottom"
 			/>
 		{:else}
 			<div
@@ -80,7 +85,7 @@
 	</div>
 
 	<!-- Texte (marge droite pour dégager l'avatar) -->
-	<div class="relative z-10 pr-28">
+	<div class="relative z-10 pr-32">
 		{#if role}
 			<div class="text-[11px] font-semibold uppercase tracking-[0.12em] text-white/75">{role}</div>
 		{/if}
@@ -92,7 +97,7 @@
 
 	<!-- Actions -->
 	{#if primaryLabel || secondaryLabel}
-		<div class="relative z-10 mt-auto flex items-center gap-3 pt-4 pr-28">
+		<div class="relative z-10 mt-auto flex items-center gap-3 pt-4 pr-32">
 			{#if primaryLabel}
 				<button
 					class="text-[13px] font-semibold px-4 py-2 rounded-xl bg-white text-gray-900 shadow-sm hover:shadow-md hover:-translate-y-px active:translate-y-0 transition-all whitespace-nowrap"
