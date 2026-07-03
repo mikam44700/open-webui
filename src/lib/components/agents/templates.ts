@@ -8,6 +8,7 @@ export type AgentTemplate = {
 	role?: string; // fonction seule (sous-titre)
 	emoji: string; // avatar provisoire (en attendant les illustrations 3D)
 	image?: string; // URL/chemin d'une mascotte illustrée (prioritaire sur l'emoji quand fournie)
+	gradient?: string; // dégradé de carte imposé (sinon rotation automatique)
 	description: string; // résumé du rôle (carte)
 	soul: string; // mission préremplie (SOUL.md)
 };
@@ -57,7 +58,11 @@ La liste de tes agents s’affiche ici automatiquement dès qu’ils existent. T
 	{
 		id: 'agent-obsidian',
 		label: 'Agent Obsidian',
+		firstName: 'Adam',
+		role: 'Agent Obsidian',
 		emoji: '🧠',
+		image: '/assets/agents/adam.png',
+		gradient: 'linear-gradient(135deg, #6D28D9, #9333EA)',
 		description:
 			'La mémoire de votre entreprise : il capture, range, relie et retrouve toute votre connaissance dans le coffre Obsidian — et la met à disposition de tous les autres agents.',
 		soul: `Tu es l'Agent Obsidian — la mémoire vivante de l'entreprise, gardien du second cerveau (le coffre Obsidian).

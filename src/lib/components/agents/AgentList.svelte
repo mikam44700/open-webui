@@ -293,7 +293,7 @@
 							{#each filteredTemplates as tpl, i (tpl.id)}
 								<div in:fly={{ y: 10, duration: 240, delay: Math.min(i, 8) * 30 }}>
 									<AgentGradientCard
-										gradient={cardGradient(i)}
+										gradient={tpl.gradient ?? cardGradient(i)}
 										name={tpl.firstName ?? tpl.label}
 										role={tpl.role ?? ''}
 										description={tpl.description}
