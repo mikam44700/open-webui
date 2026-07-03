@@ -10,8 +10,9 @@
 	import AgentEditor from './AgentEditor.svelte';
 	import AgentAtelier from './AgentAtelier.svelte';
 	import MikeHero from './MikeHero.svelte';
+	import AgentGradientCard from './AgentGradientCard.svelte';
 	import { AGENT_TEMPLATES } from './templates';
-	import { gradientFor, initial, prettifyName } from './utils';
+	import { cardGradient, initial, prettifyName } from './utils';
 
 	const i18n = getContext('i18n');
 
@@ -56,7 +57,10 @@
 				.startsWith('mike'));
 
 	$: existingNames = new Set(agents.map((a) => a.name));
-	$: availableTemplates = AGENT_TEMPLATES.filter((t) => !existingNames.has(t.id));
+	// Mike est déjà en vedette dans le hero → on l'exclut de la galerie.
+	$: availableTemplates = AGENT_TEMPLATES.filter(
+		(t) => t.id !== 'mike-chef-orchestre' && !existingNames.has(t.id)
+	);
 	$: mikeAgent = agents.find(matchesMike);
 	$: mikeActive = !!mikeAgent?.active;
 	$: filteredTemplates = availableTemplates.filter((t) => {
@@ -223,76 +227,21 @@
 				{:else}
 					<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
 						{#each agents as agent, i (agent.name)}
-							<div
-								in:fly={{ y: 10, duration: 260, delay: i * 35 }}
-								class="group relative flex flex-col rounded-2xl p-4 bg-white dark:bg-gray-900 border transition-all duration-200 hover:-translate-y-0.5 {agent.active
-									? 'border-green-400/50 shadow-[0_10px_34px_-14px_rgba(16,185,129,0.5)] bg-gradient-to-b from-green-50/50 to-transparent dark:from-green-500/[0.07]'
-									: 'border-gray-100 dark:border-gray-800 shadow-[0_2px_14px_-8px_rgba(0,0,0,0.15)] hover:border-gray-200 dark:hover:border-gray-700 hover:shadow-[0_14px_34px_-16px_rgba(0,0,0,0.25)]'}"
-							>
-								<button
-									class="absolute top-4 right-4 text-gray-300 hover:text-gray-700 dark:text-gray-600 dark:hover:text-white opacity-0 group-hover:opacity-100 focus:opacity-100 transition"
-									title={$i18n.t('Modifier')}
-									on:click={() => edit(agent)}
-									aria-label={$i18n.t('Modifier')}
-								>
-									<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="size-4">
-										<path
-											d="M2.695 14.762l-1.262 3.155a.5.5 0 00.65.65l3.155-1.262a4 4 0 001.343-.886L17.5 5.501a2.121 2.121 0 00-3-3L3.58 13.42a4 4 0 00-.885 1.343z"
-										/>
-									</svg>
-								</button>
-
-								<div class="flex items-center gap-3.5">
-									<div class="relative flex-none">
-										{#if agent.avatar}
-											<img
-												src={agent.avatar}
-												alt={prettifyName(agent.name)}
-												class="size-11 rounded-2xl object-cover shadow-sm ring-1 ring-black/5 {agent.active
-													? 'ring-2 ring-green-400/70 ring-offset-2 ring-offset-white dark:ring-offset-gray-900'
-													: ''}"
-											/>
-										{:else}
-											<div
-												class="size-11 rounded-2xl flex items-center justify-center text-white text-lg font-semibold shadow-sm ring-1 ring-black/5 {agent.active
-													? 'ring-2 ring-green-400/70 ring-offset-2 ring-offset-white dark:ring-offset-gray-900'
-													: ''}"
-												style="background-image: {gradientFor(agent.name)}"
-											>
-												{initial(prettifyName(agent.name))}
-											</div>
-										{/if}
-										{#if agent.active}
-											<span
-												class="absolute -bottom-1 -right-1 size-3.5 rounded-full bg-green-500 border-2 border-white dark:border-gray-900"
-											></span>
-										{/if}
-									</div>
-									<div class="min-w-0 pr-6">
-										<div class="text-[15px] font-semibold truncate">{prettifyName(agent.name)}</div>
-										<div class="text-xs truncate mt-0.5 text-gray-400">
-											{#if agent.model}{agent.model}{/if}{#if agent.active}{#if agent.model}
-													&nbsp;·&nbsp;{/if}<span class="text-green-600 dark:text-green-400 font-medium"
-													>{$i18n.t('Actif')}</span
-												>{/if}
-										</div>
-									</div>
-								</div>
-
-								<p
-									class="text-[13px] leading-relaxed text-gray-500 dark:text-gray-400 mt-4 line-clamp-2 min-h-[2.5rem]"
-								>
-									{agent.description || $i18n.t('Aucune mission définie pour le moment.')}
-								</p>
-
-								<button
-									class="mt-4 w-full text-sm font-medium px-3 py-2.5 rounded-xl transition-all {agent.active
-										? 'bg-gray-900 text-white dark:bg-white dark:text-black hover:opacity-90'
-										: 'bg-gray-100 dark:bg-gray-850 text-gray-900 dark:text-white hover:bg-gray-200 dark:hover:bg-gray-800'}"
-									on:click={() => activate(agent)}
-								>
-									{agent.active ? $i18n.t('Continuer') + ' →' : $i18n.t('Discuter')}
-								</button>
+							<div in:fly={{ y: 10, duration: 260, delay: i * 35 }}>
+								<AgentGradientCard
+									gradient={cardGradient(i)}
+									name={prettifyName(agent.name)}
+									role={agent.model ?? ''}
+									description={agent.description || $i18n.t('Aucune mission définie pour le moment.')}
+									image={agent.avatar}
+									avatarText={initial(prettifyName(agent.name))}
+									status={agent.active ? 'active' : 'none'}
+									statusLabel={$i18n.t('Actif')}
+									primaryLabel={agent.active ? $i18n.t('Continuer') + ' →' : $i18n.t('Discuter')}
+									editable={true}
+									on:primary={() => activate(agent)}
+									on:edit={() => edit(agent)}
+								/>
 							</div>
 						{/each}
 					</div>
@@ -340,50 +289,21 @@
 							{$i18n.t('Aucun agent ne correspond à votre recherche.')}
 						</div>
 					{:else}
-						<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+						<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
 							{#each filteredTemplates as tpl, i (tpl.id)}
-								<div
-									in:fly={{ y: 10, duration: 240, delay: Math.min(i, 8) * 30 }}
-									class="group flex flex-col rounded-2xl p-4 bg-gray-50/60 dark:bg-gray-900/40 border border-gray-100 dark:border-gray-800 hover:bg-white dark:hover:bg-gray-900 hover:border-gray-200 dark:hover:border-gray-700 hover:shadow-[0_14px_34px_-16px_rgba(0,0,0,0.22)] hover:-translate-y-0.5 transition-all duration-200"
-								>
-									<div class="flex items-center gap-3.5">
-										{#if tpl.image && !imgError[tpl.id]}
-											<img
-												src={tpl.image}
-												alt={tpl.label}
-												on:error={() => (imgError = { ...imgError, [tpl.id]: true })}
-												class="flex-none size-11 rounded-2xl object-cover shadow-sm ring-1 ring-black/5 group-hover:scale-105 transition-transform"
-											/>
-										{:else}
-											<div
-												class="flex-none size-11 rounded-2xl flex items-center justify-center text-2xl bg-white dark:bg-gray-850 shadow-sm ring-1 ring-black/5 group-hover:scale-105 transition-transform"
-											>
-												{tpl.emoji}
-											</div>
-										{/if}
-										<div class="min-w-0">
-											<div class="text-[15px] font-semibold truncate">{tpl.label}</div>
-										</div>
-									</div>
-									<p
-										class="text-[13px] leading-relaxed text-gray-500 dark:text-gray-400 mt-4 line-clamp-2 min-h-[2.5rem]"
-									>
-										{tpl.description}
-									</p>
-
-									<button
-										class="mt-2 self-start text-[11px] font-medium text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 transition"
-										on:click={() => (previewTemplate = tpl)}
-									>
-										{$i18n.t('Voir la mission')}
-									</button>
-
-									<button
-										class="mt-4 w-full text-sm font-medium px-3 py-2.5 rounded-xl bg-gray-900 text-white dark:bg-white dark:text-black hover:opacity-90 hover:shadow-md transition-all"
-										on:click={() => installTemplate(tpl)}
-									>
-										{$i18n.t('+ Activer')}
-									</button>
+								<div in:fly={{ y: 10, duration: 240, delay: Math.min(i, 8) * 30 }}>
+									<AgentGradientCard
+										gradient={cardGradient(i)}
+										name={tpl.firstName ?? tpl.label}
+										role={tpl.role ?? ''}
+										description={tpl.description}
+										image={tpl.image ?? null}
+										avatarText={tpl.emoji}
+										primaryLabel={$i18n.t('+ Activer')}
+										secondaryLabel={$i18n.t('Voir la mission')}
+										on:primary={() => installTemplate(tpl)}
+										on:secondary={() => (previewTemplate = tpl)}
+									/>
 								</div>
 							{/each}
 						</div>

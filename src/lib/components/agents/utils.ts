@@ -28,6 +28,25 @@ export const gradientFor = (name: string): string => {
 	return `linear-gradient(135deg, ${from}, ${to})`;
 };
 
+// Palette saturée pour les cartes d'agents (blocs colorés façon Agensio). Cf. Avatar.md.
+const CARD_GRADIENTS: [string, string][] = [
+	['#4F46E5', '#7C3AED'], // Indigo
+	['#0EA5E9', '#2563EB'], // Océan
+	['#059669', '#0D9488'], // Émeraude
+	['#F59E0B', '#EA580C'], // Ambre
+	['#EC4899', '#BE185D'], // Framboise
+	['#06B6D4', '#0891B2'], // Turquoise
+	['#7E22CE', '#9333EA'], // Prune
+	['#334155', '#1E293B'] // Ardoise
+];
+
+// Dégradé de carte par position (rotation → jamais deux identiques côte à côte).
+export const cardGradient = (i: number): string => {
+	const n = CARD_GRADIENTS.length;
+	const [from, to] = CARD_GRADIENTS[((i % n) + n) % n];
+	return `linear-gradient(135deg, ${from}, ${to})`;
+};
+
 export const initial = (name: string): string => (name?.[0] ?? '?').toUpperCase();
 
 // « assistant-rh » -> « Assistant Rh » (affichage lisible d'un identifiant de profil).
