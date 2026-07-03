@@ -24,7 +24,7 @@
 </script>
 
 <div
-	class="group relative flex flex-col overflow-hidden rounded-2xl p-5 min-h-[212px] text-white shadow-lg card-lift"
+	class="group relative flex flex-col overflow-hidden rounded-2xl p-5 min-h-[238px] text-white shadow-lg card-lift"
 	style="background-image: {gradient}"
 >
 	<!-- lueur douce -->
@@ -61,19 +61,19 @@
 		{/if}
 	</div>
 
-	<!-- Avatar : portrait détouré qui déborde, ou emoji en pastille givrée -->
-	<div class="pointer-events-none absolute bottom-0 right-0 z-0 h-[176px] w-[148px]">
+	<!-- Avatar : portrait détouré qui monte jusqu'en haut de la carte, ou emoji en pastille -->
+	<div class="pointer-events-none absolute inset-y-0 right-0 z-0 w-[152px]">
 		{#if showImage}
 			<!-- halo clair derrière le perso : le détache du fond même si les couleurs se ressemblent -->
 			<div
-				class="absolute inset-0 bg-[radial-gradient(circle_at_66%_72%,rgba(255,255,255,0.20),transparent_62%)]"
+				class="absolute inset-0 bg-[radial-gradient(circle_at_60%_56%,rgba(255,255,255,0.30),transparent_66%)]"
 			></div>
 			<img
 				src={image}
 				alt={name}
 				on:error={() => (imgError = true)}
-				style="filter: drop-shadow(0 0 2px rgba(255,255,255,0.55)) drop-shadow(0 12px 22px rgba(0,0,0,0.35));"
-				class="absolute bottom-0 right-1 h-full w-auto object-contain object-bottom"
+				style="filter: drop-shadow(0 0 2.5px rgba(255,255,255,0.92)) drop-shadow(0 0 11px rgba(255,255,255,0.35)) drop-shadow(0 14px 20px rgba(0,0,0,0.42));"
+				class="absolute bottom-0 right-0 h-full w-auto object-contain object-bottom"
 			/>
 		{:else}
 			<div
@@ -85,7 +85,7 @@
 	</div>
 
 	<!-- Texte (marge droite pour dégager l'avatar) -->
-	<div class="relative z-10 pr-32">
+	<div class="relative z-10 pr-36">
 		{#if role}
 			<div class="text-[11px] font-semibold uppercase tracking-[0.12em] text-white/75">{role}</div>
 		{/if}
@@ -97,7 +97,7 @@
 
 	<!-- Actions -->
 	{#if primaryLabel || secondaryLabel}
-		<div class="relative z-10 mt-auto flex items-center gap-3 pt-4 pr-32">
+		<div class="relative z-10 mt-auto flex items-center gap-3 pt-4 pr-36">
 			{#if primaryLabel}
 				<button
 					class="text-[13px] font-semibold px-4 py-2 rounded-xl bg-white text-gray-900 shadow-sm hover:shadow-md hover:-translate-y-px active:translate-y-0 transition-all whitespace-nowrap"
