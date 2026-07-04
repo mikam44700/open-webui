@@ -224,27 +224,39 @@
 		<div class="p-5">
 			<div class="flex items-center justify-between mb-5">
 				<div class="flex items-center gap-3 min-w-0">
-					<button
-						type="button"
-						class="group/av relative flex-none size-11 rounded-2xl overflow-hidden flex items-center justify-center text-white text-lg font-semibold ring-1 ring-transparent hover:ring-gray-300 dark:hover:ring-gray-600 transition {avatar
-							? 'bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-850 dark:to-gray-800'
-							: ''}"
-						style={avatar ? '' : `background-color: ${colorFor(agent.name)}`}
-						on:click={() => (showAvatarPicker = true)}
-						title={$i18n.t('Changer le visage')}
-						aria-label={$i18n.t('Changer le visage')}
-					>
-						{#if avatar}
-							<img src={avatar} alt="" class="size-full object-cover object-top" />
-						{:else}
-							{initial(prettifyName(agent.name))}
-						{/if}
-						<span
-							class="absolute inset-0 flex items-center justify-center bg-black/45 text-white text-[9px] font-medium opacity-0 group-hover/av:opacity-100 transition"
+					<div class="group/av relative flex-none">
+						<button
+							type="button"
+							class="size-11 rounded-2xl overflow-hidden flex items-center justify-center text-white text-lg font-semibold ring-1 ring-transparent group-hover/av:ring-gray-300 dark:group-hover/av:ring-gray-600 transition {avatar
+								? 'bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-850 dark:to-gray-800'
+								: ''}"
+							style={avatar ? '' : `background-color: ${colorFor(agent.name)}`}
+							on:click={() => (showAvatarPicker = true)}
+							title={$i18n.t('Changer le visage')}
+							aria-label={$i18n.t('Changer le visage')}
 						>
-							{$i18n.t('Changer')}
+							{#if avatar}
+								<img src={avatar} alt="" class="size-full object-cover object-top" />
+							{:else}
+								{initial(prettifyName(agent.name))}
+							{/if}
+							<span
+								class="absolute inset-0 flex items-center justify-center bg-black/45 text-white text-[9px] font-medium opacity-0 group-hover/av:opacity-100 transition"
+							>
+								{$i18n.t('Changer')}
+							</span>
+						</button>
+						<!-- Pastille « modifiable » toujours visible (affordance pour non-tech) -->
+						<span
+							aria-hidden="true"
+							class="pointer-events-none absolute -bottom-1 -right-1 size-5 rounded-full bg-white dark:bg-gray-800 shadow-md ring-1 ring-gray-200 dark:ring-gray-700 flex items-center justify-center text-gray-600 dark:text-gray-300 group-hover/av:scale-110 transition"
+						>
+							<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="size-3">
+								<path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z" />
+								<circle cx="12" cy="13" r="3.5" />
+							</svg>
 						</span>
-					</button>
+					</div>
 					<div class="min-w-0">
 						<div class="text-lg font-medium truncate">{prettifyName(agent.name)}</div>
 						{#if agent.model}
