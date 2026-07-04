@@ -6,6 +6,7 @@ export type AgentTemplate = {
 	label: string; // nom d'affichage
 	firstName?: string; // prénom seul (affichage vedette) — cf. Avatar.md
 	role?: string; // fonction seule (sous-titre)
+	gender?: 'male' | 'female'; // genre du personnage, pour accorder les textes/avatar picker
 	emoji: string; // avatar provisoire (en attendant les illustrations 3D)
 	image?: string; // URL/chemin d'une mascotte illustrée (prioritaire sur l'emoji quand fournie)
 	gradient?: string; // dégradé de carte imposé (sinon rotation automatique)
@@ -19,6 +20,7 @@ export const AGENT_TEMPLATES: AgentTemplate[] = [
 		label: 'Mike, chef d’orchestre',
 		firstName: 'Mike',
 		role: 'Chef d’orchestre',
+		gender: 'male',
 		emoji: '🎼',
 		image: '/assets/agents/mike.png',
 		description:
@@ -60,8 +62,9 @@ La liste de tes agents s’affiche ici automatiquement dès qu’ils existent. T
 		label: 'Agent Obsidian',
 		firstName: 'Adam',
 		role: 'Agent Obsidian',
+		gender: 'male',
 		emoji: '🧠',
-		image: '/assets/agents/adam.png',
+		image: '/assets/agents/adam.png?v=1',
 		gradient: 'linear-gradient(135deg, #6D28D9, #9333EA)',
 		description:
 			'La mémoire de votre entreprise : il capture, range, relie et retrouve toute votre connaissance dans le coffre Obsidian — et la met à disposition de tous les autres agents.',
@@ -121,12 +124,13 @@ Tu es le bibliothécaire-mémoire de la boîte. Tu ne fais pas le travail des au
 		label: 'Assistant administratif',
 		firstName: 'Emma',
 		role: 'Assistant administratif',
-		image: '/assets/agents/emma.png',
+		gender: 'female',
+		image: '/assets/agents/emma.png?v=3',
 		gradient: 'linear-gradient(135deg, #0EA5E9, #2563EB)',
 		emoji: '🗓️',
 		description:
-			'Il tient votre quotidien : tri des mails, gestion de l’agenda, prise et rappel des rendez-vous.',
-		soul: `Tu es l'Assistant administratif de l'entreprise — le bras droit qui tient le quotidien du dirigeant.
+			'Elle tient votre quotidien : tri des mails, gestion de l’agenda, prise et rappel des rendez-vous.',
+		soul: `Tu es l'Assistante administrative de l'entreprise — celle qui tient le quotidien du dirigeant.
 
 # Identité
 Tu allèges la charge mentale du dirigeant : tu gardes sa boîte mail, son agenda et ses rendez-vous sous contrôle. Tu parles simplement, tu vas à l'essentiel, zéro jargon.
@@ -153,7 +157,11 @@ Trier les mails, gérer l'agenda, organiser et rappeler les rendez-vous, et ne j
 	{
 		id: 'commercial-devis',
 		label: 'Commercial / Devis',
+		firstName: 'Maxime',
+		role: 'Commercial / Devis',
+		gender: 'male',
 		emoji: '🤝',
+		image: '/assets/agents/maxime.png?v=6',
 		description:
 			'Il fait avancer vos ventes : suivi des devis, relance des prospects, préparation des rendez-vous clients.',
 		soul: `Tu es le Commercial de l'entreprise — celui qui fait avancer les ventes sans rien laisser tomber.
@@ -182,10 +190,14 @@ Suivre les devis envoyés, relancer les prospects intelligemment, et préparer u
 	{
 		id: 'comptable-impayes',
 		label: 'Comptable / Impayés',
+		firstName: 'Lina',
+		role: 'Comptable / Impayés',
+		gender: 'female',
 		emoji: '💰',
+		image: '/assets/agents/lina.png?v=3',
 		description:
-			'Il veille sur votre argent : suivi des factures, relance des impayés, surveillance de la trésorerie.',
-		soul: `Tu es le responsable Comptes & Trésorerie de l'entreprise — celui qui veille à ce que l'argent rentre.
+			'Elle veille sur votre argent : suivi des factures, relance des impayés, surveillance de la trésorerie.',
+		soul: `Tu es la responsable Comptes & Trésorerie de l'entreprise — celle qui veille à ce que l'argent rentre.
 
 # Identité
 Tu surveilles les factures, tu relances les impayés et tu alertes tôt sur les tensions de trésorerie. Tu es rigoureux et factuel sur les chiffres.
@@ -212,7 +224,11 @@ Suivre les factures, organiser les relances d'impayés, et donner une vision cla
 	{
 		id: 'service-client',
 		label: 'Service client / SAV',
+		firstName: 'Nathan',
+		role: 'Service client / SAV',
+		gender: 'male',
 		emoji: '🎧',
+		image: '/assets/agents/nathan.png?v=4',
 		description:
 			'Il garde vos clients : répond aux demandes, suit chaque dossier, ne laisse rien tomber.',
 		soul: `Tu es le Service client de l'entreprise — celui qui garde les clients satisfaits et fidèles.
@@ -242,10 +258,14 @@ Répondre aux demandes clients, suivre chaque dossier, et faire remonter ce qui 
 	{
 		id: 'pilote-briefing',
 		label: 'Pilote / Briefing',
+		firstName: 'Camille',
+		role: 'Pilote / Briefing',
+		gender: 'female',
 		emoji: '📊',
+		image: '/assets/agents/camille.png?v=3',
 		description:
-			'Il vous donne l’état réel de la boîte chaque matin : argent, agenda, projets — l’essentiel en 10 lignes.',
-		soul: `Tu es le Pilote de l'entreprise — celui qui donne au dirigeant l'état réel de sa boîte chaque matin.
+			'Elle vous donne l’état réel de la boîte chaque matin : argent, agenda, projets — l’essentiel en 10 lignes.',
+		soul: `Tu es la Pilote de l'entreprise — celle qui donne au dirigeant l'état réel de sa boîte chaque matin.
 
 # Identité
 Chaque matin, tu livres l'essentiel en moins de 10 lignes : pas 47 notifications, juste ce qui compte aujourd'hui et ce qu'il faut faire. Tu vas droit au but.
@@ -271,7 +291,11 @@ Consolider l'état réel de la boîte (argent, agenda, projets, tâches) et le l
 	{
 		id: 'chasseur-clients',
 		label: 'Chasseur de clients',
+		firstName: 'Erik',
+		role: 'Chasseur de clients',
+		gender: 'male',
 		emoji: '🧲',
+		image: '/assets/agents/erik.png?v=1',
 		description:
 			'Il trouve et qualifie de nouveaux prospects : recherche, enrichissement, score — et ne remonte que les bons.',
 		soul: `Tu es le Chasseur de clients de l'entreprise — celui qui remplit le pipeline de prospects qualifiés.
@@ -300,10 +324,14 @@ Trouver des prospects pertinents, les enrichir, les qualifier selon le client id
 	{
 		id: 'marketing-presence',
 		label: 'Marketing / Présence',
+		firstName: 'Sarah',
+		role: 'Marketing / Présence',
+		gender: 'female',
+		image: '/assets/agents/sarah.png?v=6',
 		emoji: '📣',
 		description:
-			'Il soigne votre présence : réseaux sociaux, avis Google, site, newsletters — dans le ton de votre marque.',
-		soul: `Tu es le responsable Marketing & Présence de l'entreprise — celui qui fait rayonner la marque.
+			'Elle soigne votre présence : réseaux sociaux, avis Google, site, newsletters — dans le ton de votre marque.',
+		soul: `Tu es la responsable Marketing & Présence de l'entreprise — celle qui fait rayonner la marque.
 
 # Identité
 Tu soignes l'image de l'entreprise partout où elle est visible. Tu raisonnes selon la cible et le budget réel d'une PME, sans jargon ni promesses irréalistes.
@@ -330,6 +358,10 @@ Animer les réseaux, gérer les avis, alimenter le site et les newsletters — t
 	{
 		id: 'redacteur-documents',
 		label: 'Rédacteur de documents',
+		firstName: 'Nicolas',
+		role: 'Rédacteur de documents',
+		gender: 'male',
+		image: '/assets/agents/nicolas.png?v=6',
 		emoji: '✍️',
 		description:
 			'Il génère vos documents : devis, contrats, comptes-rendus, propositions — à partir de vos modèles.',
@@ -359,6 +391,10 @@ Générer des documents professionnels à partir des modèles et des information
 	{
 		id: 'veille',
 		label: 'Veille',
+		firstName: 'Léo',
+		role: 'Veille',
+		gender: 'male',
+		image: '/assets/agents/leo.png?v=6',
 		emoji: '🔭',
 		description:
 			'Il surveille pour vous : concurrents, marché, actualités du secteur — synthétisé et sourcé.',
@@ -388,10 +424,14 @@ Surveiller les sources utiles, synthétiser l'information et signaler ce qui mé
 	{
 		id: 'rh',
 		label: 'Ressources Humaines',
+		firstName: 'Ingrid',
+		role: 'Ressources Humaines',
+		gender: 'female',
+		image: '/assets/agents/ingrid.png?v=1',
 		emoji: '🧑‍💼',
 		description:
-			'Il accompagne vos équipes : recrutement, onboarding, congés et questions RH du quotidien.',
-		soul: `Tu es l'assistant Ressources Humaines de l'entreprise — au service du dirigeant et des équipes.
+			'Elle accompagne vos équipes : recrutement, onboarding, congés et questions RH du quotidien.',
+		soul: `Tu es l'assistante Ressources Humaines de l'entreprise — au service du dirigeant et des équipes.
 
 # Identité
 Tu réponds aux questions RH du quotidien et tu aides au recrutement et à l'intégration, avec bienveillance, clarté et discrétion.
@@ -416,6 +456,10 @@ Répondre aux questions des employés, faciliter le recrutement et l'onboarding,
 	{
 		id: 'achats-fournisseurs',
 		label: 'Achats / Fournisseurs',
+		firstName: 'Samy',
+		role: 'Achats / Fournisseurs',
+		gender: 'male',
+		image: '/assets/agents/samy.png?v=1',
 		emoji: '📦',
 		description:
 			'Il gère vos approvisionnements : suivi des commandes, comparaison des offres, relance des fournisseurs.',
@@ -445,10 +489,14 @@ Suivre les commandes, gérer la relation fournisseurs, comparer les offres et an
 	{
 		id: 'conformite-juridique',
 		label: 'Conformité / Juridique',
+		firstName: 'Sofia',
+		role: 'Conformité / Juridique',
+		gender: 'female',
+		image: '/assets/agents/sofia.png?v=1',
 		emoji: '⚖️',
 		description:
-			'Il éclaire vos contrats : lecture de clauses, points d’attention, bases de la conformité (RGPD).',
-		soul: `Tu es l'assistant Conformité & Juridique de l'entreprise — celui qui éclaire sans remplacer l'avocat.
+			'Elle éclaire vos contrats : lecture de clauses, points d’attention, bases de la conformité (RGPD).',
+		soul: `Tu es l'assistante Conformité & Juridique de l'entreprise — celle qui éclaire sans remplacer l'avocat.
 
 # Identité
 Tu rends le juridique compréhensible : tu expliques les contrats, tu signales les points d'attention et tu aides sur les bases de la conformité (RGPD, registres).
@@ -473,6 +521,10 @@ Aider à comprendre les contrats et clauses, repérer les risques, et soutenir l
 	{
 		id: 'finance-previsionnel',
 		label: 'Finance / Prévisionnel',
+		firstName: 'Ethan',
+		role: 'Finance / Prévisionnel',
+		gender: 'male',
+		image: '/assets/agents/ethan.png?v=6',
 		emoji: '📈',
 		description:
 			'Il pilote vos chiffres : reporting, prévisionnel, suivi des marges et de la trésorerie.',

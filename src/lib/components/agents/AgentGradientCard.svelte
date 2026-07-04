@@ -64,15 +64,11 @@
 	<!-- Avatar : portrait détouré qui monte jusqu'en haut de la carte, ou emoji en pastille -->
 	<div class="pointer-events-none absolute inset-y-0 right-0 z-0 w-[152px]">
 		{#if showImage}
-			<!-- halo clair derrière le perso : le détache du fond même si les couleurs se ressemblent -->
-			<div
-				class="absolute inset-0 bg-[radial-gradient(circle_at_60%_56%,rgba(255,255,255,0.30),transparent_66%)]"
-			></div>
 			<img
 				src={image}
 				alt={name}
 				on:error={() => (imgError = true)}
-				style="filter: drop-shadow(0 0 2.5px rgba(255,255,255,0.92)) drop-shadow(0 0 11px rgba(255,255,255,0.35)) drop-shadow(0 14px 20px rgba(0,0,0,0.42));"
+				style="filter: drop-shadow(0 14px 20px rgba(0,0,0,0.38));"
 				class="absolute bottom-0 right-0 h-full w-auto object-contain object-bottom"
 			/>
 		{:else}
