@@ -11,6 +11,8 @@
 	import { getConnectors } from '$lib/apis/connectors';
 	import AvatarPicker from './AvatarPicker.svelte';
 	import { suggestAvatar, avatarImage } from './avatars';
+	import { parseSoulSections } from './soul';
+	import MissionSections from './MissionSections.svelte';
 
 	const i18n = getContext('i18n');
 	const dispatch = createEventDispatcher();
@@ -328,30 +330,8 @@
 		}, 200);
 	};
 
-	// Découpe la mission en sections (## …) pour un affichage lisible et premium.
-	type Section = { title: string; body: string; icon: string };
-	const iconFor = (title: string): string => {
-		const t = title.toLowerCase();
-		if (t.startsWith('identit')) return '🪪';
-		if (t.startsWith('mission')) return '🎯';
-		if (t.startsWith('méthode') || t.startsWith('methode')) return '🛠️';
-		if (t.startsWith('livrable')) return '📦';
-		if (t.startsWith('garde')) return '🛡️';
-		return '•';
-	};
-	$: sections = ((): Section[] => {
-		if (!result?.soul) return [];
-		return result.soul
-			.split(/^##\s+/m)
-			.map((p) => p.trim())
-			.filter(Boolean)
-			.map((p) => {
-				const nl = p.indexOf('\n');
-				const title = (nl >= 0 ? p.slice(0, nl) : p).trim();
-				const body = (nl >= 0 ? p.slice(nl + 1) : '').trim();
-				return { title, body, icon: iconFor(title) };
-			});
-	})();
+	// Découpe la mission en sections lisibles (parsing partagé avec l'aperçu des templates).
+	$: sections = parseSoulSections(result?.soul);
 </script>
 
 {#if show}
@@ -611,21 +591,7 @@
 								</div>
 							{/each}
 						{:else}
-							{#each sections as s, idx}
-								<div
-									class="rounded-2xl border border-gray-100 dark:border-gray-850 p-4"
-									in:fly={{ y: 10, duration: 250, delay: 60 * idx }}
-								>
-									<div class="flex items-center gap-2 text-sm font-semibold">
-										<span>{s.icon}</span>{s.title}
-									</div>
-									<div
-										class="text-sm text-gray-600 dark:text-gray-300 mt-2 whitespace-pre-line leading-relaxed"
-									>
-										{s.body}
-									</div>
-								</div>
-							{/each}
+							<MissionSections soul={result.soul} />
 						{/if}
 					</div>
 

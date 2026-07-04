@@ -14,6 +14,7 @@
 	import { AGENT_TEMPLATES } from './templates';
 	import { cardGradient, initial, prettifyName } from './utils';
 	import { avatarId } from './avatars';
+	import MissionSections from './MissionSections.svelte';
 
 	const i18n = getContext('i18n');
 
@@ -368,11 +369,9 @@
 				</button>
 			</div>
 
-			<!-- Corps : la mission (SOUL), défilable -->
-			<div
-				class="flex-1 overflow-y-auto px-5 py-4 text-[13px] leading-relaxed text-gray-600 dark:text-gray-300 whitespace-pre-line"
-			>
-				{previewTemplate.soul}
+			<!-- Corps : la mission (SOUL) en cartes lisibles, défilable -->
+			<div class="flex-1 overflow-y-auto px-5 py-4">
+				<MissionSections soul={previewTemplate.soul} animate={false} />
 			</div>
 
 			<!-- Pied : activer -->
