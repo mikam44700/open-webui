@@ -58,6 +58,18 @@
 				.toLowerCase()
 				.startsWith('mike'));
 
+	// Repli d'image : un agent sans avatar persisté (ex. créé avant le fix) retombe sur
+	// l'image de son template, retrouvé par identifiant/label/avatar. Évite le « A » nu.
+	const templateImage = (a: Agent): string | null => {
+		const t = AGENT_TEMPLATES.find(
+			(x) =>
+				x.id === a.name ||
+				x.label === a.name ||
+				(!!x.image && !!a.avatar && avatarId(x.image) === avatarId(a.avatar))
+		);
+		return t?.image ?? null;
+	};
+
 	$: existingNames = new Set(agents.map((a) => a.name));
 	// Visages déjà attribués à un agent → grisés dans le sélecteur (pas de doublon).
 	$: usedAvatarIds = agents.map((a) => avatarId(a.avatar)).filter(Boolean);
@@ -113,7 +125,8 @@
 			await createAgent(localStorage.token, {
 				name: tpl.label,
 				description: tpl.description,
-				soul: tpl.soul
+				soul: tpl.soul,
+				avatar: tpl.image // persiste le visage de l'agent (sinon repli sur l'initiale)
 			});
 			toast.success($i18n.t('{{name}} ajouté', { name: tpl.label }));
 			await load();
@@ -137,7 +150,8 @@
 			await createAgent(localStorage.token, {
 				name: mikeTpl.label,
 				description: mikeTpl.description,
-				soul: mikeTpl.soul
+				soul: mikeTpl.soul,
+				avatar: mikeTpl.image
 			});
 			await load();
 			const created = agents.find(matchesMike);
@@ -237,7 +251,7 @@
 									name={prettifyName(agent.name)}
 									role={agent.model ?? ''}
 									description={agent.description || $i18n.t('Aucune mission définie pour le moment.')}
-									image={agent.avatar}
+									image={agent.avatar ?? templateImage(agent)}
 									avatarText={initial(prettifyName(agent.name))}
 									status={agent.active ? 'active' : 'none'}
 									statusLabel={$i18n.t('Actif')}

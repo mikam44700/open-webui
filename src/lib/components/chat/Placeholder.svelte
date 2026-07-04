@@ -22,6 +22,8 @@
 	import { WEBUI_API_BASE_URL, WEBUI_BASE_URL } from '$lib/constants';
 
 	import { WORKFLOWS } from '$lib/catalog/workflows';
+	import { resolveAgentView, type AgentView } from '$lib/catalog/agentActions';
+	import { getAgents } from '$lib/apis/agents';
 	import Tooltip from '$lib/components/common/Tooltip.svelte';
 	import EyeSlash from '$lib/components/icons/EyeSlash.svelte';
 	import MessageInput from './MessageInput.svelte';
@@ -56,6 +58,19 @@
 		startersHidden = false;
 		localStorage.removeItem(STARTERS_HIDDEN_KEY);
 	};
+
+	// Agent actif (ex. Emma) : son accueil (avatar + prénom + rôle) et ses cartes d'action
+	// remplacent l'accueil générique. Repli silencieux si le pont ne répond pas.
+	let activeAgent: AgentView | null = null;
+	onMount(async () => {
+		try {
+			const res = await getAgents(localStorage.token);
+			const a = (res?.agents ?? []).find((x: any) => x?.active);
+			activeAgent = resolveAgentView(a);
+		} catch {
+			activeAgent = null;
+		}
+	});
 
 	export let createMessagePair: Function;
 	export let stopResponse: Function;
@@ -98,6 +113,9 @@
 	}
 
 	$: models = selectedModels.map((id) => $_models.find((m) => m.id === id));
+
+	// Cartes affichées : celles de l'agent actif si disponibles, sinon le catalogue générique.
+	$: cards = activeAgent && activeAgent.actions.length ? activeAgent.actions : WORKFLOWS;
 </script>
 
 <div class="m-auto w-full max-w-6xl px-2 @2xl:px-20 translate-y-6 py-24 text-center">
@@ -131,6 +149,46 @@
 						selectedFolder.set(null);
 					}}
 				/>
+			{:else if activeAgent}
+				<!-- Accueil personnalisé par l'agent actif (ex. Emma) : avatar + rôle + prénom. -->
+				<div
+					class="flex flex-row justify-center items-center gap-3 w-fit px-5 max-w-xl"
+					in:fade={{ duration: 100 }}
+				>
+					<img
+						src={activeAgent.avatar}
+						alt={activeAgent.firstName}
+						class="size-14 rounded-full object-cover border border-gray-100 dark:border-gray-800 shadow-sm shrink-0"
+						draggable="false"
+						on:error={(e) => {
+							e.currentTarget.src = '/favicon.png';
+						}}
+					/>
+					<div class="text-left min-w-0">
+						{#if activeAgent.role}
+							<div
+								class="text-[11px] font-semibold uppercase tracking-[0.12em] text-gray-400 dark:text-gray-500"
+							>
+								{activeAgent.role}
+							</div>
+						{/if}
+						<div
+							class="text-2xl @sm:text-3xl font-medium tracking-tight text-gray-800 dark:text-gray-100 line-clamp-1"
+						>
+							{$i18n.t('Bonjour, je suis {{name}}', { name: activeAgent.firstName })}
+						</div>
+					</div>
+				</div>
+
+				{#if activeAgent.description}
+					<div class="flex mt-1.5 mb-2" in:fade={{ duration: 100, delay: 50 }}>
+						<p
+							class="px-2 text-sm font-normal text-gray-500 dark:text-gray-400 line-clamp-2 max-w-xl text-center"
+						>
+							{activeAgent.description}
+						</p>
+					</div>
+				{/if}
 			{:else}
 				<div class="flex flex-row justify-center gap-2.5 @sm:gap-3 w-fit px-5 max-w-xl">
 					<div class="flex shrink-0 justify-center">
@@ -263,7 +321,9 @@
 				<div class="flex items-center justify-between mb-2.5">
 					<div class="flex items-center gap-1.5 text-xs font-medium text-gray-400 dark:text-gray-500">
 						<svg class="w-3.5 h-3.5" viewBox="0 0 20 20" fill="currentColor"><path d="M11 2.5 4 11h4.2l-1 6.5L15 9h-4.2l1-6.5Z"/></svg>
-						{$i18n.t('Pour démarrer')}
+						{activeAgent && activeAgent.actions.length
+							? $i18n.t('Pour démarrer avec {{name}}', { name: activeAgent.firstName })
+							: $i18n.t('Pour démarrer')}
 					</div>
 					<button
 						type="button"
@@ -276,7 +336,7 @@
 					</button>
 				</div>
 				<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2.5 text-left">
-					{#each WORKFLOWS as w (w.id)}
+					{#each cards as w (w.id)}
 						<button
 							type="button"
 							class="group flex items-start gap-2.5 px-3.5 py-3 rounded-2xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 hover:-translate-y-0.5 hover:shadow-[0_2px_10px_rgba(0,0,0,0.05)] hover:border-gray-300 dark:hover:border-gray-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-gray-300 dark:focus-visible:ring-gray-700 transition-all duration-200"
