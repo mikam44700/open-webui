@@ -7,13 +7,15 @@
 	import { createEventDispatcher, getContext } from 'svelte';
 	import { fade, fly } from 'svelte/transition';
 
-	import { AVATARS, avatarImage, type Gender } from './avatars';
+	import { AVATARS, avatarImage, avatarId, type Gender } from './avatars';
 
 	const i18n = getContext('i18n');
 	const dispatch = createEventDispatcher();
 
 	export let show = false;
 	export let value: string | null = null; // chemin de l'avatar sélectionné
+	// Identifiants d'avatars déjà pris par d'AUTRES agents (grisés, non sélectionnables).
+	export let used: string[] = [];
 
 	let query = '';
 	let genderFilter: 'all' | Gender = 'all';
@@ -44,7 +46,9 @@
 	};
 
 	// Vignette actuellement sélectionnée (pour l'anneau de sélection).
-	$: selectedId = value ? value.replace(/^.*\//, '').replace(/\.png.*$/i, '') : '';
+	$: selectedId = avatarId(value);
+	// Visages pris par un autre agent (le sien reste toujours disponible).
+	$: usedSet = new Set(used.filter((id) => id !== selectedId));
 </script>
 
 {#if show}
@@ -100,32 +104,48 @@
 				{:else}
 					<div class="grid grid-cols-3 sm:grid-cols-5 md:grid-cols-6 gap-3">
 						{#each filtered as a (a.id)}
+							{@const taken = usedSet.has(a.id)}
 							<button
-								class="group flex flex-col items-center gap-1.5"
-								on:click={() => pick(a.id)}
-								title={a.label}
+								class="group flex flex-col items-center gap-1.5 {taken
+									? 'cursor-not-allowed'
+									: ''}"
+								on:click={() => (taken ? null : pick(a.id))}
+								disabled={taken}
+								aria-disabled={taken}
+								title={taken ? $i18n.t('{{name}} — déjà utilisé', { name: a.label }) : a.label}
 							>
 								<div
 									class="relative w-full aspect-square rounded-2xl overflow-hidden bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-850 dark:to-gray-800 ring-2 transition {selectedId ===
 									a.id
 										? 'ring-black dark:ring-white'
-										: 'ring-transparent group-hover:ring-gray-300 dark:group-hover:ring-gray-600'}"
+										: taken
+											? 'ring-transparent'
+											: 'ring-transparent group-hover:ring-gray-300 dark:group-hover:ring-gray-600'}"
 								>
 									<img
 										src={avatarImage(a.id)}
 										alt={a.label}
 										loading="lazy"
-										class="absolute inset-0 size-full object-cover object-top"
+										class="absolute inset-0 size-full object-cover object-top transition {taken
+											? 'grayscale opacity-40'
+											: ''}"
 									/>
 									{#if selectedId === a.id}
 										<span
 											class="absolute top-1 right-1 size-5 rounded-full bg-black dark:bg-white text-white dark:text-black flex items-center justify-center text-[11px] shadow"
 											>✓</span
 										>
+									{:else if taken}
+										<span
+											class="absolute inset-x-0 bottom-0 bg-black/55 text-white text-[9px] font-medium py-0.5 text-center"
+											>{$i18n.t('déjà utilisé')}</span
+										>
 									{/if}
 								</div>
 								<span
-									class="text-[11px] text-gray-500 group-hover:text-gray-800 dark:group-hover:text-gray-200 transition truncate max-w-full"
+									class="text-[11px] transition truncate max-w-full {taken
+										? 'text-gray-400 dark:text-gray-600'
+										: 'text-gray-500 group-hover:text-gray-800 dark:group-hover:text-gray-200'}"
 									>{a.label}</span
 								>
 							</button>

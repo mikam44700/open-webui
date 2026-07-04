@@ -18,11 +18,14 @@ export type Avatar = {
 // Résout un identifiant d'avatar en URL statique servie par l'app.
 export const avatarImage = (id: string): string => `/assets/agents/${id}.png`;
 
+// Extrait l'identifiant d'avatar depuis un chemin (/assets/agents/mike.png -> mike).
+export const avatarId = (image?: string | null): string =>
+	image ? image.replace(/^.*\//, '').replace(/\.png.*$/i, '') : '';
+
 // Retrouve l'entrée de manifeste correspondant à un chemin/identifiant d'avatar.
 export const avatarFromImage = (image?: string | null): Avatar | undefined => {
 	if (!image) return undefined;
-	const id = image.replace(/^.*\//, '').replace(/\.png.*$/i, '');
-	return AVATARS.find((a) => a.id === id);
+	return AVATARS.find((a) => a.id === avatarId(image));
 };
 
 export const AVATARS: Avatar[] = [
@@ -140,8 +143,22 @@ const hashString = (s: string): number => {
 
 // Suggère un avatar cohérent et STABLE pour un agent (retourne un identifiant).
 // Filtre par genre si fourni ; sinon pioche dans tout le catalogue.
-export const suggestAvatar = (seed: string, gender?: Gender | null): string => {
+export const suggestAvatar = (
+	seed: string,
+	gender?: Gender | null,
+	taken?: Iterable<string>
+): string => {
 	const pool = gender ? AVATARS.filter((a) => a.gender === gender) : AVATARS;
 	const list = pool.length ? pool : AVATARS;
-	return list[hashString(seed || 'agent') % list.length].id;
+	const start = hashString(seed || 'agent') % list.length;
+	const takenSet = taken ? new Set(taken) : null;
+	// On part du visage « naturel » (stable par nom) et on avance jusqu'au premier
+	// visage libre. Si tout est pris, on garde le choix naturel (pas de blocage).
+	if (takenSet) {
+		for (let i = 0; i < list.length; i++) {
+			const cand = list[(start + i) % list.length];
+			if (!takenSet.has(cand.id)) return cand.id;
+		}
+	}
+	return list[start].id;
 };

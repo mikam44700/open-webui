@@ -13,6 +13,7 @@
 	import AgentGradientCard from './AgentGradientCard.svelte';
 	import { AGENT_TEMPLATES } from './templates';
 	import { cardGradient, initial, prettifyName } from './utils';
+	import { avatarId } from './avatars';
 
 	const i18n = getContext('i18n');
 
@@ -57,6 +58,8 @@
 				.startsWith('mike'));
 
 	$: existingNames = new Set(agents.map((a) => a.name));
+	// Visages déjà attribués à un agent → grisés dans le sélecteur (pas de doublon).
+	$: usedAvatarIds = agents.map((a) => avatarId(a.avatar)).filter(Boolean);
 	// Mike est déjà en vedette dans le hero → on l'exclut de la galerie.
 	$: availableTemplates = AGENT_TEMPLATES.filter(
 		(t) => t.id !== 'mike-chef-orchestre' && !existingNames.has(t.id)
@@ -389,6 +392,12 @@
 	</div>
 {/if}
 
-<AgentAtelier bind:show={showAtelier} on:created={load} />
+<AgentAtelier bind:show={showAtelier} used={usedAvatarIds} on:created={load} />
 <AgentCreate bind:show={showCreate} on:created={load} />
-<AgentEditor bind:show={showEditor} agent={editing} on:updated={load} on:deleted={load} />
+<AgentEditor
+	bind:show={showEditor}
+	agent={editing}
+	used={usedAvatarIds}
+	on:updated={load}
+	on:deleted={load}
+/>

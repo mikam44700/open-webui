@@ -16,6 +16,8 @@
 	const dispatch = createEventDispatcher();
 
 	export let show = false;
+	// Identifiants d'avatars déjà pris par des agents existants (évite les doublons).
+	export let used: string[] = [];
 
 	type Phase = 'brief' | 'generating' | 'result' | 'error';
 	let phase: Phase = 'brief';
@@ -210,8 +212,8 @@
 				guided: { walkthrough: gWalkthrough, exceptions: gExceptions, success: gSuccess },
 				connectedTools
 			});
-			// Suggestion d'avatar cohérente et stable (le dirigeant pourra la changer).
-			selectedAvatar = avatarImage(suggestAvatar(result.label, result.gender));
+			// Suggestion d'avatar cohérente et stable, en évitant un visage déjà pris.
+			selectedAvatar = avatarImage(suggestAvatar(result.label, result.gender, used));
 			phase = 'result';
 		} catch (e: any) {
 			errorMsg = e?.message ?? 'La génération a échoué.';
@@ -235,7 +237,8 @@
 				adjustment: adjustment.trim() || undefined
 			});
 			// On préserve l'avatar choisi ; on n'en suggère un que s'il n'y en avait pas.
-			if (!selectedAvatar) selectedAvatar = avatarImage(suggestAvatar(result.label, result.gender));
+			if (!selectedAvatar)
+				selectedAvatar = avatarImage(suggestAvatar(result.label, result.gender, used));
 			adjustment = '';
 			showAdjust = false;
 			phase = 'result';
@@ -697,7 +700,7 @@
 		{/if}
 
 		<!-- Galerie de sélection d'avatar (par-dessus l'atelier) -->
-		<AvatarPicker bind:show={showAvatarPicker} bind:value={selectedAvatar} />
+		<AvatarPicker bind:show={showAvatarPicker} bind:value={selectedAvatar} {used} />
 	</div>
 {/if}
 

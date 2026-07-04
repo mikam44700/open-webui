@@ -30,6 +30,8 @@
 		active?: boolean;
 		avatar?: string | null;
 	} | null = null;
+	// Identifiants d'avatars déjà pris par les agents existants (le sien reste dispo).
+	export let used: string[] = [];
 
 	let loading = false;
 	let soul = '';
@@ -411,5 +413,6 @@
 <AvatarPicker
 	bind:show={showAvatarPicker}
 	bind:value={avatar}
+	{used}
 	on:change={(e) => persistAvatar(e.detail)}
 />
