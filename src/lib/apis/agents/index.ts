@@ -35,10 +35,10 @@ const call = async (token: string, method: string, path: string, body?: unknown)
 // Liste les agents (profils Hermes)
 export const getAgents = (token: string) => call(token, 'GET', '/');
 
-// Crée un agent (clone la config du profil actif). { name, description?, soul? }
+// Crée un agent (clone la config du profil actif). { name, description?, soul?, avatar? }
 export const createAgent = (
 	token: string,
-	payload: { name: string; description?: string; soul?: string }
+	payload: { name: string; description?: string; soul?: string; avatar?: string }
 ) => call(token, 'POST', '/', payload);
 
 // Bascule l'agent « de garde »
@@ -58,6 +58,10 @@ export const updateAgentSoul = (token: string, name: string, content: string) =>
 // Description (résumé du rôle)
 export const updateAgentDescription = (token: string, name: string, description: string) =>
 	call(token, 'PUT', `/${encodeURIComponent(name)}/description`, { description });
+
+// Avatar (visage de l'agent) — chemin d'image, ou null pour le retirer.
+export const updateAgentAvatar = (token: string, name: string, avatar: string | null) =>
+	call(token, 'PUT', `/${encodeURIComponent(name)}/avatar`, { avatar });
 
 // Outils PAR AGENT : compétences + connecteurs MCP avec leur état pour cet agent.
 export const getAgentTools = (token: string, name: string) =>

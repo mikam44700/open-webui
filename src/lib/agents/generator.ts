@@ -9,6 +9,7 @@ export type GeneratedAgent = {
 	emoji: string;
 	description: string;
 	soul: string;
+	gender?: 'male' | 'female' | null; // sert à proposer un avatar par défaut (changeable)
 };
 
 // Un document fourni par le dirigeant (procédure existante), texte déjà extrait.
@@ -70,6 +71,8 @@ Clés exactes :
 - "label" : nom court, 2 à 3 mots.
 - "emoji" : un seul emoji représentatif.
 - "description" : une phrase, 70 caractères maximum.
+- "gender" : "male" ou "female" — le genre du visage à proposer par défaut pour l'agent, cohérent
+  avec le métier ; sert seulement à choisir un avatar de départ que le dirigeant pourra changer.
 - "soul" : la mission en Markdown, qui tutoie l'agent ("Tu es…"), structurée EXACTEMENT avec ces
   5 sections (titres en ##) : Identité, Mission, Méthode (étapes numérotées concrètes — le cœur
   de la valeur), Livrables, Garde-fous.
@@ -129,11 +132,14 @@ const parseAgent = (raw: string): GeneratedAgent => {
 	const description = String(obj.description ?? '').trim();
 	const soul = String(obj.soul ?? '').trim();
 
+	const genderRaw = String(obj.gender ?? '').trim().toLowerCase();
+	const gender = genderRaw === 'male' || genderRaw === 'female' ? genderRaw : null;
+
 	if (!soul) {
 		throw new Error('Mission vide générée.');
 	}
 
-	return { label, emoji, description, soul };
+	return { label, emoji, description, soul, gender };
 };
 
 // Condense un document volumineux en sa procédure essentielle (fidèle, sans invention).

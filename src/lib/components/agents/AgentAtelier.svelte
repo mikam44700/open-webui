@@ -9,6 +9,8 @@
 	import { generateAgent, MAX_DOCS, type GeneratedAgent, type SourceDoc } from '$lib/agents/generator';
 	import { getIntegrations } from '$lib/apis/integrations';
 	import { getConnectors } from '$lib/apis/connectors';
+	import AvatarPicker from './AvatarPicker.svelte';
+	import { suggestAvatar, avatarImage } from './avatars';
 
 	const i18n = getContext('i18n');
 	const dispatch = createEventDispatcher();
@@ -24,6 +26,10 @@
 	let result: GeneratedAgent | null = null;
 	let errorMsg = '';
 	let activating = false;
+
+	// Avatar choisi pour l'agent (chemin d'image). Suggéré à la génération, changeable.
+	let selectedAvatar: string | null = null;
+	let showAvatarPicker = false;
 
 	let model = '';
 	let briefEl: HTMLTextAreaElement;
@@ -204,6 +210,8 @@
 				guided: { walkthrough: gWalkthrough, exceptions: gExceptions, success: gSuccess },
 				connectedTools
 			});
+			// Suggestion d'avatar cohérente et stable (le dirigeant pourra la changer).
+			selectedAvatar = avatarImage(suggestAvatar(result.label, result.gender));
 			phase = 'result';
 		} catch (e: any) {
 			errorMsg = e?.message ?? 'La génération a échoué.';
@@ -226,6 +234,8 @@
 				previous: result ?? undefined,
 				adjustment: adjustment.trim() || undefined
 			});
+			// On préserve l'avatar choisi ; on n'en suggère un que s'il n'y en avait pas.
+			if (!selectedAvatar) selectedAvatar = avatarImage(suggestAvatar(result.label, result.gender));
 			adjustment = '';
 			showAdjust = false;
 			phase = 'result';
@@ -245,7 +255,8 @@
 			await createAgent(localStorage.token, {
 				name: result.label,
 				description: result.description,
-				soul: result.soul
+				soul: result.soul,
+				avatar: selectedAvatar ?? undefined
 			});
 			toast.success($i18n.t('{{name}} est prêt à travailler', { name: result.label }));
 			dispatch('created');
@@ -287,6 +298,7 @@
 
 	const restart = () => {
 		result = null;
+		selectedAvatar = null;
 		adjustment = '';
 		showAdjust = false;
 		editing = false;
@@ -300,6 +312,7 @@
 			phase = 'brief';
 			brief = '';
 			result = null;
+			selectedAvatar = null;
 			adjustment = '';
 			showAdjust = false;
 			activating = false;
@@ -532,11 +545,24 @@
 				<div in:fly={{ y: 16, duration: 350 }}>
 					<!-- En-tête de l'agent -->
 					<div class="flex items-center gap-4 mt-[4vh]">
-						<div
-							class="flex-none size-16 rounded-3xl bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-850 dark:to-gray-800 flex items-center justify-center text-4xl shadow-sm"
+						<button
+							type="button"
+							class="group/av relative flex-none size-16 rounded-3xl overflow-hidden bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-850 dark:to-gray-800 flex items-center justify-center text-4xl shadow-sm ring-1 ring-transparent hover:ring-gray-300 dark:hover:ring-gray-600 transition"
+							on:click={() => (showAvatarPicker = true)}
+							title={$i18n.t('Changer le visage')}
+							aria-label={$i18n.t('Changer le visage')}
 						>
-							{result.emoji}
-						</div>
+							{#if selectedAvatar}
+								<img src={selectedAvatar} alt="" class="size-full object-cover object-top" />
+							{:else}
+								<span>{result.emoji}</span>
+							{/if}
+							<span
+								class="absolute inset-0 flex items-center justify-center bg-black/45 text-white text-[10px] font-medium opacity-0 group-hover/av:opacity-100 transition"
+							>
+								{$i18n.t('Changer')}
+							</span>
+						</button>
 						<div class="min-w-0 flex-1">
 							{#if editing}
 								<input
@@ -657,6 +683,9 @@
 				</div>
 			</div>
 		{/if}
+
+		<!-- Galerie de sélection d'avatar (par-dessus l'atelier) -->
+		<AvatarPicker bind:show={showAvatarPicker} bind:value={selectedAvatar} />
 	</div>
 {/if}
 

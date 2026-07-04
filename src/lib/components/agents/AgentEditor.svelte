@@ -8,12 +8,14 @@
 		getAgentSoul,
 		updateAgentSoul,
 		updateAgentDescription,
+		updateAgentAvatar,
 		deleteAgent,
 		getAgentTools,
 		setAgentSkill,
 		setAgentMcp
 	} from '$lib/apis/agents';
 	import { getCustomSkills } from '$lib/apis/capabilities';
+	import AvatarPicker from './AvatarPicker.svelte';
 	import { colorFor, initial, prettifyName } from './utils';
 
 	const i18n = getContext('i18n');
@@ -26,11 +28,14 @@
 		model?: string | null;
 		is_default?: boolean;
 		active?: boolean;
+		avatar?: string | null;
 	} | null = null;
 
 	let loading = false;
 	let soul = '';
 	let description = '';
+	let avatar: string | null = null;
+	let showAvatarPicker = false;
 	let savedFlag = false;
 	let confirmDelete = false;
 	let loadedFor = '';
@@ -133,6 +138,7 @@
 		loadedFor = agent.name;
 		loading = true;
 		description = agent.description ?? '';
+		avatar = agent.avatar ?? null;
 		try {
 			const res = await getAgentSoul(localStorage.token, agent.name);
 			soul = res?.content ?? '';
@@ -166,6 +172,18 @@
 				toast.error($i18n.t('Échec de l’enregistrement'));
 			}
 		}, 600);
+	};
+
+	// Change le visage de l'agent (chemin d'image) et persiste immédiatement.
+	const persistAvatar = async (next: string | null) => {
+		if (!agent) return;
+		try {
+			await updateAgentAvatar(localStorage.token, agent.name, next);
+			flashSaved();
+			dispatch('updated');
+		} catch {
+			toast.error($i18n.t('Échec de l’enregistrement'));
+		}
 	};
 
 	const onDesc = () => {
@@ -206,12 +224,27 @@
 		<div class="p-5">
 			<div class="flex items-center justify-between mb-5">
 				<div class="flex items-center gap-3 min-w-0">
-					<div
-						class="flex-none size-11 rounded-2xl flex items-center justify-center text-white text-lg font-semibold"
-						style="background-color: {colorFor(agent.name)}"
+					<button
+						type="button"
+						class="group/av relative flex-none size-11 rounded-2xl overflow-hidden flex items-center justify-center text-white text-lg font-semibold ring-1 ring-transparent hover:ring-gray-300 dark:hover:ring-gray-600 transition {avatar
+							? 'bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-850 dark:to-gray-800'
+							: ''}"
+						style={avatar ? '' : `background-color: ${colorFor(agent.name)}`}
+						on:click={() => (showAvatarPicker = true)}
+						title={$i18n.t('Changer le visage')}
+						aria-label={$i18n.t('Changer le visage')}
 					>
-						{initial(prettifyName(agent.name))}
-					</div>
+						{#if avatar}
+							<img src={avatar} alt="" class="size-full object-cover object-top" />
+						{:else}
+							{initial(prettifyName(agent.name))}
+						{/if}
+						<span
+							class="absolute inset-0 flex items-center justify-center bg-black/45 text-white text-[9px] font-medium opacity-0 group-hover/av:opacity-100 transition"
+						>
+							{$i18n.t('Changer')}
+						</span>
+					</button>
 					<div class="min-w-0">
 						<div class="text-lg font-medium truncate">{prettifyName(agent.name)}</div>
 						{#if agent.model}
@@ -361,3 +394,10 @@
 		</div>
 	{/if}
 </Modal>
+
+<!-- Galerie de sélection d'avatar (au-dessus de la modale d'édition) -->
+<AvatarPicker
+	bind:show={showAvatarPicker}
+	bind:value={avatar}
+	on:change={(e) => persistAvatar(e.detail)}
+/>
