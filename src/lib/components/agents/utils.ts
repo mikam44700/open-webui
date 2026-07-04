@@ -49,6 +49,38 @@ export const cardGradient = (i: number): string => {
 
 export const initial = (name: string): string => (name?.[0] ?? '?').toUpperCase();
 
+// Dégradé de carte STABLE par agent : dérivé d'un hash du nom (pas de la position dans la
+// grille). La couleur d'un agent ne change donc jamais, quels que soient les ajouts/retraits.
+export const cardGradientFor = (name: string): string => {
+	let h = 0;
+	for (let i = 0; i < (name?.length ?? 0); i++) h = (h * 31 + name.charCodeAt(i)) >>> 0;
+	const n = CARD_GRADIENTS.length;
+	const [from, to] = CARD_GRADIENTS[h % n];
+	return `linear-gradient(135deg, ${from}, ${to})`;
+};
+
+// Slug identique au bridge (profiles_adapter.slugify) : « Service client / SAV » -> « service-client-sav ».
+// Sert à réconcilier un agent (dont le nom = slug du libellé de création) avec son template.
+export const slugify = (display: string): string => {
+	// NFKD puis retrait des diacritiques combinants (U+0300–U+036F) = équivalent de l'ascii-ignore
+	// du bridge (« Impayés » -> « impayes », pas « impaye-s »).
+	const ascii = (display ?? '')
+		.normalize('NFKD')
+		.split('')
+		.filter((c) => {
+			const code = c.charCodeAt(0);
+			return code < 0x0300 || code > 0x036f;
+		})
+		.join('');
+	const s = ascii
+		.toLowerCase()
+		.trim()
+		.replace(/[^a-z0-9]+/g, '-')
+		.replace(/^-+|-+$/g, '')
+		.slice(0, 64);
+	return s || 'agent';
+};
+
 // « assistant-rh » -> « Assistant Rh » (affichage lisible d'un identifiant de profil).
 export const prettifyName = (name: string): string =>
 	(name ?? '')

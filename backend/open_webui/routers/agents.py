@@ -28,6 +28,7 @@ class AgentCreate(BaseModel):
     name: str
     description: str = ""
     soul: str = ""
+    avatar: str | None = None  # visage de l'agent (profile.yaml) — sinon repli sur l'initiale
 
 
 class ActiveBody(BaseModel):

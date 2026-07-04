@@ -4,7 +4,7 @@
 	import { fly, fade } from 'svelte/transition';
 	import { toast } from 'svelte-sonner';
 
-	import { getAgents, setActiveAgent, createAgent } from '$lib/apis/agents';
+	import { getAgents, setActiveAgent, createAgent, deleteAgent } from '$lib/apis/agents';
 	import Spinner from '$lib/components/common/Spinner.svelte';
 	import AgentCreate from './AgentCreate.svelte';
 	import AgentEditor from './AgentEditor.svelte';
@@ -12,8 +12,9 @@
 	import MikeHero from './MikeHero.svelte';
 	import AgentGradientCard from './AgentGradientCard.svelte';
 	import { AGENT_TEMPLATES } from './templates';
-	import { cardGradient, initial, prettifyName } from './utils';
+	import { initial, prettifyName, slugify } from './utils';
 	import { avatarId } from './avatars';
+	import { avatarGradient } from './avatar-colors';
 	import MissionSections from './MissionSections.svelte';
 
 	const i18n = getContext('i18n');
@@ -38,6 +39,10 @@
 	let showAtelier = false;
 	let showEditor = false;
 	let editing: Agent | null = null;
+
+	// Confirmation de retrait (suppression) d'un agent adopté → renvoyé au catalogue.
+	let removingAgent: Agent | null = null;
+	let removing = false;
 
 	// Recherche dans la galerie « Prêts à l'emploi » (façon marketplace).
 	let templateQuery = '';
@@ -65,16 +70,19 @@
 		AGENT_TEMPLATES.find(
 			(x) =>
 				x.id === a.name ||
-				x.label === a.name ||
+				// le nom d'un agent créé = slug de son libellé de template (identique au bridge)
+				slugify(x.label) === a.name ||
 				(!!x.image && !!a.avatar && avatarId(x.image) === avatarId(a.avatar))
 		) ?? null;
 
 	$: existingNames = new Set(agents.map((a) => a.name));
 	// Visages déjà attribués à un agent → grisés dans le sélecteur (pas de doublon).
 	$: usedAvatarIds = agents.map((a) => avatarId(a.avatar)).filter(Boolean);
-	// Mike est déjà en vedette dans le hero → on l'exclut de la galerie.
+	// Métiers déjà adoptés (résolus de façon fiable, même si le nom du profil diffère de l'id).
+	$: adoptedTemplateIds = new Set(agents.map((a) => matchTemplate(a)?.id).filter(Boolean));
+	// Mike est déjà en vedette dans le hero → on l'exclut de la galerie ; idem métiers adoptés.
 	$: availableTemplates = AGENT_TEMPLATES.filter(
-		(t) => t.id !== 'mike-chef-orchestre' && !existingNames.has(t.id)
+		(t) => t.id !== 'mike-chef-orchestre' && !adoptedTemplateIds.has(t.id)
 	);
 	$: mikeAgent = agents.find(matchesMike);
 	$: mikeActive = !!mikeAgent?.active;
@@ -117,6 +125,29 @@
 	const edit = (agent: Agent) => {
 		editing = agent;
 		showEditor = true;
+	};
+
+	// Retire un agent (le supprime) après confirmation : son métier réapparaît dans
+	// « Prêts à l'emploi » (la galerie ne liste que les métiers non adoptés).
+	const confirmRemove = async () => {
+		if (!removingAgent || removing) return;
+		removing = true;
+		try {
+			await deleteAgent(localStorage.token, removingAgent.name);
+			toast.success(
+				$i18n.t('{{name}} retiré de votre équipe', { name: prettifyName(removingAgent.name) })
+			);
+			removingAgent = null;
+			await load();
+		} catch (err: any) {
+			if (err?.error?.code === 'default') {
+				toast.error($i18n.t('L’agent par défaut ne peut pas être retiré'));
+			} else {
+				toast.error($i18n.t('Impossible de retirer cet agent'));
+			}
+		} finally {
+			removing = false;
+		}
 	};
 
 	const installTemplate = async (tpl: (typeof AGENT_TEMPLATES)[number]) => {
@@ -247,18 +278,20 @@
 							{@const tpl = matchTemplate(agent)}
 							<div in:fly={{ y: 10, duration: 260, delay: i * 35 }}>
 								<AgentGradientCard
-									gradient={tpl?.gradient ?? cardGradient(i)}
-									name={prettifyName(agent.name)}
+									gradient={avatarGradient(avatarId(agent.avatar ?? tpl?.image) || agent.name)}
+									name={tpl?.firstName ?? prettifyName(agent.name)}
 									role={agent.model ?? ''}
 									description={agent.description || $i18n.t('Aucune mission définie pour le moment.')}
 									image={agent.avatar ?? tpl?.image ?? null}
 									avatarText={initial(prettifyName(agent.name))}
-									status={agent.active ? 'active' : 'none'}
+									status="active"
 									statusLabel={$i18n.t('Actif')}
 									primaryLabel={agent.active ? $i18n.t('Continuer') + ' →' : $i18n.t('Discuter')}
 									editable={true}
+									removable={!agent.is_default}
 									on:primary={() => activate(agent)}
 									on:edit={() => edit(agent)}
+									on:remove={() => (removingAgent = agent)}
 								/>
 							</div>
 						{/each}
@@ -311,7 +344,7 @@
 							{#each filteredTemplates as tpl, i (tpl.id)}
 								<div in:fly={{ y: 10, duration: 240, delay: Math.min(i, 8) * 30 }}>
 									<AgentGradientCard
-										gradient={tpl.gradient ?? cardGradient(i)}
+										gradient={avatarGradient(avatarId(tpl.image) || tpl.id)}
 										name={tpl.firstName ?? tpl.label}
 										role={tpl.role ?? ''}
 										description={tpl.description}
@@ -332,8 +365,56 @@
 </div>
 
 <svelte:window
-	on:keydown={(e) => previewTemplate && e.key === 'Escape' && (previewTemplate = null)}
+	on:keydown={(e) => {
+		if (e.key !== 'Escape') return;
+		if (removingAgent && !removing) removingAgent = null;
+		else if (previewTemplate) previewTemplate = null;
+	}}
 />
+
+<!-- Confirmation de retrait (suppression) d'un agent adopté -->
+{#if removingAgent}
+	<div
+		class="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm"
+		on:click|self={() => !removing && (removingAgent = null)}
+		transition:fade={{ duration: 150 }}
+		role="presentation"
+	>
+		<div
+			class="relative w-full max-w-md flex flex-col rounded-3xl bg-white dark:bg-gray-900 shadow-2xl border border-gray-100 dark:border-gray-800 p-6"
+			in:fly={{ y: 12, duration: 200 }}
+			role="dialog"
+			aria-modal="true"
+		>
+			<div class="text-base font-semibold">
+				{$i18n.t('Retirer {{name}} de votre équipe ?', {
+					name: prettifyName(removingAgent.name)
+				})}
+			</div>
+			<p class="text-sm text-gray-500 dark:text-gray-400 mt-2">
+				{$i18n.t(
+					'Son métier réapparaîtra dans « Prêts à l’emploi ». Vous pourrez le réactiver à tout moment.'
+				)}
+			</p>
+			<div class="flex items-center justify-end gap-2 mt-6">
+				<button
+					class="text-sm font-medium px-4 py-2 rounded-xl text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-850 transition disabled:opacity-50"
+					on:click={() => (removingAgent = null)}
+					disabled={removing}
+				>
+					{$i18n.t('Annuler')}
+				</button>
+				<button
+					class="text-sm font-semibold px-4 py-2 rounded-xl bg-red-600 text-white shadow-sm hover:bg-red-700 active:translate-y-px transition disabled:opacity-50"
+					on:click={confirmRemove}
+					disabled={removing}
+				>
+					{removing ? $i18n.t('Retrait…') : $i18n.t('Retirer')}
+				</button>
+			</div>
+		</div>
+	</div>
+{/if}
 
 <!-- Carte « mission » (modale) — aperçu du SOUL avant activation -->
 {#if previewTemplate}

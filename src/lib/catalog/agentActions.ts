@@ -11,7 +11,7 @@
 
 import { AGENT_TEMPLATES } from '$lib/components/agents/templates';
 import { avatarId, avatarImage } from '$lib/components/agents/avatars';
-import { prettifyName } from '$lib/components/agents/utils';
+import { prettifyName, slugify } from '$lib/components/agents/utils';
 
 // Même forme qu'un Workflow (catalog/workflows.ts) → réutilisable dans la même grille de cartes.
 export type ActionCard = {
@@ -91,7 +91,8 @@ export const resolveAgentView = (agent: AgentDTO | null | undefined): AgentView 
 
 	const aid = avatarId(agent.avatar);
 	const tpl = AGENT_TEMPLATES.find(
-		(t) => (t.image && avatarId(t.image) === aid) || t.id === agent.name || t.label === agent.name
+		(t) =>
+			(t.image && avatarId(t.image) === aid) || t.id === agent.name || slugify(t.label) === agent.name
 	);
 
 	// Profil de base non identifié → on garde l'accueil générique (« Bonjour {prénom} »).
