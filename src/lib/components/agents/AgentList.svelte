@@ -58,17 +58,16 @@
 				.toLowerCase()
 				.startsWith('mike'));
 
-	// Repli d'image : un agent sans avatar persisté (ex. créé avant le fix) retombe sur
-	// l'image de son template, retrouvé par identifiant/label/avatar. Évite le « A » nu.
-	const templateImage = (a: Agent): string | null => {
-		const t = AGENT_TEMPLATES.find(
+	// Retrouve le template d'un agent (par identifiant/label/avatar) pour réutiliser SON
+	// image et SA couleur de métier dans « Mes agents » — cohérence avec « Prêts à l'emploi »
+	// (fini le « A » nu et le changement de teinte entre les deux sections).
+	const matchTemplate = (a: Agent): (typeof AGENT_TEMPLATES)[number] | null =>
+		AGENT_TEMPLATES.find(
 			(x) =>
 				x.id === a.name ||
 				x.label === a.name ||
 				(!!x.image && !!a.avatar && avatarId(x.image) === avatarId(a.avatar))
-		);
-		return t?.image ?? null;
-	};
+		) ?? null;
 
 	$: existingNames = new Set(agents.map((a) => a.name));
 	// Visages déjà attribués à un agent → grisés dans le sélecteur (pas de doublon).
@@ -245,13 +244,14 @@
 				{:else}
 					<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
 						{#each agents as agent, i (agent.name)}
+							{@const tpl = matchTemplate(agent)}
 							<div in:fly={{ y: 10, duration: 260, delay: i * 35 }}>
 								<AgentGradientCard
-									gradient={cardGradient(i)}
+									gradient={tpl?.gradient ?? cardGradient(i)}
 									name={prettifyName(agent.name)}
 									role={agent.model ?? ''}
 									description={agent.description || $i18n.t('Aucune mission définie pour le moment.')}
-									image={agent.avatar ?? templateImage(agent)}
+									image={agent.avatar ?? tpl?.image ?? null}
 									avatarText={initial(prettifyName(agent.name))}
 									status={agent.active ? 'active' : 'none'}
 									statusLabel={$i18n.t('Actif')}

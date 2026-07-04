@@ -55,7 +55,7 @@
 						? 'bg-black/25 text-white ring-1 ring-white/25'
 						: 'bg-white/20 text-white ring-1 ring-white/30'}"
 			>
-				{#if status === 'active'}<span class="size-1.5 rounded-full bg-emerald-500"></span>{/if}
+				{#if status === 'active'}<span class="size-1.5 rounded-full bg-emerald-500 motion-safe:animate-pulse"></span>{/if}
 				{statusLabel}
 			</span>
 		{/if}
