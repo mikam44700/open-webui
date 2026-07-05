@@ -358,7 +358,8 @@ export const PROVIDER_INFO: Record<string, ProviderInfo> = {
 	},
 	'minimax-oauth': {
 		desc: 'MiniMax via votre compte.',
-		about: ['Connexion par compte, sans clé à saisir', 'Multimodal (texte + audio)']
+		about: ['Connexion par compte, sans clé à saisir', 'Multimodal (texte + audio)'],
+		usageUrl: 'https://platform.minimax.io/user-center/payment/balance'
 	},
 	'qwen-oauth': {
 		desc: 'Qwen via votre compte (Portal).',
