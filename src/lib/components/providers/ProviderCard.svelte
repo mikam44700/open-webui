@@ -3,7 +3,6 @@
 	import { toast } from 'svelte-sonner';
 	import { WEBUI_BASE_URL } from '$lib/constants';
 
-	import Badge from '$lib/components/common/Badge.svelte';
 	import ActiveBadge from '$lib/components/common/ActiveBadge.svelte';
 	import Spinner from '$lib/components/common/Spinner.svelte';
 	import ProviderOAuth from './ProviderOAuth.svelte';
@@ -33,13 +32,6 @@
 	};
 	export let activeModelId = '';
 
-	const badgeByState: Record<string, { type: string; label: string }> = {
-		active: { type: 'success', label: 'Actif' },
-		configured: { type: 'info', label: 'Configuré' },
-		not_configured: { type: 'muted', label: 'Non configuré' }
-	};
-
-	$: badge = badgeByState[provider.state] ?? badgeByState['not_configured'];
 	$: configured = provider.state !== 'not_configured';
 	// Présentation métier curée (libellé humain + badges) — repli neutre si inconnu (D27).
 	$: presentation = getModelPresentation(provider.id);
@@ -201,10 +193,11 @@
 					{regionFlag}
 				</span>
 			{/if}
-			{#if provider.state === 'active'}
+			<!-- Toute clé qui marche = « Actif » (jamais « Configuré » : mot technique qui ne
+			     parle pas au dirigeant). Le cerveau réellement utilisé se lit en haut de page
+			     (« Modèle IA actif : … ») et dans le chat. -->
+			{#if provider.state === 'active' || provider.state === 'configured'}
 				<ActiveBadge />
-			{:else if provider.state === 'configured'}
-				<Badge type="info" content={$i18n.t('Configuré')} />
 			{/if}
 		</div>
 	</div>
@@ -286,16 +279,13 @@
 	{:else if provider.category === 'api' || provider.category === 'local'}
 		{#if configured && !replacing}
 			<!-- Carte CALME (connectée) : on cache la mécanique, on montre juste l'état. -->
-			<!-- « Clé connectée » seulement si le fournisseur n'est PAS déjà « Actif »
-			     (sinon doublon avec le badge d'en-tête). -->
-			{#if provider.state !== 'active'}
-				<div class="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-300">
-					<svg class="size-4 flex-none text-green-600 dark:text-green-500" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
-						<path fill-rule="evenodd" d="M16.7 5.3a1 1 0 0 1 0 1.4l-7.5 7.5a1 1 0 0 1-1.4 0L3.3 10.7a1 1 0 1 1 1.4-1.4l3.1 3.1 6.8-6.8a1 1 0 0 1 1.4 0Z" clip-rule="evenodd" />
-					</svg>
-					<span>{$i18n.t('Clé connectée')}</span>
-				</div>
-			{/if}
+			<!-- « ✓ Clé connectée » toujours affiché : rassure le dirigeant que sa clé marche. -->
+			<div class="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-300">
+				<svg class="size-4 flex-none text-green-600 dark:text-green-500" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+					<path fill-rule="evenodd" d="M16.7 5.3a1 1 0 0 1 0 1.4l-7.5 7.5a1 1 0 0 1-1.4 0L3.3 10.7a1 1 0 1 1 1.4-1.4l3.1 3.1 6.8-6.8a1 1 0 0 1 1.4 0Z" clip-rule="evenodd" />
+				</svg>
+				<span>{$i18n.t('Clé connectée')}</span>
+			</div>
 			<div class="flex items-center justify-between gap-2">
 				<!-- Voir sa conso / son quota chez le fournisseur (facturation à l'usage). -->
 				{#if info.usageUrl}
@@ -462,8 +452,8 @@
 		</div>
 	{/if}
 
-	<!-- Une fois branché : rappel discret que le choix du modèle se fait dans le chat. -->
-	{#if provider.state === 'active'}
+	<!-- Rappel discret sous CHAQUE clé connectée : le choix du cerveau se fait dans le chat. -->
+	{#if configured}
 		<div class="pt-2 border-t border-gray-100 dark:border-gray-850 text-xs text-gray-500">
 			{$i18n.t('Changez de modèle dans le chat, en haut à gauche.')}
 		</div>

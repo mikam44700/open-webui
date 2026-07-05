@@ -64,6 +64,11 @@
 	} | null = null;
 
 	$: connected = providers.filter((p) => p.state !== 'not_configured' && (p.models?.length ?? 0) > 0);
+	// Onglet fournisseur affiché dans le menu Modèle (bascule rapide Claude / ChatGPT / …).
+	// Vide = on suit le fournisseur actif ; un clic sur une puce le fige sur ce fournisseur.
+	let providerTab = '';
+	$: shownProvider =
+		connected.find((p) => p.id === (providerTab || active?.provider_id)) ?? connected[0] ?? null;
 	$: activeProviderLabel = (() => {
 		const p = providers.find((pp) => pp.id === active?.provider_id);
 		return p ? getProviderName(p.id, p.label) : '';
@@ -262,10 +267,26 @@
 						{$i18n.t('Aucun modèle IA connecté. Connectez-en un dans « Modèles IA ».')}
 					</div>
 				{:else}
-					{#each connected as p (p.id)}
-						<div class="px-2 pt-1.5 text-[11px] text-gray-400">{getProviderName(p.id, p.label)}</div>
-						{#each p.models as m (m.id)}
-							{@const isActive = active?.provider_id === p.id && active?.model_id === m.id}
+					<!-- Puces fournisseurs : bascule rapide entre Claude / ChatGPT / … (au moins 2 connectés). -->
+					{#if connected.length > 1}
+						<div class="flex flex-wrap gap-1.5 px-2 pb-2">
+							{#each connected as p (p.id)}
+								{@const isShown = shownProvider?.id === p.id}
+								<button
+									type="button"
+									class="rounded-full px-2.5 py-1 text-xs transition {isShown
+										? 'bg-gray-900 text-white dark:bg-white dark:text-gray-900'
+										: 'bg-gray-100 text-gray-600 hover:bg-gray-200 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700'}"
+									on:click={() => (providerTab = p.id)}
+								>
+									{getProviderName(p.id, p.label)}
+								</button>
+							{/each}
+						</div>
+					{/if}
+					{#if shownProvider}
+						{#each shownProvider.models as m (m.id)}
+							{@const isActive = active?.provider_id === shownProvider.id && active?.model_id === m.id}
 							<button
 								type="button"
 								role="menuitemradio"
@@ -273,7 +294,7 @@
 								class="flex w-full items-center justify-between gap-2 rounded-lg px-2 py-1.5 text-left transition {isActive
 									? 'bg-gray-100 dark:bg-gray-800'
 									: 'hover:bg-gray-50 dark:hover:bg-gray-850'}"
-								on:click={() => chooseModel(p.id, m.id)}
+								on:click={() => chooseModel(shownProvider.id, m.id)}
 							>
 								<span class="truncate text-sm text-gray-900 dark:text-white">{m.label}</span>
 								{#if isActive}
@@ -287,7 +308,7 @@
 								{/if}
 							</button>
 						{/each}
-					{/each}
+					{/if}
 				{/if}
 			</div>
 		{/if}
