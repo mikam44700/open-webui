@@ -286,50 +286,69 @@
 	{:else if provider.category === 'api' || provider.category === 'local'}
 		{#if configured && !replacing}
 			<!-- Carte CALME (connectée) : on cache la mécanique, on montre juste l'état. -->
-			<div class="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-300">
-				<svg class="size-4 flex-none text-green-600 dark:text-green-500" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
-					<path fill-rule="evenodd" d="M16.7 5.3a1 1 0 0 1 0 1.4l-7.5 7.5a1 1 0 0 1-1.4 0L3.3 10.7a1 1 0 1 1 1.4-1.4l3.1 3.1 6.8-6.8a1 1 0 0 1 1.4 0Z" clip-rule="evenodd" />
-				</svg>
-				<span>{$i18n.t('Clé connectée')}</span>
-			</div>
-			<div class="flex items-center justify-end gap-3">
-				{#if confirmingDelete}
-					<span class="text-xs text-gray-500 mr-auto">{$i18n.t('Retirer cette clé ?')}</span>
-					<button
-						type="button"
-						class="text-xs text-gray-500 hover:text-gray-800 dark:hover:text-gray-200 transition"
-						on:click={() => (confirmingDelete = false)}
-						disabled={deleting}
-					>
-						{$i18n.t('Annuler')}
-					</button>
-					<button
-						type="button"
-						class="text-xs px-3 py-1.5 rounded-lg bg-red-600 text-white hover:bg-red-700 transition disabled:opacity-40"
-						on:click={disconnect}
-						disabled={deleting}
-					>
-						{#if deleting}<Spinner className="size-3.5" />{:else}{$i18n.t('Confirmer')}{/if}
-					</button>
-				{:else}
-					<button
-						type="button"
+			<!-- « Clé connectée » seulement si le fournisseur n'est PAS déjà « Actif »
+			     (sinon doublon avec le badge d'en-tête). -->
+			{#if provider.state !== 'active'}
+				<div class="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-300">
+					<svg class="size-4 flex-none text-green-600 dark:text-green-500" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+						<path fill-rule="evenodd" d="M16.7 5.3a1 1 0 0 1 0 1.4l-7.5 7.5a1 1 0 0 1-1.4 0L3.3 10.7a1 1 0 1 1 1.4-1.4l3.1 3.1 6.8-6.8a1 1 0 0 1 1.4 0Z" clip-rule="evenodd" />
+					</svg>
+					<span>{$i18n.t('Clé connectée')}</span>
+				</div>
+			{/if}
+			<div class="flex items-center justify-between gap-2">
+				<!-- Voir sa conso / son quota chez le fournisseur (facturation à l'usage). -->
+				{#if info.usageUrl}
+					<a
+						href={info.usageUrl}
+						target="_blank"
+						rel="noopener"
 						class="text-xs text-sky-600 dark:text-sky-400 hover:underline"
-						on:click={() => {
-							replacing = true;
-							value = '';
-						}}
 					>
-						{$i18n.t('Remplacer la clé')}
-					</button>
-					<button
-						type="button"
-						class="text-xs text-gray-400 hover:text-red-600 dark:hover:text-red-400 transition"
-						on:click={() => (confirmingDelete = true)}
-					>
-						{$i18n.t('Déconnecter')}
-					</button>
+						{$i18n.t('Voir mon usage')} ›
+					</a>
+				{:else}
+					<span></span>
 				{/if}
+				<div class="flex items-center gap-3">
+					{#if confirmingDelete}
+						<span class="text-xs text-gray-500">{$i18n.t('Retirer cette clé ?')}</span>
+						<button
+							type="button"
+							class="text-xs text-gray-500 hover:text-gray-800 dark:hover:text-gray-200 transition"
+							on:click={() => (confirmingDelete = false)}
+							disabled={deleting}
+						>
+							{$i18n.t('Annuler')}
+						</button>
+						<button
+							type="button"
+							class="text-xs px-3 py-1.5 rounded-lg bg-red-600 text-white hover:bg-red-700 transition disabled:opacity-40"
+							on:click={disconnect}
+							disabled={deleting}
+						>
+							{#if deleting}<Spinner className="size-3.5" />{:else}{$i18n.t('Confirmer')}{/if}
+						</button>
+					{:else}
+						<button
+							type="button"
+							class="text-xs text-gray-500 hover:text-gray-800 dark:hover:text-gray-200 transition"
+							on:click={() => {
+								replacing = true;
+								value = '';
+							}}
+						>
+							{$i18n.t('Remplacer la clé')}
+						</button>
+						<button
+							type="button"
+							class="text-xs text-gray-400 hover:text-red-600 dark:hover:text-red-400 transition"
+							on:click={() => (confirmingDelete = true)}
+						>
+							{$i18n.t('Déconnecter')}
+						</button>
+					{/if}
+				</div>
 			</div>
 		{:else}
 			<!-- Saisie : provider non connecté, OU on remplace une clé existante. -->
@@ -446,7 +465,7 @@
 	<!-- Une fois branché : rappel discret que le choix du modèle se fait dans le chat. -->
 	{#if provider.state === 'active'}
 		<div class="pt-2 border-t border-gray-100 dark:border-gray-850 text-xs text-gray-500">
-			{$i18n.t('Cerveau actif de votre assistant. Changez de modèle dans le chat, en haut à gauche.')}
+			{$i18n.t('Changez de modèle dans le chat, en haut à gauche.')}
 		</div>
 	{/if}
 	</div>

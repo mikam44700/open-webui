@@ -23,6 +23,7 @@ export const PROVIDER_INFO: Record<string, ProviderInfo> = {
 		name: 'ChatGPT (OpenAI)',
 		desc: 'Les modèles GPT d’OpenAI (les créateurs de ChatGPT).',
 		keyUrl: 'https://platform.openai.com/api-keys',
+		usageUrl: 'https://platform.openai.com/usage',
 		about: [
 			'Excellents pour le raisonnement, la rédaction et le code',
 			'La référence du marché — facturation à l’usage'
@@ -41,6 +42,7 @@ export const PROVIDER_INFO: Record<string, ProviderInfo> = {
 		name: 'Claude (Anthropic)',
 		desc: 'Les modèles Claude d’Anthropic.',
 		keyUrl: 'https://console.anthropic.com/settings/keys',
+		usageUrl: 'https://console.anthropic.com/settings/cost',
 		about: [
 			'Excellents en analyse, rédaction longue et code',
 			'Réputés fiables et prudents — qualité premium'
@@ -66,6 +68,7 @@ export const PROVIDER_INFO: Record<string, ProviderInfo> = {
 	mistral: {
 		desc: 'Mistral AI — le champion européen 🇪🇺.',
 		keyUrl: 'https://console.mistral.ai/api-keys',
+		usageUrl: 'https://console.mistral.ai/usage',
 		about: [
 			'Modèles souverains, entreprise française',
 			'Bon rapport qualité/prix, à l’aise en français et en code'
@@ -82,6 +85,7 @@ export const PROVIDER_INFO: Record<string, ProviderInfo> = {
 	deepseek: {
 		desc: 'DeepSeek — très puissant et parmi les moins chers.',
 		keyUrl: 'https://platform.deepseek.com/api_keys',
+		usageUrl: 'https://platform.deepseek.com/usage',
 		about: [
 			'Excellent en raisonnement et en code',
 			'Un des meilleurs rapports qualité/prix du marché'
@@ -91,6 +95,7 @@ export const PROVIDER_INFO: Record<string, ProviderInfo> = {
 		name: 'Grok (xAI)',
 		desc: 'Les modèles Grok de xAI (l’IA d’Elon Musk).',
 		keyUrl: 'https://console.x.ai',
+		usageUrl: 'https://console.x.ai',
 		about: [
 			'Ton direct, à l’aise avec l’actualité et la culture web',
 			'Recherche web en temps réel intégrée'
@@ -107,6 +112,7 @@ export const PROVIDER_INFO: Record<string, ProviderInfo> = {
 	perplexity: {
 		desc: 'Perplexity Sonar — l’IA qui cherche sur le web.',
 		keyUrl: 'https://www.perplexity.ai/settings/api',
+		usageUrl: 'https://www.perplexity.ai/settings/api',
 		about: [
 			'Répond en direct en citant ses sources',
 			'Idéal pour l’actualité, la veille et la recherche'
@@ -136,6 +142,7 @@ export const PROVIDER_INFO: Record<string, ProviderInfo> = {
 	openrouter: {
 		desc: 'Une seule clé pour des centaines de modèles.',
 		keyUrl: 'https://openrouter.ai/keys',
+		usageUrl: 'https://openrouter.ai/activity',
 		about: [
 			'Accédez à OpenAI, Claude, Llama… via un seul compte',
 			'Idéal pour comparer les modèles et optimiser les coûts'
