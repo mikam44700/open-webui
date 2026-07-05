@@ -74,7 +74,7 @@
 			if (r?.activated) {
 				toast.success(
 					$i18n.t('Clé enregistrée — votre assistant tourne maintenant sur {{name}}', {
-						name: provider.label
+						name: info.name ?? provider.label
 					})
 				);
 			} else {
@@ -153,7 +153,7 @@
 			/>
 		</div>
 		<div class="flex-1 min-w-0">
-			<div class="text-sm font-medium">{provider.label}</div>
+			<div class="text-sm font-medium">{info.name ?? provider.label}</div>
 			<div class="text-xs text-gray-500">
 				{info.desc ?? presentation.humanLabel ?? `${provider.models?.length ?? 0} ${$i18n.t('modèles')}`}
 			</div>

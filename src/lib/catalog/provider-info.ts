@@ -8,6 +8,9 @@
 // about = 2 puces concrètes (ce qu'on obtient + quand c'est le bon choix). Zéro jargon nu.
 
 export type ProviderInfo = {
+	// Nom grand public affiché au dirigeant (ex. « Claude (Anthropic) »). Un non-tech ne sait
+	// pas qu'Anthropic = Claude. Absent → on garde le label technique renvoyé par le bridge.
+	name?: string;
 	desc?: string;
 	about?: string[];
 	keyUrl?: string;
@@ -17,6 +20,7 @@ export type ProviderInfo = {
 export const PROVIDER_INFO: Record<string, ProviderInfo> = {
 	// ── Les grands noms ───────────────────────────────────────
 	'openai-api': {
+		name: 'ChatGPT (OpenAI)',
 		desc: 'Les modèles GPT d’OpenAI (les créateurs de ChatGPT).',
 		keyUrl: 'https://platform.openai.com/api-keys',
 		about: [
@@ -25,6 +29,7 @@ export const PROVIDER_INFO: Record<string, ProviderInfo> = {
 		]
 	},
 	'openai-codex': {
+		name: 'ChatGPT (OpenAI Codex)',
 		desc: 'GPT-5.5 via votre abonnement OpenAI Codex.',
 		about: [
 			'Réutilise votre compte ChatGPT / Codex, sans nouvelle clé',
@@ -33,6 +38,7 @@ export const PROVIDER_INFO: Record<string, ProviderInfo> = {
 		usageUrl: 'https://chatgpt.com/codex/cloud/settings/analytics'
 	},
 	anthropic: {
+		name: 'Claude (Anthropic)',
 		desc: 'Les modèles Claude d’Anthropic.',
 		keyUrl: 'https://console.anthropic.com/settings/keys',
 		about: [
@@ -41,6 +47,7 @@ export const PROVIDER_INFO: Record<string, ProviderInfo> = {
 		]
 	},
 	gemini: {
+		name: 'Gemini (Google)',
 		desc: 'Les modèles Gemini de Google (AI Studio).',
 		keyUrl: 'https://aistudio.google.com/app/apikey',
 		about: [
@@ -81,6 +88,7 @@ export const PROVIDER_INFO: Record<string, ProviderInfo> = {
 		]
 	},
 	xai: {
+		name: 'Grok (xAI)',
 		desc: 'Les modèles Grok de xAI (l’IA d’Elon Musk).',
 		keyUrl: 'https://console.x.ai',
 		about: [
@@ -349,6 +357,7 @@ export const PROVIDER_INFO: Record<string, ProviderInfo> = {
 
 	// ── Comptes (OAuth) ───────────────────────────────────────
 	'xai-oauth': {
+		name: 'Grok (xAI)',
 		desc: 'Grok via votre compte X (SuperGrok / Premium+).',
 		about: [
 			'Réutilise votre abonnement X, sans clé à saisir',
@@ -408,3 +417,8 @@ export const PROVIDER_INFO: Record<string, ProviderInfo> = {
 		]
 	}
 };
+
+/** Nom affiché d'un fournisseur : nom grand public curé (ex. « Claude (Anthropic) »),
+ * sinon le label technique renvoyé par le bridge. Source unique de renommage. */
+export const getProviderName = (id: string, fallback = ''): string =>
+	PROVIDER_INFO[id]?.name ?? fallback;

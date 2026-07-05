@@ -14,6 +14,7 @@
 		isExpertProvider,
 		isHiddenProvider
 	} from '$lib/catalog/provider-taxonomy';
+	import { getProviderName } from '$lib/catalog/provider-info';
 	import { expertMode } from '$lib/stores';
 
 	const i18n = getContext('i18n');
@@ -76,8 +77,10 @@
 	// Modèle IA actif : y a-t-il au moins un fournisseur connecté ? + son nom LISIBLE
 	// (le label du fournisseur, jamais le slug technique « auto » / « openai-codex »).
 	$: brainConnected = providers.some((p) => p.state !== 'not_configured');
-	$: activeProviderLabel =
-		providers.find((p) => p.id === active?.provider_id)?.label ?? active?.provider_id ?? '';
+	$: activeProviderLabel = (() => {
+		const p = providers.find((pp) => pp.id === active?.provider_id);
+		return p ? getProviderName(p.id, p.label) : (active?.provider_id ?? '');
+	})();
 
 	// Onglets visibles : on retire « Cerveaux combinés » et « Autres » hors mode Expert.
 	$: visibleTabs = $expertMode ? TABS : TABS.filter((t) => !EXPERT_TABS.has(t.key));

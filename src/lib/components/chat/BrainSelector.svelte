@@ -16,6 +16,7 @@
 		setReasoning,
 		getModelCapabilities
 	} from '$lib/apis/providers';
+	import { getProviderName } from '$lib/catalog/provider-info';
 
 	const i18n = getContext('i18n');
 
@@ -63,7 +64,10 @@
 	} | null = null;
 
 	$: connected = providers.filter((p) => p.state !== 'not_configured' && (p.models?.length ?? 0) > 0);
-	$: activeProviderLabel = providers.find((p) => p.id === active?.provider_id)?.label ?? '';
+	$: activeProviderLabel = (() => {
+		const p = providers.find((pp) => pp.id === active?.provider_id);
+		return p ? getProviderName(p.id, p.label) : '';
+	})();
 	// Un modèle IA est-il vraiment connecté ? (au moins un fournisseur branché avec modèles)
 	$: hasBrain = connected.length > 0;
 	// Nom lisible du modèle IA actif : on montre le NOM DU FOURNISSEUR (« OpenAI Codex »,
@@ -259,7 +263,7 @@
 					</div>
 				{:else}
 					{#each connected as p (p.id)}
-						<div class="px-2 pt-1.5 text-[11px] text-gray-400">{p.label}</div>
+						<div class="px-2 pt-1.5 text-[11px] text-gray-400">{getProviderName(p.id, p.label)}</div>
 						{#each p.models as m (m.id)}
 							{@const isActive = active?.provider_id === p.id && active?.model_id === m.id}
 							<button
