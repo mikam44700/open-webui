@@ -137,11 +137,11 @@
 		activating = true;
 		try {
 			await setActiveProvider(localStorage.token, provider.id, m);
-			toast.success($i18n.t('Cerveau actif mis à jour'));
+			toast.success($i18n.t('Modèle IA actif mis à jour'));
 			dispatch('changed');
 		} catch (e: any) {
 			if (e?.error?.code === 'not_configured') toast.error($i18n.t('Ce modèle IA n’est pas configuré'));
-			else toast.error($i18n.t('Échec de la mise à jour du cerveau actif'));
+			else toast.error($i18n.t('Échec de la mise à jour du modèle IA actif'));
 		} finally {
 			activating = false;
 		}
@@ -377,7 +377,7 @@
 				{#if activating}
 					<Spinner className="size-3.5" />
 				{:else if provider.state === 'active'}
-					{$i18n.t('Cerveau actif')}
+					{$i18n.t('Modèle IA actif')}
 				{:else}
 					{$i18n.t('Activer')}
 				{/if}

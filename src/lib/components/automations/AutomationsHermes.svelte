@@ -147,7 +147,7 @@
 			<div class="text-3xl mb-2">🔌</div>
 			<div class="font-medium">{$i18n.t('Automatisations momentanément indisponibles')}</div>
 			<div class="text-xs text-gray-500 mt-1">
-				{$i18n.t('Le cerveau Agent OS ne répond pas pour l’instant. Réessayez dans un moment.')}
+				{$i18n.t('Le moteur Agent OS ne répond pas pour l’instant. Réessayez dans un moment.')}
 			</div>
 			<button class="mt-3 text-sm underline" on:click={load}>{$i18n.t('Réessayer')}</button>
 		</div>

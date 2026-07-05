@@ -95,7 +95,7 @@
 			>
 				<div class="text-sm font-medium">{$i18n.t('Aucun connecteur pour l’instant')}</div>
 				<div class="text-xs text-gray-500 max-w-md">
-					{$i18n.t('Installe un connecteur depuis le catalogue pour brancher un outil à ton cerveau.')}
+					{$i18n.t('Installe un connecteur depuis le catalogue pour brancher un outil à ton assistant.')}
 				</div>
 			</div>
 		{/if}

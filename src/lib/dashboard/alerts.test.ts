@@ -30,7 +30,7 @@ describe('deriveAlerts', () => {
 		expect(a?.href).toBe('/providers');
 	});
 
-	it('aucun cerveau actif => alerte avec lien Modèles IA', () => {
+	it('aucun modèle IA actif => alerte avec lien Modèles IA', () => {
 		const alerts = deriveAlerts({ ...allOk, activeBrain: false });
 		const a = alerts.find((x) => x.message.includes('Aucun modèle IA'));
 		expect(a?.href).toBe('/providers');

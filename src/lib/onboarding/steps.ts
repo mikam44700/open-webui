@@ -31,7 +31,7 @@ export const deriveOnboardingSteps = (i: OnboardingInput): OnboardingStep[] => [
 	{
 		id: 'brain',
 		label: 'Choisir un modèle IA',
-		hint: 'Sélectionnez le cerveau de votre assistant.',
+		hint: 'Sélectionnez le modèle IA de votre assistant.',
 		done: i.activeBrain === true,
 		href: '/providers'
 	},

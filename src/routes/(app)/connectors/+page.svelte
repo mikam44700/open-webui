@@ -44,7 +44,7 @@
 			desc: 'Choisissez les modèles d’intelligence artificielle qui font tourner votre assistant.',
 			banner: {
 				lead: 'Choisissez le',
-				strong: 'cerveau de votre assistant',
+				strong: 'modèle IA de votre assistant',
 				sub: 'Les modèles d’IA qui le font réfléchir.',
 				wrap: 'from-emerald-200/70 via-green-100/50 to-lime-100/60 dark:from-emerald-900/30 dark:via-green-900/20 dark:to-lime-900/20',
 				halo1: 'bg-emerald-400/30 dark:bg-emerald-500/20',

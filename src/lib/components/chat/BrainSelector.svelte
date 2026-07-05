@@ -158,7 +158,7 @@
 			aria-expanded={open}
 		>
 			<span class="font-medium text-gray-900 dark:text-white truncate">
-				{loading ? $i18n.t('Chargement…') : activeBrainName || $i18n.t('Cerveau')}
+				{loading ? $i18n.t('Chargement…') : activeBrainName || $i18n.t('Modèle IA')}
 			</span>
 			{#if activeLevel}
 				<span
@@ -192,7 +192,7 @@
 				<!-- En-tête : modèle actif + ses capacités (le menu s'adapte à CE modèle) -->
 				<div class="px-2 pb-2 pt-1">
 					<div class="truncate text-sm font-medium text-gray-900 dark:text-white">
-						{activeBrainName || $i18n.t('Cerveau')}
+						{activeBrainName || $i18n.t('Modèle IA')}
 					</div>
 					{#if activeProviderLabel}
 						<div class="text-[11px] text-gray-400">{activeProviderLabel}</div>

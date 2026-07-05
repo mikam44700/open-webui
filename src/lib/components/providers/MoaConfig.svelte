@@ -97,12 +97,12 @@
 				await activateMoa(localStorage.token);
 				active = true;
 				toast.success(
-					$i18n.t('Mixture of Agents activé — le chat combine désormais vos cerveaux')
+					$i18n.t('Mixture of Agents activé — le chat combine désormais vos modèles IA')
 				);
 			} else {
 				await deactivateMoa(localStorage.token);
 				active = false;
-				toast.success($i18n.t('Mixture of Agents éteint — retour à votre cerveau habituel'));
+				toast.success($i18n.t('Mixture of Agents éteint — retour à votre modèle IA habituel'));
 			}
 			dispatch('changed');
 		} catch (e: any) {
@@ -134,7 +134,7 @@
 		<div class="flex-1 min-w-0">
 			<div class="text-sm font-medium">{provider.label}</div>
 			<div class="text-xs text-gray-500">
-				{info.desc ?? $i18n.t('Combine plusieurs cerveaux')}
+				{info.desc ?? $i18n.t('Combine plusieurs modèles IA')}
 			</div>
 		</div>
 		{#if active}
@@ -161,13 +161,13 @@
 			<!-- Garde-fou : il faut au moins 2 cerveaux connectés -->
 			<div class="text-xs text-gray-500 leading-relaxed">
 				{$i18n.t(
-					'Connecte d’abord au moins 2 cerveaux (onglet Clés API) — Mixture of Agents les combine ensuite ici.'
+					'Connecte d’abord au moins 2 modèles IA (onglet Clés API) — Mixture of Agents les combine ensuite ici.'
 				)}
 			</div>
 		{:else}
 			<!-- Proposeurs -->
 			<div class="text-[11px] font-semibold uppercase tracking-wide text-gray-400 dark:text-gray-500">
-				{$i18n.t('Les cerveaux à combiner')}
+				{$i18n.t('Les modèles IA à combiner')}
 			</div>
 			<div class="flex flex-col gap-1">
 				{#each options as o (o.provider)}
@@ -210,11 +210,11 @@
 					</div>
 					<div class="text-[11px] text-gray-400">
 						{#if active}
-							{$i18n.t('Actif — le chat combine vos cerveaux')}
+							{$i18n.t('Actif — le chat combine vos modèles IA')}
 						{:else if canSave}
-							{proposers.length} {$i18n.t('cerveaux + un chef, prêt à activer')}
+							{proposers.length} {$i18n.t('modèles IA + un chef, prêt à activer')}
 						{:else}
-							{$i18n.t('Choisis au moins 2 cerveaux + un chef de synthèse')}
+							{$i18n.t('Choisis au moins 2 modèles IA + un chef de synthèse')}
 						{/if}
 					</div>
 				</div>

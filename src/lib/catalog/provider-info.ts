@@ -115,7 +115,7 @@ export const PROVIDER_INFO: Record<string, ProviderInfo> = {
 
 	// ── Cerveaux combinés (multi-agents) ──────────────────────
 	sakana: {
-		desc: 'Sakana Fugu — plusieurs cerveaux en un seul, prêt à l’emploi.',
+		desc: 'Sakana Fugu — plusieurs modèles IA en un seul, prêt à l’emploi.',
 		keyUrl: 'https://console.sakana.ai',
 		about: [
 			'Un système multi-agents livré comme UN seul modèle : il assemble tout seul une équipe d’IA selon la difficulté',
