@@ -28,36 +28,7 @@ export const gradientFor = (name: string): string => {
 	return `linear-gradient(135deg, ${from}, ${to})`;
 };
 
-// Palette saturée pour les cartes d'agents (blocs colorés façon Agensio). Cf. Avatar.md.
-const CARD_GRADIENTS: [string, string][] = [
-	['#4F46E5', '#7C3AED'], // Indigo
-	['#0EA5E9', '#2563EB'], // Océan
-	['#059669', '#0D9488'], // Émeraude
-	['#F59E0B', '#EA580C'], // Ambre
-	['#EC4899', '#BE185D'], // Framboise
-	['#06B6D4', '#0891B2'], // Turquoise
-	['#7E22CE', '#9333EA'], // Prune
-	['#334155', '#1E293B'] // Ardoise
-];
-
-// Dégradé de carte par position (rotation → jamais deux identiques côte à côte).
-export const cardGradient = (i: number): string => {
-	const n = CARD_GRADIENTS.length;
-	const [from, to] = CARD_GRADIENTS[((i % n) + n) % n];
-	return `linear-gradient(135deg, ${from}, ${to})`;
-};
-
 export const initial = (name: string): string => (name?.[0] ?? '?').toUpperCase();
-
-// Dégradé de carte STABLE par agent : dérivé d'un hash du nom (pas de la position dans la
-// grille). La couleur d'un agent ne change donc jamais, quels que soient les ajouts/retraits.
-export const cardGradientFor = (name: string): string => {
-	let h = 0;
-	for (let i = 0; i < (name?.length ?? 0); i++) h = (h * 31 + name.charCodeAt(i)) >>> 0;
-	const n = CARD_GRADIENTS.length;
-	const [from, to] = CARD_GRADIENTS[h % n];
-	return `linear-gradient(135deg, ${from}, ${to})`;
-};
 
 // Slug identique au bridge (profiles_adapter.slugify) : « Service client / SAV » -> « service-client-sav ».
 // Sert à réconcilier un agent (dont le nom = slug du libellé de création) avec son template.

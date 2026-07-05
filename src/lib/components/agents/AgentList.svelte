@@ -14,7 +14,7 @@
 	import { AGENT_TEMPLATES } from './templates';
 	import { initial, prettifyName, slugify } from './utils';
 	import { avatarId } from './avatars';
-	import { avatarGradient } from './avatar-colors';
+	import { avatarColor } from './avatar-colors';
 	import MissionSections from './MissionSections.svelte';
 
 	const i18n = getContext('i18n');
@@ -276,9 +276,11 @@
 					<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
 						{#each agents as agent, i (agent.name)}
 							{@const tpl = matchTemplate(agent)}
+							{@const col = avatarColor(avatarId(agent.avatar ?? tpl?.image) || agent.name)}
 							<div in:fly={{ y: 10, duration: 260, delay: i * 35 }}>
 								<AgentGradientCard
-									gradient={avatarGradient(avatarId(agent.avatar ?? tpl?.image) || agent.name)}
+									gradient={col.gradient}
+									onLight={col.light}
 									name={tpl?.firstName ?? prettifyName(agent.name)}
 									role={agent.model ?? ''}
 									description={agent.description || $i18n.t('Aucune mission définie pour le moment.')}
@@ -342,9 +344,11 @@
 					{:else}
 						<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
 							{#each filteredTemplates as tpl, i (tpl.id)}
+								{@const col = avatarColor(avatarId(tpl.image) || tpl.id)}
 								<div in:fly={{ y: 10, duration: 240, delay: Math.min(i, 8) * 30 }}>
 									<AgentGradientCard
-										gradient={avatarGradient(avatarId(tpl.image) || tpl.id)}
+										gradient={col.gradient}
+										onLight={col.light}
 										name={tpl.firstName ?? tpl.label}
 										role={tpl.role ?? ''}
 										description={tpl.description}

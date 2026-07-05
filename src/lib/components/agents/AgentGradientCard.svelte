@@ -19,15 +19,30 @@
 	export let secondaryLabel = '';
 	export let editable = false;
 	export let removable = false; // « Retirer de mon équipe » (renvoie au catalogue)
+	export let onLight = false; // fond clair -> texte foncé (contraste)
 
 	let imgError = false;
 	$: showImage = !!image && !imgError;
 
 	let menuOpen = false; // menu d'actions (⋮) — évite de poser des icônes sur l'avatar
+
+	// Couleurs de texte selon la clarté du fond.
+	$: ink = onLight ? 'text-gray-900' : 'text-white';
+	$: eyebrowCls = onLight ? 'text-gray-900/60' : 'text-white/75';
+	$: descCls = onLight ? 'text-gray-900/70' : 'text-white/85';
+	$: menuBtnCls = onLight
+		? 'text-gray-900/70 hover:text-gray-900 hover:bg-black/10'
+		: 'text-white/80 hover:text-white hover:bg-white/20';
+	$: menuBtnOpenBg = onLight ? 'bg-black/10' : 'bg-white/20';
+	$: primaryBtnCls = onLight ? 'bg-gray-900 text-white' : 'bg-white text-gray-900';
+	$: secondaryBtnCls = onLight
+		? 'text-gray-900/70 hover:text-gray-900'
+		: 'text-white/85 hover:text-white';
+	$: dotRingCls = onLight ? 'ring-black/25' : 'ring-white/40';
 </script>
 
 <div
-	class="group relative flex flex-col overflow-hidden rounded-2xl p-5 min-h-[238px] text-white shadow-lg card-lift"
+	class="group relative flex flex-col overflow-hidden rounded-2xl p-5 min-h-[238px] {ink} shadow-lg card-lift"
 	style="background-image: {gradient}"
 	on:mouseleave={() => (menuOpen = false)}
 	role="presentation"
@@ -40,8 +55,8 @@
 		{#if editable || removable}
 			<div class="relative">
 				<button
-					class="p-1 rounded-lg text-white/80 hover:text-white hover:bg-white/20 opacity-0 group-hover:opacity-100 focus:opacity-100 transition {menuOpen
-						? 'opacity-100 bg-white/20'
+					class="p-1 rounded-lg {menuBtnCls} opacity-0 group-hover:opacity-100 focus:opacity-100 transition {menuOpen
+						? 'opacity-100 ' + menuBtnOpenBg
 						: ''}"
 					title={$i18n.t('Options')}
 					aria-label={$i18n.t('Options')}
@@ -136,7 +151,7 @@
 	<div class="relative z-10 pr-36">
 		{#if role || status === 'active'}
 			<div
-				class="flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-[0.12em] text-white/75"
+				class="flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-[0.12em] {eyebrowCls}"
 			>
 				{#if status === 'active'}
 					<span class="relative flex size-2" title={$i18n.t('Actif')} aria-label={$i18n.t('Actif')}>
@@ -144,7 +159,7 @@
 							class="absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-80 motion-safe:animate-ping"
 						></span>
 						<span
-							class="relative inline-flex size-2 rounded-full bg-emerald-400 ring-2 ring-white/40"
+							class="relative inline-flex size-2 rounded-full bg-emerald-400 ring-2 {dotRingCls}"
 						></span>
 					</span>
 				{/if}
@@ -153,7 +168,7 @@
 		{/if}
 		<h3 class="text-lg font-bold tracking-tight mt-0.5 truncate">{name}</h3>
 		{#if description}
-			<p class="text-[12.5px] leading-snug text-white/85 mt-1.5 line-clamp-3">{description}</p>
+			<p class="text-[12.5px] leading-snug {descCls} mt-1.5 line-clamp-3">{description}</p>
 		{/if}
 	</div>
 
@@ -162,7 +177,7 @@
 		<div class="relative z-10 mt-auto flex items-center gap-3 pt-4 pr-36">
 			{#if primaryLabel}
 				<button
-					class="text-[13px] font-semibold px-4 py-2 rounded-xl bg-white text-gray-900 shadow-sm hover:shadow-md hover:-translate-y-px active:translate-y-0 transition-all whitespace-nowrap"
+					class="text-[13px] font-semibold px-4 py-2 rounded-xl {primaryBtnCls} shadow-sm hover:shadow-md hover:-translate-y-px active:translate-y-0 transition-all whitespace-nowrap"
 					on:click={() => dispatch('primary')}
 				>
 					{primaryLabel}
@@ -170,7 +185,7 @@
 			{/if}
 			{#if secondaryLabel}
 				<button
-					class="text-[12px] font-medium text-white/85 hover:text-white underline-offset-2 hover:underline transition whitespace-nowrap"
+					class="text-[12px] font-medium {secondaryBtnCls} underline-offset-2 hover:underline transition whitespace-nowrap"
 					on:click={() => dispatch('secondary')}
 				>
 					{secondaryLabel}

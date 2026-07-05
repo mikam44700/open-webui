@@ -59,7 +59,7 @@ export const AVATARS: Avatar[] = [
 	{ id: 'hana', label: 'Hana', gender: 'female' },
 	{ id: 'hugo', label: 'Hugo', gender: 'male' },
 	{ id: 'ilyes', label: 'Ilyès', gender: 'male' },
-	{ id: 'imani', label: 'Imani', gender: 'female' },
+	{ id: 'imani', label: 'Imani', gender: 'male' },
 	{ id: 'ines', label: 'Inès', gender: 'female' },
 	{ id: 'ingrid', label: 'Ingrid', gender: 'female' },
 	{ id: 'iris', label: 'Iris', gender: 'female' },
