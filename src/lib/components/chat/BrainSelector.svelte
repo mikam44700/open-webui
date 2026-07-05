@@ -64,15 +64,12 @@
 
 	$: connected = providers.filter((p) => p.state !== 'not_configured' && (p.models?.length ?? 0) > 0);
 	$: activeProviderLabel = providers.find((p) => p.id === active?.provider_id)?.label ?? '';
-	// Nom lisible du cerveau actif : pour les cerveaux « combinés » (Mixture of Agents) ou
-	// tout modèle dont l'id est générique (« default »), on montre le NOM du fournisseur
-	// (ex. « Mixture of Agents ») plutôt que l'id brut « default ». Sinon on garde l'id du
-	// modèle (ex. « gpt-5.5 », « fugu »).
-	$: activeBrainName = !active
-		? ''
-		: active.model_id && active.model_id !== 'default'
-			? active.model_id
-			: (providers.find((p) => p.id === active.provider_id)?.label ?? active.model_id);
+	// Un modèle IA est-il vraiment connecté ? (au moins un fournisseur branché avec modèles)
+	$: hasBrain = connected.length > 0;
+	// Nom lisible du modèle IA actif : on montre le NOM DU FOURNISSEUR (« OpenAI Codex »,
+	// « Mixture of Agents »), pas le modèle technique (« gpt-5.5 »). Repli sur l'id du modèle
+	// si le fournisseur n'a pas de label (ex. mode « auto »).
+	$: activeBrainName = !active ? '' : activeProviderLabel || active.model_id;
 	$: activeLevel = LEVELS.find((l) => l.effort === effort) ?? null;
 	// On masque l'intelligence seulement si on SAIT que le modèle ne raisonne pas.
 	$: showIntelligence = !caps || caps.reasoning !== false;
@@ -158,7 +155,7 @@
 			aria-expanded={open}
 		>
 			<span class="font-medium text-gray-900 dark:text-white truncate">
-				{loading ? $i18n.t('Chargement…') : activeBrainName || $i18n.t('Modèle IA')}
+				{loading ? $i18n.t('Chargement…') : hasBrain ? activeBrainName : $i18n.t('Aucun modèle IA')}
 			</span>
 			{#if activeLevel}
 				<span
@@ -192,7 +189,7 @@
 				<!-- En-tête : modèle actif + ses capacités (le menu s'adapte à CE modèle) -->
 				<div class="px-2 pb-2 pt-1">
 					<div class="truncate text-sm font-medium text-gray-900 dark:text-white">
-						{activeBrainName || $i18n.t('Modèle IA')}
+						{hasBrain ? activeBrainName : $i18n.t('Aucun modèle IA')}
 					</div>
 					{#if activeProviderLabel}
 						<div class="text-[11px] text-gray-400">{activeProviderLabel}</div>
@@ -258,7 +255,7 @@
 				</div>
 				{#if connected.length === 0}
 					<div class="px-2 py-2 text-[12px] text-gray-400">
-						{$i18n.t('Aucun modèle connecté. Connectez-en un dans « Modèles IA ».')}
+						{$i18n.t('Aucun modèle IA connecté. Connectez-en un dans « Modèles IA ».')}
 					</div>
 				{:else}
 					{#each connected as p (p.id)}
