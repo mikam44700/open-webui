@@ -64,11 +64,8 @@
 	} | null = null;
 
 	$: connected = providers.filter((p) => p.state !== 'not_configured' && (p.models?.length ?? 0) > 0);
-	// Onglet fournisseur affiché dans le menu Modèle (bascule rapide Claude / ChatGPT / …).
-	// Vide = on suit le fournisseur actif ; un clic sur une puce le fige sur ce fournisseur.
-	let providerTab = '';
-	$: shownProvider =
-		connected.find((p) => p.id === (providerTab || active?.provider_id)) ?? connected[0] ?? null;
+	// Fournisseur actuellement aux commandes (sa card complète est affichée dans le menu).
+	$: activeProvider = connected.find((p) => p.id === active?.provider_id) ?? connected[0] ?? null;
 	$: activeProviderLabel = (() => {
 		const p = providers.find((pp) => pp.id === active?.provider_id);
 		return p ? getProviderName(p.id, p.label) : '';
@@ -135,6 +132,28 @@
 		} catch (err: any) {
 			toast.error(err?.error?.message || $i18n.t('Changement impossible'));
 		}
+	};
+
+	// Bascule directe de fournisseur (puces en haut du menu) : on active son modèle
+	// recommandé (défaut curé, sinon 1er exposé) → toute la card se met à jour sur lui.
+	// Même table que le bridge : la liste des modèles n'est pas triée par pertinence.
+	const RECOMMENDED_MODEL: Record<string, string> = {
+		anthropic: 'claude-sonnet-4-6',
+		'openai-api': 'gpt-5.5',
+		gemini: 'gemini-2.5-flash',
+		mistral: 'mistral-large-latest',
+		deepseek: 'deepseek-chat',
+		perplexity: 'sonar'
+	};
+	const defaultModelId = (p: { id: string; models: { id: string }[] }): string | undefined => {
+		const rec = RECOMMENDED_MODEL[p.id];
+		if (rec && p.models.some((m) => m.id === rec)) return rec;
+		return p.models[0]?.id;
+	};
+	const switchProvider = (p: { id: string; models: { id: string }[] }) => {
+		if (p.id === active?.provider_id) return; // déjà aux commandes
+		const mid = defaultModelId(p);
+		if (mid) chooseModel(p.id, mid);
 	};
 
 	const chooseLevel = async (level: string) => {
@@ -221,6 +240,25 @@
 					{/if}
 				</div>
 
+				<!-- Switch fournisseur : bascule TOUTE la card (capacités + intelligence + modèles)
+				     sur l'autre fournisseur. Visible dès qu'au moins 2 sont connectés. -->
+				{#if connected.length > 1}
+					<div class="flex flex-wrap gap-1.5 border-t border-gray-100 px-2 pb-1 pt-2 dark:border-gray-800">
+						{#each connected as p (p.id)}
+							{@const isActive = active?.provider_id === p.id}
+							<button
+								type="button"
+								class="rounded-full px-2.5 py-1 text-xs font-medium transition {isActive
+									? 'bg-gray-900 text-white dark:bg-white dark:text-gray-900'
+									: 'bg-gray-100 text-gray-600 hover:bg-gray-200 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700'}"
+								on:click={() => switchProvider(p)}
+							>
+								{getProviderName(p.id, p.label)}
+							</button>
+						{/each}
+					</div>
+				{/if}
+
 				<!-- Intelligence : affichée seulement si le modèle sait raisonner -->
 				{#if showIntelligence}
 					<div class="border-t border-gray-100 dark:border-gray-800 px-2 pb-1 pt-2 text-[11px] font-semibold uppercase tracking-wider text-gray-400">
@@ -267,26 +305,10 @@
 						{$i18n.t('Aucun modèle IA connecté. Connectez-en un dans « Modèles IA ».')}
 					</div>
 				{:else}
-					<!-- Puces fournisseurs : bascule rapide entre Claude / ChatGPT / … (au moins 2 connectés). -->
-					{#if connected.length > 1}
-						<div class="flex flex-wrap gap-1.5 px-2 pb-2">
-							{#each connected as p (p.id)}
-								{@const isShown = shownProvider?.id === p.id}
-								<button
-									type="button"
-									class="rounded-full px-2.5 py-1 text-xs transition {isShown
-										? 'bg-gray-900 text-white dark:bg-white dark:text-gray-900'
-										: 'bg-gray-100 text-gray-600 hover:bg-gray-200 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700'}"
-									on:click={() => (providerTab = p.id)}
-								>
-									{getProviderName(p.id, p.label)}
-								</button>
-							{/each}
-						</div>
-					{/if}
-					{#if shownProvider}
-						{#each shownProvider.models as m (m.id)}
-							{@const isActive = active?.provider_id === shownProvider.id && active?.model_id === m.id}
+					<!-- Modèles du fournisseur AUX COMMANDES (le switch en haut change ce fournisseur). -->
+					{#if activeProvider}
+						{#each activeProvider.models as m (m.id)}
+							{@const isActive = active?.model_id === m.id}
 							<button
 								type="button"
 								role="menuitemradio"
@@ -294,7 +316,7 @@
 								class="flex w-full items-center justify-between gap-2 rounded-lg px-2 py-1.5 text-left transition {isActive
 									? 'bg-gray-100 dark:bg-gray-800'
 									: 'hover:bg-gray-50 dark:hover:bg-gray-850'}"
-								on:click={() => chooseModel(shownProvider.id, m.id)}
+								on:click={() => chooseModel(activeProvider.id, m.id)}
 							>
 								<span class="truncate text-sm text-gray-900 dark:text-white">{m.label}</span>
 								{#if isActive}
