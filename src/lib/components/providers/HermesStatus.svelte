@@ -241,17 +241,24 @@
 
 		<div class="h-px bg-gray-100 dark:bg-gray-850"></div>
 
-		<!-- Modèle utilisé -->
+		<!-- Modèle IA : le fournisseur lisible (OpenAI Codex), pas le modèle technique. -->
 		<div class="flex items-center justify-between text-sm">
-			<span class="text-gray-500">{$i18n.t('Modèle utilisé')}</span>
-			<span class="font-medium text-right text-gray-900 dark:text-gray-100">
-				{#if brainConnected && status.active}{status.active.model_id}{:else}—{/if}
-			</span>
+			<span class="text-gray-500">{$i18n.t('Modèle IA')}</span>
+			{#if brainConnected}
+				<span class="font-medium text-right text-gray-900 dark:text-gray-100">
+					{status.active_provider_label ?? status.active?.provider_id ?? '—'}
+				</span>
+			{:else}
+				<span class="inline-flex items-center gap-1.5 text-xs font-medium text-red-600 dark:text-red-400">
+					<span class="size-1.5 rounded-full bg-red-500"></span>
+					{$i18n.t('Aucun modèle IA connecté')}
+				</span>
+			{/if}
 		</div>
 
 		<!-- Moteur -->
 		<div class="flex items-center justify-between text-sm">
-			<span class="text-gray-500">{$i18n.t('Moteur')}</span>
+			<span class="text-gray-500">{$i18n.t('Moteur d’Agent OS')}</span>
 			<span
 				class="inline-flex items-center gap-1.5 text-xs font-medium {engineOk
 					? 'text-emerald-600 dark:text-emerald-400'
@@ -265,7 +272,7 @@
 		<!-- Connexion au chat -->
 		<div class="flex items-center justify-between text-sm">
 			<span class="text-gray-500">
-				{$i18n.t('Connexion au chat')}
+				{$i18n.t('Réponses dans le chat')}
 				{#if $expertMode && status.api_server?.port}
 					<span class="text-gray-400">(API :{status.api_server.port})</span>
 				{/if}
@@ -276,13 +283,13 @@
 					: 'text-red-600 dark:text-red-400'}"
 			>
 				<span class="size-1.5 rounded-full {chatOk ? 'bg-emerald-500' : 'bg-red-500'}"></span>
-				{chatOk ? $i18n.t('Active') : $i18n.t('Interrompue')}
+				{chatOk ? $i18n.t('Actives') : $i18n.t('Interrompues')}
 			</span>
 		</div>
 
 		<!-- Version -->
 		<div class="flex items-center justify-between text-sm">
-			<span class="text-gray-500">{$i18n.t('Version')}</span>
+			<span class="text-gray-500">{$i18n.t('Version du moteur')}</span>
 			<span class="font-medium text-right text-gray-900 dark:text-gray-100">{versionShort}</span>
 		</div>
 
