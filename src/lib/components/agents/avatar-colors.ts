@@ -6,6 +6,7 @@
 //   - Rendu CONFORT (anti-fatigue) : saturation adoucie, tons profonds, voyage de couleur doux.
 //   - Dégradé diagonal 135° à 3 tons (foncé sous le nom -> voisin -> moyen-profond) = effet premium.
 //   - Rose (Fuchsia/Rose/Framboise) = FEMMES uniquement. Texte blanc (light:false).
+//   - SIGNATURE : Mike (orchestrateur) a une couleur RÉSERVÉE hors des 24 (Or doré) = unique dans l'app.
 
 import { AVATARS, avatarId, type Gender } from './avatars';
 
@@ -109,6 +110,15 @@ const blockGradient = (base: string): string => {
 // Un dégradé figé par couleur (les mêmes couleurs = même rendu, assumé).
 const GRAD: Record<string, string> = Object.fromEntries(COLORS.map((c) => [c.name, blockGradient(c.hex)]));
 
+// Couleurs SIGNATURE (hors des 24 en rotation) : réservées à un agent précis, uniques dans toute l'app.
+// Mike = l'orchestrateur -> Or doré premium (leadership, chef d'orchestre). Texte blanc.
+const SIGNATURE: Record<string, { hex: string; label: string }> = {
+	mike: { hex: '#b45309', label: 'Or (Mike, orchestrateur)' }
+};
+const SIG_GRAD: Record<string, string> = Object.fromEntries(
+	Object.entries(SIGNATURE).map(([id, s]) => [id, blockGradient(s.hex)])
+);
+
 const NONFEM = COLORS.filter((c) => !c.fem); // 21 (sans rose) -> hommes
 
 export type BlockColor = { gradient: string; light: boolean; colorName: string };
@@ -144,7 +154,9 @@ const fallbackName = (seed: string): string => {
 
 /** Couleur de bloc (dégradé + `light` pour le contraste) d'un agent, par id d'avatar ou nom. */
 export const avatarColor = (key: string | null | undefined): BlockColor => {
-	const id = key && nameOf[key] ? key : avatarId(key ?? '');
+	const id = key && (nameOf[key] || SIGNATURE[key]) ? key : avatarId(key ?? '');
+	const sig = SIGNATURE[id];
+	if (sig) return { gradient: SIG_GRAD[id], light: false, colorName: sig.label };
 	const name = nameOf[id] ?? fallbackName(key ?? 'agent');
 	return { gradient: GRAD[name], light: false, colorName: name };
 };
