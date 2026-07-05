@@ -11,12 +11,7 @@
 	import { getProviderRegionFlag, getProviderRegionName } from '$lib/catalog/provider-taxonomy';
 	import { PROVIDER_INFO } from '$lib/catalog/provider-info';
 	import { PROVIDER_LOGO_FULL_BLEED } from '$lib/utils/providerLogos';
-	import {
-		setProviderKey,
-		validateProviderKey,
-		setActiveProvider,
-		setAwsCredentials
-	} from '$lib/apis/providers';
+	import { setProviderKey, validateProviderKey, setAwsCredentials } from '$lib/apis/providers';
 
 	const i18n = getContext('i18n');
 	const dispatch = createEventDispatcher();
@@ -73,8 +68,18 @@
 		if (!value) return;
 		saving = true;
 		try {
-			await setProviderKey(localStorage.token, provider.id, value);
-			toast.success($i18n.t('Clé enregistrée'));
+			// Le bridge auto-active ce fournisseur si aucun cerveau n'était encore actif
+			// (« poser sa clé = ça marche tout de suite »). On adapte le message en conséquence.
+			const r = await setProviderKey(localStorage.token, provider.id, value);
+			if (r?.activated) {
+				toast.success(
+					$i18n.t('Clé enregistrée — votre assistant tourne maintenant sur {{name}}', {
+						name: provider.label
+					})
+				);
+			} else {
+				toast.success($i18n.t('Clé enregistrée'));
+			}
 			value = '';
 			dispatch('changed');
 		} catch {
@@ -124,28 +129,9 @@
 		}
 	};
 
-	// --- Modèle actif (inline, pour providers connectés avec des modèles) ---
-	let chosenModel = '';
-	$: if (provider.state === 'active' && !chosenModel) {
-		chosenModel = activeModelId || provider.models?.[0]?.id || '';
-	}
-	let activating = false;
-
-	const activate = async () => {
-		const m = chosenModel || provider.models?.[0]?.id;
-		if (!m) return;
-		activating = true;
-		try {
-			await setActiveProvider(localStorage.token, provider.id, m);
-			toast.success($i18n.t('Modèle IA actif mis à jour'));
-			dispatch('changed');
-		} catch (e: any) {
-			if (e?.error?.code === 'not_configured') toast.error($i18n.t('Ce modèle IA n’est pas configuré'));
-			else toast.error($i18n.t('Échec de la mise à jour du modèle IA actif'));
-		} finally {
-			activating = false;
-		}
-	};
+	// Le choix du modèle actif (et le changement de cerveau) se fait dans le chat, via le
+	// sélecteur de cerveau — pas ici. La page « Modèles IA » sert à brancher les clés ;
+	// à l'enregistrement, le bridge auto-active le fournisseur (voir saveKey).
 </script>
 
 <div
@@ -357,31 +343,10 @@
 		</div>
 	{/if}
 
-	<!-- Choix du modèle + activation (providers connectés avec modèles) -->
-	{#if configured && (provider.models?.length ?? 0) > 0}
-		<div class="flex items-center gap-2 pt-2 border-t border-gray-100 dark:border-gray-850">
-			<select
-				class="flex-1 min-w-0 text-xs bg-transparent border border-gray-100 dark:border-gray-850 rounded-xl px-2 py-1.5 outline-none"
-				bind:value={chosenModel}
-			>
-				{#each provider.models ?? [] as m (m.id)}
-					<option value={m.id}>{m.label}</option>
-				{/each}
-			</select>
-			<button
-				type="button"
-				class="flex-none text-xs px-3 py-1.5 rounded-lg border border-gray-200 dark:border-gray-700 hover:bg-gray-100 dark:hover:bg-gray-850 transition disabled:opacity-40"
-				disabled={activating || provider.state === 'active'}
-				on:click={activate}
-			>
-				{#if activating}
-					<Spinner className="size-3.5" />
-				{:else if provider.state === 'active'}
-					{$i18n.t('Modèle IA actif')}
-				{:else}
-					{$i18n.t('Activer')}
-				{/if}
-			</button>
+	<!-- Une fois branché : rappel discret que le choix du modèle se fait dans le chat. -->
+	{#if provider.state === 'active'}
+		<div class="pt-2 border-t border-gray-100 dark:border-gray-850 text-xs text-gray-500">
+			{$i18n.t('Cerveau actif de votre assistant. Changez de modèle dans le chat, en haut à gauche.')}
 		</div>
 	{/if}
 	</div>
