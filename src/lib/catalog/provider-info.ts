@@ -353,7 +353,8 @@ export const PROVIDER_INFO: Record<string, ProviderInfo> = {
 		about: [
 			'Réutilise votre abonnement X, sans clé à saisir',
 			'Pratique si vous êtes déjà abonné'
-		]
+		],
+		usageUrl: 'https://grok.com/settings/usage'
 	},
 	'minimax-oauth': {
 		desc: 'MiniMax via votre compte.',
@@ -365,7 +366,8 @@ export const PROVIDER_INFO: Record<string, ProviderInfo> = {
 	},
 	nous: {
 		desc: 'Nous Portal — les modèles de Nous Research.',
-		about: ['Connexion par votre compte Nous', 'Modèles de la communauté Nous Research']
+		about: ['Connexion par votre compte Nous', 'Modèles de la communauté Nous Research'],
+		usageUrl: 'https://portal.nousresearch.com/manage-subscription'
 	},
 
 	// ── Local (sur votre machine) ─────────────────────────────
