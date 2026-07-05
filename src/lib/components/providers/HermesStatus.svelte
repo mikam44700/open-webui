@@ -13,6 +13,7 @@
 	import Spinner from '$lib/components/common/Spinner.svelte';
 	import ConfirmDialog from '$lib/components/common/ConfirmDialog.svelte';
 	import { WEBUI_BASE_URL } from '$lib/constants';
+	import { getProviderName } from '$lib/catalog/provider-info';
 	import { expertMode } from '$lib/stores';
 
 	let showUpdateConfirm = false;
@@ -35,6 +36,9 @@
 	$: chatOk = !!status?.api_server?.reachable;
 	// Rétrocompat : champ absent (bridge pas encore resync) => on ne déclenche pas l'alerte.
 	$: brainConnected = status?.brain_connected !== false;
+	// « auto » = le cerveau par défaut d'usine (openrouter sans clé) : il ne répond PAS.
+	// On ne doit donc pas afficher « opérationnel » tant qu'un vrai cerveau n'est pas activé.
+	$: activeIsAuto = status?.active?.provider_id === 'auto';
 	$: health = !engineOk
 		? {
 				tone: 'down',
@@ -53,11 +57,17 @@
 						title: 'Aucun modèle IA connecté',
 						sub: 'Connecte un compte ou une clé API pour que ton assistant puisse répondre.'
 					}
-				: {
-						tone: 'ok',
-						title: 'Votre assistant est opérationnel',
-						sub: 'Le moteur tourne et répond normalement.'
-					};
+				: activeIsAuto
+					? {
+							tone: 'warn',
+							title: 'Choisissez le cerveau de votre assistant',
+							sub: 'Aucun modèle IA n’est encore activé. Branchez une clé dans « Modèles IA » : votre assistant s’activera tout seul dessus.'
+						}
+					: {
+							tone: 'ok',
+							title: 'Votre assistant est opérationnel',
+							sub: 'Le moteur tourne et répond normalement.'
+						};
 	// Version lisible (ex. « v0.17.0 ») extraite de la chaîne technique complète.
 	$: versionShort = (() => {
 		const v = status?.version ?? '';
@@ -246,7 +256,9 @@
 			<span class="text-gray-500">{$i18n.t('Modèle IA')}</span>
 			{#if brainConnected}
 				<span class="font-medium text-right text-gray-900 dark:text-gray-100">
-					{status.active_provider_label ?? status.active?.provider_id ?? '—'}
+					{status.active?.provider_id
+						? getProviderName(status.active.provider_id, status.active_provider_label ?? status.active.provider_id)
+						: (status.active_provider_label ?? '—')}
 				</span>
 			{:else}
 				<span class="inline-flex items-center gap-1.5 text-xs font-medium text-red-600 dark:text-red-400">
