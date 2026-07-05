@@ -1,10 +1,11 @@
 <script lang="ts">
 	// Hero premium mettant en vedette Mike, le chef d'orchestre, en tête de la page Agents.
 	// Réutilise les briques hero existantes (hero-modern/mesh/grain, btn-premium, ActiveBadge)
-	// et les helpers d'avatar (gradientFor/initial). Cf. Avatar.md.
+	// et les helpers d'avatar (avatarColor/initial). Couleur signature Or doré (cf. avatar-colors.ts).
 	import { createEventDispatcher, getContext } from 'svelte';
 	import type { AgentTemplate } from './templates';
-	import { gradientFor, initial } from './utils';
+	import { initial } from './utils';
+	import { avatarColor } from './avatar-colors';
 	import ActiveBadge from '$lib/components/common/ActiveBadge.svelte';
 
 	const i18n = getContext('i18n');
@@ -23,13 +24,13 @@
 </script>
 
 <div
-	class="relative mt-4 mb-11 overflow-hidden rounded-3xl bg-gradient-to-br hero-modern ring-1 ring-inset ring-white/50 dark:ring-white/10 from-indigo-200/70 via-violet-100/50 to-purple-100/60 dark:from-indigo-900/30 dark:via-violet-900/20 dark:to-purple-900/20 min-h-[240px] sm:min-h-[320px]"
+	class="relative mt-4 mb-11 overflow-hidden rounded-3xl bg-gradient-to-br hero-modern ring-1 ring-inset ring-white/50 dark:ring-white/10 from-amber-200/70 via-orange-100/50 to-yellow-100/60 dark:from-amber-900/30 dark:via-orange-900/20 dark:to-yellow-900/20 min-h-[240px] sm:min-h-[320px]"
 >
 	<div
-		class="pointer-events-none absolute -right-10 top-1/2 h-56 w-56 -translate-y-1/2 rounded-full blur-3xl bg-indigo-400/30 dark:bg-indigo-500/20"
+		class="pointer-events-none absolute -right-10 top-1/2 h-56 w-56 -translate-y-1/2 rounded-full blur-3xl bg-amber-400/30 dark:bg-amber-500/20"
 	></div>
 	<div
-		class="pointer-events-none absolute -left-16 -top-12 h-44 w-44 rounded-full blur-3xl bg-violet-300/30 dark:bg-violet-500/10"
+		class="pointer-events-none absolute -left-16 -top-12 h-44 w-44 rounded-full blur-3xl bg-orange-300/30 dark:bg-orange-500/10"
 	></div>
 	<div class="hero-mesh pointer-events-none absolute inset-0"></div>
 	<div class="hero-grain pointer-events-none absolute inset-0"></div>
@@ -57,7 +58,7 @@
 		class="relative z-20 px-6 pb-7 pt-5 sm:px-9 sm:py-9 sm:pr-72 text-center sm:text-left flex flex-col justify-center min-h-[inherit]"
 	>
 		<div
-			class="text-[11px] font-semibold uppercase tracking-[0.14em] text-indigo-500/90 dark:text-indigo-300/90"
+			class="text-[11px] font-semibold uppercase tracking-[0.14em] text-amber-700/90 dark:text-amber-300/90"
 		>
 			{role || $i18n.t('Chef d’orchestre')}
 		</div>
@@ -71,7 +72,7 @@
 			{#if !showImage}
 				<div
 					class="ml-1 size-11 rounded-2xl flex items-center justify-center text-2xl text-white shadow-md ring-1 ring-white/50"
-					style="background-image: {gradientFor(tpl.id)}"
+					style="background-image: {avatarColor('mike').gradient}"
 				>
 					{tpl.emoji || initial(firstName)}
 				</div>
