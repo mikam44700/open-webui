@@ -45,8 +45,8 @@
 		{ key: 'api', label: 'Clés API', hint: 'Colle ta clé API, teste-la, puis enregistre.' },
 		{
 			key: 'multiagent',
-			label: 'Cerveaux combinés',
-			hint: 'Plusieurs cerveaux qui réfléchissent ensemble pour une meilleure réponse.'
+			label: 'Modèles IA combinés',
+			hint: 'Plusieurs modèles IA qui réfléchissent ensemble pour une meilleure réponse.'
 		},
 		{ key: 'local', label: 'Local', hint: 'Indique l’adresse de ton serveur local.' },
 		{ key: 'other', label: 'Autres', hint: 'Modèles IA à authentification externe (AWS, Copilot).' }
@@ -72,6 +72,12 @@
 	// Un fournisseur « Expert » n'est visible que si le mode Expert est actif (réactif).
 	// Un fournisseur « masqué » (service mort/discontinué) n'apparaît jamais, même en Expert.
 	$: canShow = (p: Provider) => !isHiddenProvider(p.id) && ($expertMode || !isExpertProvider(p.id));
+
+	// Modèle IA actif : y a-t-il au moins un fournisseur connecté ? + son nom LISIBLE
+	// (le label du fournisseur, jamais le slug technique « auto » / « openai-codex »).
+	$: brainConnected = providers.some((p) => p.state !== 'not_configured');
+	$: activeProviderLabel =
+		providers.find((p) => p.id === active?.provider_id)?.label ?? active?.provider_id ?? '';
 
 	// Onglets visibles : on retire « Cerveaux combinés » et « Autres » hors mode Expert.
 	$: visibleTabs = $expertMode ? TABS : TABS.filter((t) => !EXPERT_TABS.has(t.key));
@@ -151,12 +157,11 @@
 	{:else}
 		<!-- cerveau actif courant -->
 		<div class="mb-3 text-sm text-gray-600 dark:text-gray-400">
-			{#if active}
-				{$i18n.t('Cerveau actif')} :
-				<span class="font-medium text-gray-900 dark:text-gray-100">{active.provider_id}</span>
-				/ {active.model_id}
+			{#if brainConnected && active}
+				{$i18n.t('Modèle IA actif')} :
+				<span class="font-medium text-gray-900 dark:text-gray-100">{activeProviderLabel}</span>
 			{:else}
-				{$i18n.t('Aucun cerveau actif sélectionné')}
+				{$i18n.t('Aucun modèle IA connecté')}
 			{/if}
 		</div>
 
@@ -188,7 +193,7 @@
 				class="mb-4 rounded-2xl border border-gray-100 dark:border-gray-850 bg-gray-50/60 dark:bg-gray-850/40 p-4"
 			>
 				<div class="text-sm font-medium mb-1">
-					{$i18n.t('Plusieurs cerveaux, une meilleure réponse')}
+					{$i18n.t('Plusieurs modèles IA, une meilleure réponse')}
 				</div>
 				<p class="text-xs text-gray-600 dark:text-gray-400 leading-relaxed">
 					{$i18n.t(
@@ -208,7 +213,7 @@
 						<span class="flex-none mt-1 size-1 rounded-full bg-gray-400 dark:bg-gray-600"></span>
 						<span
 							>{$i18n.t(
-								'Mixture of Agents : tu choisis toi-même quels cerveaux (déjà connectés) combiner.'
+								'Mixture of Agents : tu choisis toi-même quels modèles IA (déjà connectés) combiner.'
 							)}</span
 						>
 					</li>

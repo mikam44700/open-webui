@@ -30,26 +30,33 @@
 	let updateLog = '';
 	let poller: ReturnType<typeof setInterval> | null = null;
 
-	// État de santé synthétique : moteur en ligne + connexion au chat active.
+	// État de santé synthétique : moteur en ligne + connexion au chat + un cerveau branché.
 	$: engineOk = !!status?.hermes_available;
 	$: chatOk = !!status?.api_server?.reachable;
-	$: health =
-		engineOk && chatOk
+	// Rétrocompat : champ absent (bridge pas encore resync) => on ne déclenche pas l'alerte.
+	$: brainConnected = status?.brain_connected !== false;
+	$: health = !engineOk
+		? {
+				tone: 'down',
+				title: 'Votre assistant est hors ligne',
+				sub: 'Le moteur ne répond pas pour le moment.'
+			}
+		: !chatOk
 			? {
-					tone: 'ok',
-					title: 'Votre assistant est opérationnel',
-					sub: 'Le moteur tourne et répond normalement.'
+					tone: 'warn',
+					title: 'Connexion au chat interrompue',
+					sub: 'Le moteur tourne, mais le lien avec le chat ne répond pas.'
 				}
-			: engineOk
+			: !brainConnected
 				? {
 						tone: 'warn',
-						title: 'Connexion au chat interrompue',
-						sub: 'Le moteur tourne, mais le lien avec le chat ne répond pas.'
+						title: 'Aucun modèle IA connecté',
+						sub: 'Connecte un compte ou une clé API pour que ton assistant puisse répondre.'
 					}
 				: {
-						tone: 'down',
-						title: 'Votre assistant est hors ligne',
-						sub: 'Le moteur ne répond pas pour le moment.'
+						tone: 'ok',
+						title: 'Votre assistant est opérationnel',
+						sub: 'Le moteur tourne et répond normalement.'
 					};
 	// Version lisible (ex. « v0.17.0 ») extraite de la chaîne technique complète.
 	$: versionShort = (() => {
@@ -238,7 +245,7 @@
 		<div class="flex items-center justify-between text-sm">
 			<span class="text-gray-500">{$i18n.t('Modèle utilisé')}</span>
 			<span class="font-medium text-right text-gray-900 dark:text-gray-100">
-				{#if status.active}{status.active.model_id}{:else}—{/if}
+				{#if brainConnected && status.active}{status.active.model_id}{:else}—{/if}
 			</span>
 		</div>
 
