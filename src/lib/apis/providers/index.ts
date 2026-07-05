@@ -317,6 +317,34 @@ export const getProviderOAuthStatus = async (token: string, providerId: string) 
 	return res;
 };
 
+// US3 — déconnecte un compte OAuth (retire les identifiants côté moteur Hermes).
+export const logoutProviderOAuth = async (token: string, providerId: string) => {
+	let error = null;
+
+	const res = await fetch(`${WEBUI_API_BASE_URL}/providers/${providerId}/oauth`, {
+		method: 'DELETE',
+		headers: {
+			'Content-Type': 'application/json',
+			Authorization: `Bearer ${token}`
+		}
+	})
+		.then(async (res) => {
+			if (!res.ok) throw await res.json();
+			return res.json();
+		})
+		.catch((err) => {
+			console.error(err);
+			error = err.detail ?? err;
+			return null;
+		});
+
+	if (error) {
+		throw error;
+	}
+
+	return res;
+};
+
 // Agent Hermes — helper générique pour les appels /hermes/*
 const hermesCall = async (token: string, method: string, path: string) => {
 	let error = null;

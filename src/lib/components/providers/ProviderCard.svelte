@@ -241,7 +241,11 @@
 	<div class="mt-auto flex flex-col gap-2.5">
 	<!-- Action de connexion selon la catégorie -->
 	{#if provider.category === 'oauth'}
-		<ProviderOAuth {provider} on:connected={() => dispatch('changed')} />
+		<ProviderOAuth
+			{provider}
+			on:connected={() => dispatch('changed')}
+			on:changed={() => dispatch('changed')}
+		/>
 		{#if info.usageUrl && provider.state !== 'not_configured'}
 			<a
 				href={info.usageUrl}

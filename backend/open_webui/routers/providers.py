@@ -140,6 +140,12 @@ async def oauth_status(provider_id: str, user=Depends(get_admin_user)):
     return await _bridge("GET", f"/oauth/{provider_id}/status")
 
 
+@router.delete("/{provider_id}/oauth")
+async def oauth_logout(provider_id: str, user=Depends(get_admin_user)):
+    """Déconnecte un compte OAuth (retire les identifiants côté moteur Hermes)."""
+    return await _bridge("DELETE", f"/oauth/{provider_id}")
+
+
 # --- Agent Hermes : statut + mise à jour --------------------------------------
 
 
