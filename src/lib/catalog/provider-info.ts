@@ -1,6 +1,7 @@
 // Infos « client » des fournisseurs de modèles IA (page Modèles IA) : phrase grise courte,
-// déroulant « Voir ce que ça fait », et lien « Obtenir la clé » (page officielle où récupérer
-// sa clé API). Clé = identifiant Hermes du fournisseur (source : bridge hermes_adapter).
+// déroulant « Voir ce que ça fait », lien « Obtenir la clé » (keyUrl : page officielle où
+// récupérer sa clé API) et lien « Voir mon usage » (usageUrl : page officielle du fournisseur
+// où voir son quota / sa consommation). Clé = identifiant Hermes du fournisseur (source : bridge hermes_adapter).
 // Un id absent retombe proprement (pas de desc dédiée, pas de lien).
 //
 // Règle rédaction (pour un dirigeant non-tech) : desc = 1 phrase « qui c'est + pour quoi »,
@@ -10,6 +11,7 @@ export type ProviderInfo = {
 	desc?: string;
 	about?: string[];
 	keyUrl?: string;
+	usageUrl?: string;
 };
 
 export const PROVIDER_INFO: Record<string, ProviderInfo> = {
@@ -27,7 +29,8 @@ export const PROVIDER_INFO: Record<string, ProviderInfo> = {
 		about: [
 			'Réutilise votre compte ChatGPT / Codex, sans nouvelle clé',
 			'Idéal si vous payez déjà OpenAI'
-		]
+		],
+		usageUrl: 'https://chatgpt.com/codex/cloud/settings/analytics'
 	},
 	anthropic: {
 		desc: 'Les modèles Claude d’Anthropic.',

@@ -242,6 +242,16 @@
 	<!-- Action de connexion selon la catégorie -->
 	{#if provider.category === 'oauth'}
 		<ProviderOAuth {provider} on:connected={() => dispatch('changed')} />
+		{#if info.usageUrl && provider.state !== 'not_configured'}
+			<a
+				href={info.usageUrl}
+				target="_blank"
+				rel="noopener"
+				class="self-start text-xs text-sky-600 dark:text-sky-400 hover:underline"
+			>
+				{$i18n.t('Voir mon usage')} ›
+			</a>
+		{/if}
 	{:else if provider.id === 'moa'}
 		<!-- Mixture of Agents : technique interne du moteur, AUCUNE clé propre —
 		     il combine les modèles déjà connectés. Pas de champ clé (ce serait trompeur). -->
