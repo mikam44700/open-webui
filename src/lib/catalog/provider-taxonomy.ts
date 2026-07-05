@@ -66,6 +66,21 @@ export const EXPERT_PROVIDER_IDS = new Set<string>([
 export const isExpertProvider = (id?: string | null): boolean =>
 	!!id && EXPERT_PROVIDER_IDS.has(id);
 
+/**
+ * Fournisseurs masqués TOTALEMENT (même en mode Expert) : service fermé / discontinué
+ * côté fournisseur, donc trompeur pour le client (connexion acceptée mais requêtes
+ * rejetées). Réversible — retirer l'id d'ici le réaffiche. Aucune fonction moteur retirée.
+ */
+export const HIDDEN_PROVIDER_IDS = new Set<string>([
+	// Qwen OAuth : free tier fermé par Alibaba le 2026-04-15 (login accepté mais 429).
+	// Remplacé par les clés `alibaba` / `alibaba-coding-plan`, qui restent visibles.
+	'qwen-oauth'
+]);
+
+/** Vrai si le fournisseur est masqué partout, y compris en mode Expert. */
+export const isHiddenProvider = (id?: string | null): boolean =>
+	!!id && HIDDEN_PROVIDER_IDS.has(id);
+
 /** Ordre officiel d'affichage des sections. */
 export const GROUP_ORDER: ProviderGroup[] = [
 	'grands-noms',

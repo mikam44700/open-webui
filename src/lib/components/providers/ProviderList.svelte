@@ -11,7 +11,8 @@
 	import {
 		groupProviders,
 		MULTIAGENT_IDS,
-		isExpertProvider
+		isExpertProvider,
+		isHiddenProvider
 	} from '$lib/catalog/provider-taxonomy';
 	import { expertMode } from '$lib/stores';
 
@@ -69,7 +70,8 @@
 	// combinés » et sont EXCLUS de « Clés API » (sinon doublon).
 	const inMulti = (p: Provider) => MULTIAGENT_IDS.has(p.id);
 	// Un fournisseur « Expert » n'est visible que si le mode Expert est actif (réactif).
-	$: canShow = (p: Provider) => $expertMode || !isExpertProvider(p.id);
+	// Un fournisseur « masqué » (service mort/discontinué) n'apparaît jamais, même en Expert.
+	$: canShow = (p: Provider) => !isHiddenProvider(p.id) && ($expertMode || !isExpertProvider(p.id));
 
 	// Onglets visibles : on retire « Cerveaux combinés » et « Autres » hors mode Expert.
 	$: visibleTabs = $expertMode ? TABS : TABS.filter((t) => !EXPERT_TABS.has(t.key));
