@@ -86,6 +86,7 @@
 				toast.success($i18n.t('Clé enregistrée'));
 			}
 			value = '';
+			replacing = false;
 			dispatch('changed');
 		} catch {
 			toast.error($i18n.t('Impossible d’enregistrer la clé'));
@@ -97,6 +98,9 @@
 	// Déconnexion d'une clé API : confirmation inline (rien ne s'efface sans un « oui »).
 	let confirmingDelete = false;
 	let deleting = false;
+	// « Remplacer la clé » : une fois connecté, la carte est calme ; on ne révèle le champ
+	// de saisie que si l'utilisateur veut remplacer sa clé (sinon rien à saisir).
+	let replacing = false;
 
 	const disconnect = async () => {
 		deleting = true;
@@ -280,63 +284,20 @@
 			)}
 		</div>
 	{:else if provider.category === 'api' || provider.category === 'local'}
-		<div class="flex items-center gap-2">
-			<input
-				class="flex-1 min-w-0 text-sm bg-transparent border border-gray-100 dark:border-gray-850 rounded-xl px-3 py-2 outline-none"
-				type={show ? 'text' : 'password'}
-				placeholder={configured ? '••••••••  ' + $i18n.t('(remplacer)') : provider.label + ' — ' + $i18n.t('clé API')}
-				bind:value
-				autocomplete="off"
-				on:keydown={(e) => e.key === 'Enter' && saveKey()}
-			/>
-			<button
-				type="button"
-				class="flex-none text-xs px-2 py-2 rounded-xl hover:bg-gray-100 dark:hover:bg-gray-850 transition"
-				on:click={() => (show = !show)}
-			>
-				{show ? $i18n.t('Masquer') : $i18n.t('Afficher')}
-			</button>
-		</div>
-		<div class="flex items-center justify-between gap-2">
-			{#if info.keyUrl}
-				<a
-					href={info.keyUrl}
-					target="_blank"
-					rel="noopener"
-					class="text-xs text-sky-600 dark:text-sky-400 hover:underline"
-				>
-					{$i18n.t('Obtenir la clé')} ›
-				</a>
-			{:else}
-				<span></span>
-			{/if}
-			<div class="flex items-center gap-2">
-				<button
-					type="button"
-					class="text-xs px-2 py-1 rounded-lg text-gray-500 hover:text-gray-800 dark:hover:text-gray-200 transition disabled:opacity-40"
-					disabled={!value || testing}
-					on:click={testKey}
-				>
-					{#if testing}<Spinner className="size-3.5" />{:else}{$i18n.t('Tester')}{/if}
-				</button>
-				<button
-					type="button"
-					class="text-xs px-3 py-1.5 rounded-lg btn-premium bg-black text-white dark:bg-white dark:text-black transition disabled:opacity-40"
-					disabled={!value || saving}
-					on:click={saveKey}
-				>
-					{#if saving}<Spinner className="size-3.5" />{:else}{$i18n.t('Enregistrer')}{/if}
-				</button>
+		{#if configured && !replacing}
+			<!-- Carte CALME (connectée) : on cache la mécanique, on montre juste l'état. -->
+			<div class="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-300">
+				<svg class="size-4 flex-none text-green-600 dark:text-green-500" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+					<path fill-rule="evenodd" d="M16.7 5.3a1 1 0 0 1 0 1.4l-7.5 7.5a1 1 0 0 1-1.4 0L3.3 10.7a1 1 0 1 1 1.4-1.4l3.1 3.1 6.8-6.8a1 1 0 0 1 1.4 0Z" clip-rule="evenodd" />
+				</svg>
+				<span>{$i18n.t('Clé connectée')}</span>
 			</div>
-		</div>
-		<!-- Déconnexion : n'apparaît que si une clé est déjà en place, avec confirmation inline. -->
-		{#if configured}
-			<div class="flex items-center justify-end gap-2">
+			<div class="flex items-center justify-end gap-3">
 				{#if confirmingDelete}
-					<span class="text-xs text-gray-500">{$i18n.t('Retirer cette clé ?')}</span>
+					<span class="text-xs text-gray-500 mr-auto">{$i18n.t('Retirer cette clé ?')}</span>
 					<button
 						type="button"
-						class="text-xs px-2 py-1 rounded-lg text-gray-500 hover:text-gray-800 dark:hover:text-gray-200 transition"
+						class="text-xs text-gray-500 hover:text-gray-800 dark:hover:text-gray-200 transition"
 						on:click={() => (confirmingDelete = false)}
 						disabled={deleting}
 					>
@@ -353,12 +314,90 @@
 				{:else}
 					<button
 						type="button"
+						class="text-xs text-sky-600 dark:text-sky-400 hover:underline"
+						on:click={() => {
+							replacing = true;
+							value = '';
+						}}
+					>
+						{$i18n.t('Remplacer la clé')}
+					</button>
+					<button
+						type="button"
 						class="text-xs text-gray-400 hover:text-red-600 dark:hover:text-red-400 transition"
 						on:click={() => (confirmingDelete = true)}
 					>
 						{$i18n.t('Déconnecter')}
 					</button>
 				{/if}
+			</div>
+		{:else}
+			<!-- Saisie : provider non connecté, OU on remplace une clé existante. -->
+			<div class="flex items-center gap-2">
+				<input
+					class="flex-1 min-w-0 text-sm bg-transparent border border-gray-100 dark:border-gray-850 rounded-xl px-3 py-2 outline-none"
+					type={show ? 'text' : 'password'}
+					placeholder={replacing
+						? $i18n.t('Coller la nouvelle clé')
+						: (info.name ?? provider.label) + ' — ' + $i18n.t('clé API')}
+					bind:value
+					autocomplete="off"
+					on:keydown={(e) => e.key === 'Enter' && saveKey()}
+				/>
+				<!-- Afficher : seulement s'il y a quelque chose à révéler (l'utilisateur tape). -->
+				{#if value}
+					<button
+						type="button"
+						class="flex-none text-xs px-2 py-2 rounded-xl hover:bg-gray-100 dark:hover:bg-gray-850 transition"
+						on:click={() => (show = !show)}
+					>
+						{show ? $i18n.t('Masquer') : $i18n.t('Afficher')}
+					</button>
+				{/if}
+			</div>
+			<div class="flex items-center justify-between gap-2">
+				{#if info.keyUrl}
+					<a
+						href={info.keyUrl}
+						target="_blank"
+						rel="noopener"
+						class="text-xs text-sky-600 dark:text-sky-400 hover:underline"
+					>
+						{$i18n.t('Obtenir la clé')} ›
+					</a>
+				{:else}
+					<span></span>
+				{/if}
+				<div class="flex items-center gap-2">
+					{#if replacing}
+						<button
+							type="button"
+							class="text-xs px-2 py-1 rounded-lg text-gray-500 hover:text-gray-800 dark:hover:text-gray-200 transition"
+							on:click={() => {
+								replacing = false;
+								value = '';
+							}}
+						>
+							{$i18n.t('Annuler')}
+						</button>
+					{/if}
+					<button
+						type="button"
+						class="text-xs px-2 py-1 rounded-lg text-gray-500 hover:text-gray-800 dark:hover:text-gray-200 transition disabled:opacity-40"
+						disabled={!value || testing}
+						on:click={testKey}
+					>
+						{#if testing}<Spinner className="size-3.5" />{:else}{$i18n.t('Tester')}{/if}
+					</button>
+					<button
+						type="button"
+						class="text-xs px-3 py-1.5 rounded-lg btn-premium bg-black text-white dark:bg-white dark:text-black transition disabled:opacity-40"
+						disabled={!value || saving}
+						on:click={saveKey}
+					>
+						{#if saving}<Spinner className="size-3.5" />{:else}{$i18n.t('Enregistrer')}{/if}
+					</button>
+				</div>
 			</div>
 		{/if}
 	{:else if provider.id === 'bedrock'}
