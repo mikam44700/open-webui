@@ -116,6 +116,12 @@ async def set_key(provider_id: str, body: KeyBody, user=Depends(get_admin_user))
     return await _bridge("PUT", f"/credentials/{provider_id}", json=body.model_dump())
 
 
+@router.delete("/{provider_id}/key")
+async def delete_key(provider_id: str, user=Depends(get_admin_user)):
+    """Retire la clé API d'un provider (bascule le cerveau actif si besoin)."""
+    return await _bridge("DELETE", f"/credentials/{provider_id}")
+
+
 @router.post("/{provider_id}/aws")
 async def set_aws(provider_id: str, body: AwsBody, user=Depends(get_admin_user)):
     """Enregistre les credentials AWS (Bedrock) — valeurs jamais renvoyées (FR-006)."""

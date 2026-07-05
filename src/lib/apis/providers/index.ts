@@ -199,6 +199,34 @@ export const setProviderKey = async (token: string, providerId: string, value: s
 	return res;
 };
 
+// Retire la clé API d'un provider (bascule le cerveau actif côté bridge si besoin).
+export const deleteProviderKey = async (token: string, providerId: string) => {
+	let error = null;
+
+	const res = await fetch(`${WEBUI_API_BASE_URL}/providers/${providerId}/key`, {
+		method: 'DELETE',
+		headers: {
+			'Content-Type': 'application/json',
+			Authorization: `Bearer ${token}`
+		}
+	})
+		.then(async (res) => {
+			if (!res.ok) throw await res.json();
+			return res.json();
+		})
+		.catch((err) => {
+			console.error(err);
+			error = err.detail ?? err;
+			return null;
+		});
+
+	if (error) {
+		throw error;
+	}
+
+	return res;
+};
+
 // Bedrock — enregistre les credentials AWS (Access Key + Secret + Région).
 export const setAwsCredentials = async (
 	token: string,

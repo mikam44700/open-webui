@@ -11,7 +11,12 @@
 	import { getProviderRegionFlag, getProviderRegionName } from '$lib/catalog/provider-taxonomy';
 	import { PROVIDER_INFO } from '$lib/catalog/provider-info';
 	import { PROVIDER_LOGO_FULL_BLEED } from '$lib/utils/providerLogos';
-	import { setProviderKey, validateProviderKey, setAwsCredentials } from '$lib/apis/providers';
+	import {
+		setProviderKey,
+		validateProviderKey,
+		setAwsCredentials,
+		deleteProviderKey
+	} from '$lib/apis/providers';
 
 	const i18n = getContext('i18n');
 	const dispatch = createEventDispatcher();
@@ -86,6 +91,30 @@
 			toast.error($i18n.t('Impossible d’enregistrer la clé'));
 		} finally {
 			saving = false;
+		}
+	};
+
+	// Déconnexion d'une clé API : confirmation inline (rien ne s'efface sans un « oui »).
+	let confirmingDelete = false;
+	let deleting = false;
+
+	const disconnect = async () => {
+		deleting = true;
+		try {
+			const r = await deleteProviderKey(localStorage.token, provider.id);
+			if (r?.switched?.provider_id && r.switched.provider_id !== 'auto') {
+				toast.success($i18n.t('Clé retirée — assistant basculé sur un autre modèle connecté'));
+			} else if (r?.switched) {
+				toast.success($i18n.t('Clé retirée — choisissez un nouveau cerveau'));
+			} else {
+				toast.success($i18n.t('Clé retirée'));
+			}
+			confirmingDelete = false;
+			dispatch('changed');
+		} catch {
+			toast.error($i18n.t('Impossible de retirer la clé'));
+		} finally {
+			deleting = false;
 		}
 	};
 
@@ -300,6 +329,38 @@
 				</button>
 			</div>
 		</div>
+		<!-- Déconnexion : n'apparaît que si une clé est déjà en place, avec confirmation inline. -->
+		{#if configured}
+			<div class="flex items-center justify-end gap-2">
+				{#if confirmingDelete}
+					<span class="text-xs text-gray-500">{$i18n.t('Retirer cette clé ?')}</span>
+					<button
+						type="button"
+						class="text-xs px-2 py-1 rounded-lg text-gray-500 hover:text-gray-800 dark:hover:text-gray-200 transition"
+						on:click={() => (confirmingDelete = false)}
+						disabled={deleting}
+					>
+						{$i18n.t('Annuler')}
+					</button>
+					<button
+						type="button"
+						class="text-xs px-3 py-1.5 rounded-lg bg-red-600 text-white hover:bg-red-700 transition disabled:opacity-40"
+						on:click={disconnect}
+						disabled={deleting}
+					>
+						{#if deleting}<Spinner className="size-3.5" />{:else}{$i18n.t('Confirmer')}{/if}
+					</button>
+				{:else}
+					<button
+						type="button"
+						class="text-xs text-gray-400 hover:text-red-600 dark:hover:text-red-400 transition"
+						on:click={() => (confirmingDelete = true)}
+					>
+						{$i18n.t('Déconnecter')}
+					</button>
+				{/if}
+			</div>
+		{/if}
 	{:else if provider.id === 'bedrock'}
 		<!-- AWS Bedrock : credentials AWS (lus par le SDK de Hermes) -->
 		<div class="flex flex-col gap-2">
