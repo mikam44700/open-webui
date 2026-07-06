@@ -48,7 +48,7 @@
 	const RECOMMENDED_MODEL: Record<string, string> = {
 		anthropic: 'claude-sonnet-4-6',
 		'openai-api': 'gpt-5.5',
-		gemini: 'gemini-2.5-flash',
+		gemini: 'gemini-3.5-flash',
 		mistral: 'mistral-large-latest',
 		deepseek: 'deepseek-v4-pro',
 		perplexity: 'sonar',

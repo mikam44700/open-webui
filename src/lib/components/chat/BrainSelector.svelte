@@ -32,6 +32,11 @@
 	let loading = true;
 	let unavailable = false;
 
+	// Sections pliables du menu (Fournisseur + Intelligence + Modèle). Ouvertes par défaut.
+	let providersOpen = true;
+	let intelligenceOpen = true;
+	let modelOpen = true;
+
 	// Le menu est rendu en position FIXE (calculée sous le bouton) pour échapper au
 	// conteneur `overflow-hidden` de la barre du chat, sinon il serait clippé/invisible.
 	let triggerEl: HTMLButtonElement;
@@ -89,7 +94,8 @@
 
 	// Type de sortie d'un modèle. models.dev (output_modalities) est souvent vide pour les
 	// modèles récents → repli par motif de nom (comme la table de secours des capacités).
-	// Un générateur d'image/vidéo N'EST PAS un cerveau de chat → grisé dans le sélecteur.
+	// Un générateur d'image/vidéo N'EST PAS un cerveau de chat : on ne le liste pas comme
+	// modèle sélectionnable, on l'annonce comme capacité (image/vidéo dans le chat).
 	const modelKind = (id: string): 'chat' | 'image' | 'video' => {
 		const s = (id || '').toLowerCase();
 		if (/imagine-video|(^|[-_])(video|veo|sora)([-_.]|$)/.test(s)) return 'video';
@@ -97,19 +103,22 @@
 			return 'image';
 		return 'chat';
 	};
-	const KIND_META: Record<string, { label: string; emoji: string }> = {
-		chat: { label: 'Conversation', emoji: '💬' },
-		image: { label: 'Image', emoji: '🎨' },
-		video: { label: 'Vidéo', emoji: '🎬' }
-	};
-	// Modèles du fournisseur actif, groupés par type (Conversation d'abord). Groupes vides masqués.
-	$: modelGroups = (['chat', 'image', 'video'] as const)
-		.map((k) => ({
-			kind: k,
-			meta: KIND_META[k],
-			items: (activeProvider?.models ?? []).filter((m) => modelKind(m.id) === k)
-		}))
-		.filter((g) => g.items.length > 0);
+	// Modèles de CONVERSATION du fournisseur actif, RECOMMANDÉ en tête (le reste garde son
+	// ordre : on ne devine pas la « puissance » depuis un nom, ça mentirait). Le curé porte
+	// un badge « Recommandé » — seul classement honnête et durable.
+	$: recommendedModelId = activeProvider ? defaultModelId(activeProvider) : undefined;
+	$: chatModels = (() => {
+		const items = (activeProvider?.models ?? []).filter((m) => modelKind(m.id) === 'chat');
+		if (!recommendedModelId) return items;
+		const rec = items.filter((m) => m.id === recommendedModelId);
+		const rest = items.filter((m) => m.id !== recommendedModelId);
+		return [...rec, ...rest];
+	})();
+	// Le fournisseur actif sait-il AUSSI générer images / vidéos ? On ne les liste pas comme
+	// des cerveaux (grisés = « cassé ») : on l'annonce comme une capacité, générable en
+	// langage naturel dans le chat (plugins). Cf. [[generation-image-video-chat]].
+	$: canGenImage = (activeProvider?.models ?? []).some((m) => modelKind(m.id) === 'image');
+	$: canGenVideo = (activeProvider?.models ?? []).some((m) => modelKind(m.id) === 'video');
 	$: activeLevel = LEVELS.find((l) => l.effort === effort) ?? null;
 	// On masque l'intelligence seulement si on SAIT que le modèle ne raisonne pas.
 	$: showIntelligence = !caps || caps.reasoning !== false;
@@ -183,7 +192,7 @@
 	const RECOMMENDED_MODEL: Record<string, string> = {
 		anthropic: 'claude-sonnet-4-6',
 		'openai-api': 'gpt-5.5',
-		gemini: 'gemini-2.5-flash',
+		gemini: 'gemini-3.5-flash',
 		mistral: 'mistral-large-latest',
 		deepseek: 'deepseek-v4-pro',
 		perplexity: 'sonar',
@@ -294,27 +303,71 @@
 				<!-- Switch fournisseur : bascule TOUTE la card (capacités + intelligence + modèles)
 				     sur l'autre fournisseur. Visible dès qu'au moins 2 sont connectés. -->
 				{#if connected.length > 1}
-					<div class="flex flex-wrap gap-1.5 border-t border-gray-100 px-2 pb-1 pt-2 dark:border-gray-800">
-						{#each connected as p (p.id)}
-							{@const isActive = active?.provider_id === p.id}
-							<button
-								type="button"
-								class="rounded-full px-2.5 py-1 text-xs font-medium transition {isActive
-									? 'bg-gray-900 text-white dark:bg-white dark:text-gray-900'
-									: 'bg-gray-100 text-gray-600 hover:bg-gray-200 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700'}"
-								on:click={() => switchProvider(p)}
-							>
-								{getProviderName(p.id, p.label)}
-							</button>
-						{/each}
-					</div>
+					<!-- Titre pliable : montre le fournisseur actif même replié -->
+					<button
+						type="button"
+						class="flex w-full items-center justify-between gap-2 border-t border-gray-100 px-2 pb-1 pt-2 text-[11px] font-semibold uppercase tracking-wider text-gray-400 transition hover:text-gray-600 dark:border-gray-800 dark:hover:text-gray-200"
+						on:click={() => (providersOpen = !providersOpen)}
+						aria-expanded={providersOpen}
+					>
+						<span class="flex min-w-0 items-center gap-1.5">
+							{$i18n.t('Changer de modèle IA')}
+							{#if activeProviderLabel}<span class="max-w-[9rem] truncate font-normal normal-case tracking-normal text-gray-400">· {activeProviderLabel}</span>{/if}
+						</span>
+						<svg
+							class="size-3.5 shrink-0 transition-transform {providersOpen ? 'rotate-180' : ''}"
+							viewBox="0 0 20 20"
+							fill="currentColor"
+							><path
+								fill-rule="evenodd"
+								d="M5.23 7.21a.75.75 0 011.06.02L10 11.17l3.71-3.94a.75.75 0 111.08 1.04l-4.25 4.5a.75.75 0 01-1.08 0l-4.25-4.5a.75.75 0 01.02-1.06z"
+								clip-rule="evenodd"
+							/></svg
+						>
+					</button>
+					{#if providersOpen}
+						<div class="flex flex-wrap gap-1.5 px-2 pb-1 pt-1.5">
+							{#each connected as p (p.id)}
+								{@const isActive = active?.provider_id === p.id}
+								<button
+									type="button"
+									class="rounded-full px-2.5 py-1 text-xs font-medium transition {isActive
+										? 'bg-gray-900 text-white dark:bg-white dark:text-gray-900'
+										: 'bg-gray-100 text-gray-600 hover:bg-gray-200 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700'}"
+									on:click={() => switchProvider(p)}
+								>
+									{getProviderName(p.id, p.label)}
+								</button>
+							{/each}
+						</div>
+					{/if}
 				{/if}
 
 				<!-- Intelligence : affichée seulement si le modèle sait raisonner -->
 				{#if showIntelligence}
-					<div class="border-t border-gray-100 dark:border-gray-800 px-2 pb-1 pt-2 text-[11px] font-semibold uppercase tracking-wider text-gray-400">
-						{$i18n.t('Intelligence')}
-					</div>
+					<!-- Titre pliable : montre le niveau courant même replié -->
+					<button
+						type="button"
+						class="flex w-full items-center justify-between gap-2 border-t border-gray-100 px-2 pb-1 pt-2 text-[11px] font-semibold uppercase tracking-wider text-gray-400 transition hover:text-gray-600 dark:border-gray-800 dark:hover:text-gray-200"
+						on:click={() => (intelligenceOpen = !intelligenceOpen)}
+						aria-expanded={intelligenceOpen}
+					>
+						<span class="flex items-center gap-1.5">
+							{$i18n.t('Intelligence')}
+							{#if activeLevel}<span class="normal-case font-normal tracking-normal text-gray-400">· {$i18n.t(activeLevel.label)}</span>{/if}
+						</span>
+						<svg
+							class="size-3.5 shrink-0 transition-transform {intelligenceOpen ? 'rotate-180' : ''}"
+							viewBox="0 0 20 20"
+							fill="currentColor"
+							><path
+								fill-rule="evenodd"
+								d="M5.23 7.21a.75.75 0 011.06.02L10 11.17l3.71-3.94a.75.75 0 111.08 1.04l-4.25 4.5a.75.75 0 01-1.08 0l-4.25-4.5a.75.75 0 01.02-1.06z"
+								clip-rule="evenodd"
+							/></svg
+						>
+					</button>
+					{#if intelligenceOpen}
 					{#each LEVELS as lvl (lvl.effort)}
 						{@const supported = !supportedEfforts || supportedEfforts.includes(lvl.effort)}
 						<button
@@ -347,63 +400,90 @@
 							{/if}
 						</button>
 					{/each}
+					{/if}
 				{:else}
 					<div class="border-t border-gray-100 dark:border-gray-800 px-2 py-2 text-[11px] text-gray-400">
 						{$i18n.t('Ce modèle ne gère pas les niveaux d’intelligence.')}
 					</div>
 				{/if}
 
-				<!-- Modèle -->
-				<div class="mt-2 border-t border-gray-100 dark:border-gray-800 px-2 pb-1 pt-2 text-[11px] font-semibold uppercase tracking-wider text-gray-400">
-					{$i18n.t('Modèle')}
-				</div>
-				{#if connected.length === 0}
-					<div class="px-2 py-2 text-[12px] text-gray-400">
-						{$i18n.t('Aucun modèle IA connecté. Connectez-en un dans « Modèles IA ».')}
-					</div>
-				{:else}
-					<!-- Modèles du fournisseur AUX COMMANDES (le switch en haut change ce fournisseur). -->
-					{#if activeProvider}
-						{#each modelGroups as g (g.kind)}
-							<!-- Sous-titre de catégorie (affiché seulement s'il y a plusieurs types). -->
-							{#if modelGroups.length > 1}
-								<div class="px-2 pb-0.5 pt-1.5 text-[10px] font-medium text-gray-400">
-									{g.meta.emoji} {$i18n.t(g.meta.label)}
-								</div>
-							{/if}
-							{#each g.items as m (m.id)}
-								{@const isActive = active?.model_id === m.id}
-								{@const selectable = g.kind === 'chat'}
-								<button
-									type="button"
-									role="menuitemradio"
-									aria-checked={isActive}
-									disabled={!selectable}
-									title={selectable
-										? ''
-										: g.kind === 'video'
-											? $i18n.t('Génération de vidéo — pas un modèle de conversation')
-											: $i18n.t('Génération d’image — pas un modèle de conversation')}
-									class="flex w-full items-center justify-between gap-2 rounded-lg px-2 py-1.5 text-left transition {!selectable
-										? 'cursor-not-allowed opacity-40'
-										: isActive
-											? 'bg-gray-100 dark:bg-gray-800'
-											: 'hover:bg-gray-50 dark:hover:bg-gray-850'}"
-									on:click={() => selectable && chooseModel(activeProvider.id, m.id)}
-								>
+				<!-- Modèle (pliable) : montre le modèle actif même replié -->
+				<button
+					type="button"
+					class="mt-2 flex w-full items-center justify-between gap-2 border-t border-gray-100 px-2 pb-1 pt-2 text-[11px] font-semibold uppercase tracking-wider text-gray-400 transition hover:text-gray-600 dark:border-gray-800 dark:hover:text-gray-200"
+					on:click={() => (modelOpen = !modelOpen)}
+					aria-expanded={modelOpen}
+				>
+					<span class="flex min-w-0 items-center gap-1.5">
+						{$i18n.t('Modèle')}
+						{#if hasBrain && activeModelLabel}<span class="max-w-[9rem] truncate font-normal normal-case tracking-normal text-gray-400">· {activeModelLabel}</span>{/if}
+					</span>
+					<svg
+						class="size-3.5 shrink-0 transition-transform {modelOpen ? 'rotate-180' : ''}"
+						viewBox="0 0 20 20"
+						fill="currentColor"
+						><path
+							fill-rule="evenodd"
+							d="M5.23 7.21a.75.75 0 011.06.02L10 11.17l3.71-3.94a.75.75 0 111.08 1.04l-4.25 4.5a.75.75 0 01-1.08 0l-4.25-4.5a.75.75 0 01.02-1.06z"
+							clip-rule="evenodd"
+						/></svg
+					>
+				</button>
+				{#if modelOpen}
+					{#if connected.length === 0}
+						<div class="px-2 py-2 text-[12px] text-gray-400">
+							{$i18n.t('Aucun modèle IA connecté. Connectez-en un dans « Modèles IA ».')}
+						</div>
+					{:else if activeProvider}
+						<!-- Modèles de CONVERSATION du fournisseur aux commandes, recommandé en tête. -->
+						{#each chatModels as m (m.id)}
+							{@const isActive = active?.model_id === m.id}
+							{@const isRecommended = m.id === recommendedModelId}
+							<button
+								type="button"
+								role="menuitemradio"
+								aria-checked={isActive}
+								class="flex w-full items-center justify-between gap-2 rounded-lg px-2 py-1.5 text-left transition {isActive
+									? 'bg-gray-100 dark:bg-gray-800'
+									: 'hover:bg-gray-50 dark:hover:bg-gray-850'}"
+								on:click={() => chooseModel(activeProvider.id, m.id)}
+							>
+								<span class="flex min-w-0 items-center gap-1.5">
 									<span class="truncate text-sm text-gray-900 dark:text-white">{m.label}</span>
-									{#if selectable && isActive}
-										<svg class="size-4 shrink-0 text-gray-900 dark:text-white" viewBox="0 0 20 20" fill="currentColor"
-											><path
-												fill-rule="evenodd"
-												d="M16.7 5.3a1 1 0 010 1.4l-7.5 7.5a1 1 0 01-1.4 0l-3.5-3.5a1 1 0 111.4-1.4l2.8 2.79 6.8-6.79a1 1 0 011.4 0z"
-												clip-rule="evenodd"
-											/></svg
-										>
+									{#if isRecommended}
+										<span class="shrink-0 rounded-full bg-gray-100 px-1.5 py-0.5 text-[9px] font-medium uppercase tracking-wide text-gray-500 dark:bg-gray-800 dark:text-gray-400">{$i18n.t('Recommandé')}</span>
 									{/if}
-								</button>
-							{/each}
+								</span>
+								{#if isActive}
+									<svg class="size-4 shrink-0 text-gray-900 dark:text-white" viewBox="0 0 20 20" fill="currentColor"
+										><path
+											fill-rule="evenodd"
+											d="M16.7 5.3a1 1 0 010 1.4l-7.5 7.5a1 1 0 01-1.4 0l-3.5-3.5a1 1 0 111.4-1.4l2.8 2.79 6.8-6.79a1 1 0 011.4 0z"
+											clip-rule="evenodd"
+										/></svg
+									>
+								{/if}
+							</button>
 						{/each}
+
+						<!-- Capacité (pas un cerveau sélectionnable) : image/vidéo se demandent dans le chat. -->
+						{#if canGenImage || canGenVideo}
+							<div class="mx-1 mt-1.5 rounded-lg bg-gray-50 px-2.5 py-2 dark:bg-gray-850">
+								<div class="text-[11px] leading-snug text-gray-500 dark:text-gray-400">
+									<span aria-hidden="true">✨</span>
+									{#if canGenImage && canGenVideo}
+										{$i18n.t('Ce modèle IA peut aussi créer des images et des vidéos.')}
+									{:else if canGenImage}
+										{$i18n.t('Ce modèle IA peut aussi créer des images.')}
+									{:else}
+										{$i18n.t('Ce modèle IA peut aussi créer des vidéos.')}
+									{/if}
+								</div>
+								<div class="mt-0.5 text-[10px] text-gray-400">
+									{$i18n.t('Demande-le simplement dans le chat.')}
+								</div>
+							</div>
+						{/if}
 					{/if}
 				{/if}
 			</div>

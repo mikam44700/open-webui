@@ -61,7 +61,7 @@ export const PROVIDER_INFO: Record<string, ProviderInfo> = {
 	mistral: {
 		desc: 'Mistral AI — le champion européen 🇪🇺.',
 		keyUrl: 'https://console.mistral.ai/api-keys',
-		usageUrl: 'https://console.mistral.ai/usage',
+		usageUrl: 'https://admin.mistral.ai/organization/usage',
 		about: [
 			'Modèles souverains, entreprise française',
 			'Bon rapport qualité/prix, à l’aise en français et en code'
