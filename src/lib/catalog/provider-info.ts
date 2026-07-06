@@ -199,10 +199,11 @@ export const PROVIDER_INFO: Record<string, ProviderInfo> = {
 		]
 	},
 	'ollama-cloud': {
-		desc: 'Ollama Cloud — vos modèles ouverts dans le cloud.',
+		desc: 'Ollama Cloud — des modèles ouverts hébergés, à essayer gratuitement.',
 		keyUrl: 'https://ollama.com/settings/keys',
 		about: [
 			'La simplicité d’Ollama, sans mobiliser votre machine',
+			'Palier gratuit pour tester ; certains modèles nécessitent un abonnement',
 			'Pour faire tourner des modèles ouverts à distance'
 		]
 	},
