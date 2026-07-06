@@ -57,14 +57,6 @@ export const PROVIDER_INFO: Record<string, ProviderInfo> = {
 			'Offre gratuite généreuse pour démarrer sans carte'
 		]
 	},
-	google: {
-		desc: 'Google AI Studio — les modèles Gemini.',
-		keyUrl: 'https://aistudio.google.com/app/apikey',
-		about: [
-			'Accès direct aux modèles Gemini de Google',
-			'Offre gratuite pour tester sans engagement'
-		]
-	},
 	mistral: {
 		desc: 'Mistral AI — le champion européen 🇪🇺.',
 		keyUrl: 'https://console.mistral.ai/api-keys',
