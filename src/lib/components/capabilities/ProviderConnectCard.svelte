@@ -192,6 +192,11 @@
 					class="text-[10px] px-1.5 py-0.5 rounded-full bg-sky-50 text-sky-600 dark:bg-sky-900/30 dark:text-sky-400"
 					>{$i18n.t('Clé enregistrée')}</span
 				>
+			{:else if providerStatus(provider) === 'key-active'}
+				<span
+					class="text-[10px] px-1.5 py-0.5 rounded-full bg-green-100 text-green-700 dark:bg-green-900/40 dark:text-green-400"
+					>{$i18n.t('Actif')}</span
+				>
 			{:else if providerStatus(provider) === 'detected'}
 				<span
 					class="text-[10px] px-1.5 py-0.5 rounded-full bg-green-100 text-green-700 dark:bg-green-900/40 dark:text-green-400"

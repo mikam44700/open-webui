@@ -62,6 +62,7 @@ export type Provider = {
 
 export type ProviderState =
 	| 'saved'
+	| 'key-active'
 	| 'detected'
 	| 'disconnected'
 	| 'active'
@@ -296,6 +297,7 @@ export const PROVIDER_SHORT: Record<string, string> = {
 
 // État affiché par fournisseur. On n'affirme QUE ce qu'on sait avec certitude :
 // - saved       : kind=key avec toutes ses clés saisies (saisie ≠ clé valide)
+// - key-active  : kind=key dont la clé est le search_backend RÉELLEMENT actif du moteur
 // - detected    : géré via compte/OAuth et réellement connecté
 // - disconnected: géré via compte/OAuth mais PAS connecté → action requise ailleurs
 // - active      : service en ligne sans clé, marche tout de suite
@@ -312,6 +314,12 @@ export const providerStatus = (p: Provider): ProviderState => {
 		// (toolsets non-web, ex. navigateur local) → comportement inchangé.
 		return p.active === false ? 'none' : 'active';
 	}
-	if (p.kind === 'key' && p.fields.length > 0 && p.fields.every((f) => f.present)) return 'saved';
+	if (p.kind === 'key' && p.fields.length > 0 && p.fields.every((f) => f.present)) {
+		// La clé est saisie. Si le moteur confirme que c'est LE backend web actif
+		// (active===true), on l'affirme (« Actif ») ; sinon on reste prudent
+		// (« Clé enregistrée ») — saisie ≠ backend courant. active===null (hors web)
+		// → comportement inchangé.
+		return p.active === true ? 'key-active' : 'saved';
+	}
 	return 'none';
 };
