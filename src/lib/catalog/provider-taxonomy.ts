@@ -74,7 +74,15 @@ export const isExpertProvider = (id?: string | null): boolean =>
 export const HIDDEN_PROVIDER_IDS = new Set<string>([
 	// Qwen OAuth : free tier fermé par Alibaba le 2026-04-15 (login accepté mais 429).
 	// Remplacé par les clés `alibaba` / `alibaba-coding-plan`, qui restent visibles.
-	'qwen-oauth'
+	'qwen-oauth',
+	// Perplexity Sonar : answer engine incompatible avec le chat agentique Hermes.
+	// Aucun modèle Sonar ne supporte le tool calling → HTTP 400 dès qu'un outil est
+	// actif (sonar ET sonar-reasoning-pro testés E2E le 2026-07-06, les deux plantent).
+	// Sa seule valeur (recherche web sourcée) fait doublon avec la recherche web NATIVE
+	// de Hermes (Tavily/Exa/Brave/DDG + web_extract), disponible sur tous les modèles
+	// agentiques. Masqué, pas supprimé : le plugin reste (réversible si Perplexity ouvre
+	// le tool calling un jour). Cf. commit dd877cf.
+	'perplexity'
 ]);
 
 /** Vrai si le fournisseur est masqué partout, y compris en mode Expert. */

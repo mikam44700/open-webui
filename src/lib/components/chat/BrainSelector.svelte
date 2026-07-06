@@ -17,6 +17,7 @@
 		getModelCapabilities
 	} from '$lib/apis/providers';
 	import { getProviderName } from '$lib/catalog/provider-info';
+	import { isHiddenProvider } from '$lib/catalog/provider-taxonomy';
 
 	const i18n = getContext('i18n');
 
@@ -71,7 +72,9 @@
 		supported_efforts?: string[] | null;
 	} | null = null;
 
-	$: connected = providers.filter((p) => p.state !== 'not_configured' && (p.models?.length ?? 0) > 0);
+	$: connected = providers.filter(
+		(p) => p.state !== 'not_configured' && (p.models?.length ?? 0) > 0 && !isHiddenProvider(p.id)
+	);
 	// Liste triée par ordre alphabétique (nom affiché) pour un menu net et prévisible.
 	$: connectedSorted = [...connected].sort((a, b) =>
 		getProviderName(a.id, a.label).localeCompare(getProviderName(b.id, b.label), 'fr')

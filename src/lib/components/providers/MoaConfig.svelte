@@ -9,6 +9,7 @@
 	import { getModelPresentation } from '$lib/catalog/model-badges';
 	import { PROVIDER_INFO } from '$lib/catalog/provider-info';
 	import { PROVIDER_LOGO_FULL_BLEED } from '$lib/utils/providerLogos';
+	import { isHiddenProvider } from '$lib/catalog/provider-taxonomy';
 	import { getMoaConfig, setMoaConfig, activateMoa, deactivateMoa } from '$lib/apis/moa-hermes';
 
 	const i18n = getContext('i18n');
@@ -28,7 +29,13 @@
 
 	// Cerveaux connectés = candidats. On exclut moa (récursion) et sakana (déjà multi-agents).
 	$: options = providers
-		.filter((p) => p.state !== 'not_configured' && p.id !== 'moa' && p.id !== 'sakana')
+		.filter(
+			(p) =>
+				p.state !== 'not_configured' &&
+				p.id !== 'moa' &&
+				p.id !== 'sakana' &&
+				!isHiddenProvider(p.id)
+		)
 		.map(
 			(p) => ({ provider: p.id, model: p.models?.[0]?.id ?? 'default', label: p.label }) as Opt
 		);
