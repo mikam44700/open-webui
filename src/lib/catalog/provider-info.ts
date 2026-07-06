@@ -52,6 +52,7 @@ export const PROVIDER_INFO: Record<string, ProviderInfo> = {
 		name: 'Gemini (Google)',
 		desc: 'Les modèles Gemini de Google (AI Studio).',
 		keyUrl: 'https://aistudio.google.com/app/apikey',
+		usageUrl: 'https://aistudio.google.com/usage',
 		about: [
 			'Rapides et multimodaux (texte, image, audio, vidéo)',
 			'Offre gratuite généreuse pour démarrer sans carte'
