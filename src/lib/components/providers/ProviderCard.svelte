@@ -51,7 +51,8 @@
 		gemini: 'gemini-2.5-flash',
 		mistral: 'mistral-large-latest',
 		deepseek: 'deepseek-v4-pro',
-		perplexity: 'sonar'
+		perplexity: 'sonar',
+		xai: 'grok-4.3'
 	};
 	$: repModelId = (() => {
 		const rec = RECOMMENDED_MODEL[provider.id];

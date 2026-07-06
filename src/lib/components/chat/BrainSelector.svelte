@@ -86,6 +86,30 @@
 		const m = activeProvider?.models?.find((mm) => mm.id === active.model_id);
 		return m?.label || active.model_id;
 	})();
+
+	// Type de sortie d'un modèle. models.dev (output_modalities) est souvent vide pour les
+	// modèles récents → repli par motif de nom (comme la table de secours des capacités).
+	// Un générateur d'image/vidéo N'EST PAS un cerveau de chat → grisé dans le sélecteur.
+	const modelKind = (id: string): 'chat' | 'image' | 'video' => {
+		const s = (id || '').toLowerCase();
+		if (/imagine-video|(^|[-_])(video|veo|sora)([-_.]|$)/.test(s)) return 'video';
+		if (/imagine-image|dall-?e|gpt-image|(^|[-_])flux|stable-?diffusion|sdxl|(^|[-_])image([-_.]|$)/.test(s))
+			return 'image';
+		return 'chat';
+	};
+	const KIND_META: Record<string, { label: string; emoji: string }> = {
+		chat: { label: 'Conversation', emoji: '💬' },
+		image: { label: 'Image', emoji: '🎨' },
+		video: { label: 'Vidéo', emoji: '🎬' }
+	};
+	// Modèles du fournisseur actif, groupés par type (Conversation d'abord). Groupes vides masqués.
+	$: modelGroups = (['chat', 'image', 'video'] as const)
+		.map((k) => ({
+			kind: k,
+			meta: KIND_META[k],
+			items: (activeProvider?.models ?? []).filter((m) => modelKind(m.id) === k)
+		}))
+		.filter((g) => g.items.length > 0);
 	$: activeLevel = LEVELS.find((l) => l.effort === effort) ?? null;
 	// On masque l'intelligence seulement si on SAIT que le modèle ne raisonne pas.
 	$: showIntelligence = !caps || caps.reasoning !== false;
@@ -162,7 +186,8 @@
 		gemini: 'gemini-2.5-flash',
 		mistral: 'mistral-large-latest',
 		deepseek: 'deepseek-v4-pro',
-		perplexity: 'sonar'
+		perplexity: 'sonar',
+		xai: 'grok-4.3'
 	};
 	const defaultModelId = (p: { id: string; models: { id: string }[] }): string | undefined => {
 		const rec = RECOMMENDED_MODEL[p.id];
@@ -339,28 +364,45 @@
 				{:else}
 					<!-- Modèles du fournisseur AUX COMMANDES (le switch en haut change ce fournisseur). -->
 					{#if activeProvider}
-						{#each activeProvider.models as m (m.id)}
-							{@const isActive = active?.model_id === m.id}
-							<button
-								type="button"
-								role="menuitemradio"
-								aria-checked={isActive}
-								class="flex w-full items-center justify-between gap-2 rounded-lg px-2 py-1.5 text-left transition {isActive
-									? 'bg-gray-100 dark:bg-gray-800'
-									: 'hover:bg-gray-50 dark:hover:bg-gray-850'}"
-								on:click={() => chooseModel(activeProvider.id, m.id)}
-							>
-								<span class="truncate text-sm text-gray-900 dark:text-white">{m.label}</span>
-								{#if isActive}
-									<svg class="size-4 shrink-0 text-gray-900 dark:text-white" viewBox="0 0 20 20" fill="currentColor"
-										><path
-											fill-rule="evenodd"
-											d="M16.7 5.3a1 1 0 010 1.4l-7.5 7.5a1 1 0 01-1.4 0l-3.5-3.5a1 1 0 111.4-1.4l2.8 2.79 6.8-6.79a1 1 0 011.4 0z"
-											clip-rule="evenodd"
-										/></svg
-									>
-								{/if}
-							</button>
+						{#each modelGroups as g (g.kind)}
+							<!-- Sous-titre de catégorie (affiché seulement s'il y a plusieurs types). -->
+							{#if modelGroups.length > 1}
+								<div class="px-2 pb-0.5 pt-1.5 text-[10px] font-medium text-gray-400">
+									{g.meta.emoji} {$i18n.t(g.meta.label)}
+								</div>
+							{/if}
+							{#each g.items as m (m.id)}
+								{@const isActive = active?.model_id === m.id}
+								{@const selectable = g.kind === 'chat'}
+								<button
+									type="button"
+									role="menuitemradio"
+									aria-checked={isActive}
+									disabled={!selectable}
+									title={selectable
+										? ''
+										: g.kind === 'video'
+											? $i18n.t('Génération de vidéo — pas un modèle de conversation')
+											: $i18n.t('Génération d’image — pas un modèle de conversation')}
+									class="flex w-full items-center justify-between gap-2 rounded-lg px-2 py-1.5 text-left transition {!selectable
+										? 'cursor-not-allowed opacity-40'
+										: isActive
+											? 'bg-gray-100 dark:bg-gray-800'
+											: 'hover:bg-gray-50 dark:hover:bg-gray-850'}"
+									on:click={() => selectable && chooseModel(activeProvider.id, m.id)}
+								>
+									<span class="truncate text-sm text-gray-900 dark:text-white">{m.label}</span>
+									{#if selectable && isActive}
+										<svg class="size-4 shrink-0 text-gray-900 dark:text-white" viewBox="0 0 20 20" fill="currentColor"
+											><path
+												fill-rule="evenodd"
+												d="M16.7 5.3a1 1 0 010 1.4l-7.5 7.5a1 1 0 01-1.4 0l-3.5-3.5a1 1 0 111.4-1.4l2.8 2.79 6.8-6.79a1 1 0 011.4 0z"
+												clip-rule="evenodd"
+											/></svg
+										>
+									{/if}
+								</button>
+							{/each}
 						{/each}
 					{/if}
 				{/if}
