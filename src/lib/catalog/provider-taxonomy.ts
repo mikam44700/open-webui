@@ -37,6 +37,8 @@ export const MULTIAGENT_IDS = new Set<string>(['sakana', 'moa']);
 export const EXPERT_PROVIDER_IDS = new Set<string>([
 	'copilot', // GitHub Copilot
 	'vertex', // Google Vertex
+	'nvidia', // NVIDIA NIM — free tier « pour tester » seulement (prod = NVIDIA AI Enterprise,
+	//            cher) + ~40 req/min + catalogue plein de fantômes. Réservé aux avertis.
 	'cohere', // Cohere
 	'kilocode', // Kilo Code
 	'opencode-zen', // OpenCode (Zen)
