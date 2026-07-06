@@ -498,6 +498,9 @@
 								</div>
 							</div>
 						{/if}
+						<!-- Liste scrollable dédiée : barre de scroll visible (256+ modèles), la
+						     barre de recherche au-dessus reste fixe. -->
+						<div class="max-h-[50vh] overflow-y-auto scrollbar-thin pr-1">
 						<!-- Modèles de CONVERSATION du fournisseur aux commandes, recommandé en tête. -->
 						{#each filteredModels as m (m.id)}
 							{@const isActive = active?.model_id === m.id}
@@ -534,6 +537,7 @@
 								{$i18n.t('Aucun modèle ne correspond à votre recherche.')}
 							</div>
 						{/if}
+						</div>
 
 						<!-- Capacité (pas un cerveau sélectionnable) : image/vidéo se demandent dans le chat. -->
 						{#if canGenImage || canGenVideo}
