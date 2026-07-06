@@ -10,8 +10,11 @@
 
 	import { WEBUI_BASE_URL } from '$lib/constants';
 	import { copyToClipboard, unescapeHtml } from '$lib/utils';
+	import { isVideoUrl } from '$lib/utils/render-image-urls';
+	import { downloadMedia } from '$lib/utils/download-media';
 
 	import Image from '$lib/components/common/Image.svelte';
+	import Download from '$lib/components/icons/Download.svelte';
 	import KatexRenderer from './KatexRenderer.svelte';
 	import Source from './Source.svelte';
 	import HtmlToken from './HTMLToken.svelte';
@@ -96,12 +99,34 @@
 			>
 		{/if}
 	{:else if token.type === 'image'}
-		<Image
-			src={token.href}
-			alt={token.text}
-			imageClassName="rounded-lg max-h-[28rem] w-auto max-w-full"
-			downloadable
-		/>
+		{#if isVideoUrl(token.href)}
+			<!-- Vidéo générée : lecteur intégré + bouton télécharger (via proxy). -->
+			<div class="relative group w-fit">
+				<!-- svelte-ignore a11y-media-has-caption -->
+				<video
+					src={token.href}
+					controls
+					playsinline
+					class="rounded-lg max-h-[28rem] max-w-full"
+				></video>
+				<button
+					type="button"
+					aria-label={$i18n.t('Télécharger la vidéo')}
+					title={$i18n.t('Télécharger')}
+					class="absolute top-2 right-2 p-1.5 rounded-lg bg-black/60 text-white backdrop-blur hover:bg-black/80 opacity-0 group-hover:opacity-100 transition"
+					on:click={() => downloadMedia(token.href)}
+				>
+					<Download className={'size-4'} />
+				</button>
+			</div>
+		{:else}
+			<Image
+				src={token.href}
+				alt={token.text}
+				imageClassName="rounded-lg max-h-[28rem] w-auto max-w-full"
+				downloadable
+			/>
+		{/if}
 	{:else if token.type === 'strong'}
 		<strong><svelte:self id={`${id}-strong`} tokens={token.tokens} {onSourceClick} /></strong>
 	{:else if token.type === 'em'}

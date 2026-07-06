@@ -92,6 +92,59 @@ async def download_chat_as_pdf(form_data: ChatTitleMessagesForm, user=Depends(ge
         raise HTTPException(status_code=400, detail=str(e))
 
 
+@router.get('/media/download')
+async def download_media(url: str, user=Depends(get_verified_user)):
+    """Proxy de téléchargement pour les médias générés (images/vidéos).
+
+    Les CDN des fournisseurs (ex. files-cdn.x.ai) bloquent le téléchargement direct
+    depuis le navigateur (CORS) → le bouton « télécharger » ouvrait juste un onglet.
+    On récupère le média côté serveur (même origine pour le front) et on le renvoie
+    avec ``Content-Disposition: attachment`` pour forcer un vrai téléchargement.
+
+    Garde-fous anti-SSRF : HTTPS uniquement, hôtes internes bloqués, et on ne renvoie
+    QUE des contenus image/* ou video/* (taille plafonnée)."""
+    import ipaddress
+    import socket
+    from urllib.parse import urlparse
+
+    import httpx
+
+    parsed = urlparse(url)
+    host = (parsed.hostname or '').lower()
+    if parsed.scheme != 'https' or not host:
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, detail='URL invalide')
+    # Bloque localhost / IP privées (SSRF).
+    try:
+        for info in socket.getaddrinfo(host, None):
+            ip = ipaddress.ip_address(info[4][0])
+            if ip.is_private or ip.is_loopback or ip.is_link_local or ip.is_reserved:
+                raise HTTPException(status.HTTP_400_BAD_REQUEST, detail='Hôte non autorisé')
+    except HTTPException:
+        raise
+    except Exception:
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, detail='Hôte injoignable')
+
+    try:
+        async with httpx.AsyncClient(timeout=60, follow_redirects=True) as client:
+            resp = await client.get(url)
+            resp.raise_for_status()
+    except Exception:
+        raise HTTPException(status.HTTP_502_BAD_GATEWAY, detail='Téléchargement impossible')
+
+    ctype = resp.headers.get('content-type', 'application/octet-stream').split(';')[0].strip()
+    if not (ctype.startswith('image/') or ctype.startswith('video/')):
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, detail='Type de média non autorisé')
+    if len(resp.content) > 200 * 1024 * 1024:  # 200 Mo de garde-fou
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, detail='Média trop volumineux')
+
+    filename = (parsed.path.rsplit('/', 1)[-1] or 'media').split('?')[0] or 'media'
+    return Response(
+        content=resp.content,
+        media_type=ctype,
+        headers={'Content-Disposition': f'attachment; filename="{filename}"'},
+    )
+
+
 @router.get('/db/download')
 async def download_db(user=Depends(get_admin_user)):
     """Download the raw SQLite database file (admin-only, SQLite deployments only)."""

@@ -1,8 +1,7 @@
 <script lang="ts">
 	import { WEBUI_BASE_URL } from '$lib/constants';
 	import { safeImageUrl } from '$lib/utils/safeImageUrl';
-	import fileSaver from 'file-saver';
-	const { saveAs } = fileSaver;
+	import { downloadMedia } from '$lib/utils/download-media';
 
 	import { settings } from '$lib/stores';
 	import ImagePreview from './ImagePreview.svelte';
@@ -31,15 +30,8 @@
 
 	const downloadImage = async (e) => {
 		e.stopPropagation();
-		try {
-			const res = await fetch(_src);
-			const blob = await res.blob();
-			const ext = (blob.type.split('/')[1] || 'png').split('+')[0];
-			saveAs(blob, `image-${Date.now()}.${ext}`);
-		} catch {
-			// CORS ou réseau : repli qui laisse l'utilisateur enregistrer manuellement.
-			window.open(_src, '_blank');
-		}
+		// Passe par le proxy backend (contourne le blocage CORS des CDN de génération).
+		await downloadMedia(_src);
 	};
 </script>
 
