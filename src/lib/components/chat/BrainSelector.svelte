@@ -79,6 +79,13 @@
 	// « Mixture of Agents »), pas le modèle technique (« gpt-5.5 »). Repli sur l'id du modèle
 	// si le fournisseur n'a pas de label (ex. mode « auto »).
 	$: activeBrainName = !active ? '' : activeProviderLabel || active.model_id;
+	// Nom du modèle exact (technique, ex. « gemini-3.1-pro-preview ») affiché en second,
+	// discret, sous le nom lisible du fournisseur. Repli sur l'id si pas de label.
+	$: activeModelLabel = (() => {
+		if (!active) return '';
+		const m = activeProvider?.models?.find((mm) => mm.id === active.model_id);
+		return m?.label || active.model_id;
+	})();
 	$: activeLevel = LEVELS.find((l) => l.effort === effort) ?? null;
 	// On masque l'intelligence seulement si on SAIT que le modèle ne raisonne pas.
 	$: showIntelligence = !caps || caps.reasoning !== false;
@@ -194,15 +201,22 @@
 			aria-haspopup="menu"
 			aria-expanded={open}
 		>
-			<span class="font-medium text-gray-900 dark:text-white truncate">
-				{loading ? $i18n.t('Chargement…') : hasBrain ? activeBrainName : $i18n.t('Aucun modèle IA')}
+			<span class="flex min-w-0 flex-col text-left leading-tight">
+				<span class="flex items-center gap-1.5">
+					<span class="font-medium text-gray-900 dark:text-white truncate">
+						{loading ? $i18n.t('Chargement…') : hasBrain ? activeBrainName : $i18n.t('Aucun modèle IA')}
+					</span>
+					{#if activeLevel}
+						<span
+							class="hidden sm:inline text-[11px] text-gray-400 dark:text-gray-500 whitespace-nowrap"
+							>· {$i18n.t(activeLevel.label)}</span
+						>
+					{/if}
+				</span>
+				{#if hasBrain && activeModelLabel}
+					<span class="truncate text-[10px] text-gray-400 dark:text-gray-500">{activeModelLabel}</span>
+				{/if}
 			</span>
-			{#if activeLevel}
-				<span
-					class="hidden sm:inline text-[11px] text-gray-400 dark:text-gray-500 whitespace-nowrap"
-					>· {$i18n.t(activeLevel.label)}</span
-				>
-			{/if}
 			<svg class="size-3.5 text-gray-400 shrink-0" viewBox="0 0 20 20" fill="currentColor"
 				><path
 					fill-rule="evenodd"
