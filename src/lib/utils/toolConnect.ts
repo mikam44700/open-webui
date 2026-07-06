@@ -57,6 +57,7 @@ export type Provider = {
 	advanced?: boolean;
 	category?: string | null;
 	connected?: boolean | null;
+	active?: boolean | null; // web : ce fournisseur est-il le search_backend réellement actif ?
 };
 
 export type ProviderState =
@@ -306,7 +307,10 @@ export const providerStatus = (p: Provider): ProviderState => {
 		if (p.slug && LOCAL_SLUGS.has(p.slug)) return 'local';
 		if (p.connected === true) return 'detected';
 		if (p.connected === false) return 'disconnected';
-		return 'active';
+		// « Actif » honnête (toolset web) : on ne démote QUE sur active===false explicite
+		// — le fournisseur n'est pas le search_backend courant du moteur. active===null
+		// (toolsets non-web, ex. navigateur local) → comportement inchangé.
+		return p.active === false ? 'none' : 'active';
 	}
 	if (p.kind === 'key' && p.fields.length > 0 && p.fields.every((f) => f.present)) return 'saved';
 	return 'none';
