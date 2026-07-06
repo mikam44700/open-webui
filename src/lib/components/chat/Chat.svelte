@@ -498,11 +498,16 @@
 				const data = event?.data?.data ?? null;
 
 				if (type === 'status') {
-					if (message?.statusHistory) {
-						message.statusHistory.push(data);
+					// Fusionne les deux temps d'une même étape (running → completed, même
+					// `id`) en une seule ligne, au lieu d'empiler deux entrées identiques.
+					const history = message?.statusHistory ?? [];
+					const idx = data?.id ? history.findIndex((s) => s?.id === data.id) : -1;
+					if (idx >= 0) {
+						history[idx] = data;
 					} else {
-						message.statusHistory = [data];
+						history.push(data);
 					}
+					message.statusHistory = history;
 				} else if (type === 'chat:completion') {
 					chatCompletionEventHandler(data, message, event.chat_id);
 				} else if (type === 'chat:tasks:cancel') {

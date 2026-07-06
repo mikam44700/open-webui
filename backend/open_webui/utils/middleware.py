@@ -76,6 +76,7 @@ from open_webui.utils.access_control import has_connection_access, has_permissio
 from open_webui.utils.access_control.files import get_accessible_folder_files
 from open_webui.utils.chat import generate_chat_completion
 from open_webui.utils.code_interpreter import execute_code_jupyter
+from open_webui.utils.hermes_tool_labels import humanize_tool_progress
 from open_webui.utils.files import (
     convert_markdown_base64_images,
     get_file_url_from_base64,
@@ -3937,6 +3938,9 @@ async def streaming_chat_response_handler(response, ctx):
                     # ses étapes de travail via « event: hermes.tool.progress »), pour
                     # traduire la ligne « data: » suivante en statut affiché en direct.
                     pending_sse_event = None
+                    # Phrase humanisée mémorisée par toolCallId au « running » : le
+                    # « completed » ne renvoie pas le label → on réutilise la phrase.
+                    tool_progress_labels: dict = {}
 
                     async def flush_pending_delta_data(threshold: int = 0):
                         nonlocal delta_count
@@ -3990,11 +3994,22 @@ async def streaming_chat_response_handler(response, ctx):
                                 if isinstance(data, dict) and not getattr(
                                     request.state, 'direct', False
                                 ):
-                                    label = (
-                                        data.get('label') or data.get('tool') or ''
-                                    ).strip()
-                                    emoji = (data.get('emoji') or '').strip()
-                                    description = f'{emoji} {label}'.strip()
+                                    tool = (data.get('tool') or '').strip()
+                                    call_id = data.get('toolCallId') or tool
+                                    done = data.get('status') == 'completed'
+                                    # Traduction FR lisible (hermes_tool_labels). Le
+                                    # « completed » ne porte pas le label → on réutilise la
+                                    # phrase mémorisée au « running » (repli sans contexte
+                                    # sinon). `id` permet au front de fusionner running→done.
+                                    if done:
+                                        description = tool_progress_labels.get(
+                                            call_id
+                                        ) or humanize_tool_progress(tool)
+                                    else:
+                                        description = humanize_tool_progress(
+                                            tool, data.get('label') or ''
+                                        )
+                                        tool_progress_labels[call_id] = description
                                     if description:
                                         await event_emitter(
                                             {
@@ -4002,8 +4017,8 @@ async def streaming_chat_response_handler(response, ctx):
                                                 'data': {
                                                     'action': 'hermes_tool',
                                                     'description': description,
-                                                    'done': data.get('status')
-                                                    == 'completed',
+                                                    'done': done,
+                                                    'id': call_id,
                                                 },
                                             }
                                         )
