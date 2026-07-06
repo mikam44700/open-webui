@@ -68,6 +68,7 @@
 		displayFileHandler
 	} from '$lib/utils';
 	import { AudioQueue } from '$lib/utils/audio';
+	import { persistGeneratedMedia } from '$lib/utils/persist-generated-media';
 
 	import {
 		archiveChatById,
@@ -1867,6 +1868,10 @@
 		if (done) {
 			message.done = true;
 
+			// Rapatrie les médias générés chez nous (liens CDN expirables) puis réécrit
+			// l'URL du message. Fire-and-forget : ne bloque pas l'affichage de la réponse.
+			persistGeneratedMediaForMessage(chatId, message.id);
+
 			if ($settings.responseAutoCopy) {
 				copyToClipboard(message.content);
 			}
@@ -2839,6 +2844,27 @@
 		await tick();
 
 		return _chatId;
+	};
+
+	// Une fois la réponse terminée, rapatrie les médias GÉNÉRÉS (images/vidéos) dans notre
+	// stockage pour que leur lien n'expire jamais, puis réécrit l'URL du message et re-sauve
+	// le chat. Fire-and-forget : ne bloque pas l'affichage. Repli gracieux : si le
+	// rapatriement échoue, le contenu reste inchangé (l'util renvoie l'original).
+	const persistGeneratedMediaForMessage = async (cid, messageId) => {
+		try {
+			const msg = history.messages[messageId];
+			if (!msg?.content) return;
+			const rewritten = await persistGeneratedMedia(msg.content);
+			if (rewritten === msg.content) return; // rien à rapatrier
+			const current = history.messages[messageId];
+			if (!current) return;
+			current.content = rewritten;
+			history.messages[messageId] = current;
+			history = history;
+			await saveChatHandler(cid, history);
+		} catch (e) {
+			console.error('persistGeneratedMedia failed', e);
+		}
 	};
 
 	const saveChatHandler = async (_chatId, history) => {

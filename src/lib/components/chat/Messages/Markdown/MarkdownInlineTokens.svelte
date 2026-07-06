@@ -119,6 +119,9 @@
 					<Download className={'size-4'} />
 				</button>
 			</div>
+			<div class="text-xs text-gray-400 dark:text-gray-500 mt-1">
+				Conservée 30 jours · télécharge pour la garder
+			</div>
 		{:else}
 			<Image
 				src={token.href}

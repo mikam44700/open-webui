@@ -9,8 +9,12 @@ const { saveAs } = fileSaver;
 // Repli : ouverture dans un onglet si le proxy échoue.
 export const downloadMedia = async (url: string): Promise<void> => {
 	try {
-		const proxied = `${WEBUI_API_BASE_URL}/utils/media/download?url=${encodeURIComponent(url)}`;
-		const res = await fetch(proxied, {
+		// Média déjà rapatrié chez nous (même origine) → téléchargement direct, sans proxy.
+		const isLocal = url.startsWith('/api/') || url.startsWith(`${WEBUI_API_BASE_URL}`);
+		const target = isLocal
+			? url
+			: `${WEBUI_API_BASE_URL}/utils/media/download?url=${encodeURIComponent(url)}`;
+		const res = await fetch(target, {
 			headers: { Authorization: `Bearer ${localStorage.token}` }
 		});
 		if (!res.ok) throw new Error('proxy download failed');

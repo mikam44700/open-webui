@@ -228,6 +228,15 @@ AZURE_STORAGE_KEY = os.getenv('AZURE_STORAGE_KEY', None)
 UPLOAD_DIR = DATA_DIR / 'uploads'
 UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
 
+# Rétention des médias GÉNÉRÉS (images/vidéos rapatriés depuis les CDN expirables).
+# Ils sont conservés ce nombre de jours puis retirés automatiquement (comportement
+# « Snapchat » : télécharge pour garder), afin de borner le stockage. 0 = on garde tout.
+# Ne concerne QUE les médias marqués generated_media (jamais les uploads/documents).
+try:
+    GENERATED_MEDIA_RETENTION_DAYS = int(os.environ.get('GENERATED_MEDIA_RETENTION_DAYS', '30'))
+except ValueError:
+    GENERATED_MEDIA_RETENTION_DAYS = 30
+
 
 ####################################
 # Cache DIR
