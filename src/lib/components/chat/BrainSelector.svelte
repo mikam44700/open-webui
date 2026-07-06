@@ -206,7 +206,7 @@
 					<span class="font-medium text-gray-900 dark:text-white truncate">
 						{loading ? $i18n.t('Chargement…') : hasBrain ? activeBrainName : $i18n.t('Aucun modèle IA')}
 					</span>
-					{#if activeLevel}
+					{#if activeLevel && showIntelligence}
 						<span
 							class="hidden sm:inline text-[11px] text-gray-400 dark:text-gray-500 whitespace-nowrap"
 							>· {$i18n.t(activeLevel.label)}</span
