@@ -88,7 +88,7 @@ export const PROVIDER_INFO: Record<string, ProviderInfo> = {
 		name: 'Grok (xAI)',
 		desc: 'Les modèles Grok de xAI (l’IA d’Elon Musk).',
 		keyUrl: 'https://console.x.ai',
-		usageUrl: 'https://console.x.ai',
+		usageUrl: 'https://console.x.ai/team/default/usage',
 		about: [
 			'Ton direct, à l’aise avec l’actualité et la culture web',
 			'Recherche web en temps réel intégrée'
