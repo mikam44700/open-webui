@@ -61,6 +61,9 @@
 		vision: boolean | null;
 		tools: boolean | null;
 		context_window: number | null;
+		// Niveaux d'intelligence réellement honorés par le fournisseur actif (le reste est
+		// grisé). Absent/null = inconnu → on autorise tout (repli gracieux).
+		supported_efforts?: string[] | null;
 	} | null = null;
 
 	$: connected = providers.filter((p) => p.state !== 'not_configured' && (p.models?.length ?? 0) > 0);
@@ -79,6 +82,8 @@
 	$: activeLevel = LEVELS.find((l) => l.effort === effort) ?? null;
 	// On masque l'intelligence seulement si on SAIT que le modèle ne raisonne pas.
 	$: showIntelligence = !caps || caps.reasoning !== false;
+	// Niveaux honorés par le modèle actif ; null = inconnu → tout autorisé (repli gracieux).
+	$: supportedEfforts = caps?.supported_efforts ?? null;
 
 	const ctxLabel = (n: number | null | undefined) => {
 		if (!n) return '';
@@ -94,6 +99,13 @@
 		}
 		try {
 			caps = await getModelCapabilities(localStorage.token, active.provider_id, active.model_id);
+			// Sécurité : si le niveau global actif n'est pas honoré par ce modèle (ex.
+			// « Maximum »/xhigh alors qu'on bascule sur Gemini), on retombe automatiquement
+			// sur le plus poussé qu'il accepte — sinon le chat pourrait planter ou l'ignorer.
+			const ok = caps?.supported_efforts;
+			if (ok && ok.length && !ok.includes(effort)) {
+				await chooseLevel(ok[ok.length - 1]);
+			}
 		} catch {
 			caps = null;
 		}
@@ -265,21 +277,27 @@
 						{$i18n.t('Intelligence')}
 					</div>
 					{#each LEVELS as lvl (lvl.effort)}
+						{@const supported = !supportedEfforts || supportedEfforts.includes(lvl.effort)}
 						<button
 							type="button"
 							role="menuitemradio"
 							aria-checked={effort === lvl.effort}
-							class="flex w-full items-center justify-between gap-2 rounded-lg px-2 py-1.5 text-left transition {effort ===
-							lvl.effort
-								? 'bg-gray-100 dark:bg-gray-800'
-								: 'hover:bg-gray-50 dark:hover:bg-gray-850'}"
-							on:click={() => chooseLevel(lvl.effort)}
+							disabled={!supported}
+							title={supported ? '' : $i18n.t('Ce modèle ne propose pas ce niveau')}
+							class="flex w-full items-center justify-between gap-2 rounded-lg px-2 py-1.5 text-left transition {!supported
+								? 'cursor-not-allowed opacity-40'
+								: effort === lvl.effort
+									? 'bg-gray-100 dark:bg-gray-800'
+									: 'hover:bg-gray-50 dark:hover:bg-gray-850'}"
+							on:click={() => supported && chooseLevel(lvl.effort)}
 						>
 							<span class="min-w-0">
 								<span class="block text-sm text-gray-900 dark:text-white">{$i18n.t(lvl.label)}</span>
-								<span class="block text-[11px] text-gray-400">{$i18n.t(lvl.desc)}</span>
+								<span class="block text-[11px] text-gray-400"
+									>{supported ? $i18n.t(lvl.desc) : $i18n.t('Non proposé par ce modèle')}</span
+								>
 							</span>
-							{#if effort === lvl.effort}
+							{#if supported && effort === lvl.effort}
 								<svg class="size-4 shrink-0 text-gray-900 dark:text-white" viewBox="0 0 20 20" fill="currentColor"
 									><path
 										fill-rule="evenodd"
