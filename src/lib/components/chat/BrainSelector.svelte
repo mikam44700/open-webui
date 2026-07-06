@@ -72,6 +72,10 @@
 	} | null = null;
 
 	$: connected = providers.filter((p) => p.state !== 'not_configured' && (p.models?.length ?? 0) > 0);
+	// Liste triée par ordre alphabétique (nom affiché) pour un menu net et prévisible.
+	$: connectedSorted = [...connected].sort((a, b) =>
+		getProviderName(a.id, a.label).localeCompare(getProviderName(b.id, b.label), 'fr')
+	);
 	// Fournisseur actuellement aux commandes (sa card complète est affichée dans le menu).
 	$: activeProvider = connected.find((p) => p.id === active?.provider_id) ?? connected[0] ?? null;
 	$: activeProviderLabel = (() => {
@@ -272,7 +276,7 @@
 			<div
 				role="menu"
 				style="{menuStyle} -webkit-app-region: no-drag;"
-				class="fixed z-50 w-72 max-h-[70vh] overflow-y-auto rounded-2xl border border-gray-100 bg-white p-2 shadow-xl dark:border-gray-800 dark:bg-gray-900 scrollbar-hidden"
+				class="fixed z-50 w-96 max-h-[70vh] overflow-y-auto rounded-2xl border border-gray-100 bg-white p-2 shadow-xl dark:border-gray-800 dark:bg-gray-900 scrollbar-hidden"
 			>
 				<!-- En-tête : modèle actif + ses capacités (le menu s'adapte à CE modèle) -->
 				<div class="px-2 pb-2 pt-1">
@@ -311,7 +315,7 @@
 						aria-expanded={providersOpen}
 					>
 						<span class="flex min-w-0 items-center gap-1.5">
-							{$i18n.t('Changer de modèle IA')}
+							<span class="whitespace-nowrap">{$i18n.t('Changer de modèle IA')}</span>
 							{#if activeProviderLabel}<span class="max-w-[9rem] truncate font-normal normal-case tracking-normal text-gray-400">· {activeProviderLabel}</span>{/if}
 						</span>
 						<svg
@@ -326,17 +330,31 @@
 						>
 					</button>
 					{#if providersOpen}
-						<div class="flex flex-wrap gap-1.5 px-2 pb-1 pt-1.5">
-							{#each connected as p (p.id)}
+						<div class="px-2 pb-1 pt-1">
+							{#each connectedSorted as p (p.id)}
 								{@const isActive = active?.provider_id === p.id}
 								<button
 									type="button"
-									class="rounded-full px-2.5 py-1 text-xs font-medium transition {isActive
-										? 'bg-gray-900 text-white dark:bg-white dark:text-gray-900'
-										: 'bg-gray-100 text-gray-600 hover:bg-gray-200 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700'}"
+									role="menuitemradio"
+									aria-checked={isActive}
+									class="flex w-full items-center justify-between gap-2 rounded-lg px-2 py-1.5 text-left transition {isActive
+										? 'bg-gray-100 dark:bg-gray-800'
+										: 'hover:bg-gray-50 dark:hover:bg-gray-850'}"
 									on:click={() => switchProvider(p)}
 								>
-									{getProviderName(p.id, p.label)}
+									<span class="flex min-w-0 items-center gap-1.5">
+										<span class="shrink-0 text-gray-300 dark:text-gray-600" aria-hidden="true">·</span>
+										<span class="truncate text-sm text-gray-900 dark:text-white">{getProviderName(p.id, p.label)}</span>
+									</span>
+									{#if isActive}
+										<svg class="size-4 shrink-0 text-gray-900 dark:text-white" viewBox="0 0 20 20" fill="currentColor"
+											><path
+												fill-rule="evenodd"
+												d="M16.7 5.3a1 1 0 010 1.4l-7.5 7.5a1 1 0 01-1.4 0l-3.5-3.5a1 1 0 111.4-1.4l2.8 2.79 6.8-6.79a1 1 0 011.4 0z"
+												clip-rule="evenodd"
+											/></svg
+										>
+									{/if}
 								</button>
 							{/each}
 						</div>
@@ -449,6 +467,7 @@
 								on:click={() => chooseModel(activeProvider.id, m.id)}
 							>
 								<span class="flex min-w-0 items-center gap-1.5">
+									<span class="shrink-0 text-gray-300 dark:text-gray-600" aria-hidden="true">·</span>
 									<span class="truncate text-sm text-gray-900 dark:text-white">{m.label}</span>
 									{#if isRecommended}
 										<span class="shrink-0 rounded-full bg-gray-100 px-1.5 py-0.5 text-[9px] font-medium uppercase tracking-wide text-gray-500 dark:bg-gray-800 dark:text-gray-400">{$i18n.t('Recommandé')}</span>
