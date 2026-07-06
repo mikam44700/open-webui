@@ -14,7 +14,8 @@
 		setProviderKey,
 		validateProviderKey,
 		setAwsCredentials,
-		deleteProviderKey
+		deleteProviderKey,
+		getModelCapabilities
 	} from '$lib/apis/providers';
 
 	const i18n = getContext('i18n');
@@ -40,6 +41,47 @@
 	// Origine / juridiction du fournisseur (souveraineté) — drapeau + nom au survol.
 	$: regionFlag = getProviderRegionFlag(provider.id);
 	$: regionName = getProviderRegionName(provider.id);
+
+	// Capacités affichées sur la carte (Raisonnement/Vision/Outils/contexte), tirées du
+	// modèle PRINCIPAL du fournisseur (le recommandé qui s'active par défaut, sinon le
+	// 1er exposé). Même source que le sélecteur du chat → cohérent et honnête.
+	const RECOMMENDED_MODEL: Record<string, string> = {
+		anthropic: 'claude-sonnet-4-6',
+		'openai-api': 'gpt-5.5',
+		gemini: 'gemini-2.5-flash',
+		mistral: 'mistral-large-latest',
+		deepseek: 'deepseek-v4-pro',
+		perplexity: 'sonar'
+	};
+	$: repModelId = (() => {
+		const rec = RECOMMENDED_MODEL[provider.id];
+		if (rec && provider.models?.some((m) => m.id === rec)) return rec;
+		return provider.models?.[0]?.id;
+	})();
+	let caps: {
+		reasoning?: boolean | null;
+		vision?: boolean | null;
+		tools?: boolean | null;
+		context_window?: number | null;
+	} | null = null;
+	let capsFor = '';
+	const loadCaps = async (mid: string) => {
+		try {
+			caps = await getModelCapabilities(localStorage.token, provider.id, mid);
+		} catch {
+			caps = null;
+		}
+	};
+	$: if (repModelId && repModelId !== capsFor) {
+		capsFor = repModelId;
+		void loadCaps(repModelId);
+	}
+	const ctxLabel = (n: number | null | undefined) => {
+		if (!n) return '';
+		if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(n % 1_000_000 ? 1 : 0)}M`;
+		if (n >= 1000) return `${Math.round(n / 1000)}k`;
+		return `${n}`;
+	};
 	let aboutOpen = false;
 	// La plupart des logos sont en PNG ; seuls ces quelques-uns restent en SVG.
 	const SVG_LOGOS = new Set(['api']);
@@ -211,6 +253,37 @@
 					>{$i18n.t(b)}</span
 				>
 			{/each}
+		</div>
+	{/if}
+
+	<!-- Capacités du modèle principal (Raisonnement/Vision/Outils/contexte). Même source
+	     que le chat → honnête. Emoji pour distinguer des badges métier ci-dessus. -->
+	{#if caps && (caps.reasoning || caps.vision || caps.tools || caps.context_window)}
+		<div class="flex flex-wrap gap-1">
+			{#if caps.reasoning}
+				<span
+					class="text-[10px] px-1.5 py-0.5 rounded-md bg-sky-50 text-sky-700 dark:bg-sky-900/30 dark:text-sky-300"
+					>🧠 {$i18n.t('Raisonnement')}</span
+				>
+			{/if}
+			{#if caps.vision}
+				<span
+					class="text-[10px] px-1.5 py-0.5 rounded-md bg-sky-50 text-sky-700 dark:bg-sky-900/30 dark:text-sky-300"
+					>👁️ {$i18n.t('Vision')}</span
+				>
+			{/if}
+			{#if caps.tools}
+				<span
+					class="text-[10px] px-1.5 py-0.5 rounded-md bg-sky-50 text-sky-700 dark:bg-sky-900/30 dark:text-sky-300"
+					>🔧 {$i18n.t('Outils')}</span
+				>
+			{/if}
+			{#if caps.context_window}
+				<span
+					class="text-[10px] px-1.5 py-0.5 rounded-md bg-sky-50 text-sky-700 dark:bg-sky-900/30 dark:text-sky-300"
+					>📏 {ctxLabel(caps.context_window)} {$i18n.t('contexte')}</span
+				>
+			{/if}
 		</div>
 	{/if}
 

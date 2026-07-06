@@ -161,7 +161,7 @@
 		'openai-api': 'gpt-5.5',
 		gemini: 'gemini-2.5-flash',
 		mistral: 'mistral-large-latest',
-		deepseek: 'deepseek-chat',
+		deepseek: 'deepseek-v4-pro',
 		perplexity: 'sonar'
 	};
 	const defaultModelId = (p: { id: string; models: { id: string }[] }): string | undefined => {
