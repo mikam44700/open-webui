@@ -38,6 +38,11 @@
 	let intelligenceOpen = true;
 	let modelOpen = true;
 
+	// Recherche de modèle : indispensable pour les passerelles (OpenRouter expose 256+
+	// modèles). La barre n'apparaît qu'au-delà d'un seuil (inutile pour 3-5 modèles).
+	let modelQuery = '';
+	const MODEL_SEARCH_THRESHOLD = 12;
+
 	// Le menu est rendu en position FIXE (calculée sous le bouton) pour échapper au
 	// conteneur `overflow-hidden` de la barre du chat, sinon il serait clippé/invisible.
 	let triggerEl: HTMLButtonElement;
@@ -120,6 +125,16 @@
 		const rec = items.filter((m) => m.id === recommendedModelId);
 		const rest = items.filter((m) => m.id !== recommendedModelId);
 		return [...rec, ...rest];
+	})();
+	// Barre de recherche affichée seulement si le fournisseur a beaucoup de modèles.
+	$: showModelSearch = chatModels.length > MODEL_SEARCH_THRESHOLD;
+	// Filtre typeahead : cherche dans le nom lisible ET l'id technique (« gpt », « llama »…).
+	$: filteredModels = (() => {
+		const q = modelQuery.trim().toLowerCase();
+		if (!q) return chatModels;
+		return chatModels.filter(
+			(m) => m.label.toLowerCase().includes(q) || m.id.toLowerCase().includes(q)
+		);
 	})();
 	// Le fournisseur actif sait-il AUSSI générer images / vidéos ? On ne les liste pas comme
 	// des cerveaux (grisés = « cassé ») : on l'annonce comme une capacité, générable en
@@ -212,6 +227,7 @@
 	};
 	const switchProvider = (p: { id: string; models: { id: string }[] }) => {
 		if (p.id === active?.provider_id) return; // déjà aux commandes
+		modelQuery = ''; // change de fournisseur => on repart d'une recherche vierge
 		const mid = defaultModelId(p);
 		if (mid) chooseModel(p.id, mid);
 	};
@@ -456,8 +472,34 @@
 							{$i18n.t('Aucun modèle IA connecté. Connectez-en un dans « Modèles IA ».')}
 						</div>
 					{:else if activeProvider}
+						<!-- Passerelles (OpenRouter, 256+ modèles) : barre de recherche pour ne pas
+						     noyer le dirigeant. Grands noms visibles par défaut, le reste à la demande. -->
+						{#if showModelSearch}
+							<div class="px-1 pb-1.5 pt-1">
+								<div class="relative">
+									<svg
+										class="pointer-events-none absolute left-2.5 top-1/2 size-3.5 -translate-y-1/2 text-gray-400"
+										viewBox="0 0 20 20"
+										fill="currentColor"
+										aria-hidden="true"
+										><path
+											fill-rule="evenodd"
+											d="M9 3.5a5.5 5.5 0 100 11 5.5 5.5 0 000-11zM2 9a7 7 0 1112.45 4.39l3.08 3.08a1 1 0 01-1.42 1.42l-3.08-3.08A7 7 0 012 9z"
+											clip-rule="evenodd"
+										/></svg
+									>
+									<input
+										type="text"
+										bind:value={modelQuery}
+										placeholder={$i18n.t('Rechercher un modèle…')}
+										aria-label={$i18n.t('Rechercher un modèle')}
+										class="w-full rounded-lg border border-gray-200 bg-gray-50 py-1.5 pl-8 pr-2 text-sm text-gray-900 placeholder:text-gray-400 focus:border-gray-400 focus:outline-none dark:border-gray-800 dark:bg-gray-850 dark:text-white"
+									/>
+								</div>
+							</div>
+						{/if}
 						<!-- Modèles de CONVERSATION du fournisseur aux commandes, recommandé en tête. -->
-						{#each chatModels as m (m.id)}
+						{#each filteredModels as m (m.id)}
 							{@const isActive = active?.model_id === m.id}
 							{@const isRecommended = m.id === recommendedModelId}
 							<button
@@ -487,6 +529,11 @@
 								{/if}
 							</button>
 						{/each}
+						{#if showModelSearch && filteredModels.length === 0}
+							<div class="px-2 py-2 text-[12px] text-gray-400">
+								{$i18n.t('Aucun modèle ne correspond à votre recherche.')}
+							</div>
+						{/if}
 
 						<!-- Capacité (pas un cerveau sélectionnable) : image/vidéo se demandent dans le chat. -->
 						{#if canGenImage || canGenVideo}
