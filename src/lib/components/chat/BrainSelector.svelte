@@ -139,8 +139,15 @@
 	// Le fournisseur actif sait-il AUSSI générer images / vidéos ? On ne les liste pas comme
 	// des cerveaux (grisés = « cassé ») : on l'annonce comme une capacité, générable en
 	// langage naturel dans le chat (plugins). Cf. [[generation-image-video-chat]].
-	$: canGenImage = (activeProvider?.models ?? []).some((m) => modelKind(m.id) === 'image');
-	$: canGenVideo = (activeProvider?.models ?? []).some((m) => modelKind(m.id) === 'video');
+	// EXCLUSION : les passerelles (OpenRouter) exposent des modèles image/vidéo dans leur
+	// catalogue, mais notre pipeline de génération n'est branché que sur les plugins natifs
+	// (xAI). Annoncer la capacité ici serait TROMPEUR (le client ne pourrait pas générer).
+	const GEN_MEDIA_UNSUPPORTED = new Set(['openrouter']);
+	$: genMediaSupported = !GEN_MEDIA_UNSUPPORTED.has(activeProvider?.id ?? '');
+	$: canGenImage =
+		genMediaSupported && (activeProvider?.models ?? []).some((m) => modelKind(m.id) === 'image');
+	$: canGenVideo =
+		genMediaSupported && (activeProvider?.models ?? []).some((m) => modelKind(m.id) === 'video');
 	$: activeLevel = LEVELS.find((l) => l.effort === effort) ?? null;
 	// On masque l'intelligence seulement si on SAIT que le modèle ne raisonne pas.
 	$: showIntelligence = !caps || caps.reasoning !== false;
