@@ -162,6 +162,11 @@
 		try {
 			const r = await validateProviderKey(localStorage.token, provider.id, value);
 			if (r?.valid) toast.success($i18n.t('Clé valide'));
+			else if (r?.reason === 'no_credit')
+				// La clé est bonne, il manque juste du crédit chez le fournisseur.
+				toast.warning(
+					$i18n.t('Clé valide, mais compte sans crédit — ajoutez du crédit chez le fournisseur pour l’utiliser.')
+				);
 			else toast.error($i18n.t('Clé invalide') + (r?.reason ? ` (${r.reason})` : ''));
 		} catch {
 			toast.error($i18n.t('Impossible de tester la clé'));
