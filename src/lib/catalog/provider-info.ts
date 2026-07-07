@@ -311,6 +311,7 @@ export const PROVIDER_INFO: Record<string, ProviderInfo> = {
 	'kimi-coding': {
 		desc: 'Kimi (Moonshot) — champion du contexte long.',
 		keyUrl: 'https://platform.moonshot.ai/console/api-keys',
+		usageUrl: 'https://platform.moonshot.ai/console/usage',
 		about: [
 			'Avale des documents entiers d’un seul coup',
 			'Aussi disponible en abonnement mensuel : « Kimi Code »'
@@ -319,6 +320,7 @@ export const PROVIDER_INFO: Record<string, ProviderInfo> = {
 	'kimi-coding-cn': {
 		desc: 'Kimi (Moonshot) — accès depuis la Chine.',
 		keyUrl: 'https://platform.moonshot.cn/console/api-keys',
+		usageUrl: 'https://platform.moonshot.cn/console/usage',
 		about: [
 			'Les mêmes modèles Kimi, serveurs en Chine',
 			'Très grande fenêtre de contexte',
@@ -327,7 +329,8 @@ export const PROVIDER_INFO: Record<string, ProviderInfo> = {
 	},
 	minimax: {
 		desc: 'MiniMax — IA de conversation, aussi voix et vidéo.',
-		keyUrl: 'https://www.minimax.io/platform',
+		keyUrl: 'https://platform.minimax.io/user-center/basic-information/interface-key',
+		usageUrl: 'https://platform.minimax.io/console/recharge-records',
 		about: [
 			'Modèle de chat (LLM), en plus voix et vidéo',
 			'Économique'
@@ -371,7 +374,7 @@ export const PROVIDER_INFO: Record<string, ProviderInfo> = {
 	'minimax-oauth': {
 		desc: 'MiniMax via votre compte.',
 		about: ['Connexion par compte, sans clé à saisir', 'Multimodal (texte + audio)'],
-		usageUrl: 'https://platform.minimax.io/user-center/payment/balance'
+		usageUrl: 'https://platform.minimax.io/console/usage'
 	},
 	'qwen-oauth': {
 		desc: 'Qwen via votre compte (Portal).',
