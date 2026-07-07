@@ -328,12 +328,13 @@ export const PROVIDER_INFO: Record<string, ProviderInfo> = {
 		]
 	},
 	minimax: {
-		desc: 'MiniMax — IA de conversation, aussi voix et vidéo.',
+		desc: 'MiniMax — paiement à l’usage (chat, voix, vidéo).',
 		keyUrl: 'https://platform.minimax.io/user-center/basic-information/interface-key',
 		usageUrl: 'https://platform.minimax.io/console/recharge-records',
 		about: [
+			'Paiement à l’usage, sans engagement (recharge min. 25 $)',
 			'Modèle de chat (LLM), en plus voix et vidéo',
-			'Économique'
+			'M3 : très longue mémoire (1M) et vision'
 		]
 	},
 	'minimax-cn': {
@@ -372,8 +373,12 @@ export const PROVIDER_INFO: Record<string, ProviderInfo> = {
 		usageUrl: 'https://grok.com/settings/usage'
 	},
 	'minimax-oauth': {
-		desc: 'MiniMax via votre compte.',
-		about: ['Connexion par compte, sans clé à saisir', 'Multimodal (texte + audio)'],
+		desc: 'MiniMax par abonnement (Token Plan) — essai gratuit.',
+		about: [
+			'Connexion en 1 clic, sans clé à saisir',
+			'Abonnement mensuel ou credits (Token Plan)',
+			'Multimodal (texte + audio)'
+		],
 		usageUrl: 'https://platform.minimax.io/console/usage'
 	},
 	'qwen-oauth': {
