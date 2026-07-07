@@ -201,6 +201,7 @@ export const PROVIDER_INFO: Record<string, ProviderInfo> = {
 	'ollama-cloud': {
 		desc: 'Ollama Cloud — des modèles ouverts hébergés, à essayer gratuitement.',
 		keyUrl: 'https://ollama.com/settings/keys',
+		usageUrl: 'https://ollama.com/settings',
 		about: [
 			'La simplicité d’Ollama, sans mobiliser votre machine',
 			'Palier gratuit pour tester ; certains modèles nécessitent un abonnement',
@@ -300,6 +301,7 @@ export const PROVIDER_INFO: Record<string, ProviderInfo> = {
 	zai: {
 		desc: 'Z.AI — les modèles GLM (Zhipu AI).',
 		keyUrl: 'https://z.ai/manage-apikey/apikey-list',
+		usageUrl: 'https://z.ai/manage-apikey/billing',
 		about: [
 			'Bons généralistes, forts en chinois et en code',
 			'Rapport qualité/prix intéressant',

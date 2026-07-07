@@ -52,7 +52,8 @@
 		mistral: 'mistral-large-latest',
 		deepseek: 'deepseek-v4-pro',
 		perplexity: 'sonar',
-		xai: 'grok-4.3'
+		xai: 'grok-4.3',
+		'ollama-cloud': 'gpt-oss:120b'
 	};
 	$: repModelId = (() => {
 		const rec = RECOMMENDED_MODEL[provider.id];
