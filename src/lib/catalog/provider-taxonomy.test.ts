@@ -43,9 +43,11 @@ const API_PROVIDER_IDS = [
 ];
 
 describe('provider-taxonomy', () => {
-	it('classe chacun des 30 fournisseurs « api » dans un groupe (aucun oublié)', () => {
+	it('classe chacun des fournisseurs « api » dans un groupe, sauf azure-foundry (volontairement en « Autres »)', () => {
+		// azure-foundry : provider entreprise « sur-mesure » (ressource Azure + endpoint +
+		// déploiements requis) rangé délibérément dans « Autres » → seul api-provider sans groupe.
 		const unclassified = API_PROVIDER_IDS.filter((id) => getProviderGroup(id) === null);
-		expect(unclassified).toEqual([]);
+		expect(unclassified).toEqual(['azure-foundry']);
 	});
 
 	it('donne une région à tous les fournisseurs « api » (custom = 🌍, pas un pays)', () => {
@@ -67,11 +69,11 @@ describe('provider-taxonomy', () => {
 		expect(getProviderRegion('deepseek')).toBe('cn');
 	});
 
-	it('regroupe dans l’ordre officiel des sections', () => {
+	it('regroupe dans l’ordre officiel des sections, puis « Autres » (azure-foundry) en fin', () => {
 		const groups = groupProviders(API_PROVIDER_IDS.map((id) => ({ id })));
 		const keys = groups.map((g) => g.key);
-		// L'ordre doit suivre GROUP_ORDER (aucun groupe vide ici : les 5 sont peuplés).
-		expect(keys).toEqual([...GROUP_ORDER]);
+		// Les 5 groupes officiels dans l'ordre GROUP_ORDER, puis « autres » (azure-foundry) en dernier.
+		expect(keys).toEqual([...GROUP_ORDER, 'autres']);
 	});
 
 	it('ne perd aucun fournisseur au regroupement', () => {

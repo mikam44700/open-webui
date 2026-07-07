@@ -84,7 +84,21 @@ export const HIDDEN_PROVIDER_IDS = new Set<string>([
 	// de Hermes (Tavily/Exa/Brave/DDG + web_extract), disponible sur tous les modèles
 	// agentiques. Masqué, pas supprimé : le plugin reste (réversible si Perplexity ouvre
 	// le tool calling un jour). Cf. commit dd877cf.
-	'perplexity'
+	'perplexity',
+	// Google Vertex AI : mêmes modèles Gemini que la carte `gemini` (clé AI Studio simple),
+	// mais auth « entreprise » Google Cloud (compte de service JSON + project_id + region +
+	// facturation GCP) → inaccessible à un dirigeant non-tech, et redondant. La carte
+	// affichait en plus un champ « clé API » qui ne peut pas fonctionner (Vertex n'a pas de
+	// clé API) + 0 modèle listé. Masqué, pas supprimé (moteur v0.18 le supporte : réversible
+	// le jour où un vrai client entreprise déjà sur GCP le réclame — cf. agent/vertex_adapter.py).
+	'vertex',
+	// GitHub Copilot : pas de vraie clé API — auth = token GitHub / device flow OAuth +
+	// abonnement Copilot mensuel personnel. Trop complexe pour la cible non-tech (décision
+	// 2026-07-07 : le « bouton magique » OAuth envisagé est abandonné). Masqué, pas supprimé
+	// (moteur le supporte : réversible). `copilot-acp` (cas technique, login CLI machine)
+	// masqué aussi pour ne laisser aucune trace Copilot à l'écran.
+	'copilot',
+	'copilot-acp'
 ]);
 
 /** Vrai si le fournisseur est masqué partout, y compris en mode Expert. */
@@ -133,7 +147,8 @@ const GROUP_BY_ID: Record<string, ProviderGroup> = {
 	'ollama-cloud': 'hebergement',
 	arcee: 'hebergement',
 	gmi: 'hebergement',
-	'azure-foundry': 'hebergement',
+	// azure-foundry : volontairement HORS groupe → tombe dans « Autres » (provider entreprise
+	// « sur-mesure » : nécessite ressource Azure + endpoint + déploiements, pas un hébergeur clé-en-main).
 	groq: 'hebergement',
 	cerebras: 'hebergement',
 	together: 'hebergement',

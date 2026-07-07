@@ -97,6 +97,7 @@ export const PROVIDER_INFO: Record<string, ProviderInfo> = {
 	cohere: {
 		desc: 'Cohere — spécialiste entreprise et documents.',
 		keyUrl: 'https://dashboard.cohere.com/api-keys',
+		usageUrl: 'https://dashboard.cohere.com/billing',
 		about: [
 			'Fort pour interroger VOS documents (recherche intelligente)',
 			'Modèles Command, pensés pour le monde pro'
@@ -151,6 +152,7 @@ export const PROVIDER_INFO: Record<string, ProviderInfo> = {
 	kilocode: {
 		desc: 'Kilo Code — passerelle multi-modèles pour le code.',
 		keyUrl: 'https://app.kilocode.ai',
+		usageUrl: 'https://app.kilo.ai/usage',
 		about: [
 			'Un seul accès à plusieurs modèles de programmation',
 			'Basculez d’un modèle à l’autre sans multiplier les clés'
@@ -158,7 +160,10 @@ export const PROVIDER_INFO: Record<string, ProviderInfo> = {
 	},
 	'opencode-zen': {
 		desc: 'OpenCode Zen — passerelle multi-modèles.',
-		keyUrl: 'https://opencode.ai/',
+		keyUrl: 'https://opencode.ai/fr/zen',
+		// Lien GÉNÉRIQUE (jamais l'ID de workspace d'un client : `/workspace/wrk_xxx/usage` est
+		// PERSONNEL). Une fois connecté, opencode.ai redirige chacun vers SON propre workspace.
+		usageUrl: 'https://opencode.ai/workspace',
 		about: [
 			'Un seul compte pour accéder à plusieurs modèles',
 			'Pratique pour tester sans créer 10 comptes'
@@ -166,7 +171,7 @@ export const PROVIDER_INFO: Record<string, ProviderInfo> = {
 	},
 	'opencode-go': {
 		desc: 'OpenCode Go — passerelle multi-modèles.',
-		keyUrl: 'https://opencode.ai/',
+		keyUrl: 'https://opencode.ai/fr/go',
 		about: [
 			'Un seul compte pour accéder à plusieurs modèles',
 			'Alternative légère pour jongler entre plusieurs IA'
@@ -177,6 +182,7 @@ export const PROVIDER_INFO: Record<string, ProviderInfo> = {
 	novita: {
 		desc: 'NovitaAI — modèles open source hébergés, pas chers.',
 		keyUrl: 'https://novita.ai/settings/key-management',
+		usageUrl: 'https://novita.ai/billing',
 		about: [
 			'Faites tourner Llama, DeepSeek… sans gérer de serveur',
 			'Facturation à l’usage, économique'
@@ -185,6 +191,7 @@ export const PROVIDER_INFO: Record<string, ProviderInfo> = {
 	nvidia: {
 		desc: 'NVIDIA NIM — modèles open source optimisés.',
 		keyUrl: 'https://build.nvidia.com',
+		usageUrl: 'https://build.nvidia.com/settings/billing',
 		about: [
 			'Modèles ouverts servis sur l’infrastructure NVIDIA',
 			'Inférence optimisée, prête pour l’entreprise'
@@ -193,6 +200,7 @@ export const PROVIDER_INFO: Record<string, ProviderInfo> = {
 	huggingface: {
 		desc: 'Hugging Face — la plus grande bibliothèque de modèles ouverts.',
 		keyUrl: 'https://huggingface.co/settings/tokens',
+		usageUrl: 'https://huggingface.co/settings/billing',
 		about: [
 			'Des milliers de modèles open source via un seul compte',
 			'Parfait pour explorer au-delà des grands noms'
@@ -210,7 +218,7 @@ export const PROVIDER_INFO: Record<string, ProviderInfo> = {
 	},
 	arcee: {
 		desc: 'Arcee AI — petits modèles spécialisés et efficaces.',
-		keyUrl: 'https://models.arcee.ai',
+		keyUrl: 'https://chat.arcee.ai/api/api-keys',
 		about: [
 			'Modèles compacts, taillés pour l’entreprise',
 			'Bon compromis entre performance et coût'
@@ -218,7 +226,7 @@ export const PROVIDER_INFO: Record<string, ProviderInfo> = {
 	},
 	gmi: {
 		desc: 'GMI Cloud — modèles open source hébergés.',
-		keyUrl: 'https://console.gmicloud.ai/',
+		keyUrl: 'https://console.gmicloud.ai/user-setting/api-keys',
 		about: [
 			'Faites tourner des modèles ouverts sans infra à gérer',
 			'Facturation à l’usage, économique'
@@ -226,7 +234,7 @@ export const PROVIDER_INFO: Record<string, ProviderInfo> = {
 	},
 	'azure-foundry': {
 		desc: 'Azure AI Foundry — l’IA côté Microsoft.',
-		keyUrl: 'https://ai.azure.com',
+		keyUrl: 'https://ai.azure.com/home',
 		about: [
 			'Modèles hébergés sur le cloud Azure',
 			'Pour les entreprises déjà chez Microsoft'
