@@ -55,8 +55,11 @@ export const EXPERT_PROVIDER_IDS = new Set<string>([
 	'stepfun', // StepFun
 	'baidu-ernie', // Baidu ERNIE
 	'huggingface', // Hugging Face (Clés API)
-	'alibaba', // Qwen (Modèles chinois)
-	'alibaba-coding-plan', // Qwen coding plan (Modèles chinois)
+	// alibaba / alibaba-coding-plan : déplacés dans l'onglet « Autres » (Category.other côté bridge,
+	// à côté d'AWS Bedrock / Azure — cloud entreprise, 2026-07-08). Conservés ici (inoffensif :
+	// l'onglet « Autres » est déjà expert-only) pour rester réversible sans régression.
+	'alibaba', // Qwen Cloud → onglet « Autres »
+	'alibaba-coding-plan', // Qwen Coding Plan → onglet « Autres »
 	'qwen-oauth', // Qwen (Comptes / OAuth)
 	'minimax-cn', // MiniMax — endpoint Chine (doublon de `minimax` international)
 	'kimi-coding-cn', // Kimi / Moonshot — endpoint Chine (doublon de `kimi-coding`)

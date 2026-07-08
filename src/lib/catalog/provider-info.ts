@@ -70,6 +70,7 @@ export const PROVIDER_INFO: Record<string, ProviderInfo> = {
 	vertex: {
 		desc: 'Les modèles Gemini via Google Cloud (entreprise).',
 		keyUrl: 'https://console.cloud.google.com/vertex-ai',
+		usageUrl: 'https://console.cloud.google.com/billing',
 		about: [
 			'Les mêmes modèles Gemini, côté Google Cloud',
 			'Pour les entreprises déjà sur GCP (facturation unifiée)'
@@ -172,6 +173,7 @@ export const PROVIDER_INFO: Record<string, ProviderInfo> = {
 	'opencode-go': {
 		desc: 'OpenCode Go — passerelle multi-modèles.',
 		keyUrl: 'https://opencode.ai/fr/go',
+		usageUrl: 'https://opencode.ai/workspace',
 		about: [
 			'Un seul compte pour accéder à plusieurs modèles',
 			'Alternative légère pour jongler entre plusieurs IA'
@@ -285,6 +287,7 @@ export const PROVIDER_INFO: Record<string, ProviderInfo> = {
 	alibaba: {
 		desc: 'Qwen — les modèles d’Alibaba, très polyvalents.',
 		keyUrl: 'https://bailian.console.alibabacloud.com',
+		usageUrl: 'https://usercenter2.aliyun.com/finance/expense-report',
 		about: [
 			'Bons généralistes, multilingues et doués en code',
 			'Du petit modèle rapide au très puissant'
@@ -293,6 +296,7 @@ export const PROVIDER_INFO: Record<string, ProviderInfo> = {
 	'alibaba-coding-plan': {
 		desc: 'Qwen — forfait spécial code (Alibaba).',
 		keyUrl: 'https://bailian.console.alibabacloud.com',
+		usageUrl: 'https://usercenter2.aliyun.com/finance/expense-report',
 		about: [
 			'Les modèles Qwen optimisés pour la programmation',
 			'Abonnement mensuel à prix fixe (forfait « Qwen Code »), pas de facturation au token'
@@ -310,6 +314,7 @@ export const PROVIDER_INFO: Record<string, ProviderInfo> = {
 	'tencent-tokenhub': {
 		desc: 'Tencent TokenHub — l’IA du géant Tencent.',
 		keyUrl: 'https://console.cloud.tencent.com/hunyuan/api-key',
+		usageUrl: 'https://console.cloud.tencent.com/expense/bill/summary',
 		about: [
 			'Accès aux modèles Hunyuan de Tencent',
 			'Hébergé par l’un des plus grands groupes chinois'
@@ -363,16 +368,18 @@ export const PROVIDER_INFO: Record<string, ProviderInfo> = {
 		]
 	},
 	stepfun: {
-		desc: 'StepFun — modèles multimodaux chinois.',
-		keyUrl: 'https://platform.stepfun.com/',
+		desc: 'StepFun — le modèle chinois Step-3.5-Flash, fort en raisonnement.',
+		keyUrl: 'https://platform.stepfun.ai/',
+		usageUrl: 'https://platform.stepfun.ai/plan-usage',
 		about: [
-			'À l’aise en texte et en image',
-			'Forfait Step Plan'
+			'Step-3.5-Flash : très bon en raisonnement et en code (texte seul)',
+			'Nécessite un forfait « Step Plan » payant pour discuter'
 		]
 	},
 	'baidu-ernie': {
 		desc: 'Baidu ERNIE — les grands modèles de Baidu.',
 		keyUrl: 'https://console.bce.baidu.com/iam/#/iam/apikey',
+		usageUrl: 'https://console.bce.baidu.com/billing/#/account/index',
 		about: [
 			'Modèles ERNIE 4.5 / X1, très forts en chinois',
 			'Via la plateforme Qianfan (compatible OpenAI)'
@@ -432,6 +439,7 @@ export const PROVIDER_INFO: Record<string, ProviderInfo> = {
 	bedrock: {
 		desc: 'AWS Bedrock — l’IA via votre compte Amazon.',
 		keyUrl: 'https://console.aws.amazon.com/bedrock',
+		usageUrl: 'https://console.aws.amazon.com/costmanagement/home',
 		about: [
 			'Accès à Claude, Llama… depuis AWS',
 			'Pour les entreprises déjà sur Amazon Web Services'
