@@ -255,6 +255,7 @@ export const PROVIDER_INFO: Record<string, ProviderInfo> = {
 	cerebras: {
 		desc: 'Cerebras — la vitesse record.',
 		keyUrl: 'https://cloud.cerebras.ai/',
+		usageUrl: 'https://cloud.cerebras.ai/',
 		about: [
 			'Réponses quasi instantanées (puce dédiée à l’IA)',
 			'Idéal quand la rapidité prime'
@@ -271,6 +272,7 @@ export const PROVIDER_INFO: Record<string, ProviderInfo> = {
 	fireworks: {
 		desc: 'Fireworks AI — modèles ouverts rapides et pas chers.',
 		keyUrl: 'https://fireworks.ai/account/api-keys',
+		usageUrl: 'https://fireworks.ai/billing',
 		about: [
 			'Llama, DeepSeek et autres modèles ouverts',
 			'Bon équilibre entre vitesse et prix'
