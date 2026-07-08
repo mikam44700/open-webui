@@ -119,6 +119,15 @@ export const applyTelegramPairing = (token: string, pairingId: string) =>
 export const cancelTelegramPairing = (token: string, pairingId: string) =>
 	call(token, 'DELETE', `/platforms/telegram/pairing/${pairingId}`);
 
+export type TelegramBotInfo = {
+	username: string | null;
+	name: string | null;
+	link: string | null;
+};
+
+export const getTelegramBotInfo = (token: string) =>
+	call(token, 'GET', '/platforms/telegram/bot-info') as Promise<TelegramBotInfo>;
+
 // --- Partage : allowlist des utilisateurs ------------------------------------
 
 export type MessagingUser = {

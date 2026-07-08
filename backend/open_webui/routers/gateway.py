@@ -96,6 +96,12 @@ async def telegram_pairing_cancel(pairing_id: str, user=Depends(get_admin_user))
     return await _bridge("DELETE", f"/gateway/platforms/telegram/pairing/{pairing_id}")
 
 
+@router.get("/platforms/telegram/bot-info")
+async def telegram_bot_info(user=Depends(get_admin_user)):
+    """Nom + lien du bot Telegram connecté (à afficher/partager)."""
+    return await _bridge("GET", "/gateway/platforms/telegram/bot-info")
+
+
 # --- Partage : allowlist des utilisateurs -------------------------------------
 
 

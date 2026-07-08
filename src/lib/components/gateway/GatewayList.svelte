@@ -19,11 +19,13 @@
 		approvePlatformUser,
 		revokePlatformUser,
 		disconnectPlatform,
+		getTelegramBotInfo,
 		type GatewayStatus,
 		type MessagingPlatform,
 		type MessagingEnvVar,
 		type TelegramPairingStart,
-		type MessagingUser
+		type MessagingUser,
+		type TelegramBotInfo
 	} from '$lib/apis/gateway';
 	import Spinner from '$lib/components/common/Spinner.svelte';
 	import ConfirmDialog from '$lib/components/common/ConfirmDialog.svelte';
@@ -98,6 +100,8 @@
 	let approvedUsers: MessagingUser[] = [];
 	let pendingUsers: MessagingUser[] = [];
 	let usersBusy = false;
+	let botInfo: TelegramBotInfo | null = null; // nom + lien du bot (à partager)
+	let botLinkCopied = false;
 
 	// Déconnexion
 	let showDisconnectConfirm = false;
@@ -333,13 +337,28 @@
 		if (!p || !isTelegram(p)) return;
 		usersBusy = true;
 		try {
-			const res = await listPlatformUsers(localStorage.token, p.id);
+			const [res, info] = await Promise.all([
+				listPlatformUsers(localStorage.token, p.id),
+				getTelegramBotInfo(localStorage.token).catch(() => null)
+			]);
 			approvedUsers = res?.approved ?? [];
 			pendingUsers = res?.pending ?? [];
+			botInfo = info;
 		} catch (err) {
 			// silencieux : la section reste vide
 		} finally {
 			usersBusy = false;
+		}
+	};
+
+	const copyBotLink = async () => {
+		if (!botInfo?.link) return;
+		try {
+			await navigator.clipboard.writeText(botInfo.link);
+			botLinkCopied = true;
+			setTimeout(() => (botLinkCopied = false), 1800);
+		} catch (err) {
+			toast.error($i18n.t('Copie impossible'));
 		}
 	};
 
@@ -402,6 +421,8 @@
 		resetPairing();
 		approvedUsers = [];
 		pendingUsers = [];
+		botInfo = null;
+		botLinkCopied = false;
 		if (isTelegram(p) && p.state === 'connected') {
 			loadUsers(p);
 		}
@@ -842,11 +863,35 @@
 									</div>
 								{/if}
 							</div>
-							<div class="text-[11px] text-gray-400 mt-2">
-								{$i18n.t(
-									'Pour ajouter quelqu’un : demandez-lui d’écrire à votre bot, sa demande apparaîtra ici.'
-								)}
-							</div>
+														{#if botInfo?.link}
+								<div class="mt-3 flex flex-col gap-1.5">
+									<div class="text-[11px] font-medium text-gray-500">
+										{$i18n.t('Inviter quelqu’un')}
+									</div>
+									<div class="flex items-center gap-1.5">
+										<code class="flex-1 truncate px-2.5 py-1.5 text-xs rounded-lg bg-gray-50 dark:bg-gray-850 text-gray-600 dark:text-gray-300">
+											{botInfo.link}
+										</code>
+										<button
+											class="px-2.5 py-1.5 text-xs font-medium rounded-lg bg-gray-100 dark:bg-gray-850 hover:bg-gray-200 dark:hover:bg-gray-800 transition flex-none"
+											on:click={copyBotLink}
+										>
+											{botLinkCopied ? $i18n.t('Copié ✓') : $i18n.t('Copier')}
+										</button>
+									</div>
+									<div class="text-[11px] text-gray-400">
+										{$i18n.t(
+											'Partagez ce lien à la personne (WhatsApp, e-mail…). Dès qu’elle écrira à votre bot, sa demande apparaîtra ici — vous n’aurez qu’à l’autoriser.'
+										)}
+									</div>
+								</div>
+							{:else}
+	<div class="text-[11px] text-gray-400 mt-2">
+									{$i18n.t(
+										'Pour donner accès à quelqu’un : partagez-lui le lien de votre bot ci-dessous. Dès qu’il écrira, autorisez-le ici.'
+									)}
+								</div>
+							{/if}
 						</div>
 					</div>
 				{:else}
