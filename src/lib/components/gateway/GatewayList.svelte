@@ -268,6 +268,9 @@
 
 	const isTelegram = (p: MessagingPlatform | null) => p?.id === 'telegram';
 
+	// Canal affiché mais pas encore branchable (ex. WhatsApp en attente de config Meta).
+	const isUnavailable = (p: MessagingPlatform | null) => p?.available === false;
+
 	const stopPairPolling = () => {
 		if (pairTimer) {
 			clearInterval(pairTimer);
@@ -593,7 +596,11 @@
 				{#each filtered as p (p.id)}
 					{@const st = stateLabel(p.state)}
 					<div
-						class="rounded-2xl border border-gray-100 dark:border-gray-850 p-4 transition hover:border-gray-200 dark:hover:border-gray-700 hover:shadow-sm"
+						class="rounded-2xl border border-gray-100 dark:border-gray-850 p-4 transition hover:border-gray-200 dark:hover:border-gray-700 hover:shadow-sm {isUnavailable(
+							p
+						)
+							? 'opacity-60 saturate-0'
+							: ''}"
 					>
 						<div class="flex items-start justify-between gap-2">
 							<div class="flex items-start gap-3 min-w-0">
@@ -622,7 +629,13 @@
 								<div class="min-w-0">
 									<div class="flex items-center gap-2">
 										<span class="text-sm font-medium">{p.name}</span>
-										{#if st.label}
+										{#if isUnavailable(p)}
+											<span
+												class="inline-flex items-center px-1.5 py-0.5 rounded-full text-[10px] font-medium bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-400"
+											>
+												{$i18n.t('Bientôt')}
+											</span>
+										{:else if st.label}
 											<span
 												class="inline-flex items-center px-1.5 py-0.5 rounded-full text-[10px] font-medium {toneClass(
 													st.tone
@@ -643,10 +656,12 @@
 								class="shrink-0 relative inline-flex h-5 w-9 items-center rounded-full transition {p.enabled
 									? 'bg-green-500'
 									: 'bg-gray-300 dark:bg-gray-700'} disabled:opacity-50"
-								title={!p.configured && !p.enabled
-									? $i18n.t('Configure d’abord la plateforme')
-									: $i18n.t('Activer / désactiver')}
-								disabled={busy === p.id || (!p.configured && !p.enabled)}
+								title={isUnavailable(p)
+									? p.unavailable_reason || $i18n.t('Bientôt disponible')
+									: !p.configured && !p.enabled
+										? $i18n.t('Configure d’abord la plateforme')
+										: $i18n.t('Activer / désactiver')}
+								disabled={busy === p.id || isUnavailable(p) || (!p.configured && !p.enabled)}
 								on:click={() => toggleEnable(p)}
 							>
 								<span
@@ -705,6 +720,12 @@
 							</div>
 						{/if}
 
+						{#if isUnavailable(p) && p.unavailable_reason}
+							<div class="mt-3 text-[11px] text-gray-400 dark:text-gray-500">
+								{p.unavailable_reason}
+							</div>
+						{/if}
+
 						<div
 							class="flex items-center gap-1 mt-3 pt-3 border-t border-gray-50 dark:border-gray-850"
 						>
@@ -719,18 +740,23 @@
 								</a>
 							{/if}
 							<button
-								class="px-2 py-1 text-xs rounded-lg hover:bg-gray-100 dark:hover:bg-gray-850 transition text-gray-500 disabled:opacity-50"
+								class="px-2 py-1 text-xs rounded-lg hover:bg-gray-100 dark:hover:bg-gray-850 transition text-gray-500 disabled:opacity-50 disabled:cursor-not-allowed"
 								on:click={() => testPlatform(p)}
-								disabled={busy === p.id}
+								disabled={busy === p.id || isUnavailable(p)}
 							>
 								{$i18n.t('Tester')}
 							</button>
 							<div class="flex-1"></div>
 							<button
-								class="px-3 py-2 text-xs font-medium rounded-lg btn-premium bg-black text-white dark:bg-white dark:text-black"
+								class="px-3 py-2 text-xs font-medium rounded-lg btn-premium bg-black text-white dark:bg-white dark:text-black disabled:opacity-50 disabled:cursor-not-allowed"
 								on:click={() => openModal(p)}
+								disabled={isUnavailable(p)}
 							>
-								{p.configured ? $i18n.t('Détails') : $i18n.t('Configurer')}
+								{#if isUnavailable(p)}
+									{$i18n.t('Bientôt')}
+								{:else}
+									{p.configured ? $i18n.t('Détails') : $i18n.t('Configurer')}
+								{/if}
 							</button>
 						</div>
 

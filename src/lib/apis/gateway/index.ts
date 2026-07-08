@@ -56,6 +56,9 @@ export type MessagingPlatform = {
 	enabled: boolean;
 	state: 'disabled' | 'needs_setup' | 'ready' | 'connected';
 	env_vars: MessagingEnvVar[];
+	// available=false → canal affiché mais grisé (ex. WhatsApp en attente de config Meta)
+	available?: boolean;
+	unavailable_reason?: string;
 };
 
 export type MessagingPlatformsResponse = {
