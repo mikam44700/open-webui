@@ -112,6 +112,13 @@
 
 	$: filtered = platforms;
 
+	// Garde la modale ouverte synchronisée avec la liste rafraîchie (état « connecté »
+	// après un redémarrage du gateway, toggle, etc.) — sinon elle reste figée.
+	$: if (modalPlatform) {
+		const fresh = platforms.find((x) => x.id === modalPlatform.id);
+		if (fresh && fresh !== modalPlatform) modalPlatform = fresh;
+	}
+
 	const load = async (silent = false) => {
 		if (!silent) loading = true;
 		bridgeDown = false;
@@ -319,12 +326,17 @@
 				if (res?.ok) {
 					toast.success($i18n.t('Telegram connecté !'));
 					pairing = null;
-					pairStatus = 'idle';
-					await load(true);
-					if (modalPlatform) {
-						modalPlatform = platforms.find((x) => x.id === modalPlatform?.id) ?? modalPlatform;
-						loadUsers(modalPlatform);
+					// Le gateway redémarre (quelques secondes) : on reste en « applying »
+					// (« Connexion en cours… ») et on rafraîchit jusqu'à l'état « connecté ».
+					for (let i = 0; i < 8; i++) {
+						await load(true);
+						const fresh = platforms.find((x) => x.id === modalPlatform?.id);
+						if (fresh) modalPlatform = fresh;
+						if (fresh?.state === 'connected') break;
+						await new Promise((r) => setTimeout(r, 2000));
 					}
+					pairStatus = 'idle';
+					if (modalPlatform) loadUsers(modalPlatform);
 				} else {
 					pairStatus = 'error';
 					pairError = res?.restart_error || res?.error || $i18n.t('La connexion a échoué.');
