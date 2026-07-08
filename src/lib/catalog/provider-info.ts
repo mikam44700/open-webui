@@ -219,6 +219,7 @@ export const PROVIDER_INFO: Record<string, ProviderInfo> = {
 	arcee: {
 		desc: 'Arcee AI — petits modèles spécialisés et efficaces.',
 		keyUrl: 'https://chat.arcee.ai/api/api-keys',
+		usageUrl: 'https://chat.arcee.ai/api/usage',
 		about: [
 			'Modèles compacts, taillés pour l’entreprise',
 			'Bon compromis entre performance et coût'
@@ -227,14 +228,17 @@ export const PROVIDER_INFO: Record<string, ProviderInfo> = {
 	gmi: {
 		desc: 'GMI Cloud — modèles open source hébergés.',
 		keyUrl: 'https://console.gmicloud.ai/user-setting/api-keys',
+		usageUrl: 'https://console.gmicloud.ai/',
 		about: [
 			'Faites tourner des modèles ouverts sans infra à gérer',
 			'Facturation à l’usage, économique'
 		]
 	},
 	'azure-foundry': {
+		name: 'Microsoft Azure',
 		desc: 'Azure AI Foundry — l’IA côté Microsoft.',
 		keyUrl: 'https://ai.azure.com/home',
+		usageUrl: 'https://portal.azure.com/#view/Microsoft_Azure_CostManagement/Menu/~/costanalysis',
 		about: [
 			'Modèles hébergés sur le cloud Azure',
 			'Pour les entreprises déjà chez Microsoft'

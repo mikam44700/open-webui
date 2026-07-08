@@ -46,7 +46,6 @@ export const EXPERT_PROVIDER_IDS = new Set<string>([
 	'novita', // NovitaAI
 	'arcee', // Arcee AI
 	'gmi', // GMI Cloud
-	'azure-foundry', // Azure Foundry
 	'cerebras', // Cerebras
 	'fireworks', // Fireworks AI
 	'groq', // Groq
@@ -147,8 +146,9 @@ const GROUP_BY_ID: Record<string, ProviderGroup> = {
 	'ollama-cloud': 'hebergement',
 	arcee: 'hebergement',
 	gmi: 'hebergement',
-	// azure-foundry : volontairement HORS groupe → tombe dans « Autres » (provider entreprise
-	// « sur-mesure » : nécessite ressource Azure + endpoint + déploiements, pas un hébergeur clé-en-main).
+	// azure-foundry : PAS ici — rangé dans l'onglet « Autres » (auth externe, à côté d'AWS
+	// Bedrock) via sa Category.other côté bridge (cf. hermes_adapter._category). Cloud entreprise
+	// à endpoint + déploiements requis, pas un hébergeur clé-en-main → hors onglet « Clés API ».
 	groq: 'hebergement',
 	cerebras: 'hebergement',
 	together: 'hebergement',
