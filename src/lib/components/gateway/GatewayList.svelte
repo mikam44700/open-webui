@@ -860,9 +860,11 @@
 										class="flex items-center justify-between gap-2 px-3 py-2 rounded-lg bg-gray-50 dark:bg-gray-850"
 									>
 										<span class="text-sm truncate">
-											{i === 0 ? '👑 ' : '👤 '}{u.user_name || u.user_id}
 											{#if i === 0}
+												👑 {$i18n.t('Vous')}
 												<span class="text-[11px] text-gray-400">({$i18n.t('propriétaire')})</span>
+											{:else}
+												👤 {u.user_name || u.user_id}
 											{/if}
 										</span>
 										{#if i !== 0}
