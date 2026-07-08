@@ -2,8 +2,6 @@
 	import { getContext, onMount, onDestroy } from 'svelte';
 	import { toast } from 'svelte-sonner';
 
-	import QRCode from 'qrcode';
-
 	import {
 		getGatewayStatus,
 		getMessagingPlatforms,
@@ -91,7 +89,7 @@
 	// Onboarding Telegram « managed bot » (QR) — état de la modale ouverte.
 	type PairStatus = 'idle' | 'waiting' | 'applying' | 'error';
 	let pairing: TelegramPairingStart | null = null;
-	let pairQr = ''; // dataURL du QR (généré depuis le deep_link)
+	let pairLinkCopied = false; // « Copier le lien » (parcours mobile)
 	let pairStatus: PairStatus = 'idle';
 	let pairError = '';
 	let pairTimer: ReturnType<typeof setInterval> | null = null;
@@ -277,26 +275,35 @@
 			cancelTelegramPairing(localStorage.token, pairing.pairing_id).catch(() => {});
 		}
 		pairing = null;
-		pairQr = '';
 		pairStatus = 'idle';
 		pairError = '';
+		pairLinkCopied = false;
 	};
 
-	// Lance le parcours QR : crée le pairing, affiche le QR, démarre le polling.
+	// Lance le parcours : crée le pairing (lien à ouvrir dans Telegram), démarre le polling.
+	// NB : le lien de création de bot s'ouvre en CLIQUANT (desktop ou mobile), pas en scannant
+	// un QR — le scan passe par le navigateur et n'aboutit pas. On n'affiche donc pas de QR.
 	const startPairing = async () => {
 		pairStatus = 'waiting';
 		pairError = '';
 		try {
 			pairing = await startTelegramPairing(localStorage.token);
-			pairQr = await QRCode.toDataURL(pairing.qr_payload || pairing.deep_link, {
-				width: 240,
-				margin: 1
-			});
 			stopPairPolling();
 			pairTimer = setInterval(pollPairingOnce, 2500);
 		} catch (err) {
 			pairStatus = 'error';
 			pairError = $i18n.t('Impossible de démarrer la connexion. Réessaie.');
+		}
+	};
+
+	const copyPairLink = async () => {
+		if (!pairing?.deep_link) return;
+		try {
+			await navigator.clipboard.writeText(pairing.deep_link);
+			pairLinkCopied = true;
+			setTimeout(() => (pairLinkCopied = false), 1800);
+		} catch (err) {
+			toast.error($i18n.t('Copie impossible'));
 		}
 	};
 
@@ -911,36 +918,42 @@
 								{$i18n.t('Un bot personnel sera créé pour vous. Aucune manipulation technique.')}
 							</div>
 						{:else if pairStatus === 'waiting'}
-							{#if pairQr}
-								<img
-									src={pairQr}
-									alt={$i18n.t('QR code Telegram')}
-									class="size-48 rounded-xl border border-gray-100 dark:border-gray-700 bg-white"
-								/>
-							{:else}
-								<div class="size-48 flex items-center justify-center"><Spinner /></div>
-							{/if}
-							<div class="text-sm font-medium">{$i18n.t('Scannez ce QR code')}</div>
-							<div class="text-[11px] text-gray-500 max-w-xs">
-								{$i18n.t(
-									'Scannez avec votre téléphone — ou cliquez le bouton si vous êtes sur cet ordinateur — puis confirmez la création du bot dans Telegram.'
-								)}
+							<div class="text-sm font-medium">
+								{$i18n.t('Connectez votre assistant à Telegram')}
 							</div>
 							{#if pairing}
 								<a
 									href={pairing.deep_link}
 									target="_blank"
 									rel="noopener noreferrer"
-									class="px-4 py-2 text-sm font-medium rounded-lg btn-premium bg-black text-white dark:bg-white dark:text-black hover:opacity-90 transition"
+									class="px-4 py-2.5 text-sm font-medium rounded-lg btn-premium bg-black text-white dark:bg-white dark:text-black hover:opacity-90 transition"
 								>
-									{$i18n.t('Ouvrir dans Telegram')} ↗
+									📲 {$i18n.t('Ouvrir dans Telegram')} ↗
 								</a>
+								<div class="text-[11px] text-gray-500 max-w-xs">
+									{$i18n.t(
+										'Votre bot se crée dans Telegram : confirmez, et tout se configure automatiquement.'
+									)}
+								</div>
+								<div class="w-full max-w-xs border-t border-gray-100 dark:border-gray-800 my-1"></div>
+								<div class="text-[11px] text-gray-500">
+									{$i18n.t('Vous utilisez Telegram sur votre téléphone ?')}
+								</div>
+								<button
+									class="px-3 py-1.5 text-xs font-medium rounded-lg bg-gray-100 dark:bg-gray-850 hover:bg-gray-200 dark:hover:bg-gray-800 transition"
+									on:click={copyPairLink}
+								>
+									{pairLinkCopied ? $i18n.t('Lien copié ✓') : $i18n.t('Copier le lien')}
+								</button>
+								<div class="text-[11px] text-gray-400 max-w-xs">
+									{$i18n.t('Ouvrez ce lien dans Telegram sur votre téléphone, puis confirmez.')}
+								</div>
 							{/if}
-							<div class="flex items-center gap-1.5 text-[11px] text-gray-400">
+							<div class="flex items-center gap-1.5 text-[11px] text-gray-400 mt-1">
 								<Spinner className="size-3" />
 								{$i18n.t('En attente de confirmation…')}
 							</div>
-						{:else if pairStatus === 'applying'}
+							{:else if pairStatus === 'applying'}
 							<div class="py-4"><Spinner /></div>
 							<div class="text-sm">{$i18n.t('Connexion en cours…')}</div>
 						{:else if pairStatus === 'error'}
