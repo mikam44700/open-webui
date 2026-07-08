@@ -33,6 +33,10 @@ class MessagingApprove(BaseModel):
     user_name: str = ""
 
 
+class DiscordApply(BaseModel):
+    token: str
+
+
 @router.get("/status")
 async def gateway_status(user=Depends(get_admin_user)):
     """État du gateway : tourne ou non, port de l'API server, présence de la clé API."""
@@ -100,6 +104,21 @@ async def telegram_pairing_cancel(pairing_id: str, user=Depends(get_admin_user))
 async def telegram_bot_info(user=Depends(get_admin_user)):
     """Nom + lien du bot Telegram connecté (à afficher/partager)."""
     return await _bridge("GET", "/gateway/platforms/telegram/bot-info")
+
+
+# --- Onboarding Discord (parcours guidé : token → branché + invite 1-clic) ----
+
+
+@router.post("/platforms/discord/apply")
+async def discord_apply(body: DiscordApply, user=Depends(get_admin_user)):
+    """Branche Discord depuis un token collé : valide, active + redémarre, renvoie l'invite."""
+    return await _bridge("POST", "/gateway/platforms/discord/apply", json=body.model_dump())
+
+
+@router.get("/platforms/discord/bot-info")
+async def discord_bot_info(user=Depends(get_admin_user)):
+    """Nom du bot Discord connecté + URL d'invitation « Ajouter à mon serveur »."""
+    return await _bridge("GET", "/gateway/platforms/discord/bot-info")
 
 
 # --- Partage : allowlist des utilisateurs -------------------------------------

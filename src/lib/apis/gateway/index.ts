@@ -131,6 +131,31 @@ export type TelegramBotInfo = {
 export const getTelegramBotInfo = (token: string) =>
 	call(token, 'GET', '/platforms/telegram/bot-info') as Promise<TelegramBotInfo>;
 
+// --- Onboarding Discord (parcours guidé : token → branché + invite 1-clic) ---
+
+export type DiscordApplyResult = {
+	ok: boolean;
+	bot_name: string | null;
+	invite_url: string | null;
+	needs_restart: boolean;
+	restart_ok: boolean;
+	restart_error: string | null;
+	error: string | null;
+};
+
+export type DiscordBotInfo = {
+	name: string | null;
+	application_id: string | null;
+	invite_url: string | null;
+};
+
+// Branche Discord : valide le token, active + redémarre, renvoie l'URL d'invitation.
+export const applyDiscord = (token: string, botToken: string) =>
+	call(token, 'POST', '/platforms/discord/apply', { token: botToken }) as Promise<DiscordApplyResult>;
+
+export const getDiscordBotInfo = (token: string) =>
+	call(token, 'GET', '/platforms/discord/bot-info') as Promise<DiscordBotInfo>;
+
 // --- Partage : allowlist des utilisateurs ------------------------------------
 
 export type MessagingUser = {

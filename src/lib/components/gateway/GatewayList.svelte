@@ -18,12 +18,15 @@
 		revokePlatformUser,
 		disconnectPlatform,
 		getTelegramBotInfo,
+		applyDiscord,
+		getDiscordBotInfo,
 		type GatewayStatus,
 		type MessagingPlatform,
 		type MessagingEnvVar,
 		type TelegramPairingStart,
 		type MessagingUser,
-		type TelegramBotInfo
+		type TelegramBotInfo,
+		type DiscordBotInfo
 	} from '$lib/apis/gateway';
 	import Spinner from '$lib/components/common/Spinner.svelte';
 	import ConfirmDialog from '$lib/components/common/ConfirmDialog.svelte';
@@ -100,6 +103,16 @@
 	let usersBusy = false;
 	let botInfo: TelegramBotInfo | null = null; // nom + lien du bot (à partager)
 	let botLinkCopied = false;
+
+	// Onboarding Discord (parcours guidé : coller le token → branché + invite 1-clic).
+	const DISCORD_PORTAL = 'https://discord.com/developers/applications';
+	type DiscordStatus = 'idle' | 'applying' | 'error';
+	let discordToken = ''; // token collé depuis le portail (jamais persisté côté front)
+	let discordStatus: DiscordStatus = 'idle';
+	let discordError = '';
+	let discordInfo: DiscordBotInfo | null = null; // nom du bot + URL d'invitation
+	let discordInviteCopied = false;
+	let discordShowRestrict = false; // « Restreindre l'accès (avancé) »
 
 	// Déconnexion
 	let showDisconnectConfirm = false;
@@ -269,6 +282,7 @@
 	};
 
 	const isTelegram = (p: MessagingPlatform | null) => p?.id === 'telegram';
+	const isDiscord = (p: MessagingPlatform | null) => p?.id === 'discord';
 
 	// Canal affiché mais pas encore branchable (ex. WhatsApp en attente de config Meta).
 	const isUnavailable = (p: MessagingPlatform | null) => p?.available === false;
@@ -416,6 +430,69 @@
 		}
 	};
 
+	// --- Onboarding Discord (parcours guidé) ---------------------------------
+
+	const resetDiscord = () => {
+		discordToken = '';
+		discordStatus = 'idle';
+		discordError = '';
+		discordInfo = null;
+		discordInviteCopied = false;
+		discordShowRestrict = false;
+	};
+
+	// Récupère nom du bot + URL d'invitation (« Ajouter à mon serveur »).
+	const loadDiscordInfo = async (p: MessagingPlatform | null) => {
+		if (!p || !isDiscord(p)) return;
+		try {
+			discordInfo = await getDiscordBotInfo(localStorage.token);
+		} catch (err) {
+			discordInfo = null; // silencieux : l'invite reste indisponible
+		}
+	};
+
+	// Branche Discord : valide le token, active + redémarre, puis attend l'état « connecté ».
+	const connectDiscord = async () => {
+		const token = discordToken.trim();
+		if (!token) return;
+		discordStatus = 'applying';
+		discordError = '';
+		try {
+			const res = await applyDiscord(localStorage.token, token);
+			if (res?.ok) {
+				discordToken = '';
+				toast.success($i18n.t('Discord connecté !'));
+				// Le gateway redémarre (quelques secondes) : on rafraîchit jusqu'à « connecté ».
+				for (let i = 0; i < 8; i++) {
+					await load(true);
+					const fresh = platforms.find((x) => x.id === modalPlatform?.id);
+					if (fresh) modalPlatform = fresh;
+					if (fresh?.state === 'connected') break;
+					await new Promise((r) => setTimeout(r, 2000));
+				}
+				discordStatus = 'idle';
+				if (modalPlatform) loadDiscordInfo(modalPlatform);
+			} else {
+				discordStatus = 'error';
+				discordError = res?.error || res?.restart_error || $i18n.t('La connexion a échoué.');
+			}
+		} catch (err) {
+			discordStatus = 'error';
+			discordError = $i18n.t('Impossible de connecter Discord. Réessaie.');
+		}
+	};
+
+	const copyDiscordInvite = async () => {
+		if (!discordInfo?.invite_url) return;
+		try {
+			await navigator.clipboard.writeText(discordInfo.invite_url);
+			discordInviteCopied = true;
+			setTimeout(() => (discordInviteCopied = false), 1800);
+		} catch (err) {
+			toast.error($i18n.t('Copie impossible'));
+		}
+	};
+
 	// --- Déconnexion ---------------------------------------------------------
 
 	const onDisconnect = async () => {
@@ -443,6 +520,7 @@
 		showAdvanced = false;
 		showTokenForm = false;
 		resetPairing();
+		resetDiscord();
 		approvedUsers = [];
 		pendingUsers = [];
 		botInfo = null;
@@ -450,9 +528,13 @@
 		if (isTelegram(p) && p.state === 'connected') {
 			loadUsers(p);
 		}
+		if (isDiscord(p) && p.state === 'connected') {
+			loadDiscordInfo(p);
+		}
 	};
 	const closeModal = () => {
 		resetPairing();
+		resetDiscord();
 		modalPlatform = null;
 	};
 
@@ -1011,8 +1093,203 @@
 				{/if}
 			{/if}
 
-			<!-- Formulaire clés & secrets : autres canaux, + Telegram en « méthode avancée » -->
-			{#if !isTelegram(p) || (p.state !== 'connected' && showTokenForm)}
+			<!-- DISCORD : parcours guidé (token → branché) ou écran connecté + invite -->
+			{#if isDiscord(p)}
+				{#if p.state === 'connected'}
+					{@const allowedField = p.env_vars.find((f) => f.key === 'DISCORD_ALLOWED_USERS')}
+					<div class="flex flex-col gap-4">
+						<div
+							class="flex items-center gap-2 px-3 py-2 rounded-lg bg-green-500/10 text-green-600 dark:text-green-400 text-sm"
+						>
+							<span>✓</span>
+							<span>
+								{$i18n.t('Discord est connecté.')}
+								{#if discordInfo?.name}<span class="opacity-70">({discordInfo.name})</span>{/if}
+							</span>
+						</div>
+
+						<!-- Ajouter le bot à un serveur (1 clic) -->
+						<div class="flex flex-col gap-2">
+							<div class="text-xs font-semibold uppercase tracking-wide text-gray-400">
+								{$i18n.t('Ajouter à un serveur')}
+							</div>
+							{#if discordInfo?.invite_url}
+								<a
+									href={discordInfo.invite_url}
+									target="_blank"
+									rel="noopener noreferrer"
+									class="inline-flex items-center justify-center gap-2 px-4 py-2.5 text-sm font-medium rounded-lg btn-premium bg-[#5865F2] text-white hover:opacity-90 transition"
+								>
+									➕ {$i18n.t('Ajouter à mon serveur')} ↗
+								</a>
+								<div class="flex items-center gap-1.5">
+									<code
+										class="flex-1 truncate px-2.5 py-1.5 text-xs rounded-lg bg-gray-50 dark:bg-gray-850 text-gray-600 dark:text-gray-300"
+									>
+										{discordInfo.invite_url}
+									</code>
+									<button
+										class="px-2.5 py-1.5 text-xs font-medium rounded-lg bg-gray-100 dark:bg-gray-850 hover:bg-gray-200 dark:hover:bg-gray-800 transition flex-none"
+										on:click={copyDiscordInvite}
+									>
+										{discordInviteCopied ? $i18n.t('Copié ✓') : $i18n.t('Copier')}
+									</button>
+								</div>
+								<div class="text-[11px] text-gray-400">
+									{$i18n.t(
+										'Ouvrez ce lien, choisissez votre serveur Discord, et confirmez. Votre assistant y répondra aussitôt.'
+									)}
+								</div>
+							{:else}
+								<div class="text-[11px] text-gray-400">
+									{$i18n.t('Lien d’invitation indisponible pour le moment.')}
+								</div>
+							{/if}
+						</div>
+
+						<!-- Accès : tout le serveur par défaut, restriction en option -->
+						<div class="flex flex-col gap-2">
+							<div class="text-xs font-semibold uppercase tracking-wide text-gray-400">
+								{$i18n.t('Accès')}
+							</div>
+							<div class="text-[11px] text-gray-500">
+								{$i18n.t(
+									'Par défaut, toute personne présente sur votre serveur Discord peut écrire à votre assistant.'
+								)}
+							</div>
+							{#if allowedField}
+								<button
+									class="text-[11px] text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition text-left"
+									on:click={() => (discordShowRestrict = !discordShowRestrict)}
+								>
+									{discordShowRestrict
+										? $i18n.t('Masquer')
+										: $i18n.t('Restreindre l’accès (avancé)')}
+								</button>
+								{#if discordShowRestrict}
+									<input
+										class="w-full px-3 py-2 text-sm rounded-lg bg-gray-50 dark:bg-gray-850 outline-none"
+										type="text"
+										value={drafts[p.id]?.[allowedField.key] ?? ''}
+										placeholder={allowedField.redacted_value || allowedField.prompt}
+										on:input={(e) => handleChange(p.id, allowedField.key, e.currentTarget.value)}
+									/>
+									<div class="text-[11px] text-gray-400">
+										{$i18n.t(
+											'Identifiants Discord autorisés, séparés par des virgules. Laissez vide pour autoriser tout le serveur.'
+										)}
+									</div>
+									<button
+										class="self-start px-3 py-1.5 text-sm rounded-lg btn-premium bg-black text-white dark:bg-white dark:text-black hover:opacity-90 transition disabled:opacity-40"
+										on:click={() => savePlatform(p)}
+										disabled={!hasDraft(p) || busy === p.id}
+									>
+										{$i18n.t('Enregistrer')}
+									</button>
+								{/if}
+							{/if}
+						</div>
+					</div>
+				{:else if discordStatus === 'applying'}
+					<div class="flex flex-col items-center text-center gap-3 py-4">
+						<Spinner />
+						<div class="text-sm">{$i18n.t('Connexion en cours…')}</div>
+					</div>
+				{:else}
+					<!-- Écran de connexion guidée (3 étapes) -->
+					<div class="flex flex-col gap-4">
+						<div class="text-sm text-gray-600 dark:text-gray-300">
+							{$i18n.t(
+								'Créez votre bot Discord en 3 étapes (environ 2 minutes). Le portail Discord est en anglais : les boutons à cliquer sont indiqués ci-dessous.'
+							)}
+						</div>
+
+						<div class="flex gap-3">
+							<div
+								class="flex-none size-6 rounded-full bg-gray-100 dark:bg-gray-800 flex items-center justify-center text-xs font-semibold"
+							>
+								1
+							</div>
+							<div class="flex flex-col gap-1.5 text-sm">
+								<div class="font-medium">{$i18n.t('Créez votre application')}</div>
+								<div class="text-[13px] text-gray-500">
+									{$i18n.t(
+										'Ouvrez le portail, cliquez « New Application » (en haut à droite), donnez un nom, puis « Create ».'
+									)}
+								</div>
+								<a
+									href={DISCORD_PORTAL}
+									target="_blank"
+									rel="noopener noreferrer"
+									class="self-start px-3 py-1.5 text-xs font-medium rounded-lg bg-gray-100 dark:bg-gray-850 hover:bg-gray-200 dark:hover:bg-gray-800 transition"
+								>
+									{$i18n.t('Ouvrir le portail Discord')} ↗
+								</a>
+							</div>
+						</div>
+
+						<div class="flex gap-3">
+							<div
+								class="flex-none size-6 rounded-full bg-gray-100 dark:bg-gray-800 flex items-center justify-center text-xs font-semibold"
+							>
+								2
+							</div>
+							<div class="flex flex-col gap-1.5 text-sm">
+								<div class="font-medium">
+									{$i18n.t('Récupérez la clé + activez la lecture des messages')}
+								</div>
+								<div class="text-[13px] text-gray-500">
+									{$i18n.t(
+										'Menu de gauche → « Bot ». Cliquez « Reset Token » puis « Copy ». Juste en dessous, activez l’interrupteur « MESSAGE CONTENT INTENT » (sinon votre assistant ne verra aucun message).'
+									)}
+								</div>
+							</div>
+						</div>
+
+						<div class="flex gap-3">
+							<div
+								class="flex-none size-6 rounded-full bg-gray-100 dark:bg-gray-800 flex items-center justify-center text-xs font-semibold"
+							>
+								3
+							</div>
+							<div class="flex flex-col gap-1.5 text-sm w-full">
+								<div class="font-medium">{$i18n.t('Collez la clé ici')}</div>
+								<input
+									class="w-full px-3 py-2 text-sm rounded-lg bg-gray-50 dark:bg-gray-850 outline-none"
+									type="password"
+									autocomplete="off"
+									placeholder={$i18n.t('Collez le token du bot')}
+									bind:value={discordToken}
+								/>
+							</div>
+						</div>
+
+						{#if discordStatus === 'error'}
+							<div
+								class="text-xs px-2 py-1.5 rounded-lg bg-amber-500/10 text-amber-600 dark:text-amber-400"
+							>
+								{discordError}
+							</div>
+						{/if}
+
+						<button
+							class="px-4 py-2 text-sm font-medium rounded-lg btn-premium bg-black text-white dark:bg-white dark:text-black hover:opacity-90 transition disabled:opacity-40"
+							on:click={connectDiscord}
+							disabled={!discordToken.trim()}
+						>
+							{$i18n.t('Connecter')}
+						</button>
+						<div class="text-[11px] text-gray-400">
+							{$i18n.t(
+								'Astuce : il vous faut un serveur Discord où vous êtes administrateur pour y ajouter le bot ensuite.'
+							)}
+						</div>
+					</div>
+				{/if}
+			{/if}
+
+			<!-- Formulaire clés & secrets : autres canaux (Telegram/Discord ont leur propre écran) -->
+			{#if (!isTelegram(p) && !isDiscord(p)) || (isTelegram(p) && p.state !== 'connected' && showTokenForm)}
 				<div class="flex items-center justify-between mb-2 {isTelegram(p) ? 'mt-4' : ''}">
 					<div class="text-xs font-semibold uppercase tracking-wide text-gray-400">
 						{isTelegram(p) ? $i18n.t('Coller un token manuellement') : $i18n.t('Clés & secrets')}
@@ -1094,7 +1371,7 @@
 					>
 						{disconnecting ? $i18n.t('Déconnexion…') : $i18n.t('Déconnecter')}
 					</button>
-				{:else if !isTelegram(p) || showTokenForm}
+				{:else if (!isTelegram(p) && !isDiscord(p)) || showTokenForm}
 					<button
 						class="px-3 py-1.5 text-sm rounded-lg bg-gray-100 dark:bg-gray-850 hover:bg-gray-200 dark:hover:bg-gray-800 transition disabled:opacity-50"
 						on:click={() => testPlatform(p)}
@@ -1110,7 +1387,7 @@
 				>
 					{$i18n.t('Fermer')}
 				</button>
-				{#if p.state !== 'connected' && (!isTelegram(p) || showTokenForm)}
+				{#if p.state !== 'connected' && ((!isTelegram(p) && !isDiscord(p)) || showTokenForm)}
 					<button
 						class="px-3 py-1.5 text-sm rounded-lg btn-premium bg-black text-white dark:bg-white dark:text-black hover:opacity-90 transition disabled:opacity-40"
 						on:click={() => savePlatform(p)}
