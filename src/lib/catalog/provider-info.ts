@@ -265,6 +265,7 @@ export const PROVIDER_INFO: Record<string, ProviderInfo> = {
 	together: {
 		desc: 'Together AI — grand catalogue de modèles ouverts.',
 		keyUrl: 'https://api.together.ai/',
+		usageUrl: 'https://api.together.ai/settings/usage',
 		about: [
 			'Llama, DeepSeek, Qwen et bien d’autres au même endroit',
 			'Bon rapport qualité/prix'
@@ -300,6 +301,7 @@ export const PROVIDER_INFO: Record<string, ProviderInfo> = {
 	xiaomi: {
 		desc: 'Xiaomi MiMo — modèles ouverts de Xiaomi.',
 		keyUrl: 'https://platform.xiaomimimo.com',
+		usageUrl: 'https://platform.xiaomimimo.com',
 		about: [
 			'Modèles légers, orientés raisonnement',
 			'Alternative open source économique'
