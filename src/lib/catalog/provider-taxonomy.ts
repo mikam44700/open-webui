@@ -97,7 +97,13 @@ export const HIDDEN_PROVIDER_IDS = new Set<string>([
 	// (moteur le supporte : réversible). `copilot-acp` (cas technique, login CLI machine)
 	// masqué aussi pour ne laisser aucune trace Copilot à l'écran.
 	'copilot',
-	'copilot-acp'
+	'copilot-acp',
+	// Endpoints Chine (doublons des cartes internationales) : mêmes modèles que `kimi-coding`
+	// et `minimax` mais routés vers les serveurs chinois (api.moonshot.cn / api.minimaxi.com CN).
+	// Redondants et sans intérêt pour la cible → masqués (2026-07-08). Plugins conservés,
+	// réversible. Les cartes internationales `kimi-coding` et `minimax`/`minimax-oauth` restent.
+	'kimi-coding-cn',
+	'minimax-cn'
 ]);
 
 /** Vrai si le fournisseur est masqué partout, y compris en mode Expert. */
