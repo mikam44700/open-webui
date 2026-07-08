@@ -247,6 +247,7 @@ export const PROVIDER_INFO: Record<string, ProviderInfo> = {
 	groq: {
 		desc: 'Groq — inférence ultra-rapide.',
 		keyUrl: 'https://console.groq.com/keys',
+		usageUrl: 'https://console.groq.com/dashboard/usage',
 		about: [
 			'Réponses très rapides sur modèles open source (Llama…)',
 			'Bon marché'
@@ -272,7 +273,7 @@ export const PROVIDER_INFO: Record<string, ProviderInfo> = {
 	fireworks: {
 		desc: 'Fireworks AI — modèles ouverts rapides et pas chers.',
 		keyUrl: 'https://fireworks.ai/account/api-keys',
-		usageUrl: 'https://fireworks.ai/billing',
+		usageUrl: 'https://app.fireworks.ai/account/usage?type=serverless&category=usage&start=now-14d&end=now&interval=30m&usageGroupBy=model_name',
 		about: [
 			'Llama, DeepSeek et autres modèles ouverts',
 			'Bon équilibre entre vitesse et prix'
