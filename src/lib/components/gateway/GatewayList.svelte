@@ -20,13 +20,16 @@
 		getTelegramBotInfo,
 		applyDiscord,
 		getDiscordBotInfo,
+		applySlack,
+		getSlackBotInfo,
 		type GatewayStatus,
 		type MessagingPlatform,
 		type MessagingEnvVar,
 		type TelegramPairingStart,
 		type MessagingUser,
 		type TelegramBotInfo,
-		type DiscordBotInfo
+		type DiscordBotInfo,
+		type SlackBotInfo
 	} from '$lib/apis/gateway';
 	import Spinner from '$lib/components/common/Spinner.svelte';
 	import ConfirmDialog from '$lib/components/common/ConfirmDialog.svelte';
@@ -113,6 +116,47 @@
 	let discordInfo: DiscordBotInfo | null = null; // nom du bot + URL d'invitation
 	let discordInviteCopied = false;
 	let discordShowRestrict = false; // « Restreindre l'accès (avancé) »
+
+	// Onboarding Slack (parcours guidé : 2 tokens → branché). Pas de vrai 1-clic :
+	// le Socket Mode impose un app-level token (xapp-) que l'OAuth ne fournit jamais.
+	// On simplifie au maximum : un manifest pré-configure l'app, le client colle 2 clés.
+	type SlackStatus = 'idle' | 'applying' | 'error';
+	let slackBotToken = ''; // xoxb- (jamais persisté côté front)
+	let slackAppToken = ''; // xapp- (Socket Mode)
+	let slackStatus: SlackStatus = 'idle';
+	let slackError = '';
+	let slackInfo: SlackBotInfo | null = null; // workspace + nom du bot
+	let slackShowRestrict = false; // « Restreindre l'accès (avancé) »
+
+	// Manifest qui pré-configure l'app Slack (nom + scopes + Socket Mode + événements) :
+	// le client n'a rien à régler dans le tableau de bord, il clique et installe.
+	const SLACK_MANIFEST = {
+		display_information: { name: 'Agent OS' },
+		features: { bot_user: { display_name: 'Agent OS', always_online: true } },
+		oauth_config: {
+			scopes: {
+				bot: [
+					'app_mentions:read',
+					'channels:history',
+					'groups:history',
+					'im:history',
+					'im:read',
+					'im:write',
+					'chat:write',
+					'users:read'
+				]
+			}
+		},
+		settings: {
+			event_subscriptions: {
+				bot_events: ['app_mention', 'message.channels', 'message.groups', 'message.im']
+			},
+			socket_mode_enabled: true
+		}
+	};
+	const slackManifestUrl =
+		'https://api.slack.com/apps?new_app=1&manifest_json=' +
+		encodeURIComponent(JSON.stringify(SLACK_MANIFEST));
 
 	// Déconnexion
 	let showDisconnectConfirm = false;
@@ -283,6 +327,7 @@
 
 	const isTelegram = (p: MessagingPlatform | null) => p?.id === 'telegram';
 	const isDiscord = (p: MessagingPlatform | null) => p?.id === 'discord';
+	const isSlack = (p: MessagingPlatform | null) => p?.id === 'slack';
 
 	// Canal affiché mais pas encore branchable (ex. WhatsApp en attente de config Meta).
 	const isUnavailable = (p: MessagingPlatform | null) => p?.available === false;
@@ -493,6 +538,60 @@
 		}
 	};
 
+	// --- Onboarding Slack (parcours guidé, 2 tokens) -------------------------
+
+	const resetSlack = () => {
+		slackBotToken = '';
+		slackAppToken = '';
+		slackStatus = 'idle';
+		slackError = '';
+		slackInfo = null;
+		slackShowRestrict = false;
+	};
+
+	// Récupère le workspace + le nom du bot (à afficher une fois connecté).
+	const loadSlackInfo = async (p: MessagingPlatform | null) => {
+		if (!p || !isSlack(p)) return;
+		try {
+			slackInfo = await getSlackBotInfo(localStorage.token);
+		} catch (err) {
+			slackInfo = null; // silencieux
+		}
+	};
+
+	// Branche Slack : valide les 2 tokens, active + redémarre, puis attend « connecté ».
+	const connectSlack = async () => {
+		const bot = slackBotToken.trim();
+		const appToken = slackAppToken.trim();
+		if (!bot || !appToken) return;
+		slackStatus = 'applying';
+		slackError = '';
+		try {
+			const res = await applySlack(localStorage.token, bot, appToken);
+			if (res?.ok) {
+				slackBotToken = '';
+				slackAppToken = '';
+				toast.success($i18n.t('Slack connecté !'));
+				// Le gateway redémarre (quelques secondes) : on rafraîchit jusqu'à « connecté ».
+				for (let i = 0; i < 8; i++) {
+					await load(true);
+					const fresh = platforms.find((x) => x.id === modalPlatform?.id);
+					if (fresh) modalPlatform = fresh;
+					if (fresh?.state === 'connected') break;
+					await new Promise((r) => setTimeout(r, 2000));
+				}
+				slackStatus = 'idle';
+				if (modalPlatform) loadSlackInfo(modalPlatform);
+			} else {
+				slackStatus = 'error';
+				slackError = res?.error || res?.restart_error || $i18n.t('La connexion a échoué.');
+			}
+		} catch (err) {
+			slackStatus = 'error';
+			slackError = $i18n.t('Impossible de connecter Slack. Réessaie.');
+		}
+	};
+
 	// --- Déconnexion ---------------------------------------------------------
 
 	const onDisconnect = async () => {
@@ -521,6 +620,7 @@
 		showTokenForm = false;
 		resetPairing();
 		resetDiscord();
+		resetSlack();
 		approvedUsers = [];
 		pendingUsers = [];
 		botInfo = null;
@@ -531,10 +631,14 @@
 		if (isDiscord(p) && p.state === 'connected') {
 			loadDiscordInfo(p);
 		}
+		if (isSlack(p) && p.state === 'connected') {
+			loadSlackInfo(p);
+		}
 	};
 	const closeModal = () => {
 		resetPairing();
 		resetDiscord();
+		resetSlack();
 		modalPlatform = null;
 	};
 
@@ -1288,8 +1392,188 @@
 				{/if}
 			{/if}
 
-			<!-- Formulaire clés & secrets : autres canaux (Telegram/Discord ont leur propre écran) -->
-			{#if (!isTelegram(p) && !isDiscord(p)) || (isTelegram(p) && p.state !== 'connected' && showTokenForm)}
+			{#if isSlack(p)}
+				{#if p.state === 'connected'}
+					{@const allowedField = p.env_vars.find((f) => f.key === 'SLACK_ALLOWED_USERS')}
+					<div class="flex flex-col gap-4">
+						<div
+							class="flex items-center gap-2 px-3 py-2 rounded-lg bg-green-500/10 text-green-600 dark:text-green-400 text-sm"
+						>
+							<span>✓</span>
+							<span>
+								{$i18n.t('Slack est connecté.')}
+								{#if slackInfo?.team_name}<span class="opacity-70">({slackInfo.team_name})</span>{/if}
+							</span>
+						</div>
+
+						<!-- Espace de travail où l'app est installée -->
+						{#if slackInfo?.workspace_url}
+							<div class="flex flex-col gap-2">
+								<div class="text-xs font-semibold uppercase tracking-wide text-gray-400">
+									{$i18n.t('Espace de travail')}
+								</div>
+								<a
+									href={slackInfo.workspace_url}
+									target="_blank"
+									rel="noopener noreferrer"
+									class="inline-flex items-center gap-2 text-sm text-blue-600 dark:text-blue-400 hover:underline"
+								>
+									{slackInfo.workspace_url} ↗
+								</a>
+								<div class="text-[11px] text-gray-400">
+									{$i18n.t(
+										'Invitez votre assistant dans un canal avec « /invite @Agent OS », puis écrivez-lui.'
+									)}
+								</div>
+							</div>
+						{/if}
+
+						<!-- Accès : tout l'espace par défaut, restriction en option -->
+						<div class="flex flex-col gap-2">
+							<div class="text-xs font-semibold uppercase tracking-wide text-gray-400">
+								{$i18n.t('Accès')}
+							</div>
+							<div class="text-[11px] text-gray-500">
+								{$i18n.t(
+									'Par défaut, toute personne de votre espace Slack peut écrire à votre assistant.'
+								)}
+							</div>
+							{#if allowedField}
+								<button
+									class="text-[11px] text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition text-left"
+									on:click={() => (slackShowRestrict = !slackShowRestrict)}
+								>
+									{slackShowRestrict ? $i18n.t('Masquer') : $i18n.t('Restreindre l’accès (avancé)')}
+								</button>
+								{#if slackShowRestrict}
+									<input
+										class="w-full px-3 py-2 text-sm rounded-lg bg-gray-50 dark:bg-gray-850 outline-none"
+										type="text"
+										value={drafts[p.id]?.[allowedField.key] ?? ''}
+										placeholder={allowedField.redacted_value || allowedField.prompt}
+										on:input={(e) => handleChange(p.id, allowedField.key, e.currentTarget.value)}
+									/>
+									<div class="text-[11px] text-gray-400">
+										{$i18n.t(
+											'Identifiants Slack autorisés, séparés par des virgules. Laissez vide pour autoriser tout l’espace.'
+										)}
+									</div>
+									<button
+										class="self-start px-3 py-1.5 text-sm rounded-lg btn-premium bg-black text-white dark:bg-white dark:text-black hover:opacity-90 transition disabled:opacity-40"
+										on:click={() => savePlatform(p)}
+										disabled={!hasDraft(p) || busy === p.id}
+									>
+										{$i18n.t('Enregistrer')}
+									</button>
+								{/if}
+							{/if}
+						</div>
+					</div>
+				{:else if slackStatus === 'applying'}
+					<div class="flex flex-col items-center text-center gap-3 py-4">
+						<Spinner />
+						<div class="text-sm">{$i18n.t('Connexion en cours…')}</div>
+					</div>
+				{:else}
+					<!-- Écran de connexion guidée (3 étapes) -->
+					<div class="flex flex-col gap-4">
+						<div class="text-sm text-gray-600 dark:text-gray-300">
+							{$i18n.t(
+								'Branchez votre espace Slack en 3 étapes (environ 3 minutes). Le tableau de bord Slack est en anglais : les boutons à cliquer sont indiqués ci-dessous.'
+							)}
+						</div>
+
+						<div class="flex gap-3">
+							<div
+								class="flex-none size-6 rounded-full bg-gray-100 dark:bg-gray-800 flex items-center justify-center text-xs font-semibold"
+							>
+								1
+							</div>
+							<div class="flex flex-col gap-1.5 text-sm">
+								<div class="font-medium">{$i18n.t('Créez votre app Slack (pré-configurée)')}</div>
+								<div class="text-[13px] text-gray-500">
+									{$i18n.t(
+										'Ouvrez le lien : l’app arrive déjà configurée (nom, permissions, Socket Mode). Choisissez votre espace de travail, vérifiez, puis cliquez « Create ».'
+									)}
+								</div>
+								<a
+									href={slackManifestUrl}
+									target="_blank"
+									rel="noopener noreferrer"
+									class="self-start px-3 py-1.5 text-xs font-medium rounded-lg bg-gray-100 dark:bg-gray-850 hover:bg-gray-200 dark:hover:bg-gray-800 transition"
+								>
+									{$i18n.t('Créer mon app Slack')} ↗
+								</a>
+							</div>
+						</div>
+
+						<div class="flex gap-3">
+							<div
+								class="flex-none size-6 rounded-full bg-gray-100 dark:bg-gray-800 flex items-center justify-center text-xs font-semibold"
+							>
+								2
+							</div>
+							<div class="flex flex-col gap-1.5 text-sm">
+								<div class="font-medium">{$i18n.t('Installez l’app et récupérez vos 2 clés')}</div>
+								<div class="text-[13px] text-gray-500">
+									{$i18n.t(
+										'Menu « Install App » → « Install to Workspace » → « Allow » : copiez le « Bot User OAuth Token » (commence par xoxb-). Puis menu « Basic Information » → « App-Level Tokens » → « Generate Token and Scopes », ajoutez le scope « connections:write », et copiez le token (commence par xapp-).'
+									)}
+								</div>
+							</div>
+						</div>
+
+						<div class="flex gap-3">
+							<div
+								class="flex-none size-6 rounded-full bg-gray-100 dark:bg-gray-800 flex items-center justify-center text-xs font-semibold"
+							>
+								3
+							</div>
+							<div class="flex flex-col gap-2 text-sm w-full">
+								<div class="font-medium">{$i18n.t('Collez vos 2 clés ici')}</div>
+								<input
+									class="w-full px-3 py-2 text-sm rounded-lg bg-gray-50 dark:bg-gray-850 outline-none"
+									type="password"
+									autocomplete="off"
+									placeholder={$i18n.t('Bot token (xoxb-…)')}
+									bind:value={slackBotToken}
+								/>
+								<input
+									class="w-full px-3 py-2 text-sm rounded-lg bg-gray-50 dark:bg-gray-850 outline-none"
+									type="password"
+									autocomplete="off"
+									placeholder={$i18n.t('App token (xapp-…)')}
+									bind:value={slackAppToken}
+								/>
+							</div>
+						</div>
+
+						{#if slackStatus === 'error'}
+							<div
+								class="text-xs px-2 py-1.5 rounded-lg bg-amber-500/10 text-amber-600 dark:text-amber-400"
+							>
+								{slackError}
+							</div>
+						{/if}
+
+						<button
+							class="px-4 py-2 text-sm font-medium rounded-lg btn-premium bg-black text-white dark:bg-white dark:text-black hover:opacity-90 transition disabled:opacity-40"
+							on:click={connectSlack}
+							disabled={!slackBotToken.trim() || !slackAppToken.trim()}
+						>
+							{$i18n.t('Connecter')}
+						</button>
+						<div class="text-[11px] text-gray-400">
+							{$i18n.t(
+								'Astuce : il vous faut un espace Slack où vous êtes administrateur pour y installer l’app.'
+							)}
+						</div>
+					</div>
+				{/if}
+			{/if}
+
+			<!-- Formulaire clés & secrets : autres canaux (Telegram/Discord/Slack ont leur propre écran) -->
+			{#if (!isTelegram(p) && !isDiscord(p) && !isSlack(p)) || (isTelegram(p) && p.state !== 'connected' && showTokenForm)}
 				<div class="flex items-center justify-between mb-2 {isTelegram(p) ? 'mt-4' : ''}">
 					<div class="text-xs font-semibold uppercase tracking-wide text-gray-400">
 						{isTelegram(p) ? $i18n.t('Coller un token manuellement') : $i18n.t('Clés & secrets')}
@@ -1371,7 +1655,7 @@
 					>
 						{disconnecting ? $i18n.t('Déconnexion…') : $i18n.t('Déconnecter')}
 					</button>
-				{:else if (!isTelegram(p) && !isDiscord(p)) || showTokenForm}
+				{:else if (!isTelegram(p) && !isDiscord(p) && !isSlack(p)) || showTokenForm}
 					<button
 						class="px-3 py-1.5 text-sm rounded-lg bg-gray-100 dark:bg-gray-850 hover:bg-gray-200 dark:hover:bg-gray-800 transition disabled:opacity-50"
 						on:click={() => testPlatform(p)}
@@ -1387,7 +1671,7 @@
 				>
 					{$i18n.t('Fermer')}
 				</button>
-				{#if p.state !== 'connected' && ((!isTelegram(p) && !isDiscord(p)) || showTokenForm)}
+				{#if p.state !== 'connected' && ((!isTelegram(p) && !isDiscord(p) && !isSlack(p)) || showTokenForm)}
 					<button
 						class="px-3 py-1.5 text-sm rounded-lg btn-premium bg-black text-white dark:bg-white dark:text-black hover:opacity-90 transition disabled:opacity-40"
 						on:click={() => savePlatform(p)}

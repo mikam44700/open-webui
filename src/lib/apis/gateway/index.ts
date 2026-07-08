@@ -156,6 +156,37 @@ export const applyDiscord = (token: string, botToken: string) =>
 export const getDiscordBotInfo = (token: string) =>
 	call(token, 'GET', '/platforms/discord/bot-info') as Promise<DiscordBotInfo>;
 
+// --- Onboarding Slack (parcours guidé : 2 tokens → branché) ------------------
+// Slack n'a pas de vrai 1-clic : Socket Mode impose un app-level token (xapp-) que
+// l'OAuth ne fournit jamais. On simplifie au max — 2 tokens collés, validés côté pont.
+
+export type SlackApplyResult = {
+	ok: boolean;
+	bot_name: string | null;
+	team_name: string | null;
+	workspace_url: string | null;
+	needs_restart: boolean;
+	restart_ok: boolean;
+	restart_error: string | null;
+	error: string | null;
+};
+
+export type SlackBotInfo = {
+	name: string | null;
+	team_name: string | null;
+	workspace_url: string | null;
+};
+
+// Branche Slack : valide les 2 tokens (xoxb- + xapp-), active + redémarre.
+export const applySlack = (token: string, botToken: string, appToken: string) =>
+	call(token, 'POST', '/platforms/slack/apply', {
+		bot_token: botToken,
+		app_token: appToken
+	}) as Promise<SlackApplyResult>;
+
+export const getSlackBotInfo = (token: string) =>
+	call(token, 'GET', '/platforms/slack/bot-info') as Promise<SlackBotInfo>;
+
 // --- Partage : allowlist des utilisateurs ------------------------------------
 
 export type MessagingUser = {
