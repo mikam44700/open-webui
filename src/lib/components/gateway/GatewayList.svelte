@@ -167,9 +167,13 @@
 	const isBridgeDown = (err: any) =>
 		err?.error?.code === 'bridge_unreachable' || err?.error?.code === 'hermes_unavailable';
 
-	// Canaux non prêts (available === false) : masqués au client, visibles en mode expert
-	// (pour la config/livraison). Réactivation = passer available:true → réapparaît pour tous.
-	$: filtered = $expertMode ? platforms : platforms.filter((p) => p.available !== false);
+	// Canaux masqués au client, visibles seulement en mode expert :
+	//  • available === false  → grisé « Bientôt » (ex. WhatsApp, attente config Meta)
+	//  • expert_only === true  → pleinement configurable mais réservé aux techniciens
+	//    (ex. Signal, BlueBubbles : self-hébergement requis)
+	$: filtered = $expertMode
+		? platforms
+		: platforms.filter((p) => p.available !== false && !p.expert_only);
 
 	// Garde la modale ouverte synchronisée avec la liste rafraîchie (état « connecté »
 	// après un redémarrage du gateway, toggle, etc.) — sinon elle reste figée.
@@ -328,6 +332,90 @@
 	const isTelegram = (p: MessagingPlatform | null) => p?.id === 'telegram';
 	const isDiscord = (p: MessagingPlatform | null) => p?.id === 'discord';
 	const isSlack = (p: MessagingPlatform | null) => p?.id === 'slack';
+	const isEmail = (p: MessagingPlatform | null) => p?.id === 'email';
+	const isSms = (p: MessagingPlatform | null) => p?.id === 'sms';
+	const isSignal = (p: MessagingPlatform | null) => p?.id === 'signal';
+	const isBlueBubbles = (p: MessagingPlatform | null) => p?.id === 'bluebubbles';
+
+	// Email : auto-détection des serveurs IMAP/SMTP depuis le domaine de l'adresse, pour
+	// que le client ne saisisse QUE son adresse + un mot de passe (2 champs au lieu de 4).
+	type EmailProvider = {
+		imap: string;
+		smtp: string;
+		label: string;
+		appPasswordUrl?: string;
+		warning?: string;
+	};
+	const EMAIL_PROVIDERS: Record<string, EmailProvider> = {
+		'gmail.com': {
+			imap: 'imap.gmail.com',
+			smtp: 'smtp.gmail.com',
+			label: 'Gmail',
+			appPasswordUrl: 'https://myaccount.google.com/apppasswords'
+		},
+		'googlemail.com': {
+			imap: 'imap.gmail.com',
+			smtp: 'smtp.gmail.com',
+			label: 'Gmail',
+			appPasswordUrl: 'https://myaccount.google.com/apppasswords'
+		},
+		'outlook.com': {
+			imap: 'outlook.office365.com',
+			smtp: 'smtp.office365.com',
+			label: 'Outlook',
+			warning:
+				'Microsoft a restreint la connexion par mot de passe sur les comptes Outlook/Hotmail personnels : ce canal risque de ne pas fonctionner.'
+		},
+		'hotmail.com': {
+			imap: 'outlook.office365.com',
+			smtp: 'smtp.office365.com',
+			label: 'Hotmail',
+			warning:
+				'Microsoft a restreint la connexion par mot de passe sur les comptes Outlook/Hotmail personnels : ce canal risque de ne pas fonctionner.'
+		},
+		'live.com': {
+			imap: 'outlook.office365.com',
+			smtp: 'smtp.office365.com',
+			label: 'Live',
+			warning:
+				'Microsoft a restreint la connexion par mot de passe sur les comptes personnels : ce canal risque de ne pas fonctionner.'
+		},
+		'yahoo.com': {
+			imap: 'imap.mail.yahoo.com',
+			smtp: 'smtp.mail.yahoo.com',
+			label: 'Yahoo',
+			appPasswordUrl: 'https://login.yahoo.com/account/security'
+		},
+		'icloud.com': {
+			imap: 'imap.mail.me.com',
+			smtp: 'smtp.mail.me.com',
+			label: 'iCloud',
+			appPasswordUrl: 'https://account.apple.com/account/manage'
+		},
+		'me.com': {
+			imap: 'imap.mail.me.com',
+			smtp: 'smtp.mail.me.com',
+			label: 'iCloud',
+			appPasswordUrl: 'https://account.apple.com/account/manage'
+		}
+	};
+	let emailProvider: EmailProvider | null = null; // fournisseur détecté (aide dynamique)
+	let emailShowHosts = false; // déplier les serveurs (domaine inconnu ou réglage manuel)
+
+	// À chaque frappe dans l'adresse : détecte le fournisseur et pré-remplit les serveurs.
+	const onEmailAddressChange = (p: MessagingPlatform, value: string) => {
+		handleChange(p.id, 'EMAIL_ADDRESS', value);
+		const at = value.lastIndexOf('@');
+		const domain = at >= 0 ? value.slice(at + 1).trim().toLowerCase() : '';
+		emailProvider = EMAIL_PROVIDERS[domain] ?? null;
+		if (emailProvider) {
+			handleChange(p.id, 'EMAIL_IMAP_HOST', emailProvider.imap);
+			handleChange(p.id, 'EMAIL_SMTP_HOST', emailProvider.smtp);
+			emailShowHosts = false;
+		} else if (domain.includes('.')) {
+			emailShowHosts = true; // domaine non reconnu → laisser saisir les serveurs
+		}
+	};
 
 	// Canal affiché mais pas encore branchable (ex. WhatsApp en attente de config Meta).
 	const isUnavailable = (p: MessagingPlatform | null) => p?.available === false;
@@ -621,6 +709,8 @@
 		resetPairing();
 		resetDiscord();
 		resetSlack();
+		emailProvider = null;
+		emailShowHosts = false;
 		approvedUsers = [];
 		pendingUsers = [];
 		botInfo = null;
@@ -817,6 +907,13 @@
 								<div class="min-w-0">
 									<div class="flex items-center gap-2">
 										<span class="text-sm font-medium">{p.name}</span>
+										{#if p.recommended && !isUnavailable(p)}
+											<span
+												class="inline-flex items-center px-1.5 py-0.5 rounded-full text-[10px] font-medium bg-green-500/10 text-green-600 dark:text-green-400"
+											>
+												{$i18n.t('Recommandé')}
+											</span>
+										{/if}
 										{#if isUnavailable(p)}
 											<span
 												class="inline-flex items-center px-1.5 py-0.5 rounded-full text-[10px] font-medium bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-400"
@@ -932,7 +1029,7 @@
 								on:click={() => testPlatform(p)}
 								disabled={busy === p.id || isUnavailable(p)}
 							>
-								{$i18n.t('Tester')}
+								{$i18n.t('Vérifier')}
 							</button>
 							<div class="flex-1"></div>
 							<button
@@ -1572,11 +1669,325 @@
 				{/if}
 			{/if}
 
-			<!-- Formulaire clés & secrets : autres canaux (Telegram/Discord/Slack ont leur propre écran) -->
-			{#if (!isTelegram(p) && !isDiscord(p) && !isSlack(p)) || (isTelegram(p) && p.state !== 'connected' && showTokenForm)}
+			{#if isEmail(p)}
+				{@const addr = drafts[p.id]?.['EMAIL_ADDRESS'] ?? ''}
+				<div class="flex flex-col gap-4">
+					<div class="text-sm text-gray-600 dark:text-gray-300">
+						{$i18n.t(
+							'Connectez votre boîte mail : votre assistant lit vos e-mails et y répond. Indiquez votre adresse et un mot de passe — le reste est détecté automatiquement.'
+						)}
+					</div>
+
+					<div class="flex flex-col gap-1.5">
+						<label class="text-sm font-medium" for="email-addr">{$i18n.t('Votre adresse e-mail')}</label>
+						<input
+							id="email-addr"
+							class="w-full px-3 py-2 text-sm rounded-lg bg-gray-50 dark:bg-gray-850 outline-none"
+							type="email"
+							autocomplete="off"
+							placeholder="vous@exemple.com"
+							value={addr}
+							on:input={(e) => onEmailAddressChange(p, e.currentTarget.value)}
+						/>
+						{#if emailProvider}
+							<div class="text-[11px] text-gray-400">
+								{$i18n.t('Fournisseur détecté')} : {emailProvider.label} — {$i18n.t(
+									'serveurs configurés automatiquement.'
+								)}
+							</div>
+						{/if}
+					</div>
+
+					{#if emailProvider?.warning}
+						<div class="text-xs px-3 py-2 rounded-lg bg-amber-500/10 text-amber-600 dark:text-amber-400">
+							⚠ {$i18n.t(emailProvider.warning)}
+						</div>
+					{:else if emailProvider?.appPasswordUrl}
+						<div
+							class="text-xs px-3 py-2 rounded-lg bg-blue-500/10 text-blue-600 dark:text-blue-400 flex flex-col gap-1.5"
+						>
+							<span
+								>{$i18n.t('Pour')} {emailProvider.label}, {$i18n.t(
+									'utilisez un mot de passe d’application (pas votre mot de passe habituel). Nécessite la validation en 2 étapes activée.'
+								)}</span
+							>
+							<a
+								href={emailProvider.appPasswordUrl}
+								target="_blank"
+								rel="noopener noreferrer"
+								class="underline self-start font-medium"
+							>
+								{$i18n.t('Créer un mot de passe d’application')} ↗
+							</a>
+						</div>
+					{/if}
+
+					<div class="flex flex-col gap-1.5">
+						<label class="text-sm font-medium" for="email-pwd">{$i18n.t('Mot de passe')}</label>
+						<input
+							id="email-pwd"
+							class="w-full px-3 py-2 text-sm rounded-lg bg-gray-50 dark:bg-gray-850 outline-none"
+							type="password"
+							autocomplete="off"
+							placeholder={emailProvider?.appPasswordUrl
+								? $i18n.t('Mot de passe d’application')
+								: $i18n.t('Mot de passe de la boîte')}
+							value={drafts[p.id]?.['EMAIL_PASSWORD'] ?? ''}
+							on:input={(e) => handleChange(p.id, 'EMAIL_PASSWORD', e.currentTarget.value)}
+						/>
+					</div>
+
+					<!-- Serveurs IMAP/SMTP : cachés si auto-détectés, dépliables sinon -->
+					<div class="flex flex-col gap-1.5">
+						<button
+							class="text-[11px] text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition text-left"
+							on:click={() => (emailShowHosts = !emailShowHosts)}
+						>
+							{emailShowHosts ? $i18n.t('Masquer les serveurs') : $i18n.t('Serveurs (avancé)')}
+						</button>
+						{#if emailShowHosts}
+							<input
+								class="w-full px-3 py-2 text-sm rounded-lg bg-gray-50 dark:bg-gray-850 outline-none"
+								type="text"
+								placeholder={$i18n.t('Serveur de réception (IMAP)')}
+								value={drafts[p.id]?.['EMAIL_IMAP_HOST'] ?? ''}
+								on:input={(e) => handleChange(p.id, 'EMAIL_IMAP_HOST', e.currentTarget.value)}
+							/>
+							<input
+								class="w-full px-3 py-2 text-sm rounded-lg bg-gray-50 dark:bg-gray-850 outline-none"
+								type="text"
+								placeholder={$i18n.t('Serveur d’envoi (SMTP)')}
+								value={drafts[p.id]?.['EMAIL_SMTP_HOST'] ?? ''}
+								on:input={(e) => handleChange(p.id, 'EMAIL_SMTP_HOST', e.currentTarget.value)}
+							/>
+						{/if}
+					</div>
+
+					<button
+						class="self-start px-4 py-2 text-sm font-medium rounded-lg btn-premium bg-black text-white dark:bg-white dark:text-black hover:opacity-90 transition disabled:opacity-40"
+						on:click={() => savePlatform(p)}
+						disabled={!hasDraft(p) || busy === p.id}
+					>
+						{p.state === 'connected' ? $i18n.t('Enregistrer') : $i18n.t('Connecter')}
+					</button>
+				</div>
+			{/if}
+
+			{#if isSms(p)}
+				<div class="flex flex-col gap-4">
+					<div class="text-sm text-gray-600 dark:text-gray-300">
+						{$i18n.t(
+							'Envoyez et recevez des SMS via Twilio. Récupérez vos identifiants dans la console Twilio (2 minutes).'
+						)}
+					</div>
+
+					<div class="text-xs px-3 py-2 rounded-lg bg-amber-500/10 text-amber-600 dark:text-amber-400">
+						⚠ {$i18n.t(
+							'Twilio est payant : environ 1 $/mois pour le numéro + un coût par SMS. Un compte d’essai n’envoie qu’à des numéros vérifiés.'
+						)}
+					</div>
+
+					<div class="flex flex-wrap gap-2">
+						<a
+							href="https://console.twilio.com"
+							target="_blank"
+							rel="noopener noreferrer"
+							class="px-3 py-1.5 text-xs font-medium rounded-lg bg-gray-100 dark:bg-gray-850 hover:bg-gray-200 dark:hover:bg-gray-800 transition"
+						>
+							{$i18n.t('Ouvrir la console Twilio')} ↗
+						</a>
+						<a
+							href="https://console.twilio.com/us1/develop/phone-numbers/manage/search"
+							target="_blank"
+							rel="noopener noreferrer"
+							class="px-3 py-1.5 text-xs font-medium rounded-lg bg-gray-100 dark:bg-gray-850 hover:bg-gray-200 dark:hover:bg-gray-800 transition"
+						>
+							{$i18n.t('Acheter un numéro')} ↗
+						</a>
+					</div>
+
+					{#each p.env_vars.filter((f) => !f.advanced) as field (field.key)}
+						<div class="flex flex-col gap-1.5">
+							<label class="text-sm font-medium">
+								{field.prompt}{#if field.required}<span class="text-red-500"> *</span>{/if}
+							</label>
+							<input
+								class="w-full px-3 py-2 text-sm rounded-lg bg-gray-50 dark:bg-gray-850 outline-none"
+								type={field.is_password ? 'password' : 'text'}
+								autocomplete="off"
+								placeholder={field.redacted_value || field.prompt}
+								value={drafts[p.id]?.[field.key] ?? ''}
+								on:input={(e) => handleChange(p.id, field.key, e.currentTarget.value)}
+							/>
+							{#if field.description}
+								<div class="text-[11px] text-gray-400">{field.description}</div>
+							{/if}
+						</div>
+					{/each}
+
+					<button
+						class="self-start px-4 py-2 text-sm font-medium rounded-lg btn-premium bg-black text-white dark:bg-white dark:text-black hover:opacity-90 transition disabled:opacity-40"
+						on:click={() => savePlatform(p)}
+						disabled={!hasDraft(p) || busy === p.id}
+					>
+						{p.state === 'connected' ? $i18n.t('Enregistrer') : $i18n.t('Connecter')}
+					</button>
+				</div>
+			{/if}
+
+			{#if isSignal(p)}
+				<div class="flex flex-col gap-4">
+					<div class="text-sm text-gray-600 dark:text-gray-300">
+						{$i18n.t(
+							'Signal fonctionne via un petit serveur technique (signal-cli REST). Réservé à une configuration avancée.'
+						)}
+					</div>
+					<div class="text-xs px-3 py-2 rounded-lg bg-amber-500/10 text-amber-600 dark:text-amber-400">
+						⚠ {$i18n.t(
+							'Étape technique : il faut héberger le service signal-cli REST et y lier un numéro dédié (idéalement pas votre numéro personnel).'
+						)}
+					</div>
+
+					<div class="flex gap-3">
+						<div
+							class="flex-none size-6 rounded-full bg-gray-100 dark:bg-gray-800 flex items-center justify-center text-xs font-semibold"
+						>
+							1
+						</div>
+						<div class="flex flex-col gap-1.5 text-sm">
+							<div class="font-medium">{$i18n.t('Lancez le serveur signal-cli REST')}</div>
+							<div class="text-[13px] text-gray-500">
+								{$i18n.t(
+									'Déployez le conteneur signal-cli-rest-api (Docker) et liez votre numéro (device-link ou enregistrement d’un numéro dédié).'
+								)}
+							</div>
+							<a
+								href="https://github.com/bbernhard/signal-cli-rest-api"
+								target="_blank"
+								rel="noopener noreferrer"
+								class="self-start px-3 py-1.5 text-xs font-medium rounded-lg bg-gray-100 dark:bg-gray-850 hover:bg-gray-200 dark:hover:bg-gray-800 transition"
+							>
+								{$i18n.t('Voir la documentation')} ↗
+							</a>
+						</div>
+					</div>
+
+					<div class="flex gap-3">
+						<div
+							class="flex-none size-6 rounded-full bg-gray-100 dark:bg-gray-800 flex items-center justify-center text-xs font-semibold"
+						>
+							2
+						</div>
+						<div class="flex flex-col gap-2 text-sm w-full">
+							<div class="font-medium">{$i18n.t('Renseignez votre numéro et l’adresse du serveur')}</div>
+							{#each p.env_vars.filter((f) => !f.advanced) as field (field.key)}
+								<div class="flex flex-col gap-1">
+									<input
+										class="w-full px-3 py-2 text-sm rounded-lg bg-gray-50 dark:bg-gray-850 outline-none"
+										type={field.is_password ? 'password' : 'text'}
+										autocomplete="off"
+										placeholder={field.redacted_value || field.prompt}
+										value={drafts[p.id]?.[field.key] ?? ''}
+										on:input={(e) => handleChange(p.id, field.key, e.currentTarget.value)}
+									/>
+									{#if field.description}
+										<div class="text-[11px] text-gray-400">{field.description}</div>
+									{/if}
+								</div>
+							{/each}
+						</div>
+					</div>
+
+					<button
+						class="self-start px-4 py-2 text-sm font-medium rounded-lg btn-premium bg-black text-white dark:bg-white dark:text-black hover:opacity-90 transition disabled:opacity-40"
+						on:click={() => savePlatform(p)}
+						disabled={!hasDraft(p) || busy === p.id}
+					>
+						{p.state === 'connected' ? $i18n.t('Enregistrer') : $i18n.t('Connecter')}
+					</button>
+				</div>
+			{/if}
+
+			{#if isBlueBubbles(p)}
+				<div class="flex flex-col gap-4">
+					<div class="text-sm text-gray-600 dark:text-gray-300">
+						{$i18n.t(
+							'iMessage fonctionne via un serveur BlueBubbles installé sur un Mac. Réservé à une configuration avancée.'
+						)}
+					</div>
+					<div class="text-xs px-3 py-2 rounded-lg bg-amber-500/10 text-amber-600 dark:text-amber-400">
+						⚠ {$i18n.t(
+							'Nécessite un Mac dédié allumé en permanence, connecté à iMessage avec un Apple ID.'
+						)}
+					</div>
+
+					<div class="flex gap-3">
+						<div
+							class="flex-none size-6 rounded-full bg-gray-100 dark:bg-gray-800 flex items-center justify-center text-xs font-semibold"
+						>
+							1
+						</div>
+						<div class="flex flex-col gap-1.5 text-sm">
+							<div class="font-medium">{$i18n.t('Installez BlueBubbles sur votre Mac')}</div>
+							<div class="text-[13px] text-gray-500">
+								{$i18n.t(
+									'Installez le serveur BlueBubbles, connectez-le à iMessage, accordez les permissions macOS et définissez un mot de passe serveur.'
+								)}
+							</div>
+							<a
+								href="https://bluebubbles.app/install/"
+								target="_blank"
+								rel="noopener noreferrer"
+								class="self-start px-3 py-1.5 text-xs font-medium rounded-lg bg-gray-100 dark:bg-gray-850 hover:bg-gray-200 dark:hover:bg-gray-800 transition"
+							>
+								{$i18n.t('Guide d’installation')} ↗
+							</a>
+						</div>
+					</div>
+
+					<div class="flex gap-3">
+						<div
+							class="flex-none size-6 rounded-full bg-gray-100 dark:bg-gray-800 flex items-center justify-center text-xs font-semibold"
+						>
+							2
+						</div>
+						<div class="flex flex-col gap-2 text-sm w-full">
+							<div class="font-medium">{$i18n.t('Renseignez l’adresse du serveur et le mot de passe')}</div>
+							{#each p.env_vars.filter((f) => !f.advanced) as field (field.key)}
+								<div class="flex flex-col gap-1">
+									<input
+										class="w-full px-3 py-2 text-sm rounded-lg bg-gray-50 dark:bg-gray-850 outline-none"
+										type={field.is_password ? 'password' : 'text'}
+										autocomplete="off"
+										placeholder={field.redacted_value || field.prompt}
+										value={drafts[p.id]?.[field.key] ?? ''}
+										on:input={(e) => handleChange(p.id, field.key, e.currentTarget.value)}
+									/>
+									{#if field.description}
+										<div class="text-[11px] text-gray-400">{field.description}</div>
+									{/if}
+								</div>
+							{/each}
+						</div>
+					</div>
+
+					<button
+						class="self-start px-4 py-2 text-sm font-medium rounded-lg btn-premium bg-black text-white dark:bg-white dark:text-black hover:opacity-90 transition disabled:opacity-40"
+						on:click={() => savePlatform(p)}
+						disabled={!hasDraft(p) || busy === p.id}
+					>
+						{p.state === 'connected' ? $i18n.t('Enregistrer') : $i18n.t('Connecter')}
+					</button>
+				</div>
+			{/if}
+
+			<!-- Formulaire clés & secrets : fallback (WhatsApp expert, Telegram méthode avancée) -->
+			{#if (!isTelegram(p) && !isDiscord(p) && !isSlack(p) && !isEmail(p) && !isSms(p) && !isSignal(p) && !isBlueBubbles(p)) || (isTelegram(p) && p.state !== 'connected' && showTokenForm)}
 				<div class="flex items-center justify-between mb-2 {isTelegram(p) ? 'mt-4' : ''}">
 					<div class="text-xs font-semibold uppercase tracking-wide text-gray-400">
-						{isTelegram(p) ? $i18n.t('Coller un token manuellement') : $i18n.t('Clés & secrets')}
+						{isTelegram(p)
+							? $i18n.t('Coller un token manuellement')
+							: $i18n.t('Vos identifiants de connexion')}
 					</div>
 					{#if hasHideableAdvanced}
 						<label class="flex items-center gap-1.5 text-xs text-gray-500 cursor-pointer">
@@ -1596,7 +2007,9 @@
 								{field.prompt}
 								{#if field.required}<span class="text-red-500">*</span>{/if}
 							</span>
-							<code class="text-[10px] text-gray-400">{field.key}</code>
+							{#if $expertMode}
+								<code class="text-[10px] text-gray-400">{field.key}</code>
+							{/if}
 						</label>
 						<div class="flex items-center gap-1.5">
 							<input
@@ -1655,13 +2068,13 @@
 					>
 						{disconnecting ? $i18n.t('Déconnexion…') : $i18n.t('Déconnecter')}
 					</button>
-				{:else if (!isTelegram(p) && !isDiscord(p) && !isSlack(p)) || showTokenForm}
+				{:else if (!isTelegram(p) && !isDiscord(p) && !isSlack(p) && !isEmail(p) && !isSms(p) && !isSignal(p) && !isBlueBubbles(p)) || showTokenForm}
 					<button
 						class="px-3 py-1.5 text-sm rounded-lg bg-gray-100 dark:bg-gray-850 hover:bg-gray-200 dark:hover:bg-gray-800 transition disabled:opacity-50"
 						on:click={() => testPlatform(p)}
 						disabled={busy === p.id}
 					>
-						{$i18n.t('Tester')}
+						{$i18n.t('Vérifier')}
 					</button>
 				{/if}
 				<div class="flex-1"></div>
@@ -1671,7 +2084,7 @@
 				>
 					{$i18n.t('Fermer')}
 				</button>
-				{#if p.state !== 'connected' && ((!isTelegram(p) && !isDiscord(p) && !isSlack(p)) || showTokenForm)}
+				{#if p.state !== 'connected' && ((!isTelegram(p) && !isDiscord(p) && !isSlack(p) && !isEmail(p) && !isSms(p) && !isSignal(p) && !isBlueBubbles(p)) || showTokenForm)}
 					<button
 						class="px-3 py-1.5 text-sm rounded-lg btn-premium bg-black text-white dark:bg-white dark:text-black hover:opacity-90 transition disabled:opacity-40"
 						on:click={() => savePlatform(p)}

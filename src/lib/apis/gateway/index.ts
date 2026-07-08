@@ -59,6 +59,11 @@ export type MessagingPlatform = {
 	// available=false → canal affiché mais grisé (ex. WhatsApp en attente de config Meta)
 	available?: boolean;
 	unavailable_reason?: string;
+	// recommended → badge « Recommandé » (ex. Telegram, le plus simple à brancher)
+	recommended?: boolean;
+	// expert_only → masqué au client, visible seulement en Réglages avancés mais pleinement
+	// configurable (≠ available:false qui grise « Bientôt ») — ex. Signal, BlueBubbles
+	expert_only?: boolean;
 };
 
 export type MessagingPlatformsResponse = {
