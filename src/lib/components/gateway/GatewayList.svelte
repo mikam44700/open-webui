@@ -2,6 +2,8 @@
 	import { getContext, onMount, onDestroy } from 'svelte';
 	import { toast } from 'svelte-sonner';
 
+	import QRCode from 'qrcode';
+
 	import {
 		getGatewayStatus,
 		getMessagingPlatforms,
@@ -9,9 +11,19 @@
 		testMessagingPlatform,
 		generateApiServerKey,
 		restartGateway,
+		startTelegramPairing,
+		pollTelegramPairing,
+		applyTelegramPairing,
+		cancelTelegramPairing,
+		listPlatformUsers,
+		approvePlatformUser,
+		revokePlatformUser,
+		disconnectPlatform,
 		type GatewayStatus,
 		type MessagingPlatform,
-		type MessagingEnvVar
+		type MessagingEnvVar,
+		type TelegramPairingStart,
+		type MessagingUser
 	} from '$lib/apis/gateway';
 	import Spinner from '$lib/components/common/Spinner.svelte';
 	import ConfirmDialog from '$lib/components/common/ConfirmDialog.svelte';
@@ -72,6 +84,24 @@
 	// modale de configuration
 	let modalPlatform: MessagingPlatform | null = null;
 	let showAdvanced = false;
+	let showTokenForm = false; // Telegram : « méthode avancée » (coller un token brut)
+
+	// Onboarding Telegram « managed bot » (QR) — état de la modale ouverte.
+	type PairStatus = 'idle' | 'waiting' | 'applying' | 'error';
+	let pairing: TelegramPairingStart | null = null;
+	let pairQr = ''; // dataURL du QR (généré depuis le deep_link)
+	let pairStatus: PairStatus = 'idle';
+	let pairError = '';
+	let pairTimer: ReturnType<typeof setInterval> | null = null;
+
+	// Accès & partage (allowlist) — utilisateurs de la plateforme ouverte.
+	let approvedUsers: MessagingUser[] = [];
+	let pendingUsers: MessagingUser[] = [];
+	let usersBusy = false;
+
+	// Déconnexion
+	let showDisconnectConfirm = false;
+	let disconnecting = false;
 
 	let refreshTimer: ReturnType<typeof setInterval> | null = null;
 
@@ -227,11 +257,157 @@
 		}
 	};
 
+	const isTelegram = (p: MessagingPlatform | null) => p?.id === 'telegram';
+
+	const stopPairPolling = () => {
+		if (pairTimer) {
+			clearInterval(pairTimer);
+			pairTimer = null;
+		}
+	};
+
+	const resetPairing = () => {
+		stopPairPolling();
+		if (pairing) {
+			// on oublie le pairing côté serveur (best-effort)
+			cancelTelegramPairing(localStorage.token, pairing.pairing_id).catch(() => {});
+		}
+		pairing = null;
+		pairQr = '';
+		pairStatus = 'idle';
+		pairError = '';
+	};
+
+	// Lance le parcours QR : crée le pairing, affiche le QR, démarre le polling.
+	const startPairing = async () => {
+		pairStatus = 'waiting';
+		pairError = '';
+		try {
+			pairing = await startTelegramPairing(localStorage.token);
+			pairQr = await QRCode.toDataURL(pairing.qr_payload || pairing.deep_link, {
+				width: 240,
+				margin: 1
+			});
+			stopPairPolling();
+			pairTimer = setInterval(pollPairingOnce, 2500);
+		} catch (err) {
+			pairStatus = 'error';
+			pairError = $i18n.t('Impossible de démarrer la connexion. Réessaie.');
+		}
+	};
+
+	// Un tour de polling : quand le bot est créé (ready), on applique automatiquement.
+	const pollPairingOnce = async () => {
+		if (!pairing || pairStatus === 'applying') return;
+		try {
+			const st = await pollTelegramPairing(localStorage.token, pairing.pairing_id);
+			if (st.status === 'ready') {
+				stopPairPolling();
+				pairStatus = 'applying';
+				const res = await applyTelegramPairing(localStorage.token, pairing.pairing_id);
+				if (res?.ok) {
+					toast.success($i18n.t('Telegram connecté !'));
+					pairing = null;
+					pairStatus = 'idle';
+					await load(true);
+					if (modalPlatform) {
+						modalPlatform = platforms.find((x) => x.id === modalPlatform?.id) ?? modalPlatform;
+						loadUsers(modalPlatform);
+					}
+				} else {
+					pairStatus = 'error';
+					pairError = res?.restart_error || res?.error || $i18n.t('La connexion a échoué.');
+				}
+			}
+		} catch (err) {
+			// pairing expiré / introuvable → on invite à relancer
+			stopPairPolling();
+			pairStatus = 'error';
+			pairError = $i18n.t('Le code a expiré. Relance la connexion.');
+		}
+	};
+
+	// --- Accès & partage -----------------------------------------------------
+
+	const loadUsers = async (p: MessagingPlatform | null) => {
+		if (!p || !isTelegram(p)) return;
+		usersBusy = true;
+		try {
+			const res = await listPlatformUsers(localStorage.token, p.id);
+			approvedUsers = res?.approved ?? [];
+			pendingUsers = res?.pending ?? [];
+		} catch (err) {
+			// silencieux : la section reste vide
+		} finally {
+			usersBusy = false;
+		}
+	};
+
+	const approveUser = async (p: MessagingPlatform, u: MessagingUser) => {
+		usersBusy = true;
+		try {
+			await approvePlatformUser(localStorage.token, p.id, {
+				code: u.pending_code ?? undefined,
+				user_id: u.user_id,
+				user_name: u.user_name
+			});
+			toast.success($i18n.t('Accès autorisé'));
+			await loadUsers(p);
+		} catch (err) {
+			toast.error($i18n.t('Action impossible'));
+		} finally {
+			usersBusy = false;
+		}
+	};
+
+	const revokeUser = async (p: MessagingPlatform, u: MessagingUser) => {
+		usersBusy = true;
+		try {
+			await revokePlatformUser(localStorage.token, p.id, u.user_id);
+			toast.success($i18n.t('Accès retiré'));
+			await loadUsers(p);
+		} catch (err) {
+			toast.error($i18n.t('Action impossible'));
+		} finally {
+			usersBusy = false;
+		}
+	};
+
+	// --- Déconnexion ---------------------------------------------------------
+
+	const onDisconnect = async () => {
+		if (!modalPlatform) return;
+		const p = modalPlatform;
+		disconnecting = true;
+		try {
+			const res = await disconnectPlatform(localStorage.token, p.id);
+			if (res?.ok) {
+				toast.success($i18n.t('Déconnecté'));
+				await load(true);
+				closeModal();
+			} else {
+				toast.error(res?.error || $i18n.t('Échec de la déconnexion'));
+			}
+		} catch (err) {
+			toast.error($i18n.t('Échec de la déconnexion'));
+		} finally {
+			disconnecting = false;
+		}
+	};
+
 	const openModal = (p: MessagingPlatform) => {
 		modalPlatform = p;
 		showAdvanced = false;
+		showTokenForm = false;
+		resetPairing();
+		approvedUsers = [];
+		pendingUsers = [];
+		if (isTelegram(p) && p.state === 'connected') {
+			loadUsers(p);
+		}
 	};
 	const closeModal = () => {
+		resetPairing();
 		modalPlatform = null;
 	};
 
@@ -241,6 +417,7 @@
 	});
 	onDestroy(() => {
 		if (refreshTimer) clearInterval(refreshTimer);
+		stopPairPolling();
 	});
 
 	const toneClass = (tone: string) =>
@@ -589,21 +766,167 @@
 				</div>
 			{/if}
 
-			<!-- Champs (clés & secrets) -->
-			<div class="flex items-center justify-between mb-2">
-				<div class="text-xs font-semibold uppercase tracking-wide text-gray-400">
-					{$i18n.t('Clés & secrets')}
-				</div>
-				{#if hasHideableAdvanced}
-					<label class="flex items-center gap-1.5 text-xs text-gray-500 cursor-pointer">
-						<input type="checkbox" bind:checked={showAdvanced} />
-						{$i18n.t('Réglages avancés')}
-					</label>
-				{/if}
-			</div>
+			<!-- TELEGRAM : parcours 1-clic (QR) ou résumé connecté + partage -->
+			{#if isTelegram(p)}
+				{#if p.state === 'connected'}
+					<!-- Connecté : résumé + Accès & partage -->
+					<div class="flex flex-col gap-4">
+						<div
+							class="flex items-center gap-2 px-3 py-2 rounded-lg bg-green-500/10 text-green-600 dark:text-green-400 text-sm"
+						>
+							<span>✓</span>
+							<span>{$i18n.t('Telegram est connecté. Vous pouvez écrire à votre assistant.')}</span>
+						</div>
 
-			<div class="flex flex-col gap-3">
-				{#each p.env_vars.filter((f) => showAdvanced || !f.advanced || f.is_set) as field (field.key)}
+						<div>
+							<div class="text-xs font-semibold uppercase tracking-wide text-gray-400 mb-2">
+								{$i18n.t('Accès & partage')}
+							</div>
+
+							{#if pendingUsers.length}
+								<div class="flex flex-col gap-1.5 mb-2">
+									<div class="text-[11px] text-gray-500">
+										{$i18n.t('En attente d’autorisation')}
+									</div>
+									{#each pendingUsers as u (u.user_id + (u.pending_code ?? ''))}
+										<div
+											class="flex items-center justify-between gap-2 px-3 py-2 rounded-lg bg-amber-500/5 border border-amber-500/20"
+										>
+											<span class="text-sm truncate">{u.user_name || u.user_id}</span>
+											<div class="flex items-center gap-1.5 flex-none">
+												<button
+													class="px-2 py-1 text-xs rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition text-gray-500 disabled:opacity-50"
+													on:click={() => revokeUser(p, u)}
+													disabled={usersBusy}
+												>
+													{$i18n.t('Refuser')}
+												</button>
+												<button
+													class="px-2.5 py-1 text-xs font-medium rounded-lg bg-black text-white dark:bg-white dark:text-black hover:opacity-90 transition disabled:opacity-50"
+													on:click={() => approveUser(p, u)}
+													disabled={usersBusy}
+												>
+													{$i18n.t('Autoriser')}
+												</button>
+											</div>
+										</div>
+									{/each}
+								</div>
+							{/if}
+
+							<div class="flex flex-col gap-1.5">
+								{#each approvedUsers as u, i (u.user_id)}
+									<div
+										class="flex items-center justify-between gap-2 px-3 py-2 rounded-lg bg-gray-50 dark:bg-gray-850"
+									>
+										<span class="text-sm truncate">
+											{i === 0 ? '👑 ' : '👤 '}{u.user_name || u.user_id}
+											{#if i === 0}
+												<span class="text-[11px] text-gray-400">({$i18n.t('propriétaire')})</span>
+											{/if}
+										</span>
+										{#if i !== 0}
+											<button
+												class="px-2 py-1 text-xs rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition text-gray-500 disabled:opacity-50 flex-none"
+												on:click={() => revokeUser(p, u)}
+												disabled={usersBusy}
+											>
+												{$i18n.t('Retirer')}
+											</button>
+										{/if}
+									</div>
+								{/each}
+								{#if !approvedUsers.length && !usersBusy}
+									<div class="text-[11px] text-gray-400">
+										{$i18n.t('Personne d’autre n’a accès pour l’instant.')}
+									</div>
+								{/if}
+							</div>
+							<div class="text-[11px] text-gray-400 mt-2">
+								{$i18n.t(
+									'Pour ajouter quelqu’un : demandez-lui d’écrire à votre bot, sa demande apparaîtra ici.'
+								)}
+							</div>
+						</div>
+					</div>
+				{:else}
+					<!-- Écran de connexion 1-clic (QR) -->
+					<div class="flex flex-col items-center text-center gap-3 py-2">
+						{#if pairStatus === 'idle'}
+							<div class="text-sm text-gray-600 dark:text-gray-300 max-w-xs">
+								{$i18n.t('Connectez votre assistant à Telegram en une étape, sans rien installer.')}
+							</div>
+							<button
+								class="px-4 py-2 text-sm font-medium rounded-lg btn-premium bg-black text-white dark:bg-white dark:text-black hover:opacity-90 transition"
+								on:click={startPairing}
+							>
+								{$i18n.t('Connecter Telegram')}
+							</button>
+							<div class="text-[11px] text-gray-400 max-w-xs">
+								{$i18n.t('Un bot personnel sera créé pour vous. Aucune manipulation technique.')}
+							</div>
+						{:else if pairStatus === 'waiting'}
+							{#if pairQr}
+								<img
+									src={pairQr}
+									alt={$i18n.t('QR code Telegram')}
+									class="size-48 rounded-xl border border-gray-100 dark:border-gray-700 bg-white"
+								/>
+							{:else}
+								<div class="size-48 flex items-center justify-center"><Spinner /></div>
+							{/if}
+							<div class="text-sm font-medium">{$i18n.t('Scannez ce QR code')}</div>
+							<div class="text-[11px] text-gray-500 max-w-xs">
+								{$i18n.t(
+									'Scannez avec votre téléphone — ou cliquez le bouton si vous êtes sur cet ordinateur — puis confirmez la création du bot dans Telegram.'
+								)}
+							</div>
+							{#if pairing}
+								<a
+									href={pairing.deep_link}
+									target="_blank"
+									rel="noopener noreferrer"
+									class="px-4 py-2 text-sm font-medium rounded-lg btn-premium bg-black text-white dark:bg-white dark:text-black hover:opacity-90 transition"
+								>
+									{$i18n.t('Ouvrir dans Telegram')} ↗
+								</a>
+							{/if}
+							<div class="flex items-center gap-1.5 text-[11px] text-gray-400">
+								<Spinner className="size-3" />
+								{$i18n.t('En attente de confirmation…')}
+							</div>
+						{:else if pairStatus === 'applying'}
+							<div class="py-4"><Spinner /></div>
+							<div class="text-sm">{$i18n.t('Connexion en cours…')}</div>
+						{:else if pairStatus === 'error'}
+							<div class="text-sm text-amber-600 dark:text-amber-400 max-w-xs">{pairError}</div>
+							<button
+								class="px-4 py-2 text-sm font-medium rounded-lg btn-premium bg-black text-white dark:bg-white dark:text-black hover:opacity-90 transition"
+								on:click={startPairing}
+							>
+								{$i18n.t('Réessayer')}
+							</button>
+						{/if}
+					</div>
+				{/if}
+			{/if}
+
+			<!-- Formulaire clés & secrets : autres canaux, + Telegram en « méthode avancée » -->
+			{#if !isTelegram(p) || (p.state !== 'connected' && showTokenForm)}
+				<div class="flex items-center justify-between mb-2 {isTelegram(p) ? 'mt-4' : ''}">
+					<div class="text-xs font-semibold uppercase tracking-wide text-gray-400">
+						{isTelegram(p) ? $i18n.t('Coller un token manuellement') : $i18n.t('Clés & secrets')}
+					</div>
+					{#if hasHideableAdvanced}
+						<label class="flex items-center gap-1.5 text-xs text-gray-500 cursor-pointer">
+							<input type="checkbox" bind:checked={showAdvanced} />
+							{$i18n.t('Réglages avancés')}
+						</label>
+					{/if}
+				</div>
+
+				<div class="flex flex-col gap-3">
+					{#each p.env_vars.filter((f) => showAdvanced || !f.advanced || f.is_set) as field (field.key)}
 					{@const vkey = draftKey(p.id, field.key)}
 					{@const isCleared = (cleared[p.id] ?? []).includes(field.key)}
 					<div>
@@ -647,18 +970,39 @@
 							<div class="text-[11px] text-gray-400 mt-1">{field.description}</div>
 						{/if}
 					</div>
-				{/each}
-			</div>
+					{/each}
+				</div>
+			{/if}
+
+			<!-- Telegram non connecté : proposer la méthode avancée (token brut) -->
+			{#if isTelegram(p) && p.state !== 'connected' && !showTokenForm}
+				<button
+					class="mt-3 text-[11px] text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition"
+					on:click={() => (showTokenForm = true)}
+				>
+					{$i18n.t('Méthode avancée : coller un token @BotFather')}
+				</button>
+			{/if}
 
 			<!-- Pied de modale -->
 			<div class="flex items-center gap-2 mt-5">
-				<button
-					class="px-3 py-1.5 text-sm rounded-lg bg-gray-100 dark:bg-gray-850 hover:bg-gray-200 dark:hover:bg-gray-800 transition disabled:opacity-50"
-					on:click={() => testPlatform(p)}
-					disabled={busy === p.id}
-				>
-					{$i18n.t('Tester')}
-				</button>
+				{#if p.state === 'connected'}
+					<button
+						class="px-3 py-1.5 text-sm rounded-lg text-red-600 dark:text-red-400 hover:bg-red-500/10 transition disabled:opacity-50"
+						on:click={() => (showDisconnectConfirm = true)}
+						disabled={disconnecting}
+					>
+						{disconnecting ? $i18n.t('Déconnexion…') : $i18n.t('Déconnecter')}
+					</button>
+				{:else if !isTelegram(p) || showTokenForm}
+					<button
+						class="px-3 py-1.5 text-sm rounded-lg bg-gray-100 dark:bg-gray-850 hover:bg-gray-200 dark:hover:bg-gray-800 transition disabled:opacity-50"
+						on:click={() => testPlatform(p)}
+						disabled={busy === p.id}
+					>
+						{$i18n.t('Tester')}
+					</button>
+				{/if}
 				<div class="flex-1"></div>
 				<button
 					class="px-3 py-1.5 text-sm rounded-lg bg-gray-100 dark:bg-gray-850 hover:bg-gray-200 dark:hover:bg-gray-800 transition"
@@ -666,13 +1010,15 @@
 				>
 					{$i18n.t('Fermer')}
 				</button>
-				<button
-					class="px-3 py-1.5 text-sm rounded-lg btn-premium bg-black text-white dark:bg-white dark:text-black hover:opacity-90 transition disabled:opacity-40"
-					on:click={() => savePlatform(p)}
-					disabled={!hasDraft(p) || busy === p.id}
-				>
-					{$i18n.t('Enregistrer')}
-				</button>
+				{#if p.state !== 'connected' && (!isTelegram(p) || showTokenForm)}
+					<button
+						class="px-3 py-1.5 text-sm rounded-lg btn-premium bg-black text-white dark:bg-white dark:text-black hover:opacity-90 transition disabled:opacity-40"
+						on:click={() => savePlatform(p)}
+						disabled={!hasDraft(p) || busy === p.id}
+					>
+						{$i18n.t('Enregistrer')}
+					</button>
+				{/if}
 			</div>
 		</div>
 	</div>
@@ -696,4 +1042,14 @@
 	)}
 	confirmLabel={$i18n.t('Régénérer')}
 	onConfirm={onGenerateKey}
+/>
+
+<ConfirmDialog
+	bind:show={showDisconnectConfirm}
+	title={$i18n.t('Déconnecter ce canal ?')}
+	message={$i18n.t(
+		'Le canal sera déconnecté et vos agents cesseront d’y répondre. Les personnes autorisées perdront l’accès. Vous pourrez reconnecter à tout moment.'
+	)}
+	confirmLabel={$i18n.t('Déconnecter')}
+	onConfirm={onDisconnect}
 />
