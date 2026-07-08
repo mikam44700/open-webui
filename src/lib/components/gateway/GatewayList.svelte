@@ -110,7 +110,9 @@
 	const isBridgeDown = (err: any) =>
 		err?.error?.code === 'bridge_unreachable' || err?.error?.code === 'hermes_unavailable';
 
-	$: filtered = platforms;
+	// Canaux non prêts (available === false) : masqués au client, visibles en mode expert
+	// (pour la config/livraison). Réactivation = passer available:true → réapparaît pour tous.
+	$: filtered = $expertMode ? platforms : platforms.filter((p) => p.available !== false);
 
 	// Garde la modale ouverte synchronisée avec la liste rafraîchie (état « connecté »
 	// après un redémarrage du gateway, toggle, etc.) — sinon elle reste figée.
