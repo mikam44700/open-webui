@@ -1,3 +1,5 @@
+import { WEBUI_BASE_URL } from '$lib/constants';
+
 // Logos « carré plein » : le fond fait partie de l'image (couleur ou dégradé), donc on
 // les affiche BORD À BORD (object-cover) pour remplir tout le carré, sans deviner de
 // couleur. Les logos absents d'ici sont des icônes sur fond blanc/transparent : ils
@@ -16,3 +18,30 @@ export const PROVIDER_LOGO_FULL_BLEED = new Set<string>([
 	'groq-color', // Groq — carré orange plein (mot-symbole blanc)
 	'perplexity-color' // Perplexity Sonar — carré teal plein
 ]);
+
+// --- Résolution du logo d'un provider (source UNIQUE, partagée par la page Modèles IA
+// et le sélecteur de modèle du chat) -------------------------------------------------
+
+type ProviderLike = { id: string; logo?: string };
+
+// La plupart des logos sont en PNG ; seuls ces quelques-uns restent en SVG.
+const SVG_LOGOS = new Set<string>(['api']);
+
+// Nom de fichier du logo. Nous Portal est forcé côté front (« NOUS RESEARCH ») sans
+// dépendre du rechargement du bridge ; les autres gardent le logo renvoyé par le bridge.
+export const providerLogoFile = (provider: ProviderLike): string =>
+	provider.id === 'nous' ? 'nous-research' : provider.logo || 'api';
+
+// URL complète du logo d'un provider.
+export const providerLogoUrl = (provider: ProviderLike): string => {
+	const file = providerLogoFile(provider);
+	const ext = SVG_LOGOS.has(file) ? 'svg' : 'png';
+	return `${WEBUI_BASE_URL}/assets/providers/${file}.${ext}`;
+};
+
+// Icône générique de repli si le logo est absent (à brancher sur <img on:error>).
+export const PROVIDER_LOGO_FALLBACK = `${WEBUI_BASE_URL}/assets/providers/api.svg`;
+
+// Logo « carré plein » (fond intégré) → à afficher bord à bord (object-cover).
+export const isProviderLogoFullBleed = (provider: ProviderLike): boolean =>
+	PROVIDER_LOGO_FULL_BLEED.has(providerLogoFile(provider));

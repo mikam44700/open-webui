@@ -1,7 +1,6 @@
 <script lang="ts">
 	import { getContext, createEventDispatcher } from 'svelte';
 	import { toast } from 'svelte-sonner';
-	import { WEBUI_BASE_URL } from '$lib/constants';
 
 	import ActiveBadge from '$lib/components/common/ActiveBadge.svelte';
 	import Spinner from '$lib/components/common/Spinner.svelte';
@@ -9,7 +8,11 @@
 	import { getModelPresentation } from '$lib/catalog/model-badges';
 	import { getProviderRegionFlag, getProviderRegionName } from '$lib/catalog/provider-taxonomy';
 	import { PROVIDER_INFO } from '$lib/catalog/provider-info';
-	import { PROVIDER_LOGO_FULL_BLEED } from '$lib/utils/providerLogos';
+	import {
+		providerLogoUrl,
+		isProviderLogoFullBleed,
+		PROVIDER_LOGO_FALLBACK
+	} from '$lib/utils/providerLogos';
 	import {
 		setProviderKey,
 		validateProviderKey,
@@ -90,18 +93,12 @@
 		return `${n}`;
 	};
 	let aboutOpen = false;
-	// La plupart des logos sont en PNG ; seuls ces quelques-uns restent en SVG.
-	const SVG_LOGOS = new Set(['api']);
-	// Nous Portal : forcer le logo « NOUS RESEARCH » (boîte) côté front, sans dépendre du
-	// rechargement du bridge. Les autres providers gardent le logo renvoyé par le bridge.
-	$: logoFile = provider.id === 'nous' ? 'nous-research' : provider.logo;
-	$: logoExt = SVG_LOGOS.has(logoFile) ? 'svg' : 'png';
-	$: logoUrl = `${WEBUI_BASE_URL}/assets/providers/${logoFile}.${logoExt}`;
-	// Logo « carré plein » → affiché bord à bord (remplit le carré) ; sinon icône sur fond blanc.
-	$: fullBleed = PROVIDER_LOGO_FULL_BLEED.has(logoFile);
+	// Logo du provider (URL + « carré plein » + repli) — logique partagée, cf. providerLogos.
+	$: logoUrl = providerLogoUrl(provider);
+	$: fullBleed = isProviderLogoFullBleed(provider);
 
 	const onError = (e: Event) => {
-		(e.currentTarget as HTMLImageElement).src = `${WEBUI_BASE_URL}/assets/providers/api.svg`;
+		(e.currentTarget as HTMLImageElement).src = PROVIDER_LOGO_FALLBACK;
 	};
 
 	// --- Clé API (inline) ---

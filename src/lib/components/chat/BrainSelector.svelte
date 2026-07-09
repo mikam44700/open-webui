@@ -18,6 +18,11 @@
 	} from '$lib/apis/providers';
 	import { getProviderName } from '$lib/catalog/provider-info';
 	import { isHiddenProvider } from '$lib/catalog/provider-taxonomy';
+	import {
+		providerLogoUrl,
+		isProviderLogoFullBleed,
+		PROVIDER_LOGO_FALLBACK
+	} from '$lib/utils/providerLogos';
 
 	const i18n = getContext('i18n');
 
@@ -61,6 +66,7 @@
 	let providers: {
 		id: string;
 		label: string;
+		logo?: string;
 		state: string;
 		models: { id: string; label: string; provider_id: string }[];
 	}[] = [];
@@ -86,6 +92,12 @@
 	);
 	// Fournisseur actuellement aux commandes (sa card complète est affichée dans le menu).
 	$: activeProvider = connected.find((p) => p.id === active?.provider_id) ?? connected[0] ?? null;
+	// Logo du fournisseur actif (même source que la page Modèles IA ; repli icône générique).
+	$: activeProviderLogo = activeProvider ? providerLogoUrl(activeProvider) : null;
+	$: activeProviderLogoFullBleed = activeProvider ? isProviderLogoFullBleed(activeProvider) : false;
+	const onLogoError = (e: Event) => {
+		(e.currentTarget as HTMLImageElement).src = PROVIDER_LOGO_FALLBACK;
+	};
 	$: activeProviderLabel = (() => {
 		const p = providers.find((pp) => pp.id === active?.provider_id);
 		return p ? getProviderName(p.id, p.label) : '';
@@ -279,6 +291,22 @@
 			aria-haspopup="menu"
 			aria-expanded={open}
 		>
+			{#if hasBrain && activeProviderLogo}
+				<span
+					class="shrink-0 size-5 rounded-md overflow-hidden flex items-center justify-center {activeProviderLogoFullBleed
+						? ''
+						: 'bg-white'}"
+				>
+					<img
+						src={activeProviderLogo}
+						alt=""
+						on:error={onLogoError}
+						class={activeProviderLogoFullBleed
+							? 'w-full h-full object-cover'
+							: 'max-w-full max-h-full object-contain p-px'}
+					/>
+				</span>
+			{/if}
 			<span class="flex min-w-0 flex-col text-left leading-tight">
 				<span class="flex items-center gap-1.5">
 					<span class="font-medium text-gray-900 dark:text-white truncate">
@@ -320,8 +348,26 @@
 			>
 				<!-- En-tête : modèle actif + ses capacités (le menu s'adapte à CE modèle) -->
 				<div class="px-2 pb-2 pt-1">
-					<div class="truncate text-sm font-medium text-gray-900 dark:text-white">
-						{hasBrain ? activeBrainName : $i18n.t('Aucun modèle IA')}
+					<div class="flex items-center gap-2">
+						{#if hasBrain && activeProviderLogo}
+							<span
+								class="shrink-0 size-6 rounded-md overflow-hidden flex items-center justify-center {activeProviderLogoFullBleed
+									? ''
+									: 'bg-white border border-gray-100 dark:border-gray-700'}"
+							>
+								<img
+									src={activeProviderLogo}
+									alt=""
+									on:error={onLogoError}
+									class={activeProviderLogoFullBleed
+										? 'w-full h-full object-cover'
+										: 'max-w-full max-h-full object-contain p-px'}
+								/>
+							</span>
+						{/if}
+						<span class="truncate text-sm font-medium text-gray-900 dark:text-white">
+							{hasBrain ? activeBrainName : $i18n.t('Aucun modèle IA')}
+						</span>
 					</div>
 					{#if activeProviderLabel}
 						<div class="text-[11px] text-gray-400">{activeProviderLabel}</div>
