@@ -28,6 +28,19 @@ export const avatarFromImage = (image?: string | null): Avatar | undefined => {
 	return AVATARS.find((a) => a.id === avatarId(image));
 };
 
+// Gros plan visage (cadré pour les cercles) : les 100 visages vivent dans
+// /assets/VisageAvatars/<id>.png, dérivés des portraits corps entier de /assets/agents/.
+export const avatarFaceImage = (id: string): string => `/assets/VisageAvatars/${id}.png`;
+
+// Convertit un chemin d'avatar « corps entier » en son gros plan visage, UNIQUEMENT pour
+// les avatars du manifeste (servis depuis /assets/agents/). Tout autre chemin (avatar custom
+// uploadé) est renvoyé tel quel. Le repli sur l'image d'origine est géré à l'affichage.
+export const faceFromImage = (image?: string | null): string | null => {
+	if (!image) return image ?? null;
+	const id = avatarId(image);
+	return id && image.includes('/assets/agents/') ? avatarFaceImage(id) : image;
+};
+
 export const AVATARS: Avatar[] = [
 	{ id: 'adam', label: 'Adam', gender: 'male' },
 	{ id: 'adrien', label: 'Adrien', gender: 'male' },

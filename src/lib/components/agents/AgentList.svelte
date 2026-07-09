@@ -282,7 +282,7 @@
 									gradient={col.gradient}
 									onLight={col.light}
 									name={tpl?.firstName ?? prettifyName(agent.name)}
-									role={agent.model ?? ''}
+									role={tpl?.role ?? ''}
 									description={agent.description || $i18n.t('Aucune mission définie pour le moment.')}
 									image={agent.avatar ?? tpl?.image ?? null}
 									avatarText={initial(prettifyName(agent.name))}

@@ -22,8 +22,11 @@
 	import { WEBUI_API_BASE_URL, WEBUI_BASE_URL } from '$lib/constants';
 
 	import { WORKFLOWS } from '$lib/catalog/workflows';
-	import { resolveAgentView, type AgentView } from '$lib/catalog/agentActions';
+	import { resolveAgentView, type AgentView, type ActionCard } from '$lib/catalog/agentActions';
 	import { getAgents } from '$lib/apis/agents';
+	import { activeAgent as activeAgentStore } from '$lib/stores/agent';
+	import { avatarColor } from '$lib/components/agents/avatar-colors';
+	import { avatarImgFallback } from '$lib/utils/agentIdentity';
 	import Tooltip from '$lib/components/common/Tooltip.svelte';
 	import EyeSlash from '$lib/components/icons/EyeSlash.svelte';
 	import MessageInput from './MessageInput.svelte';
@@ -44,33 +47,89 @@
 		}
 	};
 
-	// Raccourcis « Pour démarrer » : le client peut les masquer (choix mémorisé), et les rappeler.
-	const STARTERS_HIDDEN_KEY = 'hermes-starters-hidden';
-	let startersHidden = false;
+	// « Votre équipe » : le client peut masquer la section (choix mémorisé), et la rappeler
+	// via une petite puce « + Votre équipe ».
+	const TEAM_HIDDEN_KEY = 'lunaria-team-hidden';
+	let teamHidden = false;
 	onMount(() => {
-		startersHidden = localStorage.getItem(STARTERS_HIDDEN_KEY) === 'true';
+		teamHidden = localStorage.getItem(TEAM_HIDDEN_KEY) === 'true';
 	});
-	const hideStarters = () => {
-		startersHidden = true;
-		localStorage.setItem(STARTERS_HIDDEN_KEY, 'true');
+	const hideTeam = () => {
+		teamHidden = true;
+		localStorage.setItem(TEAM_HIDDEN_KEY, 'true');
 	};
-	const showStarters = () => {
-		startersHidden = false;
-		localStorage.removeItem(STARTERS_HIDDEN_KEY);
+	const showTeam = () => {
+		teamHidden = false;
+		localStorage.removeItem(TEAM_HIDDEN_KEY);
 	};
 
 	// Agent actif (ex. Emma) : son accueil (avatar + prénom + rôle) et ses cartes d'action
 	// remplacent l'accueil générique. Repli silencieux si le pont ne répond pas.
 	let activeAgent: AgentView | null = null;
-	onMount(async () => {
+
+	// « Votre équipe » : chaque agent activé, incarné (visage + couleur propre) AVEC ses suggestions
+	// de tâches (tirées de sa mission). Cliquer une suggestion pré-remplit le chat (Mike orchestre).
+	type TeamCard = {
+		name: string;
+		firstName: string;
+		role: string;
+		avatar: string; // corps entier (repli)
+		face: string; // gros plan visage pour le cercle du header
+		gradient: string;
+		active: boolean;
+		actions: ActionCard[];
+	};
+	let teamCards: TeamCard[] = [];
+
+	// (Re)charge l'accueil incarné : agent actif + « Votre équipe ». Appelé au montage ET à
+	// chaque changement d'agent actif (via le sélecteur de la barre) pour rester synchrone.
+	const loadTeam = async () => {
 		try {
 			const res = await getAgents(localStorage.token);
-			const a = (res?.agents ?? []).find((x: any) => x?.active);
-			activeAgent = resolveAgentView(a);
+			const list = (res?.agents ?? []) as any[];
+			activeAgent = resolveAgentView(list.find((x) => x?.active));
+			teamCards = list
+				.map((ag): TeamCard | null => {
+					const v = resolveAgentView(ag);
+					if (!v) return null;
+					return {
+						name: v.name,
+						firstName: v.firstName,
+						role: v.role,
+						avatar: v.avatar,
+						face: v.face,
+						gradient: avatarColor(v.avatar || v.name).gradient,
+						active: !!ag?.active,
+						actions: v.actions
+					};
+				})
+				.filter((c): c is TeamCard => c !== null)
+				// N'afficher que les agents qui ont des suggestions à proposer (honnêteté).
+				.filter((c) => c.actions.length > 0)
+				// Agent actif d'abord, puis Mike (orchestrateur, profil « default »), puis le reste.
+				.sort(
+					(a, b) =>
+						Number(b.active) - Number(a.active) ||
+						Number(b.name === 'default') - Number(a.name === 'default')
+				);
 		} catch {
 			activeAgent = null;
+			teamCards = [];
 		}
-	});
+	};
+
+	onMount(loadTeam);
+
+	// Réagit au changement d'agent actif (sélecteur de la barre) : on recharge l'accueil pour
+	// que « Bonjour, je suis … » et l'ordre de « Votre équipe » suivent le nouvel interlocuteur.
+	let lastActiveName: string | null | undefined = undefined;
+	$: {
+		const n = $activeAgentStore?.name ?? null;
+		if (lastActiveName !== undefined && n !== lastActiveName) {
+			void loadTeam();
+		}
+		lastActiveName = n;
+	}
 
 	export let createMessagePair: Function;
 	export let stopResponse: Function;
@@ -156,13 +215,11 @@
 					in:fade={{ duration: 100 }}
 				>
 					<img
-						src={activeAgent.avatar}
+						src={activeAgent.face}
 						alt={activeAgent.firstName}
 						class="size-14 rounded-full object-cover border border-gray-100 dark:border-gray-800 shadow-sm shrink-0"
 						draggable="false"
-						on:error={(e) => {
-							e.currentTarget.src = '/favicon.png';
-						}}
+						on:error={(e) => avatarImgFallback(e, activeAgent?.avatar)}
 					/>
 					<div class="text-left min-w-0">
 						{#if activeAgent.role}
@@ -307,60 +364,88 @@
 		<!-- Cartes d'action (catalogue métier) : pré-remplissent le chat au clic. Remplace l'ancienne
 		     boîte « Je peux vous aider » + les suggestions natives. Masquables (choix mémorisé). -->
 		<div class="mx-auto max-w-3xl font-primary mt-3 px-5" in:fade={{ duration: 200, delay: 200 }}>
-			{#if startersHidden}
-				<div class="text-center">
+			<!-- « Votre équipe » : les agents activés, incarnés (visage + couleur). Clic = amorce Mike-first.
+			     Masquable via la croix (choix mémorisé) → rappelable par la puce « + Votre équipe ». -->
+			{#if teamCards.length && teamHidden}
+				<div class="flex justify-center">
 					<button
 						type="button"
-						class="text-xs text-gray-400 dark:text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 transition"
-						on:click={showStarters}
+						class="flex items-center gap-1.5 text-xs font-medium text-gray-400 dark:text-gray-500 px-3 py-1.5 rounded-full border border-gray-200 dark:border-gray-800 hover:bg-gray-100 dark:hover:bg-gray-850 transition"
+						on:click={showTeam}
 					>
-						{$i18n.t('Afficher les raccourcis')}
+						<svg class="w-3.5 h-3.5" viewBox="0 0 20 20" fill="currentColor"
+							><path
+								d="M7 9a3 3 0 1 0 0-6 3 3 0 0 0 0 6Zm7-1.5a2.5 2.5 0 1 0 0-5 2.5 2.5 0 0 0 0 5ZM1.5 16.2C1.5 13.4 4 12 7 12s5.5 1.4 5.5 4.2c0 .4-.3.8-.8.8H2.3c-.5 0-.8-.4-.8-.8Zm12.2.8c.2-.5.3-1 .3-1.8 0-1.3-.5-2.4-1.2-3.2.3-.1.6-.1 1-.1 2.3 0 4.2 1.1 4.2 3.3 0 .5-.3.9-.8.9h-2.9c-.1 0-.2 0-.3-.1l-.3-.6Z"
+							/></svg
+						>
+						{$i18n.t('Votre équipe')}
 					</button>
 				</div>
-			{:else}
-				<div class="flex items-center justify-between mb-2.5">
-					<div class="flex items-center gap-1.5 text-xs font-medium text-gray-400 dark:text-gray-500">
-						<svg class="w-3.5 h-3.5" viewBox="0 0 20 20" fill="currentColor"><path d="M11 2.5 4 11h4.2l-1 6.5L15 9h-4.2l1-6.5Z"/></svg>
-						{activeAgent && activeAgent.actions.length
-							? $i18n.t('Pour démarrer avec {{name}}', { name: activeAgent.firstName })
-							: $i18n.t('Pour démarrer')}
-					</div>
-					<button
-						type="button"
-						class="p-1 -mr-1 rounded-md text-gray-300 dark:text-gray-600 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-850 transition"
-						aria-label={$i18n.t('Masquer les raccourcis')}
-						title={$i18n.t('Masquer les raccourcis')}
-						on:click={hideStarters}
+			{:else if teamCards.length}
+				<div class="mb-4">
+					<div
+						class="flex items-center justify-between gap-1.5 text-xs font-medium text-gray-400 dark:text-gray-500 mb-2.5"
 					>
-						<svg class="w-4 h-4" viewBox="0 0 20 20" fill="currentColor"><path d="M6.28 5.22a.75.75 0 0 0-1.06 1.06L8.94 10l-3.72 3.72a.75.75 0 1 0 1.06 1.06L10 11.06l3.72 3.72a.75.75 0 1 0 1.06-1.06L11.06 10l3.72-3.72a.75.75 0 0 0-1.06-1.06L10 8.94 6.28 5.22Z"/></svg>
-					</button>
-				</div>
-				<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2.5 text-left">
-					{#each cards as w (w.id)}
+						<span class="flex items-center gap-1.5">
+							<svg class="w-3.5 h-3.5" viewBox="0 0 20 20" fill="currentColor"
+								><path
+									d="M7 9a3 3 0 1 0 0-6 3 3 0 0 0 0 6Zm7-1.5a2.5 2.5 0 1 0 0-5 2.5 2.5 0 0 0 0 5ZM1.5 16.2C1.5 13.4 4 12 7 12s5.5 1.4 5.5 4.2c0 .4-.3.8-.8.8H2.3c-.5 0-.8-.4-.8-.8Zm12.2.8c.2-.5.3-1 .3-1.8 0-1.3-.5-2.4-1.2-3.2.3-.1.6-.1 1-.1 2.3 0 4.2 1.1 4.2 3.3 0 .5-.3.9-.8.9h-2.9c-.1 0-.2 0-.3-.1l-.3-.6Z"
+								/></svg
+							>
+							{$i18n.t('Votre équipe')}
+						</span>
 						<button
 							type="button"
-							class="group flex items-start gap-2.5 px-3.5 py-3 rounded-2xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 hover:-translate-y-0.5 hover:shadow-[0_2px_10px_rgba(0,0,0,0.05)] hover:border-gray-300 dark:hover:border-gray-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-gray-300 dark:focus-visible:ring-gray-700 transition-all duration-200"
-							on:click={() => selectWorkflow(w.prompt)}
+							class="flex-none p-1 -mr-1 rounded-lg text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-850 transition"
+							on:click={hideTeam}
+							title={$i18n.t('Masquer votre équipe')}
+							aria-label={$i18n.t('Masquer votre équipe')}
 						>
-							{#if w.image}
-								<span
-									class="shrink-0 w-7 h-7 mt-0.5 rounded-md overflow-hidden bg-white dark:bg-gray-800 ring-1 ring-gray-100 dark:ring-gray-800 flex items-center justify-center"
-								>
-									<img src={w.image} alt="" class="w-full h-full object-cover" draggable="false" />
-								</span>
-							{:else}
-								<span class="text-lg leading-none mt-0.5">{w.icon}</span>
-							{/if}
-							<span class="flex flex-col min-w-0">
-								<span class="text-sm font-medium text-gray-900 dark:text-white truncate"
-									>{$i18n.t(w.label)}</span
-								>
-								<span class="text-xs text-gray-500 dark:text-gray-400 line-clamp-2 leading-snug"
-									>{$i18n.t(w.description)}</span
-								>
-							</span>
+							<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="size-3.5">
+								<path
+									d="M6.28 5.22a.75.75 0 0 0-1.06 1.06L8.94 10l-3.72 3.72a.75.75 0 1 0 1.06 1.06L10 11.06l3.72 3.72a.75.75 0 1 0 1.06-1.06L11.06 10l3.72-3.72a.75.75 0 0 0-1.06-1.06L10 8.94 6.28 5.22Z"
+								/>
+							</svg>
 						</button>
-					{/each}
+					</div>
+					<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 text-left">
+						{#each teamCards as c (c.name)}
+							<div
+								class="rounded-2xl overflow-hidden border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 shadow-sm"
+							>
+								<!-- En-tête coloré : visage + prénom + rôle de l'agent. -->
+								<div
+									class="flex items-center gap-2.5 px-3 py-2.5 text-white"
+									style="background: {c.gradient}"
+								>
+									<img
+										src={c.face}
+										alt={c.firstName}
+										class="size-9 rounded-full object-cover ring-2 ring-white/30 shrink-0 bg-white/10"
+										draggable="false"
+										on:error={(e) => avatarImgFallback(e, c.avatar)}
+									/>
+									<span class="flex flex-col min-w-0">
+										<span class="text-sm font-semibold truncate">{c.firstName}</span>
+										{#if c.role}<span class="text-[11px] text-white/80 truncate">{c.role}</span>{/if}
+									</span>
+								</div>
+								<!-- Ses suggestions (tirées de sa mission) : clic = pré-remplit le chat. -->
+								<div class="p-1.5 flex flex-col">
+									{#each c.actions as a (a.id)}
+										<button
+											type="button"
+											class="flex items-center gap-1.5 text-left text-sm px-2.5 py-1.5 rounded-lg text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800 focus:outline-none focus-visible:ring-2 focus-visible:ring-gray-300 dark:focus-visible:ring-gray-700 transition"
+											on:click={() => selectWorkflow(a.prompt)}
+										>
+											<span class="text-gray-300 dark:text-gray-600">›</span>
+											<span class="truncate">{$i18n.t(a.label)}</span>
+										</button>
+									{/each}
+								</div>
+							</div>
+						{/each}
+					</div>
 				</div>
 			{/if}
 		</div>

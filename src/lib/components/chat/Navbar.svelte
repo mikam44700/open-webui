@@ -23,6 +23,7 @@
 	import ShareChatModal from '../chat/ShareChatModal.svelte';
 	import ModelSelector from '../chat/ModelSelector.svelte';
 	import BrainSelector from '../chat/BrainSelector.svelte';
+	import AgentSelector from '../chat/AgentSelector.svelte';
 	import Tooltip from '../common/Tooltip.svelte';
 	import Menu from '$lib/components/layout/Navbar/Menu.svelte';
 	import UserMenu from '$lib/components/layout/Sidebar/UserMenu.svelte';
@@ -41,15 +42,12 @@
 	import Knobs from '../icons/Knobs.svelte';
 	import { WEBUI_API_BASE_URL } from '$lib/constants';
 
-	import { activeAgent, ensureActiveAgent } from '$lib/stores/agent';
-	import { agentIdentity } from '$lib/utils/agentIdentity';
+	import { ensureActiveAgent } from '$lib/stores/agent';
 
 	const i18n = getContext('i18n');
 
-	// Incarnation de l'assistant : l'agent actif (ex. Mike) est chargé une fois et
-	// affiché en tête du chat (avatar + prénom). Best-effort, ne bloque jamais l'en-tête.
-	$: agentBadge = agentIdentity($activeAgent);
-
+	// Incarnation de l'assistant : l'agent actif (ex. Mike) est chargé une fois puis affiché
+	// et sélectionnable à droite de la barre (AgentSelector). Best-effort, ne bloque jamais l'en-tête.
 	onMount(() => {
 		ensureActiveAgent(localStorage.token);
 	});
@@ -135,32 +133,19 @@
 				>
 					{#if showModelSelector}
 						<div class="flex items-center gap-1.5 overflow-hidden">
-							<!-- Incarnation de l'assistant actif (ex. Mike) : avatar + prénom. -->
-							{#if agentBadge}
-								<Tooltip content={$i18n.t('Votre bras droit')} placement="bottom-start">
-									<div class="flex items-center gap-1.5 shrink-0">
-										{#if agentBadge.avatarUrl}
-											<img
-												src={agentBadge.avatarUrl}
-												alt={agentBadge.firstName}
-												class="size-6 rounded-full object-cover bg-gray-100 dark:bg-gray-800"
-												draggable="false"
-											/>
-										{/if}
-										<span class="text-sm font-medium text-gray-800 dark:text-gray-100 line-clamp-1">
-											{agentBadge.firstName}
-										</span>
-									</div>
-								</Tooltip>
-							{/if}
 							<!-- Agent OS : sélecteur de « cerveau » (vrai modèle Hermes + intelligence).
-							     Remplace le sélecteur natif, cosmétique (Hermes ignore le champ `model`). -->
+							     Remplace le sélecteur natif, cosmétique (Hermes ignore le champ `model`).
+							     L'agent (ex. Adam) est désormais choisi à DROITE de la barre (AgentSelector). -->
 							<BrainSelector />
 						</div>
 					{/if}
 				</div>
 
 				<div class="self-start flex flex-none items-center text-gray-600 dark:text-gray-400">
+					<!-- Sélecteur d'agent : l'agent actif (visage + prénom), clic = choisir avec qui parler. -->
+					{#if showModelSelector}
+						<AgentSelector />
+					{/if}
 					<!-- <div class="md:hidden flex self-center w-[1px] h-5 mx-2 bg-gray-300 dark:bg-stone-700" /> -->
 
 					{#if $user?.role === 'user' ? ($user?.permissions?.chat?.temporary ?? true) && !($user?.permissions?.chat?.temporary_enforced ?? false) : true}
