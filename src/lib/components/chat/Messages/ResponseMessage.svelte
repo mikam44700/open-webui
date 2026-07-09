@@ -41,6 +41,8 @@
 
 	import Name from './Name.svelte';
 	import ProfileImage from './ProfileImage.svelte';
+	import { activeAgent } from '$lib/stores/agent';
+	import { agentIdentity } from '$lib/utils/agentIdentity';
 	import Skeleton from './Skeleton.svelte';
 	import Image from '$lib/components/common/Image.svelte';
 	import Tooltip from '$lib/components/common/Tooltip.svelte';
@@ -169,6 +171,11 @@
 
 	let model = null;
 	$: model = $models.find((m) => m.id === message.model);
+
+	// Incarnation : quand un agent (profil Hermes, ex. Mike) est actif, la réponse porte
+	// son prénom + son avatar plutôt que le nom du modèle LLM. Retombe sur l'affichage
+	// natif si aucun agent n'est chargé.
+	$: agentUi = agentIdentity($activeAgent);
 
 	// Nos étapes de travail (« Je délègue… », « Je consulte… », action 'hermes_tool')
 	// s'effacent une fois la réponse terminée — comme ChatGPT/Claude. Les statuts natifs
@@ -668,16 +675,17 @@
 	>
 		<div class={`shrink-0 ltr:mr-3 rtl:ml-3 hidden @lg:flex mt-1 `}>
 			<ProfileImage
-				src={`${WEBUI_API_BASE_URL}/models/model/profile/image?id=${model?.id}&lang=${$i18n.language}`}
+				src={agentUi?.avatarUrl ??
+					`${WEBUI_API_BASE_URL}/models/model/profile/image?id=${model?.id}&lang=${$i18n.language}`}
 				className={'size-8 assistant-message-profile-image'}
 			/>
 		</div>
 
 		<div class="flex-auto w-0 pl-1 relative">
 			<Name>
-				<Tooltip content={model?.name ?? message.model} placement="top-start">
+				<Tooltip content={agentUi?.firstName ?? model?.name ?? message.model} placement="top-start">
 					<span id="response-message-model-name" class="line-clamp-1 text-black dark:text-white">
-						{model?.name ?? message.model}
+						{agentUi?.firstName ?? model?.name ?? message.model}
 					</span>
 				</Tooltip>
 

@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { getContext } from 'svelte';
+	import { getContext, onMount } from 'svelte';
 	import { toast } from 'svelte-sonner';
 
 	import {
@@ -41,7 +41,18 @@
 	import Knobs from '../icons/Knobs.svelte';
 	import { WEBUI_API_BASE_URL } from '$lib/constants';
 
+	import { activeAgent, ensureActiveAgent } from '$lib/stores/agent';
+	import { agentIdentity } from '$lib/utils/agentIdentity';
+
 	const i18n = getContext('i18n');
+
+	// Incarnation de l'assistant : l'agent actif (ex. Mike) est chargé une fois et
+	// affiché en tête du chat (avatar + prénom). Best-effort, ne bloque jamais l'en-tête.
+	$: agentBadge = agentIdentity($activeAgent);
+
+	onMount(() => {
+		ensureActiveAgent(localStorage.token);
+	});
 
 	export let initNewChat: Function;
 	export let shareEnabled: boolean = false;
@@ -123,9 +134,29 @@
 			"
 				>
 					{#if showModelSelector}
-						<!-- Agent OS : sélecteur de « cerveau » (vrai modèle Hermes + intelligence).
-						     Remplace le sélecteur natif, cosmétique (Hermes ignore le champ `model`). -->
-						<BrainSelector />
+						<div class="flex items-center gap-1.5 overflow-hidden">
+							<!-- Incarnation de l'assistant actif (ex. Mike) : avatar + prénom. -->
+							{#if agentBadge}
+								<Tooltip content={$i18n.t('Votre bras droit')} placement="bottom-start">
+									<div class="flex items-center gap-1.5 shrink-0">
+										{#if agentBadge.avatarUrl}
+											<img
+												src={agentBadge.avatarUrl}
+												alt={agentBadge.firstName}
+												class="size-6 rounded-full object-cover bg-gray-100 dark:bg-gray-800"
+												draggable="false"
+											/>
+										{/if}
+										<span class="text-sm font-medium text-gray-800 dark:text-gray-100 line-clamp-1">
+											{agentBadge.firstName}
+										</span>
+									</div>
+								</Tooltip>
+							{/if}
+							<!-- Agent OS : sélecteur de « cerveau » (vrai modèle Hermes + intelligence).
+							     Remplace le sélecteur natif, cosmétique (Hermes ignore le champ `model`). -->
+							<BrainSelector />
+						</div>
 					{/if}
 				</div>
 
