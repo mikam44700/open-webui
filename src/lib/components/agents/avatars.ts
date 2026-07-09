@@ -15,12 +15,13 @@ export type Avatar = {
 	gender: Gender;
 };
 
-// Résout un identifiant d'avatar en URL statique servie par l'app.
-export const avatarImage = (id: string): string => `/assets/agents/${id}.png`;
+// Résout un identifiant d'avatar en URL statique servie par l'app (WebP : ~−79 % vs PNG).
+export const avatarImage = (id: string): string => `/assets/agents/${id}.webp`;
 
-// Extrait l'identifiant d'avatar depuis un chemin (/assets/agents/mike.png -> mike).
+// Extrait l'identifiant d'avatar depuis un chemin (/assets/agents/mike.webp -> mike).
+// Tolère .png ET .webp (les avatars persistés côté bridge peuvent encore pointer un .png).
 export const avatarId = (image?: string | null): string =>
-	image ? image.replace(/^.*\//, '').replace(/\.png.*$/i, '') : '';
+	image ? image.replace(/^.*\//, '').replace(/\.(png|webp).*$/i, '') : '';
 
 // Retrouve l'entrée de manifeste correspondant à un chemin/identifiant d'avatar.
 export const avatarFromImage = (image?: string | null): Avatar | undefined => {
@@ -29,8 +30,8 @@ export const avatarFromImage = (image?: string | null): Avatar | undefined => {
 };
 
 // Gros plan visage (cadré pour les cercles) : les 100 visages vivent dans
-// /assets/VisageAvatars/<id>.png, dérivés des portraits corps entier de /assets/agents/.
-export const avatarFaceImage = (id: string): string => `/assets/VisageAvatars/${id}.png`;
+// /assets/VisageAvatars/<id>.webp, dérivés des portraits corps entier de /assets/agents/.
+export const avatarFaceImage = (id: string): string => `/assets/VisageAvatars/${id}.webp`;
 
 // Convertit un chemin d'avatar « corps entier » en son gros plan visage, UNIQUEMENT pour
 // les avatars du manifeste (servis depuis /assets/agents/). Tout autre chemin (avatar custom
@@ -39,6 +40,17 @@ export const faceFromImage = (image?: string | null): string | null => {
 	if (!image) return image ?? null;
 	const id = avatarId(image);
 	return id && image.includes('/assets/agents/') ? avatarFaceImage(id) : image;
+};
+
+// Bascule un chemin d'avatar du manifeste (corps entier ou visage) vers sa variante WebP,
+// en préservant un éventuel suffixe de version (?v=1). Les avatars persistés côté bridge
+// pointent encore un .png → cette fonction sert la version WebP allégée à l'affichage.
+export const webpUrl = (image?: string | null): string | null => {
+	if (!image) return image ?? null;
+	return image.replace(
+		/(\/assets\/(?:agents|VisageAvatars)\/[^/?#]+)\.png(\?[^#]*)?/i,
+		'$1.webp$2'
+	);
 };
 
 export const AVATARS: Avatar[] = [

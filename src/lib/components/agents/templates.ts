@@ -21,7 +21,7 @@ export const AGENT_TEMPLATES: AgentTemplate[] = [
 		role: 'Chef d’orchestre',
 		gender: 'male',
 		emoji: '🎼',
-		image: '/assets/agents/mike.png',
+		image: '/assets/agents/mike.webp',
 		description:
 			'Votre bras droit qui coordonne toute l’équipe : il comprend votre demande, la découpe et oriente chaque tâche vers le bon agent.',
 		soul: `Tu es Mike, le chef d’orchestre d’Agent OS — le bras droit du dirigeant qui coordonne toute l’équipe d’agents IA.
@@ -63,7 +63,7 @@ La liste de tes agents s’affiche ici automatiquement dès qu’ils existent. T
 		role: 'Agent Obsidian',
 		gender: 'male',
 		emoji: '🧠',
-		image: '/assets/agents/adam.png?v=1',
+		image: '/assets/agents/adam.webp?v=1',
 		description:
 			'La mémoire de votre entreprise : il capture, range, relie et retrouve toute votre connaissance dans le coffre Obsidian — et la met à disposition de tous les autres agents.',
 		soul: `Tu es l'Agent Obsidian — la mémoire vivante de l'entreprise, gardien du second cerveau (le coffre Obsidian).
@@ -123,7 +123,7 @@ Tu es le bibliothécaire-mémoire de la boîte. Tu ne fais pas le travail des au
 		firstName: 'Emma',
 		role: 'Assistant administratif',
 		gender: 'female',
-		image: '/assets/agents/emma.png?v=3',
+		image: '/assets/agents/emma.webp?v=3',
 		emoji: '🗓️',
 		description:
 			'Elle tient votre quotidien : tri des mails, gestion de l’agenda, prise et rappel des rendez-vous.',
@@ -158,7 +158,7 @@ Trier les mails, gérer l'agenda, organiser et rappeler les rendez-vous, et ne j
 		role: 'Commercial / Devis',
 		gender: 'male',
 		emoji: '🤝',
-		image: '/assets/agents/maxime.png?v=6',
+		image: '/assets/agents/maxime.webp?v=6',
 		description:
 			'Il fait avancer vos ventes : suivi des devis, relance des prospects, préparation des rendez-vous clients.',
 		soul: `Tu es le Commercial de l'entreprise — celui qui fait avancer les ventes sans rien laisser tomber.
@@ -191,7 +191,7 @@ Suivre les devis envoyés, relancer les prospects intelligemment, et préparer u
 		role: 'Comptable / Impayés',
 		gender: 'female',
 		emoji: '💰',
-		image: '/assets/agents/lina.png?v=3',
+		image: '/assets/agents/lina.webp?v=3',
 		description:
 			'Elle veille sur votre argent : suivi des factures, relance des impayés, surveillance de la trésorerie.',
 		soul: `Tu es la responsable Comptes & Trésorerie de l'entreprise — celle qui veille à ce que l'argent rentre.
@@ -225,7 +225,7 @@ Suivre les factures, organiser les relances d'impayés, et donner une vision cla
 		role: 'Service client / SAV',
 		gender: 'male',
 		emoji: '🎧',
-		image: '/assets/agents/nathan.png?v=4',
+		image: '/assets/agents/nathan.webp?v=4',
 		description:
 			'Il garde vos clients : répond aux demandes, suit chaque dossier, ne laisse rien tomber.',
 		soul: `Tu es le Service client de l'entreprise — celui qui garde les clients satisfaits et fidèles.
@@ -259,7 +259,7 @@ Répondre aux demandes clients, suivre chaque dossier, et faire remonter ce qui 
 		role: 'Pilote / Briefing',
 		gender: 'female',
 		emoji: '📊',
-		image: '/assets/agents/camille.png?v=3',
+		image: '/assets/agents/camille.webp?v=3',
 		description:
 			'Elle vous donne l’état réel de la boîte chaque matin : argent, agenda, projets — l’essentiel en 10 lignes.',
 		soul: `Tu es la Pilote de l'entreprise — celle qui donne au dirigeant l'état réel de sa boîte chaque matin.
@@ -292,7 +292,7 @@ Consolider l'état réel de la boîte (argent, agenda, projets, tâches) et le l
 		role: 'Chasseur de clients',
 		gender: 'male',
 		emoji: '🧲',
-		image: '/assets/agents/erik.png?v=1',
+		image: '/assets/agents/erik.webp?v=1',
 		description:
 			'Il trouve et qualifie de nouveaux prospects : recherche, enrichissement, score — et ne remonte que les bons.',
 		soul: `Tu es le Chasseur de clients de l'entreprise — celui qui remplit le pipeline de prospects qualifiés.
@@ -324,7 +324,7 @@ Trouver des prospects pertinents, les enrichir, les qualifier selon le client id
 		firstName: 'Sarah',
 		role: 'Marketing / Présence',
 		gender: 'female',
-		image: '/assets/agents/sarah.png?v=6',
+		image: '/assets/agents/sarah.webp?v=6',
 		emoji: '📣',
 		description:
 			'Elle soigne votre présence : réseaux sociaux, avis Google, site, newsletters — dans le ton de votre marque.',
@@ -358,7 +358,7 @@ Animer les réseaux, gérer les avis, alimenter le site et les newsletters — t
 		firstName: 'Nicolas',
 		role: 'Rédacteur de documents',
 		gender: 'male',
-		image: '/assets/agents/nicolas.png?v=6',
+		image: '/assets/agents/nicolas.webp?v=6',
 		emoji: '✍️',
 		description:
 			'Il génère vos documents : devis, contrats, comptes-rendus, propositions — à partir de vos modèles.',
@@ -391,7 +391,7 @@ Générer des documents professionnels à partir des modèles et des information
 		firstName: 'Léo',
 		role: 'Veille',
 		gender: 'male',
-		image: '/assets/agents/leo.png?v=6',
+		image: '/assets/agents/leo.webp?v=6',
 		emoji: '🔭',
 		description:
 			'Il surveille pour vous : concurrents, marché, actualités du secteur — synthétisé et sourcé.',
@@ -424,7 +424,7 @@ Surveiller les sources utiles, synthétiser l'information et signaler ce qui mé
 		firstName: 'Ingrid',
 		role: 'Ressources Humaines',
 		gender: 'female',
-		image: '/assets/agents/ingrid.png?v=1',
+		image: '/assets/agents/ingrid.webp?v=1',
 		emoji: '🧑‍💼',
 		description:
 			'Elle accompagne vos équipes : recrutement, onboarding, congés et questions RH du quotidien.',
@@ -456,7 +456,7 @@ Répondre aux questions des employés, faciliter le recrutement et l'onboarding,
 		firstName: 'Samy',
 		role: 'Achats / Fournisseurs',
 		gender: 'male',
-		image: '/assets/agents/samy.png?v=1',
+		image: '/assets/agents/samy.webp?v=1',
 		emoji: '📦',
 		description:
 			'Il gère vos approvisionnements : suivi des commandes, comparaison des offres, relance des fournisseurs.',
@@ -489,7 +489,7 @@ Suivre les commandes, gérer la relation fournisseurs, comparer les offres et an
 		firstName: 'Sofia',
 		role: 'Conformité / Juridique',
 		gender: 'female',
-		image: '/assets/agents/sofia.png?v=1',
+		image: '/assets/agents/sofia.webp?v=1',
 		emoji: '⚖️',
 		description:
 			'Elle éclaire vos contrats : lecture de clauses, points d’attention, bases de la conformité (RGPD).',
@@ -521,7 +521,7 @@ Aider à comprendre les contrats et clauses, repérer les risques, et soutenir l
 		firstName: 'Ethan',
 		role: 'Finance / Prévisionnel',
 		gender: 'male',
-		image: '/assets/agents/ethan.png?v=6',
+		image: '/assets/agents/ethan.webp?v=6',
 		emoji: '📈',
 		description:
 			'Il pilote vos chiffres : reporting, prévisionnel, suivi des marges et de la trésorerie.',

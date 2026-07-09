@@ -3,6 +3,7 @@
 	// + badge d'état + avatar (portrait détouré qui déborde, ou emoji en pastille givrée).
 	// Réutilisée pour « Mes agents » et « Prêts à l'emploi ». Cf. Avatar.md.
 	import { createEventDispatcher, getContext } from 'svelte';
+	import { webpUrl } from '$lib/components/agents/avatars';
 
 	const i18n = getContext('i18n');
 	const dispatch = createEventDispatcher();
@@ -132,7 +133,7 @@
 	<div class="pointer-events-none absolute inset-y-0 right-0 z-0 w-[152px]">
 		{#if showImage}
 			<img
-				src={image}
+				src={webpUrl(image)}
 				alt={name}
 				on:error={() => (imgError = true)}
 				style="filter: drop-shadow(0 14px 20px rgba(0,0,0,0.38));"
