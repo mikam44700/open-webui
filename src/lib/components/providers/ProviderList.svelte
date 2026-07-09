@@ -104,10 +104,15 @@
 				? filtered.filter((p) => p.category === 'api' && !inMulti(p) && canShow(p))
 				: filtered.filter((p) => p.category === activeTab && canShow(p));
 	$: currentTab = TABS.find((t) => t.key === activeTab) ?? TABS[0];
-	// Onglet « Clés API » : on range les ~30 fournisseurs en sections (Les grands noms,
+	// Connectés (actifs ou déjà configurés) — remontés EN HAUT de chaque onglet fournisseurs.
+	$: connectedItems = tabItems.filter((p) => p.state !== 'not_configured');
+	$: connectedIds = new Set(connectedItems.map((p) => p.id));
+	// « À découvrir » = le reste, non encore connecté (évite le doublon avec la section du haut).
+	$: discoverItems = tabItems.filter((p) => !connectedIds.has(p.id));
+	// Onglet « Clés API » : on range les fournisseurs À DÉCOUVRIR en sections (Les grands noms,
 	// Une seule clé plein de modèles, Plateformes d'hébergement, Modèles chinois, Sur-mesure).
 	// Les autres onglets restent en grille plate (peu d'items).
-	$: apiGroups = activeTab === 'api' ? groupProviders(tabItems) : [];
+	$: apiGroups = activeTab === 'api' ? groupProviders(discoverItems) : [];
 
 	const isBridgeDown = (err: any) => err?.error?.code === 'bridge_unreachable';
 
@@ -227,46 +232,86 @@
 		<!-- contenu de l'onglet -->
 		{#if activeTab === 'hermes'}
 			<HermesStatus />
-		{:else if activeTab === 'api' && tabItems.length > 0}
-			<!-- Clés API : rangées par sections (familiarité + fonction). -->
-			<div class="flex flex-col gap-6">
-				{#each apiGroups as group (group.key)}
-					<div>
-						<div
-							class="text-xs font-semibold uppercase tracking-wide text-gray-400 dark:text-gray-500 mb-2 px-0.5"
-						>
-							{$i18n.t(group.label)}
-							<span class="opacity-60">({group.items.length})</span>
-						</div>
-						<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2.5">
-							{#each group.items as provider (provider.id)}
-								<ProviderCard
-									{provider}
-									activeModelId={active?.provider_id === provider.id ? active.model_id : ''}
-									on:changed={load}
-								/>
-							{/each}
-						</div>
+		{:else if activeTab === 'multiagent'}
+			<!-- Modèles IA combinés : grille plate avec carte MoA dédiée (inchangé). -->
+			{#if tabItems.length > 0}
+				<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2.5">
+					{#each tabItems as provider (provider.id)}
+						{#if provider.id === 'moa'}
+							<!-- Mixture of Agents : carte de configuration dédiée (proposeurs + agrégateur). -->
+							<MoaConfig {provider} {providers} on:changed={load} />
+						{:else}
+							<ProviderCard
+								{provider}
+								activeModelId={active?.provider_id === provider.id ? active.model_id : ''}
+								on:changed={load}
+							/>
+						{/if}
+					{/each}
+				</div>
+			{:else}
+				<div class="text-xs text-gray-500 text-center py-8">{$i18n.t('Aucun modèle IA dans cet onglet')}</div>
+			{/if}
+		{:else}
+			<!-- Onglets fournisseurs (Comptes / Clés API / Local / Autres) : connectés EN HAUT + à découvrir. -->
+			{#if connectedItems.length > 0}
+				<div class="mb-6">
+					<div
+						class="text-xs font-semibold uppercase tracking-wide text-gray-400 dark:text-gray-500 mb-2 px-0.5"
+					>
+						{$i18n.t('Connectés')}
+						<span class="opacity-60">({connectedItems.length})</span>
 					</div>
-				{/each}
-			</div>
-		{:else if tabItems.length > 0}
-			<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2.5">
-				{#each tabItems as provider (provider.id)}
-					{#if provider.id === 'moa'}
-						<!-- Mixture of Agents : carte de configuration dédiée (proposeurs + agrégateur). -->
-						<MoaConfig {provider} {providers} on:changed={load} />
-					{:else}
+					<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2.5">
+						{#each connectedItems as provider (provider.id)}
+							<ProviderCard
+								{provider}
+								activeModelId={active?.provider_id === provider.id ? active.model_id : ''}
+								on:changed={load}
+							/>
+						{/each}
+					</div>
+				</div>
+			{/if}
+
+			{#if activeTab === 'api'}
+				<!-- À découvrir : rangés par sections (familiarité + fonction). -->
+				<div class="flex flex-col gap-6">
+					{#each apiGroups as group (group.key)}
+						<div>
+							<div
+								class="text-xs font-semibold uppercase tracking-wide text-gray-400 dark:text-gray-500 mb-2 px-0.5"
+							>
+								{$i18n.t(group.label)}
+								<span class="opacity-60">({group.items.length})</span>
+							</div>
+							<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2.5">
+								{#each group.items as provider (provider.id)}
+									<ProviderCard
+										{provider}
+										activeModelId={active?.provider_id === provider.id ? active.model_id : ''}
+										on:changed={load}
+									/>
+								{/each}
+							</div>
+						</div>
+					{/each}
+				</div>
+			{:else if discoverItems.length > 0}
+				<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2.5">
+					{#each discoverItems as provider (provider.id)}
 						<ProviderCard
 							{provider}
 							activeModelId={active?.provider_id === provider.id ? active.model_id : ''}
 							on:changed={load}
 						/>
-					{/if}
-				{/each}
-			</div>
-		{:else}
-			<div class="text-xs text-gray-500 text-center py-8">{$i18n.t('Aucun modèle IA dans cet onglet')}</div>
+					{/each}
+				</div>
+			{/if}
+
+			{#if connectedItems.length === 0 && discoverItems.length === 0}
+				<div class="text-xs text-gray-500 text-center py-8">{$i18n.t('Aucun modèle IA dans cet onglet')}</div>
+			{/if}
 		{/if}
 	{/if}
 </div>

@@ -90,7 +90,7 @@
 
 	// Vedettes : les essentiels (dans l'ordre défini), s'ils existent au catalogue.
 	$: featured = FEATURED.map((id) => allEntries.find((e) => e.name === id)).filter(
-		(e): e is Entry => !!e
+		(e): e is Entry => !!e && !installedIds.has(e.name)
 	);
 
 	const isBridgeDown = (err: any) =>
@@ -137,6 +137,16 @@
 		</div>
 	{:else}
 		<!-- Ajout d'un connecteur sur mesure : action mise en avant sous la bannière. -->
+		<!-- Connecteurs installés — remontés EN HAUT et mis en avant (si non vide) -->
+		{#if connectors.length > 0}
+			<div class="text-sm font-medium mb-3">{$i18n.t('Connecteurs installés')}</div>
+			<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 mb-7">
+				{#each connectors as connector (connector.id)}
+					<ConnectorCard {connector} on:changed={load} />
+				{/each}
+			</div>
+		{/if}
+
 		<button
 			type="button"
 			class="w-full mb-7 flex items-center justify-center gap-2 rounded-2xl border border-dashed border-gray-300 dark:border-gray-700 px-4 py-4 text-sm font-medium text-gray-600 dark:text-gray-300 hover:border-gray-400 hover:bg-gray-50 dark:hover:border-gray-600 dark:hover:bg-white/[0.03] transition"
@@ -157,7 +167,9 @@
 
 		<!-- Les plus populaires + accès au catalogue complet (recherche + catégories). -->
 		<div class="flex items-center justify-between mb-3">
-			<div class="text-sm font-medium">{$i18n.t('Les plus populaires')}</div>
+			<div class="text-sm font-medium">
+				{connectors.length > 0 ? $i18n.t('À découvrir') : $i18n.t('Les plus populaires')}
+			</div>
 			<button
 				type="button"
 				class="text-sm text-gray-500 hover:text-gray-900 dark:hover:text-white transition inline-flex items-center gap-1"
@@ -186,20 +198,6 @@
 		{#if featured.length === 0}
 			<div class="text-xs text-gray-500 py-4">
 				{$i18n.t('Ouvre « Tout parcourir » pour voir tous les connecteurs.')}
-			</div>
-		{/if}
-
-		<!-- Connecteurs installés -->
-		<div class="text-sm font-medium mt-7 mb-3">{$i18n.t('Connecteurs installés')}</div>
-		{#if connectors.length > 0}
-			<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-				{#each connectors as connector (connector.id)}
-					<ConnectorCard {connector} on:changed={load} />
-				{/each}
-			</div>
-		{:else}
-			<div class="text-xs text-gray-500 py-4">
-				{$i18n.t('Aucun connecteur installé pour l’instant.')}
 			</div>
 		{/if}
 	{/if}

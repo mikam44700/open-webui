@@ -28,11 +28,14 @@
 
 	// Le client final ne voit que les intégrations visibles (les masquées restent gérées en admin).
 	$: visible = integrations.filter((i) => i.visible !== false);
-	// Vedettes : marquées « populaires » ; repli sur les 4 premières si rien n'est marqué.
-	$: popular = visible.filter((i) => INTEGRATION_FR[i.id]?.popular);
-	$: featured = popular.length > 0 ? popular : visible.slice(0, 4);
-	// Déjà connectées (ou clé enregistrée) — mises en avant dans leur propre section.
+	// Déjà connectées (ou clé enregistrée) — mises en avant EN HAUT de page.
 	$: connected = visible.filter((i) => i.state === 'connected' || i.state === 'key_present');
+	$: connectedIds = new Set(connected.map((i) => i.id));
+	// « À découvrir » : tout ce qui n'est pas déjà connecté (évite le doublon avec la section du haut).
+	$: discover = visible.filter((i) => !connectedIds.has(i.id));
+	// Vedettes : marquées « populaires » ; repli sur les 4 premières si rien n'est marqué.
+	$: popular = discover.filter((i) => INTEGRATION_FR[i.id]?.popular);
+	$: featured = popular.length > 0 ? popular : discover.slice(0, 4);
 
 	const isBridgeDown = (err: any) =>
 		err?.error?.code === 'bridge_unreachable' || err?.error?.code === 'hermes_unavailable';
@@ -70,45 +73,45 @@
 			</button>
 		</div>
 	{:else if visible.length > 0}
-		<!-- Les plus populaires + accès au catalogue complet -->
-		<div class="flex items-center justify-between mb-3">
-			<div class="text-sm font-medium">{$i18n.t('Les plus populaires')}</div>
-			<button
-				type="button"
-				class="text-sm text-gray-500 hover:text-gray-900 dark:hover:text-white transition inline-flex items-center gap-1"
-				on:click={() => (showBrowse = true)}
-			>
-				{$i18n.t('Tout parcourir')}
-				<svg
-					xmlns="http://www.w3.org/2000/svg"
-					fill="none"
-					viewBox="0 0 24 24"
-					stroke-width="2"
-					stroke="currentColor"
-					class="size-4"
-				>
-					<path stroke-linecap="round" stroke-linejoin="round" d="M13.5 4.5 21 12m0 0-7.5 7.5M21 12H3" />
-				</svg>
-			</button>
-		</div>
-
-		<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-			{#each featured as integration (integration.id)}
-				<IntegrationCard {integration} on:changed={load} />
-			{/each}
-		</div>
-
-		<!-- Applications connectées -->
-		<div class="text-sm font-medium mt-7 mb-3">{$i18n.t('Applications connectées')}</div>
+		<!-- Applications connectées — remontées EN HAUT et mises en avant (si non vide) -->
 		{#if connected.length > 0}
+			<div class="text-sm font-medium mb-3">{$i18n.t('Applications connectées')}</div>
 			<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
 				{#each connected as integration (integration.id)}
 					<IntegrationCard {integration} on:changed={load} />
 				{/each}
 			</div>
-		{:else}
-			<div class="text-xs text-gray-500 py-4">
-				{$i18n.t('Aucune application connectée pour l’instant.')}
+		{/if}
+
+		<!-- À découvrir (ou « Les plus populaires » si rien n'est encore connecté) + catalogue complet -->
+		{#if featured.length > 0}
+			<div class="flex items-center justify-between mb-3 {connected.length > 0 ? 'mt-8' : ''}">
+				<div class="text-sm font-medium">
+					{connected.length > 0 ? $i18n.t('À découvrir') : $i18n.t('Les plus populaires')}
+				</div>
+				<button
+					type="button"
+					class="text-sm text-gray-500 hover:text-gray-900 dark:hover:text-white transition inline-flex items-center gap-1"
+					on:click={() => (showBrowse = true)}
+				>
+					{$i18n.t('Tout parcourir')}
+					<svg
+						xmlns="http://www.w3.org/2000/svg"
+						fill="none"
+						viewBox="0 0 24 24"
+						stroke-width="2"
+						stroke="currentColor"
+						class="size-4"
+					>
+						<path stroke-linecap="round" stroke-linejoin="round" d="M13.5 4.5 21 12m0 0-7.5 7.5M21 12H3" />
+					</svg>
+				</button>
+			</div>
+
+			<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+				{#each featured as integration (integration.id)}
+					<IntegrationCard {integration} on:changed={load} />
+				{/each}
 			</div>
 		{/if}
 	{:else}

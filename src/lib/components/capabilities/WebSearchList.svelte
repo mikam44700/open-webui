@@ -43,15 +43,18 @@
 	$: apifyConnector = connectors.find((c) => c.id === 'apify');
 	$: apifyEntry = { ...APIFY_ENTRY, installed: !!apifyConnector };
 
-	// Vedettes « Les plus populaires » : liste choisie à la main (par slug), dans cet ordre.
-	// Tout le reste reste accessible via « Tout parcourir ».
-	const FEATURED_SLUGS = ['duckduckgo', 'exa', 'firecrawl', 'brave', 'tavily'];
-	$: featured = FEATURED_SLUGS.map((slug) =>
-		items.find((it) => it.provider.slug === slug)
-	).filter(Boolean) as Item[];
-	// Déjà branchés = clé enregistrée ou compte connecté (état réel, jamais inventé).
+	// Déjà branchés = clé enregistrée ou compte connecté (état réel, jamais inventé). Remontés EN HAUT.
 	$: connected = items.filter((it) =>
 		['saved', 'detected'].includes(providerStatus(it.provider))
+	);
+	$: connectedKeys = new Set(connected.map((it) => it.toolsetName + ':' + it.provider.name));
+	// Vedettes « Les plus populaires » : liste choisie à la main (par slug), dans cet ordre.
+	// On exclut ceux déjà branchés (remontés en haut) pour éviter le doublon.
+	const FEATURED_SLUGS = ['duckduckgo', 'exa', 'firecrawl', 'brave', 'tavily'];
+	$: featured = (FEATURED_SLUGS.map((slug) =>
+		items.find((it) => it.provider.slug === slug)
+	).filter(Boolean) as Item[]).filter(
+		(it) => !connectedKeys.has(it.toolsetName + ':' + it.provider.name)
 	);
 
 	const load = async () => {
@@ -104,9 +107,21 @@
 			{$i18n.t('Aucun fournisseur disponible.')}
 		</div>
 	{:else}
-		<!-- Les plus populaires + accès au catalogue complet -->
-		<div class="flex items-center justify-between mb-3">
-			<div class="text-sm font-medium">{$i18n.t('Les plus populaires')}</div>
+		<!-- Fournisseurs déjà branchés — remontés EN HAUT et mis en avant (si non vide) -->
+		{#if connected.length > 0}
+			<div class="text-sm font-medium mb-3">{$i18n.t('Déjà connectés')}</div>
+			<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+				{#each connected as it (it.toolsetName + ':' + it.provider.name)}
+					<ToolProviderCatalogCard toolsetName={it.toolsetName} provider={it.provider} on:changed={load} />
+				{/each}
+			</div>
+		{/if}
+
+		<!-- À découvrir (ou « Les plus populaires » si rien n'est branché) + catalogue complet -->
+		<div class="flex items-center justify-between mb-3 {connected.length > 0 ? 'mt-8' : ''}">
+			<div class="text-sm font-medium">
+				{connected.length > 0 ? $i18n.t('À découvrir') : $i18n.t('Les plus populaires')}
+			</div>
 			<button
 				type="button"
 				class="text-sm text-gray-500 hover:text-gray-900 dark:hover:text-white transition inline-flex items-center gap-1"
@@ -141,20 +156,6 @@
 				<ToolProviderCatalogCard toolsetName={it.toolsetName} provider={it.provider} on:changed={load} />
 			{/each}
 		</div>
-
-		<!-- Fournisseurs déjà branchés -->
-		<div class="text-sm font-medium mt-7 mb-3">{$i18n.t('Déjà connectés')}</div>
-		{#if connected.length > 0}
-			<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-				{#each connected as it (it.toolsetName + ':' + it.provider.name)}
-					<ToolProviderCatalogCard toolsetName={it.toolsetName} provider={it.provider} on:changed={load} />
-				{/each}
-			</div>
-		{:else}
-			<div class="text-xs text-gray-500 py-4">
-				{$i18n.t('Aucun fournisseur branché pour l’instant.')}
-			</div>
-		{/if}
 	{/if}
 </div>
 
