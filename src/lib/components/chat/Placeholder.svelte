@@ -175,6 +175,10 @@
 
 	// Cartes affichées : celles de l'agent actif si disponibles, sinon le catalogue générique.
 	$: cards = activeAgent && activeAgent.actions.length ? activeAgent.actions : WORKFLOWS;
+
+	// Dégradé de couleur de l'agent actif : posé en fond du cercle d'accueil (le visage est
+	// détouré) pour le mettre en valeur comme sur sa carte « Votre équipe ».
+	$: activeGradient = activeAgent ? avatarColor(activeAgent.avatar || activeAgent.name).gradient : '';
 </script>
 
 <div class="m-auto w-full max-w-6xl px-2 @2xl:px-20 translate-y-6 py-24 text-center">
@@ -217,7 +221,8 @@
 					<img
 						src={activeAgent.face}
 						alt={activeAgent.firstName}
-						class="size-14 rounded-full object-cover border border-gray-100 dark:border-gray-800 shadow-sm shrink-0"
+						style="background-image: {activeGradient}"
+						class="size-14 rounded-full object-cover ring-2 ring-white/30 shadow-sm shrink-0"
 						draggable="false"
 						on:error={(e) => avatarImgFallback(e, activeAgent?.avatar)}
 					/>

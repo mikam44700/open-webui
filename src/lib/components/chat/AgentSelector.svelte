@@ -9,6 +9,7 @@
 	import { activeAgent, ensureActiveAgent } from '$lib/stores/agent';
 	import { agentIdentity, avatarImgFallback } from '$lib/utils/agentIdentity';
 	import { resolveAgentView } from '$lib/catalog/agentActions';
+	import { avatarColor } from '$lib/components/agents/avatar-colors';
 
 	const i18n = getContext('i18n');
 
@@ -31,20 +32,27 @@
 	let menuStyle = '';
 	const MENU_W = 264;
 
-	// Vue d'affichage robuste d'un agent : visage + prénom + rôle (repli en cascade).
+	// Vue d'affichage robuste d'un agent : visage + prénom + rôle + dégradé (repli en cascade).
+	// Le dégradé est posé en fond du cercle (visage détouré) pour la même identité visuelle
+	// que sa carte « Votre équipe ».
 	const view = (a: Agent) => {
 		const v = resolveAgentView(a);
 		const id = agentIdentity(a);
+		const avatar = v?.avatar ?? id?.avatarUrl ?? '/favicon.png';
 		return {
 			firstName: v?.firstName ?? id?.firstName ?? a.name,
 			role: v?.role ?? '',
 			face: v?.face ?? id?.faceUrl ?? id?.avatarUrl ?? '/favicon.png',
-			avatar: v?.avatar ?? id?.avatarUrl ?? '/favicon.png'
+			avatar,
+			gradient: avatarColor((v?.avatar ?? id?.avatarUrl) || a.name).gradient
 		};
 	};
 
 	// Identité de l'agent actif pour le déclencheur (repli sur le store global).
 	$: badge = agentIdentity($activeAgent);
+	$: badgeGradient = $activeAgent
+		? avatarColor($activeAgent.avatar || $activeAgent.name || '').gradient
+		: '';
 
 	// Ordre du menu : actif d'abord, puis Mike (profil « default »), puis le reste.
 	$: teamSorted = [...agents].sort(
@@ -116,6 +124,7 @@
 				<img
 					src={badge.faceUrl ?? badge.avatarUrl}
 					alt={badge.firstName}
+					style="background-image: {badgeGradient}"
 					class="size-6 rounded-full object-cover bg-gray-100 dark:bg-gray-800"
 					draggable="false"
 					on:error={(e) => avatarImgFallback(e, badge.avatarUrl)}
@@ -168,6 +177,7 @@
 							<img
 								src={v.face}
 								alt={v.firstName}
+								style="background-image: {v.gradient}"
 								class="size-8 rounded-full object-cover bg-gray-100 dark:bg-gray-800 shrink-0"
 								draggable="false"
 								on:error={(e) => avatarImgFallback(e, v.avatar)}
