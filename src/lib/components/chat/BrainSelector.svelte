@@ -229,11 +229,16 @@
 		deepseek: 'deepseek-v4-pro',
 		perplexity: 'sonar',
 		xai: 'grok-4.3',
-		'ollama-cloud': 'gpt-oss:120b'
+		'ollama-cloud': 'gpt-oss:120b',
+		cohere: 'command-a-plus-05-2026',
+		kilocode: 'kilo-auto/free',
+		'opencode-zen': 'deepseek-v4-flash-free',
+		novita: 'deepseek/deepseek-v4-flash',
+		huggingface: 'deepseek-ai/DeepSeek-V3.2'
 	};
 	// Fournisseurs à TROP de modèles (catalogues) : pas de badge « Recommandé » (le client
 	// choisit), et rien n'est remonté en tête → l'ordre alphabétique du bridge est préservé.
-	const NO_RECOMMENDED_BADGE = new Set(['ollama-cloud', 'openrouter']);
+	const NO_RECOMMENDED_BADGE = new Set(['ollama-cloud', 'openrouter', 'kilocode', 'opencode-zen', 'opencode-go', 'novita', 'huggingface']);
 	// Défaut d'ACTIVATION à la bascule de fournisseur : le curé s'il existe (pour Ollama, un
 	// GRATUIT — sinon models[0] serait un premium 403 avec le tri alpha), sinon le 1er exposé.
 	const defaultModelId = (p: { id: string; models: { id: string }[] }): string | undefined => {

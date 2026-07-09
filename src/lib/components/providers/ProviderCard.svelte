@@ -53,7 +53,12 @@
 		deepseek: 'deepseek-v4-pro',
 		perplexity: 'sonar',
 		xai: 'grok-4.3',
-		'ollama-cloud': 'gpt-oss:120b'
+		'ollama-cloud': 'gpt-oss:120b',
+		cohere: 'command-a-plus-05-2026',
+		kilocode: 'kilo-auto/free',
+		'opencode-zen': 'deepseek-v4-flash-free',
+		novita: 'deepseek/deepseek-v4-flash',
+		huggingface: 'deepseek-ai/DeepSeek-V3.2'
 	};
 	$: repModelId = (() => {
 		const rec = RECOMMENDED_MODEL[provider.id];
