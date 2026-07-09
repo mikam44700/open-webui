@@ -17,14 +17,20 @@ export type IntegrationMeta = {
 export const INTEGRATION_FR: Record<string, IntegrationMeta> = {
 	'google-workspace': {
 		name: 'Google Workspace',
-		desc: 'Gmail, Agenda, Drive et Docs, depuis l’agent.',
+		desc: 'Gmail, Agenda, Drive, Docs, Meet, Slides et plus — tout Google, depuis l’agent.',
 		category: 'Productivité',
 		popular: true,
 		actions: [
-			'Lire et envoyer des e-mails (Gmail)',
-			'Gérer l’agenda et les événements',
-			'Chercher et créer des fichiers (Drive, Docs, Sheets)',
-			'Consulter les contacts'
+			'Gmail — lire, résumer, rédiger et envoyer des e-mails',
+			'Agenda — consulter et créer des événements',
+			'Drive — chercher, ouvrir et organiser des fichiers',
+			'Sheets — créer et modifier des tableurs',
+			'Docs — créer et modifier des documents',
+			'Contacts — consulter le carnet d’adresses',
+			'Meet — créer des réunions et générer le lien visio',
+			'Slides — créer des présentations',
+			'Analytics — consulter la fréquentation du site',
+			'Search Console — suivre le référencement et l’indexation'
 		]
 	},
 	notion: {
@@ -141,14 +147,20 @@ export const INTEGRATION_FR: Record<string, IntegrationMeta> = {
 	},
 	'microsoft-365': {
 		name: 'Microsoft 365',
-		desc: 'Outlook, Teams, OneDrive et Office.',
+		desc: 'Outlook, Agenda, OneDrive, Word, Excel, Teams et plus — tout Microsoft, depuis l’agent.',
 		category: 'Productivité',
 		popular: true,
 		actions: [
-			'Lire et envoyer des e-mails (Outlook)',
-			'Gérer l’agenda et les réunions Teams',
-			'Fichiers OneDrive, Word, Excel, PowerPoint',
-			'Consulter les contacts'
+			'Outlook — lire, rédiger et envoyer des e-mails',
+			'Agenda — consulter et créer des événements',
+			'OneDrive — chercher, ouvrir et organiser des fichiers',
+			'Word — créer et modifier des documents',
+			'Excel — créer et modifier des tableurs',
+			'PowerPoint — créer des présentations',
+			'Teams — réunions et messages d’équipe',
+			'OneNote — prendre et retrouver des notes',
+			'To Do — gérer les tâches et les rappels',
+			'Contacts — consulter le carnet d’adresses'
 		]
 	},
 	calendly: {
@@ -210,46 +222,6 @@ export const INTEGRATION_FR: Record<string, IntegrationMeta> = {
 			'Créer et suivre des tâches',
 			'Gérer statuts et assignations',
 			'Parcourir listes et projets'
-		]
-	},
-	'google-meet': {
-		name: 'Google Meet',
-		desc: 'Réunions vidéo Google Meet.',
-		category: 'Communication',
-		actions: [
-			'Créer des réunions Meet',
-			'Générer le lien visio',
-			'Via votre compte Google'
-		]
-	},
-	'google-slides': {
-		name: 'Google Slides',
-		desc: 'Présentations Google Slides.',
-		category: 'Productivité',
-		actions: [
-			'Créer des présentations',
-			'Gérer les diapositives',
-			'Via votre compte Google'
-		]
-	},
-	'google-analytics': {
-		name: 'Google Analytics',
-		desc: 'Fréquentation de votre site.',
-		category: 'Productivité',
-		actions: [
-			'Consulter l’audience du site',
-			'Suivre les tendances de trafic',
-			'Lecture seule, via Google'
-		]
-	},
-	'google-search-console': {
-		name: 'Google Search Console',
-		desc: 'Référencement de votre site (Google).',
-		category: 'Productivité',
-		actions: [
-			'Voir les requêtes de recherche',
-			'Suivre l’indexation du site',
-			'Lecture seule, via Google'
 		]
 	}
 };

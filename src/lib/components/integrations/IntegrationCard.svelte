@@ -82,10 +82,6 @@
 		'dropbox',
 		'salesforce',
 		'clickup',
-		'google-meet',
-		'google-slides',
-		'google-analytics',
-		'google-search-console',
 		'linkedin',
 		'tiktok',
 		'facebook',
@@ -93,26 +89,12 @@
 	]);
 	$: isCentralOAuth = CENTRAL_OAUTH_IDS.has(integration.id);
 
-	// Services Google pilotés par notre bridge (Chemin A) : intégrations distinctes mais
-	// qui s'activent avec le MÊME compte Google. La connexion/déconnexion passe donc par le
-	// fournisseur « google-workspace » (un seul google_token.json), pas par un OAuth propre.
-	const GOOGLE_DIRECT_IDS = new Set([
-		'google-meet',
-		'google-slides',
-		'google-analytics',
-		'google-search-console'
-	]);
-	$: isGoogleDirect = GOOGLE_DIRECT_IDS.has(integration.id);
-
-	// Facebook + Instagram partagent un SEUL OAuth Meta (un seul meta_token.json), comme les
-	// services Google partagent google_token.json. La connexion passe par le fournisseur « meta ».
+	// Facebook + Instagram partagent un SEUL OAuth Meta (un seul meta_token.json). La connexion
+	// passe par le fournisseur « meta ». (Les services Google sont désormais regroupés dans la
+	// seule carte « google-workspace » côté catalogue, plus besoin de redirection ici.)
 	const META_IDS = new Set(['facebook', 'instagram']);
 	$: isMeta = META_IDS.has(integration.id);
-	$: oauthProviderId = isGoogleDirect
-		? 'google-workspace'
-		: isMeta
-			? 'meta'
-			: integration.id;
+	$: oauthProviderId = isMeta ? 'meta' : integration.id;
 
 	let googleOpen = false;
 	let emailOpen = false;
@@ -242,65 +224,29 @@
 		{/if}
 	</div>
 
+	<!-- Tags de sous-services (texte court) pour TOUTES les cartes → taille uniforme.
+	     Google/Microsoft n'exposent que 3 services phares ici ; le détail complet des services
+	     (avec logos) est dans la modale « Voir ce que ça fait ». -->
 	{#if subservices.length > 0}
-		{#if serviceLogoMap}
-			<!-- Espace a sous-logos (Google Workspace, Microsoft 365, etc.) : chaque service avec son propre logo -->
-			<div class="flex flex-wrap gap-1.5">
-				{#each subservices as s}
-					<div
-						class="flex items-center gap-1.5 text-[11px] px-2 py-1 rounded-lg border border-gray-100 dark:border-gray-800 bg-gray-50 dark:bg-gray-850/50"
-					>
-						{#if serviceLogoMap[s]}
-							<img src={serviceLogoMap[s]} alt={s} class="size-4 object-contain" draggable="false" />
-						{/if}
-						<span class="text-gray-700 dark:text-gray-300">{s}</span>
-					</div>
-				{/each}
-			</div>
-		{:else}
-			<div class="flex flex-wrap gap-1">
-				{#each subservices as s}
-					<span
-						class="text-[11px] px-2 py-0.5 rounded-full bg-gray-100 dark:bg-gray-850 text-gray-600 dark:text-gray-300"
-					>
-						{s}
-					</span>
-				{/each}
-			</div>
-		{/if}
+		<div class="flex flex-wrap gap-1">
+			{#each subservices as s}
+				<span
+					class="text-[11px] px-2 py-0.5 rounded-full bg-gray-100 dark:bg-gray-850 text-gray-600 dark:text-gray-300"
+				>
+					{s}
+				</span>
+			{/each}
+		</div>
 	{/if}
 
 	{#if fr?.actions?.length}
-		{#if !aboutExpanded}
-			<button
-				type="button"
-				class="self-start text-xs font-medium text-sky-600 dark:text-sky-400 hover:underline"
-				on:click={() => (aboutExpanded = true)}
-			>
-				{$i18n.t('Voir ce que ça fait')} ›
-			</button>
-		{:else}
-			<div class="flex flex-col gap-1.5">
-				<div class="text-[11px] font-semibold uppercase tracking-wide text-gray-400 dark:text-gray-500">
-					{$i18n.t('Ce que ça fait')}
-				</div>
-				<ul class="flex flex-col gap-1 pl-0.5">
-					{#each fr.actions as action}
-						<li class="flex items-start gap-1.5 text-[11px] text-gray-600 dark:text-gray-400">
-							<span class="flex-none mt-1 size-1 rounded-full bg-gray-400 dark:bg-gray-600"></span>
-							<span>{$i18n.t(action)}</span>
-						</li>
-					{/each}
-				</ul>
-				<button
-					type="button"
-					class="self-start text-xs text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 transition"
-					on:click={() => (aboutExpanded = false)}
-				>
-					{$i18n.t('Masquer')}
-				</button>
-			</div>
-		{/if}
+		<button
+			type="button"
+			class="self-start text-xs font-medium text-sky-600 dark:text-sky-400 hover:underline"
+			on:click={() => (aboutExpanded = true)}
+		>
+			{$i18n.t('Voir ce que ça fait')} ›
+		</button>
 	{/if}
 
 	<div class="mt-auto flex flex-col gap-2 pt-1">
@@ -355,10 +301,6 @@
 					>
 						{$i18n.t('Annuler')}
 					</button>
-				{:else if isConnected && isGoogleDirect}
-					<!-- Service Google piloté par le bridge : activé via le compte Google ;
-					     la déconnexion se fait depuis la carte Google Workspace (un seul compte). -->
-					<span class="text-[11px] text-green-700 dark:text-green-400">{$i18n.t('Activé avec votre compte Google')}</span>
 				{:else if isConnected && isCentralOAuth}
 					<!-- Intégration OAuth centralisée connectée : déconnexion via bridge OAuth -->
 					<button
@@ -433,6 +375,87 @@
 		</div>
 	</div>
 </div>
+
+{#if aboutExpanded && fr?.actions?.length}
+	<!-- Modale « Voir ce que ça fait » : overlay centré (même style que la modale Messagerie),
+	     liste chaque service de l'intégration avec son logo, son nom et une explication. -->
+	<div
+		class="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4"
+		on:click={() => (aboutExpanded = false)}
+		role="presentation"
+	>
+		<div
+			class="w-full max-w-md max-h-[85vh] overflow-y-auto rounded-2xl bg-white dark:bg-gray-900 shadow-xl p-5"
+			on:click|stopPropagation
+			role="dialog"
+			aria-modal="true"
+		>
+			<div class="flex items-center justify-between mb-1">
+				<div class="flex items-center gap-2">
+					{#if INTEGRATION_LOGO[integration.id]}
+						<div
+							class="size-7 rounded-md border border-gray-100 dark:border-gray-700 bg-white flex items-center justify-center p-1"
+						>
+							<img
+								src={INTEGRATION_LOGO[integration.id]}
+								alt={fr.name}
+								class="max-w-full max-h-full object-contain"
+							/>
+						</div>
+					{/if}
+					<span class="text-base font-medium">{fr.name}</span>
+				</div>
+				<button
+					class="p-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition text-gray-500"
+					on:click={() => (aboutExpanded = false)}
+					aria-label={$i18n.t('Fermer')}
+				>
+					✕
+				</button>
+			</div>
+			<div class="text-xs text-gray-500 mb-4">{fr.desc}</div>
+
+			<div
+				class="text-[11px] font-semibold uppercase tracking-wide text-gray-400 dark:text-gray-500 mb-2.5"
+			>
+				{$i18n.t('Ce que l’agent sait faire')}
+			</div>
+			<ul class="flex flex-col gap-3">
+				{#each fr.actions as action}
+					{@const parts = action.split(' — ')}
+					{@const svc = parts.length > 1 ? parts[0] : null}
+					{@const desc = parts.length > 1 ? parts.slice(1).join(' — ') : action}
+					<li class="flex items-start gap-2.5 text-xs text-gray-600 dark:text-gray-300">
+						{#if svc && serviceLogoMap?.[svc]}
+							<img
+								src={serviceLogoMap[svc]}
+								alt={svc}
+								class="flex-none size-5 object-contain mt-0.5"
+								draggable="false"
+							/>
+						{:else}
+							<span class="flex-none mt-1.5 size-1.5 rounded-full bg-gray-400 dark:bg-gray-600"></span>
+						{/if}
+						<span>
+							{#if svc}<span class="font-semibold text-gray-800 dark:text-gray-100">{svc}</span> —
+							{/if}{$i18n.t(desc)}
+						</span>
+					</li>
+				{/each}
+			</ul>
+
+			<div class="mt-5 flex justify-end">
+				<button
+					type="button"
+					class="text-xs px-3 py-1.5 rounded-lg border border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-850 transition"
+					on:click={() => (aboutExpanded = false)}
+				>
+					{$i18n.t('Fermer')}
+				</button>
+			</div>
+		</div>
+	</div>
+{/if}
 
 {#if isGoogle}
 	<GoogleConnectModal bind:open={googleOpen} on:connected={() => dispatch('changed')} />
