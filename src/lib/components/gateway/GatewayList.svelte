@@ -1757,6 +1757,17 @@
 							)}
 						</div>
 
+						<div
+							class="text-[12px] px-3 py-2 rounded-lg bg-blue-500/10 text-blue-600 dark:text-blue-400 flex gap-2"
+						>
+							<span class="flex-none">💡</span>
+							<span>
+								{$i18n.t(
+									'Cette boîte sert uniquement à discuter avec votre assistant : il répond aux e-mails reçus ici. Conseil : utilisez une adresse dédiée à l’assistant, pas votre boîte personnelle principale.'
+								)}
+							</span>
+						</div>
+
 						<div class="flex flex-col gap-1.5">
 							<label class="text-sm font-medium" for="email-addr">{$i18n.t('Votre adresse e-mail')}</label>
 							<input
