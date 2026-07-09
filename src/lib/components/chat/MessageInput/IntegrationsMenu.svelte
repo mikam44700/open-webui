@@ -23,6 +23,12 @@
 	import { getConnectors } from '$lib/apis/connectors';
 	import { INTEGRATION_FR } from '$lib/utils/integrationLabels';
 	import { CONNECTOR_FR } from '$lib/utils/connectorLabels';
+	import {
+		INTEGRATION_LOGO,
+		INTEGRATION_LOGO_BG,
+		INTEGRATION_LOGO_FULL_BLEED
+	} from '$lib/utils/integrationLogos';
+	import { CONNECTOR_LOGO, CONNECTOR_LOGO_FULL_BLEED } from '$lib/utils/connectorLogos';
 
 	import { toast } from 'svelte-sonner';
 
@@ -79,8 +85,12 @@
 	let integrationsTotal = 0;
 	let mcpConnected = 0;
 	let mcpTotal = 0;
-	let integrationsConnectedNames: string[] = [];
-	let mcpConnectedNames: string[] = [];
+	// Une entrée par connexion branchée : nom francisé + logo (si connu, sinon fallback
+	// point vert). Générique : toute intégration/connecteur dont le logo est dans sa table
+	// affiche son logo automatiquement, sans retoucher ce composant.
+	type ConnectionItem = { name: string; logo?: string; bg: string; fullBleed: boolean };
+	let integrationsConnectedItems: ConnectionItem[] = [];
+	let mcpConnectedItems: ConnectionItem[] = [];
 
 	$: if (show) {
 		init();
@@ -154,17 +164,25 @@
 				(i) => i?.state === 'connected' || i?.state === 'key_present'
 			);
 			integrationsConnected = intConnected.length;
-			// Nom francisé (« Google », « Notion »…) plutôt que l'id technique.
-			integrationsConnectedNames = intConnected.map(
-				(i) => INTEGRATION_FR[i.id]?.name ?? i.name ?? i.id
-			);
+			// Nom francisé (« Google », « Notion »…) + logo par id (fallback point vert).
+			integrationsConnectedItems = intConnected.map((i) => ({
+				name: INTEGRATION_FR[i.id]?.name ?? i.name ?? i.id,
+				logo: INTEGRATION_LOGO[i.id],
+				bg: INTEGRATION_LOGO_BG[i.id] ?? 'bg-white',
+				fullBleed: INTEGRATION_LOGO_FULL_BLEED.has(i.id)
+			}));
 
 			const connRes = await getConnectors(localStorage.token);
 			const connList = connRes?.connectors ?? [];
 			mcpTotal = connList.length;
 			const connConnected = connList.filter((c) => c?.state === 'connected');
 			mcpConnected = connConnected.length;
-			mcpConnectedNames = connConnected.map((c) => CONNECTOR_FR[c.id]?.name ?? c.name ?? c.id);
+			mcpConnectedItems = connConnected.map((c) => ({
+				name: CONNECTOR_FR[c.id]?.name ?? c.name ?? c.id,
+				logo: CONNECTOR_LOGO[c.id],
+				bg: 'bg-white',
+				fullBleed: CONNECTOR_LOGO_FULL_BLEED.has(c.id)
+			}));
 
 			connectionsLoaded = true;
 		} catch (e) {
@@ -443,8 +461,8 @@
 								</div>
 							</button>
 
-							{#if integrationsConnectedNames.length > 0}
-								{#each integrationsConnectedNames as name}
+							{#if integrationsConnectedItems.length > 0}
+								{#each integrationsConnectedItems as item}
 									<button
 										class="flex w-full items-center gap-2 pl-8 pr-3 py-1 text-sm cursor-pointer rounded-xl hover:bg-gray-50 dark:hover:bg-gray-800/50"
 										on:click={() => {
@@ -452,8 +470,24 @@
 											goto('/connectors?tab=integrations');
 										}}
 									>
-										<span class="shrink-0 size-1.5 rounded-full bg-green-500"></span>
-										<span class=" truncate text-gray-700 dark:text-gray-200">{name}</span>
+										{#if item.logo}
+											<span
+												class="shrink-0 size-4 rounded-[4px] overflow-hidden flex items-center justify-center {item.fullBleed
+													? ''
+													: item.bg}"
+											>
+												<img
+													src={item.logo}
+													alt=""
+													class="{item.fullBleed
+														? 'w-full h-full object-cover'
+														: 'max-w-full max-h-full object-contain p-px'}"
+												/>
+											</span>
+										{:else}
+											<span class="shrink-0 size-1.5 rounded-full bg-green-500"></span>
+										{/if}
+										<span class=" truncate text-gray-700 dark:text-gray-200">{item.name}</span>
 									</button>
 								{/each}
 							{:else}
@@ -483,8 +517,8 @@
 								</div>
 							</button>
 
-							{#if mcpConnectedNames.length > 0}
-								{#each mcpConnectedNames as name}
+							{#if mcpConnectedItems.length > 0}
+								{#each mcpConnectedItems as item}
 									<button
 										class="flex w-full items-center gap-2 pl-8 pr-3 py-1 text-sm cursor-pointer rounded-xl hover:bg-gray-50 dark:hover:bg-gray-800/50"
 										on:click={() => {
@@ -492,8 +526,24 @@
 											goto('/connectors?tab=connectors');
 										}}
 									>
-										<span class="shrink-0 size-1.5 rounded-full bg-green-500"></span>
-										<span class=" truncate text-gray-700 dark:text-gray-200">{name}</span>
+										{#if item.logo}
+											<span
+												class="shrink-0 size-4 rounded-[4px] overflow-hidden flex items-center justify-center {item.fullBleed
+													? ''
+													: item.bg}"
+											>
+												<img
+													src={item.logo}
+													alt=""
+													class="{item.fullBleed
+														? 'w-full h-full object-cover'
+														: 'max-w-full max-h-full object-contain p-px'}"
+												/>
+											</span>
+										{:else}
+											<span class="shrink-0 size-1.5 rounded-full bg-green-500"></span>
+										{/if}
+										<span class=" truncate text-gray-700 dark:text-gray-200">{item.name}</span>
 									</button>
 								{/each}
 							{:else}
