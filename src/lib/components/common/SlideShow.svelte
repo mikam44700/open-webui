@@ -2,11 +2,13 @@
 	import { WEBUI_BASE_URL } from '$lib/constants';
 	import { onMount } from 'svelte';
 
+	// Fonds du carrousel de connexion en WebP (redimensionnés à 2560 px) : ~5 Mo → 1,6 Mo,
+	// pour un premier affichage bien plus léger. Les JPG d'origine sont conservés en repli.
 	export let imageUrls = [
-		`${WEBUI_BASE_URL}/assets/images/adam.jpg`,
-		`${WEBUI_BASE_URL}/assets/images/galaxy.jpg`,
-		`${WEBUI_BASE_URL}/assets/images/earth.jpg`,
-		`${WEBUI_BASE_URL}/assets/images/space.jpg`
+		`${WEBUI_BASE_URL}/assets/images/adam.webp`,
+		`${WEBUI_BASE_URL}/assets/images/galaxy.webp`,
+		`${WEBUI_BASE_URL}/assets/images/earth.webp`,
+		`${WEBUI_BASE_URL}/assets/images/space.webp`
 	];
 	export let duration = 5000;
 	let selectedImageIdx = 0;
