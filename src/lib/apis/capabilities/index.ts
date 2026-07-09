@@ -37,6 +37,33 @@ const call = async (token: string, method: string, path: string, body?: unknown)
 // Outils (toolsets natifs Hermes)
 export const getTools = (token: string) => call(token, 'GET', '/tools');
 
+// L'appel bridge /tools coûte ~2,5 s (sous-process Hermes, 25 toolsets) et n'a pas de cache
+// serveur → l'onglet Outils affichait un spinner à chaque ouverture. On ajoute un cache mémoire
+// de session (TTL court) + un prefetch déclenché à l'ouverture de la page Capacités, pour que la
+// liste soit déjà prête au clic. Invalidé à chaque bascule d'outil (état toujours frais).
+let _toolsCache: { at: number; promise: Promise<unknown> } | null = null;
+const TOOLS_TTL_MS = 60_000;
+
+export const getToolsCached = (token: string): Promise<unknown> => {
+	if (_toolsCache && Date.now() - _toolsCache.at < TOOLS_TTL_MS) return _toolsCache.promise;
+	const promise = getTools(token).catch((err) => {
+		_toolsCache = null; // un échec ne doit pas rester en cache
+		throw err;
+	});
+	_toolsCache = { at: Date.now(), promise };
+	return promise;
+};
+
+// Prefetch best-effort (ne jette jamais) : à appeler dès l'ouverture de la page Capacités.
+export const prefetchTools = (token: string): void => {
+	void getToolsCached(token).catch(() => {});
+};
+
+// À appeler après une bascule d'outil pour éviter de resservir un état périmé.
+export const invalidateToolsCache = (): void => {
+	_toolsCache = null;
+};
+
 export const setToolEnabled = (token: string, name: string, enabled: boolean) =>
 	call(token, 'PATCH', `/tools/${encodeURIComponent(name)}`, { enabled });
 

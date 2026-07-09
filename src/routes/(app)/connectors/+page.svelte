@@ -10,6 +10,7 @@
 	import McpList from '$lib/components/connectors/McpList.svelte';
 	import mcpLogo from '$lib/assets/connectors/mcp.svg';
 	import ToolsetList from '$lib/components/capabilities/ToolsetList.svelte';
+	import { prefetchTools } from '$lib/apis/capabilities';
 	import WebSearchList from '$lib/components/capabilities/WebSearchList.svelte';
 	import SkillList from '$lib/components/capabilities/SkillList.svelte';
 	import IntegrationsList from '$lib/components/integrations/IntegrationsList.svelte';
@@ -151,6 +152,9 @@
 			return;
 		}
 		loaded = true;
+		// L'onglet Outils charge /tools (~2,5 s côté bridge). On le prefetch en fond dès l'ouverture
+		// de la page : le temps que l'utilisateur regarde Modèles IA, la liste est déjà prête au clic.
+		prefetchTools(localStorage.token);
 	});
 </script>
 

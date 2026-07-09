@@ -2,7 +2,7 @@
 	import { getContext, onMount } from 'svelte';
 	import { toast } from 'svelte-sonner';
 
-	import { getTools, setToolEnabled } from '$lib/apis/capabilities';
+	import { getToolsCached, setToolEnabled, invalidateToolsCache } from '$lib/apis/capabilities';
 	import { expertMode } from '$lib/stores';
 
 	import Spinner from '$lib/components/common/Spinner.svelte';
@@ -81,7 +81,7 @@
 		loading = true;
 		bridgeDown = false;
 		try {
-			const res = await getTools(localStorage.token);
+			const res = (await getToolsCached(localStorage.token)) as { toolsets?: Toolset[] } | null;
 			toolsets = res?.toolsets ?? [];
 		} catch (err) {
 			if (isBridgeDown(err)) {
@@ -98,6 +98,7 @@
 		const next = !toolset.enabled;
 		// Optimiste : on bascule tout de suite, rollback en cas d'échec.
 		toolsets = toolsets.map((t) => (t.name === toolset.name ? { ...t, enabled: next } : t));
+		invalidateToolsCache(); // l'état a changé → prochaine ouverture rechargée fraîche
 		try {
 			await setToolEnabled(localStorage.token, toolset.name, next);
 		} catch (err) {
