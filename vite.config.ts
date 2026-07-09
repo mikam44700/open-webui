@@ -21,7 +21,9 @@ export default defineConfig({
 		APP_BUILD_HASH: JSON.stringify(process.env.APP_BUILD_HASH || 'dev-build')
 	},
 	build: {
-		sourcemap: true
+		// Source maps désactivées pour le build fastfront (FASTFRONT=1) : elles saturaient la RAM
+		// (OOM Vite, 838 maps/85 Mo) et alourdissaient une simple preview de dev. Conservées en prod.
+		sourcemap: process.env.FASTFRONT ? false : true
 	},
 	worker: {
 		format: 'es'
