@@ -418,21 +418,25 @@
 							<div
 								class="rounded-2xl overflow-hidden border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 shadow-sm"
 							>
-								<!-- En-tête coloré : visage + prénom + rôle de l'agent. -->
+								<!-- En-tête neutre : la couleur de l'agent est portée par le cercle seul. -->
 								<div
-									class="flex items-center gap-2.5 px-3 py-2.5 text-white"
-									style="background: {c.gradient}"
+									class="flex items-center gap-2.5 px-3 py-2.5 border-b border-gray-100 dark:border-gray-800"
 								>
 									<img
 										src={c.face}
 										alt={c.firstName}
-										class="size-9 rounded-full object-cover ring-2 ring-white/30 shrink-0 bg-white/10"
+										style="background-image: {c.gradient}"
+										class="size-9 rounded-full object-cover ring-1 ring-black/5 dark:ring-white/10 shrink-0"
 										draggable="false"
 										on:error={(e) => avatarImgFallback(e, c.avatar)}
 									/>
 									<span class="flex flex-col min-w-0">
-										<span class="text-sm font-semibold truncate">{c.firstName}</span>
-										{#if c.role}<span class="text-[11px] text-white/80 truncate">{c.role}</span>{/if}
+										<span class="text-sm font-semibold text-gray-800 dark:text-gray-100 truncate"
+											>{c.firstName}</span
+										>
+										{#if c.role}<span class="text-[11px] text-gray-500 dark:text-gray-400 truncate"
+												>{c.role}</span
+											>{/if}
 									</span>
 								</div>
 								<!-- Ses suggestions (tirées de sa mission) : clic = pré-remplit le chat. -->
