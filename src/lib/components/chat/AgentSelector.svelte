@@ -54,11 +54,12 @@
 		? avatarColor($activeAgent.avatar || $activeAgent.name || '').gradient
 		: '';
 
-	// Ordre du menu : actif d'abord, puis Mike (profil « default »), puis le reste.
+	// Ordre du menu : Mike (l'orchestrateur, profil « default ») TOUJOURS en 1re position —
+	// c'est le point d'entrée de l'équipe. Ensuite l'agent actif, puis le reste.
 	$: teamSorted = [...agents].sort(
 		(a, b) =>
-			Number(!!b.active) - Number(!!a.active) ||
-			Number(b.name === 'default') - Number(a.name === 'default')
+			Number(b.name === 'default') - Number(a.name === 'default') ||
+			Number(!!b.active) - Number(!!a.active)
 	);
 
 	const load = async () => {
