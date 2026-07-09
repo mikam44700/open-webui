@@ -22,6 +22,7 @@
 		getDiscordBotInfo,
 		applySlack,
 		getSlackBotInfo,
+		applyEmail,
 		type GatewayStatus,
 		type MessagingPlatform,
 		type MessagingEnvVar,
@@ -401,6 +402,11 @@
 	};
 	let emailProvider: EmailProvider | null = null; // fournisseur détecté (aide dynamique)
 	let emailShowHosts = false; // déplier les serveurs (domaine inconnu ou réglage manuel)
+	// Validation réelle Email (login IMAP+SMTP → auto-activation), façon Discord/Slack.
+	type EmailStatus = 'idle' | 'applying' | 'error';
+	let emailStatus: EmailStatus = 'idle';
+	let emailError = '';
+	let emailInfo: { address: string; count: number | null } | null = null; // preuve de connexion
 
 	// À chaque frappe dans l'adresse : détecte le fournisseur et pré-remplit les serveurs.
 	const onEmailAddressChange = (p: MessagingPlatform, value: string) => {
@@ -414,6 +420,41 @@
 			emailShowHosts = false;
 		} else if (domain.includes('.')) {
 			emailShowHosts = true; // domaine non reconnu → laisser saisir les serveurs
+		}
+	};
+
+	// Branche Email en testant réellement la connexion (login IMAP+SMTP côté bridge) :
+	// si OK, le canal s'active tout seul → on attend l'état « connecté » et on affiche
+	// une confirmation honnête (« connecté », + nb de mails vus). Sinon message d'erreur.
+	const connectEmail = async (p: MessagingPlatform) => {
+		const address = (drafts[p.id]?.['EMAIL_ADDRESS'] ?? '').trim();
+		const password = drafts[p.id]?.['EMAIL_PASSWORD'] ?? '';
+		const imap = drafts[p.id]?.['EMAIL_IMAP_HOST'] ?? '';
+		const smtp = drafts[p.id]?.['EMAIL_SMTP_HOST'] ?? '';
+		if (!address || !password || !imap || !smtp) return;
+		emailStatus = 'applying';
+		emailError = '';
+		try {
+			const res = await applyEmail(localStorage.token, address, password, imap, smtp);
+			if (res?.ok) {
+				emailInfo = { address: res.address ?? address, count: res.mailbox_count ?? null };
+				toast.success($i18n.t('Email connecté !'));
+				// Le gateway redémarre (quelques secondes) : on rafraîchit jusqu'à « connecté ».
+				for (let i = 0; i < 8; i++) {
+					await load(true);
+					const fresh = platforms.find((x) => x.id === modalPlatform?.id);
+					if (fresh) modalPlatform = fresh;
+					if (fresh?.state === 'connected') break;
+					await new Promise((r) => setTimeout(r, 2000));
+				}
+				emailStatus = 'idle';
+			} else {
+				emailStatus = 'error';
+				emailError = res?.error || res?.restart_error || $i18n.t('La connexion a échoué.');
+			}
+		} catch (err) {
+			emailStatus = 'error';
+			emailError = $i18n.t('Impossible de connecter l’email. Réessaie.');
 		}
 	};
 
@@ -711,6 +752,9 @@
 		resetSlack();
 		emailProvider = null;
 		emailShowHosts = false;
+		emailStatus = 'idle';
+		emailError = '';
+		emailInfo = null;
 		approvedUsers = [];
 		pendingUsers = [];
 		botInfo = null;
@@ -723,6 +767,11 @@
 		}
 		if (isSlack(p) && p.state === 'connected') {
 			loadSlackInfo(p);
+		}
+		if (isEmail(p) && p.state === 'connected') {
+			// déjà branché : afficher l'adresse (non secrète) en confirmation
+			const f = p.env_vars.find((x) => x.key === 'EMAIL_ADDRESS');
+			emailInfo = { address: f?.redacted_value || '', count: null };
 		}
 	};
 	const closeModal = () => {
@@ -1670,107 +1719,151 @@
 			{/if}
 
 			{#if isEmail(p)}
-				{@const addr = drafts[p.id]?.['EMAIL_ADDRESS'] ?? ''}
-				<div class="flex flex-col gap-4">
-					<div class="text-sm text-gray-600 dark:text-gray-300">
-						{$i18n.t(
-							'Connectez votre boîte mail : votre assistant lit vos e-mails et y répond. Indiquez votre adresse et un mot de passe — le reste est détecté automatiquement.'
-						)}
-					</div>
-
-					<div class="flex flex-col gap-1.5">
-						<label class="text-sm font-medium" for="email-addr">{$i18n.t('Votre adresse e-mail')}</label>
-						<input
-							id="email-addr"
-							class="w-full px-3 py-2 text-sm rounded-lg bg-gray-50 dark:bg-gray-850 outline-none"
-							type="email"
-							autocomplete="off"
-							placeholder="vous@exemple.com"
-							value={addr}
-							on:input={(e) => onEmailAddressChange(p, e.currentTarget.value)}
-						/>
-						{#if emailProvider}
+				{#if p.state === 'connected'}
+					<!-- Écran connecté : confirmation honnête (connexion prouvée) -->
+					<div class="flex flex-col gap-3">
+						<div
+							class="flex items-center gap-2 px-3 py-2 rounded-lg bg-green-500/10 text-green-600 dark:text-green-400 text-sm"
+						>
+							<span>✓</span>
+							<span>
+								{$i18n.t('Votre boîte mail est connectée.')}
+								{#if emailInfo?.address}<span class="opacity-70">({emailInfo.address})</span>{/if}
+							</span>
+						</div>
+						{#if emailInfo?.count != null}
 							<div class="text-[11px] text-gray-400">
-								{$i18n.t('Fournisseur détecté')} : {emailProvider.label} — {$i18n.t(
-									'serveurs configurés automatiquement.'
-								)}
+								{$i18n.t('Connexion vérifiée')} — {emailInfo.count}
+								{$i18n.t('e-mail(s) dans votre boîte de réception.')}
 							</div>
 						{/if}
-					</div>
-
-					{#if emailProvider?.warning}
-						<div class="text-xs px-3 py-2 rounded-lg bg-amber-500/10 text-amber-600 dark:text-amber-400">
-							⚠ {$i18n.t(emailProvider.warning)}
+						<div class="text-[13px] text-gray-500">
+							{$i18n.t(
+								'Votre assistant lit vos e-mails entrants et y répond. Envoyez-vous un message pour tester.'
+							)}
 						</div>
-					{:else if emailProvider?.appPasswordUrl}
-						<div
-							class="text-xs px-3 py-2 rounded-lg bg-blue-500/10 text-blue-600 dark:text-blue-400 flex flex-col gap-1.5"
-						>
-							<span
-								>{$i18n.t('Pour')} {emailProvider.label}, {$i18n.t(
-									'utilisez un mot de passe d’application (pas votre mot de passe habituel). Nécessite la validation en 2 étapes activée.'
-								)}</span
-							>
-							<a
-								href={emailProvider.appPasswordUrl}
-								target="_blank"
-								rel="noopener noreferrer"
-								class="underline self-start font-medium"
-							>
-								{$i18n.t('Créer un mot de passe d’application')} ↗
-							</a>
-						</div>
-					{/if}
-
-					<div class="flex flex-col gap-1.5">
-						<label class="text-sm font-medium" for="email-pwd">{$i18n.t('Mot de passe')}</label>
-						<input
-							id="email-pwd"
-							class="w-full px-3 py-2 text-sm rounded-lg bg-gray-50 dark:bg-gray-850 outline-none"
-							type="password"
-							autocomplete="off"
-							placeholder={emailProvider?.appPasswordUrl
-								? $i18n.t('Mot de passe d’application')
-								: $i18n.t('Mot de passe de la boîte')}
-							value={drafts[p.id]?.['EMAIL_PASSWORD'] ?? ''}
-							on:input={(e) => handleChange(p.id, 'EMAIL_PASSWORD', e.currentTarget.value)}
-						/>
 					</div>
+				{:else if emailStatus === 'applying'}
+					<div class="flex flex-col items-center text-center gap-3 py-4">
+						<Spinner />
+						<div class="text-sm">{$i18n.t('Test de la connexion à votre boîte mail…')}</div>
+					</div>
+				{:else}
+					{@const addr = drafts[p.id]?.['EMAIL_ADDRESS'] ?? ''}
+					<div class="flex flex-col gap-4">
+						<div class="text-sm text-gray-600 dark:text-gray-300">
+							{$i18n.t(
+								'Connectez votre boîte mail : votre assistant lit vos e-mails et y répond. Indiquez votre adresse et un mot de passe — le reste est détecté automatiquement.'
+							)}
+						</div>
 
-					<!-- Serveurs IMAP/SMTP : cachés si auto-détectés, dépliables sinon -->
-					<div class="flex flex-col gap-1.5">
-						<button
-							class="text-[11px] text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition text-left"
-							on:click={() => (emailShowHosts = !emailShowHosts)}
-						>
-							{emailShowHosts ? $i18n.t('Masquer les serveurs') : $i18n.t('Serveurs (avancé)')}
-						</button>
-						{#if emailShowHosts}
+						<div class="flex flex-col gap-1.5">
+							<label class="text-sm font-medium" for="email-addr">{$i18n.t('Votre adresse e-mail')}</label>
 							<input
+								id="email-addr"
 								class="w-full px-3 py-2 text-sm rounded-lg bg-gray-50 dark:bg-gray-850 outline-none"
-								type="text"
-								placeholder={$i18n.t('Serveur de réception (IMAP)')}
-								value={drafts[p.id]?.['EMAIL_IMAP_HOST'] ?? ''}
-								on:input={(e) => handleChange(p.id, 'EMAIL_IMAP_HOST', e.currentTarget.value)}
+								type="email"
+								autocomplete="off"
+								placeholder="vous@exemple.com"
+								value={addr}
+								on:input={(e) => onEmailAddressChange(p, e.currentTarget.value)}
 							/>
-							<input
-								class="w-full px-3 py-2 text-sm rounded-lg bg-gray-50 dark:bg-gray-850 outline-none"
-								type="text"
-								placeholder={$i18n.t('Serveur d’envoi (SMTP)')}
-								value={drafts[p.id]?.['EMAIL_SMTP_HOST'] ?? ''}
-								on:input={(e) => handleChange(p.id, 'EMAIL_SMTP_HOST', e.currentTarget.value)}
-							/>
+							{#if emailProvider}
+								<div class="text-[11px] text-gray-400">
+									{$i18n.t('Fournisseur détecté')} : {emailProvider.label} — {$i18n.t(
+										'serveurs configurés automatiquement.'
+									)}
+								</div>
+							{/if}
+						</div>
+
+						{#if emailProvider?.warning}
+							<div class="text-xs px-3 py-2 rounded-lg bg-amber-500/10 text-amber-600 dark:text-amber-400">
+								⚠ {$i18n.t(emailProvider.warning)}
+							</div>
+						{:else if emailProvider?.appPasswordUrl}
+							<div
+								class="text-xs px-3 py-2 rounded-lg bg-blue-500/10 text-blue-600 dark:text-blue-400 flex flex-col gap-1.5"
+							>
+								<span
+									>{$i18n.t('Pour')} {emailProvider.label}, {$i18n.t(
+										'utilisez un mot de passe d’application (pas votre mot de passe habituel). Nécessite la validation en 2 étapes activée.'
+									)}</span
+								>
+								<a
+									href={emailProvider.appPasswordUrl}
+									target="_blank"
+									rel="noopener noreferrer"
+									class="underline self-start font-medium"
+								>
+									{$i18n.t('Créer un mot de passe d’application')} ↗
+								</a>
+							</div>
 						{/if}
-					</div>
 
-					<button
-						class="self-start px-4 py-2 text-sm font-medium rounded-lg btn-premium bg-black text-white dark:bg-white dark:text-black hover:opacity-90 transition disabled:opacity-40"
-						on:click={() => savePlatform(p)}
-						disabled={!hasDraft(p) || busy === p.id}
-					>
-						{p.state === 'connected' ? $i18n.t('Enregistrer') : $i18n.t('Connecter')}
-					</button>
-				</div>
+						<div class="flex flex-col gap-1.5">
+							<label class="text-sm font-medium" for="email-pwd">{$i18n.t('Mot de passe')}</label>
+							<input
+								id="email-pwd"
+								class="w-full px-3 py-2 text-sm rounded-lg bg-gray-50 dark:bg-gray-850 outline-none"
+								type="password"
+								autocomplete="off"
+								placeholder={emailProvider?.appPasswordUrl
+									? $i18n.t('Mot de passe d’application')
+									: $i18n.t('Mot de passe de la boîte')}
+								value={drafts[p.id]?.['EMAIL_PASSWORD'] ?? ''}
+								on:input={(e) => handleChange(p.id, 'EMAIL_PASSWORD', e.currentTarget.value)}
+							/>
+						</div>
+
+						<!-- Serveurs IMAP/SMTP : cachés si auto-détectés, dépliables sinon -->
+						<div class="flex flex-col gap-1.5">
+							<button
+								class="text-[11px] text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition text-left"
+								on:click={() => (emailShowHosts = !emailShowHosts)}
+							>
+								{emailShowHosts ? $i18n.t('Masquer les serveurs') : $i18n.t('Serveurs (avancé)')}
+							</button>
+							{#if emailShowHosts}
+								<input
+									class="w-full px-3 py-2 text-sm rounded-lg bg-gray-50 dark:bg-gray-850 outline-none"
+									type="text"
+									placeholder={$i18n.t('Serveur de réception (IMAP)')}
+									value={drafts[p.id]?.['EMAIL_IMAP_HOST'] ?? ''}
+									on:input={(e) => handleChange(p.id, 'EMAIL_IMAP_HOST', e.currentTarget.value)}
+								/>
+								<input
+									class="w-full px-3 py-2 text-sm rounded-lg bg-gray-50 dark:bg-gray-850 outline-none"
+									type="text"
+									placeholder={$i18n.t('Serveur d’envoi (SMTP)')}
+									value={drafts[p.id]?.['EMAIL_SMTP_HOST'] ?? ''}
+									on:input={(e) => handleChange(p.id, 'EMAIL_SMTP_HOST', e.currentTarget.value)}
+								/>
+							{/if}
+						</div>
+
+						{#if emailStatus === 'error'}
+							<div
+								class="text-xs px-2 py-1.5 rounded-lg bg-amber-500/10 text-amber-600 dark:text-amber-400"
+							>
+								{emailError}
+							</div>
+						{/if}
+
+						<button
+							class="self-start px-4 py-2 text-sm font-medium rounded-lg btn-premium bg-black text-white dark:bg-white dark:text-black hover:opacity-90 transition disabled:opacity-40"
+							on:click={() => connectEmail(p)}
+							disabled={!(
+								drafts[p.id]?.['EMAIL_ADDRESS'] &&
+								drafts[p.id]?.['EMAIL_PASSWORD'] &&
+								drafts[p.id]?.['EMAIL_IMAP_HOST'] &&
+								drafts[p.id]?.['EMAIL_SMTP_HOST']
+							) || busy === p.id}
+						>
+							{$i18n.t('Connecter')}
+						</button>
+					</div>
+				{/if}
 			{/if}
 
 			{#if isSms(p)}

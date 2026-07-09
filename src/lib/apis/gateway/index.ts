@@ -192,6 +192,33 @@ export const applySlack = (token: string, botToken: string, appToken: string) =>
 export const getSlackBotInfo = (token: string) =>
 	call(token, 'GET', '/platforms/slack/bot-info') as Promise<SlackBotInfo>;
 
+// --- Onboarding Email (validation réelle IMAP/SMTP → auto-activation) --------
+
+export type EmailApplyResult = {
+	ok: boolean;
+	address: string | null;
+	mailbox_count: number | null;
+	needs_restart: boolean;
+	restart_ok: boolean;
+	restart_error: string | null;
+	error: string | null;
+};
+
+// Teste réellement la connexion (login IMAP + SMTP) ; si OK, active + redémarre.
+export const applyEmail = (
+	token: string,
+	address: string,
+	password: string,
+	imapHost: string,
+	smtpHost: string
+) =>
+	call(token, 'POST', '/platforms/email/apply', {
+		address,
+		password,
+		imap_host: imapHost,
+		smtp_host: smtpHost
+	}) as Promise<EmailApplyResult>;
+
 // --- Partage : allowlist des utilisateurs ------------------------------------
 
 export type MessagingUser = {
