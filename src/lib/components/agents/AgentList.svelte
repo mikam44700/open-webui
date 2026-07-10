@@ -5,6 +5,18 @@
 	import { toast } from 'svelte-sonner';
 
 	import { getAgents, setActiveAgent, createAgent, deleteAgent } from '$lib/apis/agents';
+	import { getIntegrations } from '$lib/apis/integrations';
+	import { getConnectors } from '$lib/apis/connectors';
+	import { getToolConnection } from '$lib/apis/capabilities';
+	import { INTEGRATION_FR } from '$lib/utils/integrationLabels';
+	import { CONNECTOR_FR } from '$lib/utils/connectorLabels';
+	import {
+		INTEGRATION_LOGO,
+		INTEGRATION_LOGO_BG,
+		INTEGRATION_LOGO_FULL_BLEED
+	} from '$lib/utils/integrationLogos';
+	import { CONNECTOR_LOGO, CONNECTOR_LOGO_FULL_BLEED } from '$lib/utils/connectorLogos';
+	import { LOGO_BY_SLUG, providerStatus, type Provider } from '$lib/utils/toolConnect';
 	import Spinner from '$lib/components/common/Spinner.svelte';
 	import AgentCreate from './AgentCreate.svelte';
 	import AgentEditor from './AgentEditor.svelte';
@@ -13,7 +25,7 @@
 	import AgentGradientCard from './AgentGradientCard.svelte';
 	import { AGENT_TEMPLATES } from './templates';
 	import { initial, prettifyName, slugify } from './utils';
-	import { avatarId } from './avatars';
+	import { avatarId, faceFromImage } from './avatars';
 	import { avatarColor } from './avatar-colors';
 	import MissionSections from './MissionSections.svelte';
 
@@ -50,6 +62,118 @@
 	// Aperçu de la mission d'un template : ouvre une carte (modale) plutôt qu'un pavé déplié.
 	let previewTemplate: (typeof AGENT_TEMPLATES)[number] | null = null;
 
+	// État réel des intégrations (id → state), pour afficher honnêtement « Connecté » vs « À connecter »
+	// dans la fiche agent. Source de vérité = le pont Intégrations ; on ne suppose jamais un état.
+	let integrationState: Record<string, string> = {};
+	const loadIntegrationState = async () => {
+		try {
+			const res = await getIntegrations(localStorage.token);
+			integrationState = Object.fromEntries(
+				(res?.integrations ?? []).map((i: { id: string; state: string }) => [i.id, i.state])
+			);
+		} catch {
+			// Silencieux : la fiche agent reste utile même sans l'état (CTA renvoie vers Intégrations).
+		}
+	};
+	// Même principe pour les connecteurs MCP (réservoir spécialisé : Stripe, QuickBooks, Slack…).
+	let connectorState: Record<string, string> = {};
+	const loadConnectorState = async () => {
+		try {
+			const res = await getConnectors(localStorage.token);
+			connectorState = Object.fromEntries(
+				(res?.connectors ?? []).map((c: { id: string; state: string }) => [c.id, c.state])
+			);
+		} catch {
+			// Silencieux : la fiche reste utile ; le CTA renvoie vers la page Connecteurs.
+		}
+	};
+
+	// 3e réservoir : moteurs de recherche web (Exa, Brave, Firecrawl, Tavily, Crawl4AI…),
+	// gérés par le système « toolConnect » du toolset `web` — état réel via providerStatus.
+	let webState: Record<string, string> = {};
+	const WEBSEARCH_NAME: Record<string, string> = {
+		exa: 'Exa',
+		brave: 'Brave Search',
+		firecrawl: 'Firecrawl',
+		tavily: 'Tavily',
+		duckduckgo: 'DuckDuckGo',
+		crawl4ai: 'Crawl4AI'
+	};
+	// Un fournisseur web « branchable » compte comme connecté dès qu'il est utilisable réellement.
+	const WEB_CONNECTED = new Set(['saved', 'key-active', 'active', 'subscription', 'detected', 'local']);
+	const loadWebState = async () => {
+		try {
+			const res = await getToolConnection(localStorage.token, 'web');
+			for (const p of ((res as { providers?: Provider[] })?.providers ?? []) as Provider[]) {
+				if (p.slug) webState[p.slug] = providerStatus(p);
+			}
+			webState = { ...webState };
+		} catch {
+			// Silencieux : la fiche reste utile ; le CTA renvoie vers « Recherche & web ».
+		}
+	};
+
+	// Liste unifiée des intégrations + connecteurs conseillés d'un agent, pour un rendu unique (DRY).
+	type Reco = {
+		key: string;
+		name: string;
+		logo: string | undefined;
+		bg: string;
+		fullBleed: boolean;
+		connected: boolean;
+		tab: 'integrations' | 'connectors' | 'web-search';
+	};
+	const buildReco = (
+		tpl: (typeof AGENT_TEMPLATES)[number] | null,
+		iState: Record<string, string>,
+		cState: Record<string, string>,
+		wState: Record<string, string>
+	): Reco[] => {
+		if (!tpl) return [];
+		const items: Reco[] = [];
+		for (const id of tpl.recommendedIntegrations ?? []) {
+			const meta = INTEGRATION_FR[id];
+			if (!meta) continue;
+			items.push({
+				key: `i-${id}`,
+				name: meta.name,
+				logo: INTEGRATION_LOGO[id],
+				bg: INTEGRATION_LOGO_BG[id] ?? 'bg-white',
+				fullBleed: INTEGRATION_LOGO_FULL_BLEED.has(id),
+				connected: iState[id] === 'connected' || iState[id] === 'key_present',
+				tab: 'integrations'
+			});
+		}
+		for (const id of tpl.recommendedConnectors ?? []) {
+			items.push({
+				key: `c-${id}`,
+				name: CONNECTOR_FR[id]?.name ?? id,
+				logo: CONNECTOR_LOGO[id],
+				bg: 'bg-white',
+				fullBleed: CONNECTOR_LOGO_FULL_BLEED.has(id),
+				connected: cState[id] === 'connected',
+				tab: 'connectors'
+			});
+		}
+		for (const slug of tpl.recommendedWebSearch ?? []) {
+			items.push({
+				key: `w-${slug}`,
+				name: WEBSEARCH_NAME[slug] ?? slug,
+				logo: LOGO_BY_SLUG[slug] ?? CONNECTOR_LOGO[slug],
+				bg: 'bg-white',
+				fullBleed: false,
+				connected: WEB_CONNECTED.has(wState[slug]),
+				tab: 'web-search'
+			});
+		}
+		return items;
+	};
+	$: recoItems = buildReco(previewTemplate, integrationState, connectorState, webState);
+	// Couleur signature de l'agent affiché dans la fiche (même teinte que sa carte) → cadre coloré.
+	$: previewCol = previewTemplate
+		? avatarColor(avatarId(previewTemplate.image) || previewTemplate.id)
+		: null;
+
 	// Mike, chef d'orchestre — mis en vedette en tête de page (hero premium).
 	const mikeTpl = AGENT_TEMPLATES.find((t) => t.id === 'mike-chef-orchestre') ?? null;
 	// Repli d'avatar si le PNG n'est pas (encore) présent → jamais d'image cassée.
@@ -84,8 +208,12 @@
 	$: availableTemplates = AGENT_TEMPLATES.filter(
 		(t) => t.id !== 'mike-chef-orchestre' && !adoptedTemplateIds.has(t.id)
 	);
-	$: mikeAgent = agents.find(matchesMike);
+	// Identité fiable de Mike : on le reconnaît via son template (comme la carte), pas via son nom
+	// slugifié — `matchesMike` seul ratait l'agent réel (nom = slug du libellé).
+	$: mikeAgent = agents.find((a) => matchTemplate(a)?.id === 'mike-chef-orchestre' || matchesMike(a));
 	$: mikeActive = !!mikeAgent?.active;
+	// Mike est déjà en vedette dans le hero → on l'exclut de la grille « Mes agents » (fini le doublon).
+	$: myAgents = agents.filter((a) => a !== mikeAgent);
 	$: filteredTemplates = availableTemplates.filter((t) => {
 		const q = templateQuery.trim().toLowerCase();
 		if (!q) return true;
@@ -203,7 +331,12 @@
 		if (mikeTpl) previewTemplate = mikeTpl;
 	};
 
-	onMount(load);
+	onMount(() => {
+		load();
+		loadIntegrationState();
+		loadConnectorState();
+		loadWebState();
+	});
 </script>
 
 <div class="w-full max-w-7xl mx-auto px-4 pt-5 pb-8">
@@ -248,8 +381,10 @@
 				<MikeHero
 					tpl={mikeTpl}
 					active={mikeActive}
+					editable={!!mikeAgent}
 					on:talk={talkToMike}
 					on:mission={showMikeMission}
+					on:edit={() => mikeAgent && edit(mikeAgent)}
 				/>
 			{/if}
 
@@ -259,10 +394,10 @@
 					<h2 class="text-sm font-semibold text-gray-700 dark:text-gray-300">
 						{$i18n.t('Mes agents')}
 					</h2>
-					<span class="text-xs font-normal text-gray-400">{agents.length}</span>
+					<span class="text-xs font-normal text-gray-400">{myAgents.length}</span>
 				</div>
 
-				{#if agents.length === 0}
+				{#if myAgents.length === 0}
 					<div
 						class="flex flex-col items-center justify-center text-center py-12 px-6 gap-2 rounded-3xl border border-dashed border-gray-200 dark:border-gray-800 bg-gray-50/50 dark:bg-gray-900/30"
 					>
@@ -274,7 +409,7 @@
 					</div>
 				{:else}
 					<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-						{#each agents as agent, i (agent.name)}
+						{#each myAgents as agent, i (agent.name)}
 							{@const tpl = matchTemplate(agent)}
 							{@const col = avatarColor(avatarId(agent.avatar ?? tpl?.image) || agent.name)}
 							<div in:fly={{ y: 10, duration: 260, delay: i * 35 }}>
@@ -289,9 +424,11 @@
 									status="active"
 									statusLabel={$i18n.t('Actif')}
 									primaryLabel={agent.active ? $i18n.t('Continuer') + ' →' : $i18n.t('Discuter')}
+									secondaryLabel={tpl ? $i18n.t('Voir ses compétences') : ''}
 									editable={true}
 									removable={!agent.is_default}
 									on:primary={() => activate(agent)}
+									on:secondary={() => tpl && (previewTemplate = tpl)}
 									on:edit={() => edit(agent)}
 									on:remove={() => (removingAgent = agent)}
 								/>
@@ -355,7 +492,7 @@
 										image={tpl.image ?? null}
 										avatarText={tpl.emoji}
 										primaryLabel={$i18n.t('+ Activer')}
-										secondaryLabel={$i18n.t('Voir la mission')}
+										secondaryLabel={$i18n.t('Voir ses compétences')}
 										on:primary={() => installTemplate(tpl)}
 										on:secondary={() => (previewTemplate = tpl)}
 									/>
@@ -437,23 +574,38 @@
 			<!-- En-tête -->
 			<div class="flex items-center gap-3.5 p-5 border-b border-gray-100 dark:border-gray-800">
 				{#if previewTemplate.image && !imgError[previewTemplate.id]}
-					<img
-						src={previewTemplate.image}
-						alt={previewTemplate.label}
-						on:error={() =>
-							previewTemplate && (imgError = { ...imgError, [previewTemplate.id]: true })}
-						class="flex-none size-11 rounded-2xl object-cover shadow-sm ring-1 ring-black/5"
-					/>
+					<!-- Gros plan visage cadré, posé sur un fin cadre à la couleur signature de l'agent. -->
+					<div
+						class="flex-none size-11 rounded-2xl p-[2px] shadow-sm ring-1 ring-black/5"
+						style="background-image: {previewCol?.gradient}"
+					>
+						<img
+							src={faceFromImage(previewTemplate.image)}
+							alt={previewTemplate.label}
+							on:error={() =>
+								previewTemplate && (imgError = { ...imgError, [previewTemplate.id]: true })}
+							class="size-full rounded-[14px] object-cover"
+						/>
+					</div>
 				{:else}
 					<div
-						class="flex-none size-11 rounded-2xl flex items-center justify-center text-2xl bg-gray-50 dark:bg-gray-850 shadow-sm ring-1 ring-black/5"
+						class="flex-none size-11 rounded-2xl flex items-center justify-center text-2xl shadow-sm ring-1 ring-black/5 {previewCol?.light
+							? 'text-gray-900'
+							: 'text-white'}"
+						style="background-image: {previewCol?.gradient}"
 					>
 						{previewTemplate.emoji}
 					</div>
 				{/if}
 				<div class="min-w-0 flex-1">
-					<div class="text-base font-semibold truncate">{previewTemplate.label}</div>
-					<div class="text-xs text-gray-500 line-clamp-1">{previewTemplate.description}</div>
+					<div class="text-base font-semibold truncate">
+						{previewTemplate.firstName ?? previewTemplate.label}
+					</div>
+					{#if previewTemplate.role}
+						<div class="text-xs font-medium text-gray-500 dark:text-gray-400 truncate">
+							{previewTemplate.role}
+						</div>
+					{/if}
 				</div>
 				<button
 					class="flex-none p-1.5 -mr-1 rounded-lg text-gray-400 hover:text-gray-700 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-gray-850 transition"
@@ -471,6 +623,58 @@
 			<!-- Corps : la mission (SOUL) en cartes lisibles, défilable -->
 			<div class="flex-1 overflow-y-auto px-5 py-4">
 				<MissionSections soul={previewTemplate.soul} animate={false} />
+
+				<!-- Intégrations recommandées : ce qui rend cet agent vraiment utile (état réel, jamais supposé) -->
+				{#if recoItems.length}
+					<div class="mt-5 pt-4 border-t border-gray-100 dark:border-gray-800">
+						<div class="text-[11px] font-semibold uppercase tracking-wider text-gray-400 mb-2.5">
+							{$i18n.t('Intégrations recommandées')}
+						</div>
+						<div class="flex flex-col gap-1.5">
+							{#each recoItems as it (it.key)}
+								<div
+									class="flex items-center gap-3 rounded-xl border border-gray-100 dark:border-gray-800 px-3 py-2"
+								>
+									<div
+										class="flex-none size-8 rounded-lg overflow-hidden flex items-center justify-center ring-1 ring-black/5 {it.bg}"
+									>
+										{#if it.logo}
+											<img
+												src={it.logo}
+												alt={it.name}
+												class={it.fullBleed
+													? 'h-full w-full object-cover'
+													: 'h-5 w-5 object-contain'}
+											/>
+										{/if}
+									</div>
+									<div class="min-w-0 flex-1">
+										<div class="text-sm font-medium truncate">{it.name}</div>
+										<div
+											class="text-[11px] {it.connected
+												? 'text-emerald-600 dark:text-emerald-400'
+												: 'text-gray-400'}"
+										>
+											{it.connected ? '✓ ' + $i18n.t('Connecté') : $i18n.t('À connecter')}
+										</div>
+									</div>
+									<button
+										class="flex-none text-[12px] font-medium text-gray-500 hover:text-gray-900 dark:hover:text-white underline-offset-2 hover:underline transition"
+										on:click={() => {
+											previewTemplate = null;
+											goto(`/connectors?tab=${it.tab}`);
+										}}
+									>
+										{it.connected ? $i18n.t('Gérer') : $i18n.t('Connecter')}
+									</button>
+								</div>
+							{/each}
+						</div>
+						<p class="text-[11px] text-gray-400 mt-2">
+							{$i18n.t('Ces connexions rendent cet agent plus utile — activez-les quand vous voulez.')}
+						</p>
+					</div>
+				{/if}
 			</div>
 
 			<!-- Pied : activer -->

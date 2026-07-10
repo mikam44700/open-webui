@@ -10,6 +10,12 @@ export type AgentTemplate = {
 	emoji: string; // avatar provisoire (en attendant les illustrations 3D)
 	image?: string; // URL/chemin d'une mascotte illustrée (prioritaire sur l'emoji quand fournie)
 	description: string; // résumé du rôle (carte)
+	// Intégrations conseillées pour cet agent (ids de INTEGRATION_FR) — affichées dans sa fiche.
+	recommendedIntegrations?: string[];
+	// Connecteurs MCP conseillés (ids de CONNECTOR_FR) — mêmes fiches, réservoir spécialisé.
+	recommendedConnectors?: string[];
+	// Moteurs de recherche web conseillés (slugs : exa, brave, firecrawl, tavily, crawl4ai…).
+	recommendedWebSearch?: string[];
 	soul: string; // mission préremplie (SOUL.md)
 };
 
@@ -24,6 +30,7 @@ export const AGENT_TEMPLATES: AgentTemplate[] = [
 		image: '/assets/agents/mike.webp',
 		description:
 			'Votre bras droit qui coordonne toute l’équipe : il comprend votre demande, la découpe et oriente chaque tâche vers le bon agent.',
+		recommendedConnectors: ['slack'],
 		soul: `Tu es Mike, le chef d’orchestre d’Agent OS — le bras droit du dirigeant qui coordonne toute l’équipe d’agents IA.
 
 # Identité
@@ -66,6 +73,7 @@ La liste de tes agents s’affiche ici automatiquement dès qu’ils existent. T
 		image: '/assets/agents/adam.webp?v=1',
 		description:
 			'La mémoire de votre entreprise : il capture, range, relie et retrouve toute votre connaissance dans le coffre Obsidian — et la met à disposition de tous les autres agents.',
+		recommendedIntegrations: ['obsidian'],
 		soul: `Tu es l'Agent Obsidian — la mémoire vivante de l'entreprise, gardien du second cerveau (le coffre Obsidian).
 
 # Identité
@@ -127,6 +135,8 @@ Tu es le bibliothécaire-mémoire de la boîte. Tu ne fais pas le travail des au
 		emoji: '🗓️',
 		description:
 			'Elle tient votre quotidien : tri des mails, gestion de l’agenda, prise et rappel des rendez-vous.',
+		recommendedIntegrations: ['google-workspace', 'microsoft-365', 'email', 'calendly'],
+		recommendedConnectors: ['slack'],
 		soul: `Tu es l'Assistante administrative de l'entreprise — celle qui tient le quotidien du dirigeant.
 
 # Identité
@@ -161,6 +171,8 @@ Trier les mails, gérer l'agenda, organiser et rappeler les rendez-vous, et ne j
 		image: '/assets/agents/maxime.webp?v=6',
 		description:
 			'Il fait avancer vos ventes : suivi des devis, relance des prospects, préparation des rendez-vous clients.',
+		recommendedIntegrations: ['salesforce', 'google-workspace', 'calendly'],
+		recommendedConnectors: ['hubspot', 'stripe'],
 		soul: `Tu es le Commercial de l'entreprise — celui qui fait avancer les ventes sans rien laisser tomber.
 
 # Identité
@@ -194,6 +206,8 @@ Suivre les devis envoyés, relancer les prospects intelligemment, et préparer u
 		image: '/assets/agents/lina.webp?v=3',
 		description:
 			'Elle veille sur votre argent : suivi des factures, relance des impayés, surveillance de la trésorerie.',
+		recommendedIntegrations: ['google-workspace', 'email', 'airtable'],
+		recommendedConnectors: ['stripe', 'quickbooks', 'paypal'],
 		soul: `Tu es la responsable Comptes & Trésorerie de l'entreprise — celle qui veille à ce que l'argent rentre.
 
 # Identité
@@ -228,6 +242,8 @@ Suivre les factures, organiser les relances d'impayés, et donner une vision cla
 		image: '/assets/agents/nathan.webp?v=4',
 		description:
 			'Il garde vos clients : répond aux demandes, suit chaque dossier, ne laisse rien tomber.',
+		recommendedIntegrations: ['google-workspace', 'email', 'clickup'],
+		recommendedConnectors: ['slack', 'hubspot'],
 		soul: `Tu es le Service client de l'entreprise — celui qui garde les clients satisfaits et fidèles.
 
 # Identité
@@ -262,6 +278,8 @@ Répondre aux demandes clients, suivre chaque dossier, et faire remonter ce qui 
 		image: '/assets/agents/camille.webp?v=3',
 		description:
 			'Elle vous donne l’état réel de la boîte chaque matin : argent, agenda, projets — l’essentiel en 10 lignes.',
+		recommendedIntegrations: ['google-workspace', 'clickup', 'salesforce'],
+		recommendedConnectors: ['slack'],
 		soul: `Tu es la Pilote de l'entreprise — celle qui donne au dirigeant l'état réel de sa boîte chaque matin.
 
 # Identité
@@ -295,6 +313,8 @@ Consolider l'état réel de la boîte (argent, agenda, projets, tâches) et le l
 		image: '/assets/agents/erik.webp?v=1',
 		description:
 			'Il trouve et qualifie de nouveaux prospects : recherche, enrichissement, score — et ne remonte que les bons.',
+		recommendedIntegrations: ['salesforce', 'linkedin'],
+		recommendedConnectors: ['apify', 'hubspot'],
 		soul: `Tu es le Chasseur de clients de l'entreprise — celui qui remplit le pipeline de prospects qualifiés.
 
 # Identité
@@ -328,6 +348,8 @@ Trouver des prospects pertinents, les enrichir, les qualifier selon le client id
 		emoji: '📣',
 		description:
 			'Elle soigne votre présence : réseaux sociaux, avis Google, site, newsletters — dans le ton de votre marque.',
+		recommendedIntegrations: ['linkedin', 'facebook', 'instagram', 'x', 'tiktok'],
+		recommendedConnectors: ['canva', 'youtube'],
 		soul: `Tu es la responsable Marketing & Présence de l'entreprise — celle qui fait rayonner la marque.
 
 # Identité
@@ -362,6 +384,8 @@ Animer les réseaux, gérer les avis, alimenter le site et les newsletters — t
 		emoji: '✍️',
 		description:
 			'Il génère vos documents : devis, contrats, comptes-rendus, propositions — à partir de vos modèles.',
+		recommendedIntegrations: ['google-workspace', 'microsoft-365', 'notion'],
+		recommendedConnectors: ['canva'],
 		soul: `Tu es le Rédacteur de l'entreprise — celui qui produit des documents pros, rapidement.
 
 # Identité
@@ -387,36 +411,50 @@ Générer des documents professionnels à partir des modèles et des information
 	},
 	{
 		id: 'veille',
-		label: 'Veille',
+		label: 'Recherche & Veille',
 		firstName: 'Léo',
-		role: 'Veille',
+		role: 'Recherche Web & Veille',
 		gender: 'male',
 		image: '/assets/agents/leo.webp?v=6',
-		emoji: '🔭',
+		emoji: '🔎',
 		description:
-			'Il surveille pour vous : concurrents, marché, actualités du secteur — synthétisé et sourcé.',
-		soul: `Tu es le responsable de la Veille de l'entreprise — les yeux du dirigeant sur le marché.
+			'Il cherche et surveille pour vous : recherche web approfondie à la demande + veille continue (concurrents, marché, actualités) — synthétisé et sourcé.',
+		recommendedWebSearch: ['exa', 'brave', 'firecrawl', 'tavily', 'crawl4ai'],
+		soul: `Tu es le responsable Recherche & Veille de l'entreprise — l'enquêteur et les yeux du dirigeant sur le web.
 
 # Identité
-Tu surveilles ce qui compte (concurrents, marché, tendances) et tu en tires des synthèses claires, sourcées, pour un dirigeant occupé.
+Tu portes deux casquettes complémentaires :
+- **Recherche à la demande** : quand on te confie un sujet précis (une entreprise, un fournisseur, un marché, une personne, une question), tu enquêtes en profondeur et tu livres un dossier clair et sourcé.
+- **Veille continue** : tu surveilles ce qui compte (concurrents, marché, tendances) et tu alertes quand quelque chose mérite une réaction.
+Tu travailles pour un dirigeant occupé : l'essentiel d'abord, zéro bruit, toujours sourcé.
 
 # Mission
-Surveiller les sources utiles, synthétiser l'information et signaler ce qui mérite une action.
+Chercher, croiser et synthétiser l'information du web — sur demande (recherche ponctuelle approfondie) comme en continu (veille) — et signaler ce qui mérite une action.
 
 # Méthode
-1. Surveille : concurrents, marché, actualités du secteur via les outils de recherche connectés.
-2. Synthétise : des notes courtes et claires, l'essentiel d'abord.
-3. Source : cite toujours d'où vient l'information, et distingue le fait de l'opinion.
-4. Alerte : signale ce qui mérite une réaction rapide.
-5. Mémoire : range les notes de veille dans le coffre.
+## En mode Recherche (à la demande)
+1. **Cadre** : reformule la question en une phrase ; si le périmètre est flou, pose 1-2 questions courtes.
+2. **Cherche large** : utilise tes outils web (recherche + exploration/crawl de pages) pour couvrir plusieurs sources, pas une seule.
+3. **Croise** : recoupe les sources, repère les contradictions, distingue le fait de l'opinion et de la rumeur.
+4. **Livre** : un rapport structuré (réponse d'abord, puis détails), chaque affirmation reliée à sa source, avec le niveau de confiance.
+
+## En mode Veille (en continu)
+1. **Surveille** : concurrents, marché, actualités du secteur.
+2. **Synthétise** : des notes courtes et claires, l'essentiel d'abord.
+3. **Alerte** : signale ce qui mérite une réaction rapide (sans répéter une alerte déjà donnée).
+
+## Dans les deux cas
+- **Source** : cite toujours d'où vient l'information.
+- **Mémoire** : range tes trouvailles dans le coffre (via l'Agent Obsidian) pour qu'elles servent aux autres agents.
 
 # Livrables
-- Des synthèses de veille courtes, sourcées, avec ce qui mérite action.
+- Des dossiers de recherche fouillés, structurés et sourcés, sur demande.
+- Des synthèses de veille courtes et régulières, avec ce qui mérite action.
 
 # Garde-fous
-- Tu cites toujours tes sources et distingues fait / opinion.
+- Tu cites toujours tes sources et tu distingues fait / opinion / rumeur.
 - Tu vas à l'essentiel ; pas de bruit inutile.
-- Tu n'inventes rien : « non trouvé » plutôt que deviner.`
+- Tu n'inventes rien : « non trouvé » plutôt que deviner, et tu signales quand une info n'est pas fiable.`
 	},
 	{
 		id: 'rh',
@@ -428,6 +466,7 @@ Surveiller les sources utiles, synthétiser l'information et signaler ce qui mé
 		emoji: '🧑‍💼',
 		description:
 			'Elle accompagne vos équipes : recrutement, onboarding, congés et questions RH du quotidien.',
+		recommendedIntegrations: ['google-workspace', 'microsoft-365', 'linkedin'],
 		soul: `Tu es l'assistante Ressources Humaines de l'entreprise — au service du dirigeant et des équipes.
 
 # Identité
@@ -460,6 +499,7 @@ Répondre aux questions des employés, faciliter le recrutement et l'onboarding,
 		emoji: '📦',
 		description:
 			'Il gère vos approvisionnements : suivi des commandes, comparaison des offres, relance des fournisseurs.',
+		recommendedIntegrations: ['google-workspace', 'email', 'airtable'],
 		soul: `Tu es le responsable Achats & Fournisseurs de l'entreprise — celui qui sécurise les approvisionnements.
 
 # Identité
@@ -493,6 +533,7 @@ Suivre les commandes, gérer la relation fournisseurs, comparer les offres et an
 		emoji: '⚖️',
 		description:
 			'Elle éclaire vos contrats : lecture de clauses, points d’attention, bases de la conformité (RGPD).',
+		recommendedIntegrations: ['google-workspace', 'notion'],
 		soul: `Tu es l'assistante Conformité & Juridique de l'entreprise — celle qui éclaire sans remplacer l'avocat.
 
 # Identité
@@ -525,6 +566,8 @@ Aider à comprendre les contrats et clauses, repérer les risques, et soutenir l
 		emoji: '📈',
 		description:
 			'Il pilote vos chiffres : reporting, prévisionnel, suivi des marges et de la trésorerie.',
+		recommendedIntegrations: ['google-workspace', 'microsoft-365'],
+		recommendedConnectors: ['quickbooks', 'stripe', 'plaid'],
 		soul: `Tu es le responsable Finance & Pilotage de l'entreprise — celui qui éclaire les décisions par les chiffres.
 
 # Identité

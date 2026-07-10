@@ -169,7 +169,8 @@
 		{/if}
 		<h3 class="text-lg font-bold tracking-tight mt-0.5 truncate">{name}</h3>
 		{#if description}
-			<p class="text-[12.5px] leading-snug {descCls} mt-1.5 line-clamp-3">{description}</p>
+			<!-- Micro-ligne : simple accroche ; le détail complet vit dans la fiche (Voir ses compétences). -->
+			<p class="text-[12.5px] leading-snug {descCls} mt-1.5 line-clamp-2">{description}</p>
 		{/if}
 	</div>
 

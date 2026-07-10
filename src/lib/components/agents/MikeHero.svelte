@@ -13,9 +13,11 @@
 
 	export let tpl: AgentTemplate;
 	export let active = false;
+	export let editable = false; // affiche le menu ⋮ (Modifier) quand un agent Mike réel existe
 
 	// Repli si le PNG n'est pas (encore) présent → jamais d'image cassée.
 	let imgError = false;
+	let menuOpen = false; // menu d'actions (⋮) — cohérent avec les cartes d'agent
 
 	$: firstName = tpl.firstName ?? tpl.label.split(',')[0].trim();
 	$: role =
@@ -25,7 +27,58 @@
 
 <div
 	class="relative mt-4 mb-11 overflow-hidden rounded-3xl bg-gradient-to-br hero-modern ring-1 ring-inset ring-white/50 dark:ring-white/10 from-amber-200/70 via-orange-100/50 to-yellow-100/60 dark:from-amber-900/30 dark:via-orange-900/20 dark:to-yellow-900/20 min-h-[240px] sm:min-h-[320px]"
+	on:mouseleave={() => (menuOpen = false)}
+	role="presentation"
 >
+	<!-- Menu d'actions (⋮) — même geste que les cartes d'agent -->
+	{#if editable}
+		<div class="absolute top-4 right-4 z-30">
+			<button
+				class="p-1.5 rounded-lg text-gray-700/70 dark:text-white/70 hover:text-gray-900 dark:hover:text-white hover:bg-black/5 dark:hover:bg-white/10 transition {menuOpen
+					? 'bg-black/5 dark:bg-white/10'
+					: ''}"
+				title={$i18n.t('Options')}
+				aria-label={$i18n.t('Options')}
+				aria-haspopup="menu"
+				aria-expanded={menuOpen}
+				on:click|stopPropagation={() => (menuOpen = !menuOpen)}
+			>
+				<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="size-5">
+					<path
+						d="M10 6a1.5 1.5 0 1 1 0-3 1.5 1.5 0 0 1 0 3Zm0 5.5a1.5 1.5 0 1 1 0-3 1.5 1.5 0 0 1 0 3Zm0 5.5a1.5 1.5 0 1 1 0-3 1.5 1.5 0 0 1 0 3Z"
+					/>
+				</svg>
+			</button>
+			{#if menuOpen}
+				<div
+					class="absolute right-0 top-full mt-1 z-50 min-w-[172px] rounded-xl bg-white dark:bg-gray-900 shadow-xl ring-1 ring-black/5 dark:ring-white/10 py-1 text-gray-700 dark:text-gray-200"
+					role="menu"
+				>
+					<button
+						class="w-full flex items-center gap-2.5 px-3.5 py-2 text-sm hover:bg-gray-100 dark:hover:bg-gray-800 transition"
+						role="menuitem"
+						on:click|stopPropagation={() => {
+							menuOpen = false;
+							dispatch('edit');
+						}}
+					>
+						<svg
+							xmlns="http://www.w3.org/2000/svg"
+							viewBox="0 0 20 20"
+							fill="currentColor"
+							class="size-4 text-gray-400"
+						>
+							<path
+								d="M2.695 14.762l-1.262 3.155a.5.5 0 00.65.65l3.155-1.262a4 4 0 001.343-.886L17.5 5.501a2.121 2.121 0 00-3-3L3.58 13.42a4 4 0 00-.885 1.343z"
+							/>
+						</svg>
+						{$i18n.t('Modifier')}
+					</button>
+				</div>
+			{/if}
+		</div>
+	{/if}
+
 	<div
 		class="pointer-events-none absolute -right-10 top-1/2 h-56 w-56 -translate-y-1/2 rounded-full blur-3xl bg-amber-400/30 dark:bg-amber-500/20"
 	></div>
@@ -95,7 +148,7 @@
 				class="text-sm font-medium px-5 py-2.5 rounded-xl bg-white/70 dark:bg-white/10 text-gray-800 dark:text-gray-100 ring-1 ring-inset ring-gray-900/10 dark:ring-white/15 hover:bg-white dark:hover:bg-white/15 transition"
 				on:click={() => dispatch('mission')}
 			>
-				{$i18n.t('Voir la mission')}
+				{$i18n.t('Voir ses compétences')}
 			</button>
 		</div>
 	</div>
