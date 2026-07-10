@@ -8,10 +8,12 @@
 
 	// Sources réellement branchées à la page Calendrier (mêmes id que le bridge).
 	// Chaque carte est cliquable : elle mène à l'onglet Intégrations pour connecter.
+	// Seuls les vrais calendriers (lecture + écriture) : Google et Outlook couvrent
+	// l'écrasante majorité des entreprises françaises. Calendly (guichet de réservation,
+	// lecture seule) est volontairement écarté de la page Calendrier.
 	const sources = [
 		{ id: 'google', label: 'Google Agenda', sub: 'Google Workspace' },
-		{ id: 'outlook', label: 'Outlook Calendar', sub: 'Microsoft 365' },
-		{ id: 'calendly', label: 'Calendly', sub: 'Prise de rendez-vous' }
+		{ id: 'outlook', label: 'Outlook Calendar', sub: 'Microsoft 365' }
 	];
 
 	const openIntegrations = () => goto('/connectors?tab=integrations');
@@ -43,7 +45,7 @@
 			</p>
 
 			<!-- Cartes cliquables : un logo par calendrier -->
-			<div class="mt-7 grid grid-cols-1 sm:grid-cols-3 gap-4 w-full max-w-3xl mx-auto">
+			<div class="mt-7 grid grid-cols-1 sm:grid-cols-2 gap-4 w-full max-w-xl mx-auto">
 				{#each sources as s (s.id)}
 					<button
 						type="button"

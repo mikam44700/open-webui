@@ -132,17 +132,55 @@
 		if (e.detail.link) window.open(e.detail.link, '_blank', 'noopener');
 	};
 
+	// Format « YYYY-MM-DDTHH:MM » attendu par les inputs datetime-local (heure locale).
+	const pad = (n: number) => String(n).padStart(2, '0');
+	const fmtLocal = (d: Date) =>
+		`${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+
+	// Prochaine heure ronde (début par défaut sensé).
+	const nextRoundHour = (): Date => {
+		const d = new Date();
+		d.setMinutes(0, 0, 0);
+		d.setHours(d.getHours() + 1);
+		return d;
+	};
+
+	// Bouton « + Nouvel événement » : ouvre la modale déjà pré-remplie (prochaine heure → +1 h).
+	const openNewEvent = () => {
+		const start = nextRoundHour();
+		form = {
+			title: '',
+			startLocal: fmtLocal(start),
+			endLocal: fmtLocal(new Date(start.getTime() + 60 * 60 * 1000)),
+			location: ''
+		};
+		showModal = true;
+	};
+
 	// Clic sur un créneau horaire (vues Jour/Semaine) → nouvel événement pré-rempli (+1 h).
 	const onSlotClick = (e: CustomEvent<{ date: Date; startLocal: string }>) => {
 		if (!canWrite) return;
-		const start = new Date(e.detail.startLocal);
-		const end = new Date(start.getTime() + 60 * 60 * 1000);
-		const pad = (n: number) => String(n).padStart(2, '0');
-		const fmt = (d: Date) =>
-			`${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
-		form = { title: '', startLocal: e.detail.startLocal, endLocal: fmt(end), location: '' };
+		const end = new Date(new Date(e.detail.startLocal).getTime() + 60 * 60 * 1000);
+		form = { title: '', startLocal: e.detail.startLocal, endLocal: fmtLocal(end), location: '' };
 		showModal = true;
 	};
+
+	// Puce de durée : cale la fin à partir du début (crée un début si absent).
+	const DURATIONS = [
+		{ m: 30, l: '30 min' },
+		{ m: 60, l: '1 h' },
+		{ m: 120, l: '2 h' }
+	];
+	const setDuration = (minutes: number) => {
+		const start = form.startLocal ? new Date(form.startLocal) : nextRoundHour();
+		if (!form.startLocal) form.startLocal = fmtLocal(start);
+		form.endLocal = fmtLocal(new Date(start.getTime() + minutes * 60 * 1000));
+	};
+	// Durée courante (pour surligner la puce active).
+	$: durationMin =
+		form.startLocal && form.endLocal
+			? Math.round((new Date(form.endLocal).getTime() - new Date(form.startLocal).getTime()) / 60000)
+			: 0;
 
 	// « Ajouter un calendrier » → onglet Intégrations (même parcours que l'écran de connexion).
 	const openIntegrations = () => goto('/connectors?tab=integrations');
@@ -152,7 +190,9 @@
 		unavailable = false;
 		try {
 			const res = await getCalendarSources(localStorage.token);
-			sources = res?.sources ?? [];
+			// On n'expose que les vrais calendriers (Google/Outlook). Calendly (lecture seule,
+			// guichet de réservation) est écarté de la page Calendrier — le pont le garde intact.
+			sources = (res?.sources ?? []).filter((s) => s.id !== 'calendly');
 			const connected = sources.filter((s) => s.connected);
 			if (connected.length === 0) {
 				activeSource = '';
@@ -247,36 +287,63 @@
 </ConfirmDialog>
 
 <Modal bind:show={showModal} size="sm">
-	<div class="px-5 py-4">
-		<div class="text-lg font-medium mb-3">{$i18n.t('Nouvel événement')}</div>
-		<div class="flex flex-col gap-3">
-			<label class="text-sm">
-				<span class="text-gray-600 dark:text-gray-300">{$i18n.t('Titre')}</span>
-				<input class="w-full mt-1 px-3 py-2 rounded-lg bg-gray-50 dark:bg-gray-850 outline-none text-sm" bind:value={form.title} placeholder={$i18n.t('Ex : Rendez-vous client')} />
-			</label>
-			<div class="grid grid-cols-2 gap-2 text-sm">
-				<label>
-					<span class="text-gray-600 dark:text-gray-300">{$i18n.t('Début')}</span>
-					<input type="datetime-local" class="w-full mt-1 px-3 py-2 rounded-lg bg-gray-50 dark:bg-gray-850 text-sm" bind:value={form.startLocal} />
-				</label>
-				<label>
-					<span class="text-gray-600 dark:text-gray-300">{$i18n.t('Fin')}</span>
-					<input type="datetime-local" class="w-full mt-1 px-3 py-2 rounded-lg bg-gray-50 dark:bg-gray-850 text-sm" bind:value={form.endLocal} />
-				</label>
-			</div>
-			<label class="text-sm">
-				<span class="text-gray-600 dark:text-gray-300">{$i18n.t('Lieu (optionnel)')}</span>
-				<input class="w-full mt-1 px-3 py-2 rounded-lg bg-gray-50 dark:bg-gray-850 outline-none text-sm" bind:value={form.location} />
-			</label>
-			{#if activeSourceObj}
-				<div class="text-[11px] text-gray-400">
-					{$i18n.t('Sera ajouté à : {{name}}', { name: activeLabel })}
+	<div class="p-5">
+		<!-- Titre proéminent (façon quick-add moderne) -->
+		<input
+			class="w-full text-lg font-semibold bg-transparent outline-none placeholder:text-gray-300 dark:placeholder:text-gray-600 pb-2.5 mb-4 border-b border-gray-100 dark:border-gray-800"
+			bind:value={form.title}
+			placeholder={$i18n.t('Ajouter un titre')}
+		/>
+
+		<div class="flex flex-col gap-3.5">
+			<!-- Quand : horaires + durées express -->
+			<div class="flex gap-3">
+				<svg xmlns="http://www.w3.org/2000/svg" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" class="text-gray-400 mt-2.5 shrink-0"><circle cx="12" cy="12" r="9" /><path d="M12 7v5l3 2" /></svg>
+				<div class="flex-1 min-w-0 flex flex-col gap-2">
+					<div class="grid grid-cols-2 gap-2">
+						<input type="datetime-local" aria-label={$i18n.t('Début')} class="w-full px-3 py-2 rounded-xl bg-gray-50 dark:bg-gray-850 text-sm outline-none focus:ring-2 focus:ring-black/5 dark:focus:ring-white/10" bind:value={form.startLocal} />
+						<input type="datetime-local" aria-label={$i18n.t('Fin')} class="w-full px-3 py-2 rounded-xl bg-gray-50 dark:bg-gray-850 text-sm outline-none focus:ring-2 focus:ring-black/5 dark:focus:ring-white/10" bind:value={form.endLocal} />
+					</div>
+					<div class="flex items-center gap-1.5">
+						{#each DURATIONS as d (d.m)}
+							<button
+								type="button"
+								on:click={() => setDuration(d.m)}
+								class="px-2.5 py-0.5 rounded-full text-[11px] border transition
+									{durationMin === d.m
+										? 'border-black dark:border-white bg-gray-100 dark:bg-gray-800 font-medium'
+										: 'border-gray-200 dark:border-gray-800 text-gray-500 hover:bg-gray-50 dark:hover:bg-gray-850'}"
+							>
+								{d.l}
+							</button>
+						{/each}
+					</div>
 				</div>
-			{/if}
+			</div>
+
+			<!-- Lieu -->
+			<div class="flex items-center gap-3">
+				<svg xmlns="http://www.w3.org/2000/svg" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" class="text-gray-400 shrink-0"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z" /><circle cx="12" cy="10" r="3" /></svg>
+				<input class="flex-1 min-w-0 px-3 py-2 rounded-xl bg-gray-50 dark:bg-gray-850 outline-none text-sm focus:ring-2 focus:ring-black/5 dark:focus:ring-white/10" bind:value={form.location} placeholder={$i18n.t('Ajouter un lieu (optionnel)')} />
+			</div>
 		</div>
-		<div class="flex justify-end gap-2 mt-4">
-			<button class="px-3 py-1.5 rounded-lg text-sm hover:bg-gray-100 dark:hover:bg-gray-850" on:click={() => (showModal = false)}>{$i18n.t('Annuler')}</button>
-			<button class="px-3 py-1.5 rounded-lg text-sm btn-premium bg-black text-white dark:bg-white dark:text-black disabled:opacity-50" disabled={saving} on:click={submit}>{$i18n.t('Ajouter')}</button>
+
+		<!-- Footer : calendrier cible + actions -->
+		<div class="flex items-center justify-between gap-3 mt-5">
+			{#if activeSourceObj}
+				<div class="flex items-center gap-1.5 text-[11px] text-gray-400 min-w-0">
+					{#if CALENDAR_SOURCE_LOGO[activeSource]}
+						<img src={CALENDAR_SOURCE_LOGO[activeSource]} alt="" class="size-4 object-contain shrink-0" />
+					{/if}
+					<span class="truncate">{activeLabel}</span>
+				</div>
+			{:else}
+				<span></span>
+			{/if}
+			<div class="flex items-center gap-2 shrink-0">
+				<button class="px-3 py-1.5 rounded-lg text-sm text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-850 transition" on:click={() => (showModal = false)}>{$i18n.t('Annuler')}</button>
+				<button class="px-4 py-1.5 rounded-lg text-sm btn-premium bg-black text-white dark:bg-white dark:text-black font-medium disabled:opacity-50" disabled={saving} on:click={submit}>{$i18n.t('Ajouter')}</button>
+			</div>
 		</div>
 	</div>
 </Modal>
@@ -292,7 +359,7 @@
 		</div>
 		<div class="flex items-center gap-2">
 			{#if canWrite && connectedSources.length > 0 && !unavailable}
-				<button class="px-3 py-1.5 rounded-xl btn-premium bg-black text-white dark:bg-white dark:text-black text-sm font-medium whitespace-nowrap" on:click={() => (showModal = true)}>
+				<button class="px-3 py-1.5 rounded-xl btn-premium bg-black text-white dark:bg-white dark:text-black text-sm font-medium whitespace-nowrap" on:click={openNewEvent}>
 					+ {$i18n.t('Nouvel événement')}
 				</button>
 			{/if}
