@@ -19,10 +19,12 @@
 	import Tooltip from '$lib/components/common/Tooltip.svelte';
 	import CalendarConnectPrompt from './CalendarConnectPrompt.svelte';
 	import CalendarMonthGrid from './CalendarMonthGrid.svelte';
+	import CalendarTimeGrid from './CalendarTimeGrid.svelte';
+	import CalendarViewHeader from './CalendarViewHeader.svelte';
 	import CalendarSourceBar from './CalendarSourceBar.svelte';
 	import PageHeader from '$lib/components/common/PageHeader.svelte';
 	import { CALENDAR_SOURCE_LOGO } from '$lib/utils/integrationLogos';
-	import { visibleRange } from '$lib/calendar/month-grid';
+	import { rangeFor, shiftAnchor, titleFor, weekDays, type ViewMode } from '$lib/calendar/calendar-views';
 
 	const i18n = getContext('i18n');
 
@@ -38,10 +40,12 @@
 	let events: CalendarEvent[] = []; // prochains événements (liste sous la grille)
 
 	// Grille « mois » : sa propre fenêtre de dates, rechargée à chaque navigation.
-	const now0 = new Date();
-	let viewYear = now0.getFullYear();
-	let viewMonth = now0.getMonth();
+	let viewMode: ViewMode = 'month';
+	let anchor = new Date(); // date de référence de la vue courante
 	let gridEvents: CalendarEvent[] = [];
+
+	$: gridTitle = titleFor(viewMode, anchor);
+	$: gridDays = viewMode === 'week' ? weekDays(anchor) : [anchor];
 
 	let showModal = false;
 	let form = { title: '', startLocal: '', endLocal: '', location: '' };
@@ -84,25 +88,36 @@
 			gridEvents = [];
 			return;
 		}
-		const { start, end } = visibleRange(viewYear, viewMonth);
+		const { start, end } = rangeFor(viewMode, anchor);
 		const res = await getEvents(localStorage.token, activeSource, start, end, tz);
 		gridEvents = res?.events ?? [];
 	};
 
-	const gotoMonth = async (y: number, m: number) => {
-		viewYear = y;
-		viewMonth = m;
+	// Un échec de grille ne doit pas casser la page : on garde la liste.
+	const reloadGrid = async () => {
 		try {
 			await loadGrid();
 		} catch (err) {
-			// Un échec de grille ne doit pas casser la page : on garde la liste.
 			gridEvents = [];
 		}
 	};
 
-	const prevMonth = () => gotoMonth(viewMonth === 0 ? viewYear - 1 : viewYear, (viewMonth + 11) % 12);
-	const nextMonth = () => gotoMonth(viewMonth === 11 ? viewYear + 1 : viewYear, (viewMonth + 1) % 12);
-	const goToday = () => gotoMonth(new Date().getFullYear(), new Date().getMonth());
+	const prev = () => {
+		anchor = shiftAnchor(viewMode, anchor, -1);
+		reloadGrid();
+	};
+	const next = () => {
+		anchor = shiftAnchor(viewMode, anchor, 1);
+		reloadGrid();
+	};
+	const goToday = () => {
+		anchor = new Date();
+		reloadGrid();
+	};
+	const setMode = (e: CustomEvent<ViewMode>) => {
+		viewMode = e.detail;
+		reloadGrid();
+	};
 
 	// Clic sur un jour de la grille → pré-remplit le formulaire (09:00–10:00) et ouvre la modale.
 	const onDayClick = (e: CustomEvent<{ key: string; date: Date }>) => {
@@ -115,6 +130,18 @@
 	// Clic sur un événement → ouvre le lien natif (Google Agenda, etc.) s'il existe.
 	const onEventClick = (e: CustomEvent<CalendarEvent>) => {
 		if (e.detail.link) window.open(e.detail.link, '_blank', 'noopener');
+	};
+
+	// Clic sur un créneau horaire (vues Jour/Semaine) → nouvel événement pré-rempli (+1 h).
+	const onSlotClick = (e: CustomEvent<{ date: Date; startLocal: string }>) => {
+		if (!canWrite) return;
+		const start = new Date(e.detail.startLocal);
+		const end = new Date(start.getTime() + 60 * 60 * 1000);
+		const pad = (n: number) => String(n).padStart(2, '0');
+		const fmt = (d: Date) =>
+			`${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+		form = { title: '', startLocal: e.detail.startLocal, endLocal: fmt(end), location: '' };
+		showModal = true;
 	};
 
 	// « Ajouter un calendrier » → onglet Intégrations (même parcours que l'écran de connexion).
@@ -296,17 +323,33 @@
 			on:connect={openIntegrations}
 		/>
 
-		<!-- Grille du mois (toujours affichée, même sans événement) -->
-		<CalendarMonthGrid
-			events={gridEvents}
-			year={viewYear}
-			month={viewMonth}
-			on:prev={prevMonth}
-			on:next={nextMonth}
+		<!-- En-tête partagé : sélecteur Jour/Semaine/Mois + navigation -->
+		<CalendarViewHeader
+			title={gridTitle}
+			mode={viewMode}
+			on:mode={setMode}
+			on:prev={prev}
+			on:next={next}
 			on:today={goToday}
-			on:day={onDayClick}
-			on:event={onEventClick}
 		/>
+
+		<!-- Vue courante (toujours affichée, même sans événement) -->
+		{#if viewMode === 'month'}
+			<CalendarMonthGrid
+				events={gridEvents}
+				year={anchor.getFullYear()}
+				month={anchor.getMonth()}
+				on:day={onDayClick}
+				on:event={onEventClick}
+			/>
+		{:else}
+			<CalendarTimeGrid
+				days={gridDays}
+				events={gridEvents}
+				on:slot={onSlotClick}
+				on:event={onEventClick}
+			/>
+		{/if}
 
 		<!-- Prochains événements, sous la grille -->
 		<div class="mt-6">

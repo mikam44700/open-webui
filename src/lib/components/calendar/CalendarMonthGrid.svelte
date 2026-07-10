@@ -1,20 +1,10 @@
 <script lang="ts">
 	import { createEventDispatcher, getContext } from 'svelte';
 	import type { CalendarEvent } from '$lib/apis/calendar-hermes';
-	import {
-		buildMonthMatrix,
-		bucketEventsByDay,
-		monthLabel,
-		parseLocal,
-		WEEKDAY_LABELS,
-		type DayCell
-	} from '$lib/calendar/month-grid';
+	import { buildMonthMatrix, bucketEventsByDay, parseLocal, WEEKDAY_LABELS } from '$lib/calendar/month-grid';
 
 	const i18n = getContext('i18n');
 	const dispatch = createEventDispatcher<{
-		prev: void;
-		next: void;
-		today: void;
 		day: { key: string; date: Date };
 		event: CalendarEvent;
 	}>();
@@ -44,40 +34,12 @@
 	};
 
 	$: weeks = buildMonthMatrix(year, month, today);
+	// Accès direct à `byDay` dans le template (et non via une fonction) pour que Svelte
+	// suive la dépendance et réaffiche quand les événements changent.
 	$: byDay = bucketEventsByDay(events);
-	$: label = monthLabel(year, month);
-
-	const eventsFor = (cell: DayCell): CalendarEvent[] => byDay[cell.key] ?? [];
 </script>
 
 <div class="rounded-2xl border border-gray-100 dark:border-gray-850 overflow-hidden bg-white dark:bg-gray-900">
-	<!-- Barre de navigation du mois -->
-	<div class="flex items-center justify-between px-4 py-3 border-b border-gray-100 dark:border-gray-850">
-		<div class="text-base font-semibold capitalize">{label}</div>
-		<div class="flex items-center gap-1">
-			<button
-				class="px-2.5 py-1 rounded-lg text-sm hover:bg-gray-100 dark:hover:bg-gray-850 transition"
-				on:click={() => dispatch('today')}
-			>
-				{$i18n.t('Aujourd’hui')}
-			</button>
-			<button
-				class="p-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-850 transition"
-				aria-label={$i18n.t('Mois précédent')}
-				on:click={() => dispatch('prev')}
-			>
-				<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6" /></svg>
-			</button>
-			<button
-				class="p-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-850 transition"
-				aria-label={$i18n.t('Mois suivant')}
-				on:click={() => dispatch('next')}
-			>
-				<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18l6-6-6-6" /></svg>
-			</button>
-		</div>
-	</div>
-
 	<!-- En-tête des jours -->
 	<div class="grid grid-cols-7 text-center text-[11px] font-medium text-gray-400 border-b border-gray-100 dark:border-gray-850">
 		{#each WEEKDAY_LABELS as d}
@@ -89,7 +51,7 @@
 	<div class="grid grid-cols-7">
 		{#each weeks as week, wi}
 			{#each week as cell (cell.key)}
-				{@const dayEvents = eventsFor(cell)}
+				{@const dayEvents = byDay[cell.key] ?? []}
 				<button
 					type="button"
 					on:click={() => dispatch('day', { key: cell.key, date: cell.date })}
