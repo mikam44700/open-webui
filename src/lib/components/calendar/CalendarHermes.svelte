@@ -18,8 +18,11 @@
 	import Spinner from '$lib/components/common/Spinner.svelte';
 	import Tooltip from '$lib/components/common/Tooltip.svelte';
 	import CalendarConnectPrompt from './CalendarConnectPrompt.svelte';
+	import CalendarMonthGrid from './CalendarMonthGrid.svelte';
+	import CalendarSourceBar from './CalendarSourceBar.svelte';
 	import PageHeader from '$lib/components/common/PageHeader.svelte';
 	import { CALENDAR_SOURCE_LOGO } from '$lib/utils/integrationLogos';
+	import { visibleRange } from '$lib/calendar/month-grid';
 
 	const i18n = getContext('i18n');
 
@@ -32,7 +35,13 @@
 	let unavailable = false;
 	let sources: CalendarSource[] = [];
 	let activeSource: string = '';
-	let events: CalendarEvent[] = [];
+	let events: CalendarEvent[] = []; // prochains événements (liste sous la grille)
+
+	// Grille « mois » : sa propre fenêtre de dates, rechargée à chaque navigation.
+	const now0 = new Date();
+	let viewYear = now0.getFullYear();
+	let viewMonth = now0.getMonth();
+	let gridEvents: CalendarEvent[] = [];
 
 	let showModal = false;
 	let form = { title: '', startLocal: '', endLocal: '', location: '' };
@@ -69,6 +78,48 @@
 		events = res?.events ?? [];
 	};
 
+	// Charge les événements du mois affiché (fenêtre = toute la grille 6 semaines).
+	const loadGrid = async () => {
+		if (!activeSource) {
+			gridEvents = [];
+			return;
+		}
+		const { start, end } = visibleRange(viewYear, viewMonth);
+		const res = await getEvents(localStorage.token, activeSource, start, end, tz);
+		gridEvents = res?.events ?? [];
+	};
+
+	const gotoMonth = async (y: number, m: number) => {
+		viewYear = y;
+		viewMonth = m;
+		try {
+			await loadGrid();
+		} catch (err) {
+			// Un échec de grille ne doit pas casser la page : on garde la liste.
+			gridEvents = [];
+		}
+	};
+
+	const prevMonth = () => gotoMonth(viewMonth === 0 ? viewYear - 1 : viewYear, (viewMonth + 11) % 12);
+	const nextMonth = () => gotoMonth(viewMonth === 11 ? viewYear + 1 : viewYear, (viewMonth + 1) % 12);
+	const goToday = () => gotoMonth(new Date().getFullYear(), new Date().getMonth());
+
+	// Clic sur un jour de la grille → pré-remplit le formulaire (09:00–10:00) et ouvre la modale.
+	const onDayClick = (e: CustomEvent<{ key: string; date: Date }>) => {
+		if (!canWrite) return;
+		const day = e.detail.key; // « YYYY-MM-DD »
+		form = { title: '', startLocal: `${day}T09:00`, endLocal: `${day}T10:00`, location: '' };
+		showModal = true;
+	};
+
+	// Clic sur un événement → ouvre le lien natif (Google Agenda, etc.) s'il existe.
+	const onEventClick = (e: CustomEvent<CalendarEvent>) => {
+		if (e.detail.link) window.open(e.detail.link, '_blank', 'noopener');
+	};
+
+	// « Ajouter un calendrier » → onglet Intégrations (même parcours que l'écran de connexion).
+	const openIntegrations = () => goto('/connectors?tab=integrations');
+
 	const load = async () => {
 		loading = true;
 		unavailable = false;
@@ -79,6 +130,7 @@
 			if (connected.length === 0) {
 				activeSource = '';
 				events = [];
+				gridEvents = [];
 				return;
 			}
 			// Restaure le dernier calendrier consulté s'il est toujours connecté, sinon la
@@ -87,6 +139,7 @@
 			const savedOk = saved && connected.some((s) => s.id === saved);
 			activeSource = savedOk ? (saved as string) : (res?.default ?? connected[0].id);
 			await loadEvents();
+			await loadGrid();
 		} catch (err: any) {
 			if (typeof err?.code === 'string' && err.code.endsWith('_not_connected')) {
 				// La source a été déconnectée entre-temps : on recharge la liste des sources.
@@ -107,6 +160,7 @@
 		unavailable = false;
 		try {
 			await loadEvents();
+			await loadGrid();
 		} catch (err) {
 			unavailable = true;
 		} finally {
@@ -127,6 +181,7 @@
 			showModal = false;
 			form = { title: '', startLocal: '', endLocal: '', location: '' };
 			await loadEvents();
+			await loadGrid();
 		} catch (err) {
 			toast.error(typeof err === 'string' ? err : $i18n.t('Ajout impossible'));
 		} finally {
@@ -144,6 +199,7 @@
 		try {
 			await deleteEvent(localStorage.token, deleteTarget.id, activeSource);
 			events = events.filter((x) => x.id !== deleteTarget!.id);
+			gridEvents = gridEvents.filter((x) => x.id !== deleteTarget!.id);
 			toast.success($i18n.t('Événement supprimé'));
 		} catch (err) {
 			toast.error(typeof err === 'string' ? err : $i18n.t('Suppression impossible'));
@@ -208,19 +264,6 @@
 			/>
 		</div>
 		<div class="flex items-center gap-2">
-			{#if connectedSources.length >= 2}
-				<!-- Plusieurs calendriers connectés : le client bascule de l'un à l'autre (jamais de mélange). -->
-				<select
-					class="px-3 py-1.5 rounded-xl bg-gray-50 dark:bg-gray-850 text-sm outline-none border border-gray-100 dark:border-gray-800"
-					value={activeSource}
-					on:change={(e) => switchSource((e.target as HTMLSelectElement).value)}
-					aria-label={$i18n.t('Choisir le calendrier')}
-				>
-					{#each connectedSources as s (s.id)}
-						<option value={s.id}>{s.label}</option>
-					{/each}
-				</select>
-			{/if}
 			{#if canWrite && connectedSources.length > 0 && !unavailable}
 				<button class="px-3 py-1.5 rounded-xl btn-premium bg-black text-white dark:bg-white dark:text-black text-sm font-medium whitespace-nowrap" on:click={() => (showModal = true)}>
 					+ {$i18n.t('Nouvel événement')}
@@ -244,20 +287,40 @@
 		</div>
 	{:else if connectedSources.length === 0}
 		<CalendarConnectPrompt />
-	{:else if events.length === 0}
-		<div class="flex flex-col items-center justify-center py-20 text-center">
-			<div class="size-12 rounded-2xl bg-gray-50 dark:bg-gray-850 flex items-center justify-center mb-3">
-				<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" class="text-gray-400">
-					<rect x="3" y="4" width="18" height="18" rx="3" />
-					<path d="M8 2v4M16 2v4M3 10h18" />
-				</svg>
-			</div>
-			<div class="font-medium">{$i18n.t('Aucun événement à venir')}</div>
-			<div class="text-xs text-gray-400 mt-1">{$i18n.t('Votre agenda est à jour.')}</div>
-		</div>
 	{:else}
-		<div class="grid gap-2">
-			{#each events as e (e.id)}
+		<!-- Barre « Mes calendriers » : basculer entre calendriers connectés + en ajouter un -->
+		<CalendarSourceBar
+			{sources}
+			{activeSource}
+			on:switch={(e) => switchSource(e.detail)}
+			on:connect={openIntegrations}
+		/>
+
+		<!-- Grille du mois (toujours affichée, même sans événement) -->
+		<CalendarMonthGrid
+			events={gridEvents}
+			year={viewYear}
+			month={viewMonth}
+			on:prev={prevMonth}
+			on:next={nextMonth}
+			on:today={goToday}
+			on:day={onDayClick}
+			on:event={onEventClick}
+		/>
+
+		<!-- Prochains événements, sous la grille -->
+		<div class="mt-6">
+			<div class="text-sm font-semibold text-gray-500 dark:text-gray-400 mb-2">
+				{$i18n.t('Prochains événements')}
+			</div>
+			{#if events.length === 0}
+				<div class="flex items-center gap-2 px-4 py-4 rounded-2xl border border-dashed border-gray-200 dark:border-gray-800 text-sm text-gray-400">
+					<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="3" /><path d="M8 2v4M16 2v4M3 10h18" /></svg>
+					{$i18n.t('Aucun événement à venir. Votre agenda est à jour.')}
+				</div>
+			{:else}
+				<div class="grid gap-2">
+					{#each events as e (e.id)}
 				<div class="flex items-center gap-3 px-4 py-3 rounded-2xl border border-gray-100 dark:border-gray-850 hover:bg-gray-50 dark:hover:bg-gray-850/40 transition">
 					{#if e.source && CALENDAR_SOURCE_LOGO[e.source]}
 						<div class="size-8 shrink-0 rounded-lg bg-gray-50 dark:bg-gray-900 flex items-center justify-center p-1.5">
@@ -288,6 +351,8 @@
 					{/if}
 				</div>
 			{/each}
+				</div>
+			{/if}
 		</div>
 	{/if}
 </div>
