@@ -196,30 +196,37 @@ const prepareSources = async (
 	return docs.map((d) => `--- Document : ${d.name} ---\n${d.content}`).join('\n\n');
 };
 
-// Génère un agent depuis une phrase et/ou des documents.
-// `adjustment` + `previous` permettent d'affiner sans repartir de zéro.
-export const generateAgent = async (
-	token: string,
-	model: string,
+// Options d'assemblage du prompt utilisateur (partie synchrone, testable).
+export type ComposeOpts = {
+	guided?: { walkthrough?: string; exceptions?: string; success?: string };
+	previous?: GeneratedAgent;
+	adjustment?: string;
+	connectedTools?: string[];
+	// Contexte de l'entreprise (synthèse issue de l'onboarding / USER.md) : rend l'agent « de la boîte ».
+	companyContext?: string;
+};
+
+// Assemble le message utilisateur envoyé au générateur, à partir du besoin, du bloc documents
+// déjà préparé, du contexte entreprise, du process guidé et des outils connectés. FONCTION PURE
+// (aucun réseau) → testable en isolation (Vitest). L'ordre place le contexte entreprise tôt, pour
+// cadrer tout le reste (ton, vocabulaire, exemples adaptés à la vraie boîte).
+export const composeAgentUserContent = (
 	brief: string,
-	opts: {
-		sources?: SourceDoc[];
-		guided?: { walkthrough?: string; exceptions?: string; success?: string };
-		previous?: GeneratedAgent;
-		adjustment?: string;
-		connectedTools?: string[];
-	} = {}
-): Promise<GeneratedAgent> => {
-	if (!model) {
-		throw new Error('Aucun modèle disponible pour générer l’agent.');
-	}
-
-	const sourcesBlock = await prepareSources(token, model, opts.sources ?? []);
-
+	sourcesBlock: string,
+	opts: ComposeOpts = {}
+): string => {
 	let userContent = '';
 	if (brief.trim()) {
 		userContent += `Besoin du dirigeant : ${brief.trim()}\n\n`;
 	}
+
+	// Contexte entreprise en premier : cadre le ton, le vocabulaire et les exemples de l'agent.
+	const company = (opts.companyContext ?? '').trim();
+	if (company) {
+		userContent +=
+			`Contexte de l'entreprise du dirigeant (adapte le ton, le vocabulaire et les exemples de l'agent à cette réalité ; ne contredis jamais ces informations, ne les recopie pas telles quelles) :\n${company}\n\n`;
+	}
+
 	if (sourcesBlock) {
 		userContent +=
 			`Documents fournis par le dirigeant (procédures existantes — utilise-les comme source principale, reste fidèle, n'invente pas) :\n\n${sourcesBlock}\n\n`;
@@ -255,6 +262,38 @@ export const generateAgent = async (
 			JSON.stringify(opts.previous) +
 			`\n\nAjuste-le selon cette demande, en gardant ce qui est bon : ${opts.adjustment.trim()}`;
 	}
+
+	return userContent;
+};
+
+// Génère un agent depuis une phrase et/ou des documents.
+// `adjustment` + `previous` permettent d'affiner sans repartir de zéro.
+export const generateAgent = async (
+	token: string,
+	model: string,
+	brief: string,
+	opts: {
+		sources?: SourceDoc[];
+		guided?: { walkthrough?: string; exceptions?: string; success?: string };
+		previous?: GeneratedAgent;
+		adjustment?: string;
+		connectedTools?: string[];
+		companyContext?: string;
+	} = {}
+): Promise<GeneratedAgent> => {
+	if (!model) {
+		throw new Error('Aucun modèle disponible pour générer l’agent.');
+	}
+
+	const sourcesBlock = await prepareSources(token, model, opts.sources ?? []);
+
+	const userContent = composeAgentUserContent(brief, sourcesBlock, {
+		guided: opts.guided,
+		previous: opts.previous,
+		adjustment: opts.adjustment,
+		connectedTools: opts.connectedTools,
+		companyContext: opts.companyContext
+	});
 
 	const res = await generateOpenAIChatCompletion(token, {
 		model,

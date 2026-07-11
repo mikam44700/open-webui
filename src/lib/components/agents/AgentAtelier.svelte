@@ -9,6 +9,7 @@
 	import { generateAgent, MAX_DOCS, type GeneratedAgent, type SourceDoc } from '$lib/agents/generator';
 	import { getIntegrations } from '$lib/apis/integrations';
 	import { getConnectors } from '$lib/apis/connectors';
+	import { getProfile } from '$lib/apis/memory';
 	import AvatarPicker from './AvatarPicker.svelte';
 	import { suggestAvatar, avatarImage } from './avatars';
 	import { parseSoulSections } from './soul';
@@ -201,6 +202,18 @@
 		return [...new Set(out.filter(Boolean))];
 	};
 
+	// Contexte de l'entreprise (USER.md, capté à l'onboarding) → injecté pour un agent « de la boîte ».
+	let companyContext = '';
+	const fetchCompanyContext = async (): Promise<string> => {
+		try {
+			const res = await getProfile(localStorage.token);
+			return (res?.content ?? '').trim();
+		} catch {
+			/* tolérant : sans contexte, on génère un agent générique (dégradé gracieux) */
+			return '';
+		}
+	};
+
 	const generate = async () => {
 		if (!brief.trim() && sources.length === 0) return;
 		phase = 'generating';
@@ -208,11 +221,15 @@
 		startGenMessages();
 		try {
 			if (!model) await loadModels();
-			connectedTools = await fetchConnectedTools();
+			[connectedTools, companyContext] = await Promise.all([
+				fetchConnectedTools(),
+				fetchCompanyContext()
+			]);
 			result = await generateAgent(localStorage.token, model, brief.trim(), {
 				sources,
 				guided: { walkthrough: gWalkthrough, exceptions: gExceptions, success: gSuccess },
-				connectedTools
+				connectedTools,
+				companyContext
 			});
 			// Suggestion d'avatar cohérente et stable, en évitant un visage déjà pris.
 			selectedAvatar = avatarImage(suggestAvatar(result.label, result.gender, used));
@@ -235,6 +252,7 @@
 				sources,
 				guided: { walkthrough: gWalkthrough, exceptions: gExceptions, success: gSuccess },
 				connectedTools,
+				companyContext,
 				previous: result ?? undefined,
 				adjustment: adjustment.trim() || undefined
 			});
