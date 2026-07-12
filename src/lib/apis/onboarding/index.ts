@@ -21,6 +21,7 @@ export type CrawlResult = {
 	chars: number;
 	message?: string | null;
 	url: string;
+	pages?: string[]; // URLs réellement lues (home + pages clés) — crawl multi-pages
 };
 
 // Crawle le site du client. Dégradé gracieux : une erreur réseau/HTTP renvoie un `echec` honnête

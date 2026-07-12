@@ -72,7 +72,7 @@ const byId = (id: string): AgentTemplate | undefined =>
 // (robuste si le socle évolue). `context` peut être vide (onboarding en saisie manuelle sautée) :
 // on retombe alors proprement sur les phrases de repli.
 export const buildTeamProof = (context: CompanyContext): TeamProofLine[] =>
-	TEAM_PROOF_ORDER.map((id) => {
+	TEAM_PROOF_ORDER.map((id): TeamProofLine | null => {
 		const t = byId(id);
 		if (!t) return null;
 		return {

@@ -3,6 +3,7 @@ import { buildTeamProof, TEAM_PROOF_ORDER } from './teamProof';
 import { EMPTY_CONTEXT, type CompanyContext } from './companySynthesis';
 
 const FULL: CompanyContext = {
+	...EMPTY_CONTEXT,
 	offre: 'Plomberie et chauffage pour particuliers',
 	tonDeMarque: 'chaleureux, direct',
 	clienteleCible: 'propriétaires de maisons individuelles',

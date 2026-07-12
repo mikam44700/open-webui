@@ -67,6 +67,7 @@
 	// Pilotage de la page de chargement dédiée + erreur éventuelle remontée à l'étape « site ».
 	let loadingPhase: 'reading' | 'thinking' = 'reading';
 	let siteError = '';
+	let pagesRead = 0; // nb de pages réellement lues par le crawl multi-pages (affichage honnête)
 
 	const skip = () => dispatch('skip');
 	const finish = () => dispatch('done');
@@ -104,6 +105,7 @@
 
 		context = ctx;
 		crawlStatus = crawl.status;
+		pagesRead = crawl.pages?.length ?? 1;
 		step = 'review'; // remplace « loading » sans l'empiler dans l'historique
 	};
 
@@ -188,7 +190,7 @@
 		{:else if step === 'loading'}
 			<CrawlLoadingStep phase={loadingPhase} />
 		{:else if step === 'review'}
-			<ContextReviewStep {context} {crawlStatus} on:done={() => go('done')} on:skip={skip} />
+			<ContextReviewStep {context} {crawlStatus} {pagesRead} on:done={() => go('done')} on:skip={skip} />
 		{:else if step === 'done'}
 			<DoneStep {context} on:done={finish} on:workspace={finish} />
 		{/if}
