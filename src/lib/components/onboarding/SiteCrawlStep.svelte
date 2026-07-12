@@ -126,7 +126,7 @@
 					class="mt-8 text-sm font-medium text-gray-600 dark:text-gray-300 hover:underline"
 					on:click={() => dispatch('manual')}
 				>
-					{$i18n.t('Je préfère saisir moi-même')}
+					{$i18n.t('Je n’ai pas de site internet')}
 				</button>
 			{/if}
 		</div>

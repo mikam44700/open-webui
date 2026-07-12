@@ -5,10 +5,12 @@
 // il construit le prompt, PARSE la réponse du modèle en un CompanyContext normalisé, et le met en
 // forme pour la persistance (USER.md).
 //
-// Règle d'or (D27) : jamais inventer. Un champ absent, illisible ou marqué « non trouvé » reste
-// VIDE. Les champs à fort risque d'hallucination (clientèle, problèmes résolus, ton) sont cadrés
-// par une consigne stricte « uniquement ce qui est écrit noir sur blanc ». Les concurrents ne sont
-// volontairement PAS extraits (une entreprise ne les liste pas sur son site → chantier V2 sourcé).
+// Règle d'or (D27) : jamais inventer une donnée FACTUELLE (nom, chiffres, coordonnées) absente du
+// site. En revanche, pour la clientèle et les problèmes résolus, le modèle a le droit de RELIER et
+// REFORMULER ce qui est clairement impliqué par l'offre, le secteur et les témoignages (ex. un
+// logiciel « pour restaurants » → clientèle = restaurateurs ; « je dors mieux la nuit » → il
+// résout le stress de gestion). Un champ sans aucun appui dans le texte reste VIDE. Les concurrents
+// ne sont volontairement PAS extraits (une entreprise ne les liste pas sur son site → V2 sourcé).
 
 export type CompanyContext = {
 	// Identité
@@ -47,27 +49,34 @@ const MAX_MARKDOWN_CHARS = 24_000;
 // interprétatifs (clientèle, problèmes, ton) portent une consigne stricte anti-hallucination.
 export const SYNTHESIS_SYSTEM_PROMPT =
 	'Tu analyses le contenu du site web d’une entreprise (plusieurs pages) pour en extraire une fiche ' +
-	'de contexte FACTUELLE. Réponds UNIQUEMENT par un objet JSON valide, sans texte autour, avec ' +
-	'EXACTEMENT ces clés :\n' +
+	'de contexte FACTUELLE, exploitable par un assistant. Réponds UNIQUEMENT par un objet JSON valide, ' +
+	'sans texte autour, avec EXACTEMENT ces clés :\n' +
 	'- "nomEntreprise" : le nom de l’entreprise\n' +
 	'- "secteur" : son secteur d’activité / métier\n' +
-	'- "coordonnees" : téléphone, email, adresse, horaires, zone géographique — ce qui est indiqué\n' +
+	'- "coordonnees" : téléphone, email, adresse, horaires, zone géographique. Utilise ce qui est ' +
+	'indiqué, ET en particulier le bloc « Coordonnées repérées sur le site » s’il est présent plus bas ' +
+	'(téléphone/email/adresse extraits du pied de page) — recopie ces valeurs telles quelles\n' +
 	'- "offre" : ce qu’elle vend, en une phrase claire\n' +
 	'- "services" : tableau des prestations/produits proposés\n' +
 	'- "tonDeMarque" : le registre/voix, DÉRIVÉ du style réel des textes du site (ex. « chaleureux, ' +
 	'direct ») — jamais un adjectif marketing deviné\n' +
 	'- "vocabulaire" : tableau des mots/expressions/noms d’offres propres à l’entreprise, récurrents\n' +
-	'- "clienteleCible" : à qui elle s’adresse — UNIQUEMENT si c’est écrit explicitement ; ne déduis ' +
-	'JAMAIS un persona non écrit\n' +
-	'- "problemesResolus" : les problèmes, besoins ou difficultés des clients que le site ÉVOQUE et ' +
-	'que l’entreprise dit résoudre (regarde en particulier les pages « pourquoi nous », « besoins », ' +
-	'« fonctionnalités », « solutions »). Reformule fidèlement ce qui est mentionné ; ne fabrique ' +
-	'pas un problème totalement absent du site\n' +
+	'- "clienteleCible" : à qui l’entreprise s’adresse. Appuie-toi sur ce qui est écrit MAIS aussi sur ' +
+	'ce qui est clairement impliqué par l’offre, le secteur et les témoignages (ex. un logiciel de ' +
+	'caisse « pour restaurants » → clientèle = restaurateurs et gérants d’établissements). Reste ' +
+	'concret ; n’invente pas un persona sans aucun appui dans le texte\n' +
+	'- "problemesResolus" : les difficultés, besoins ou frustrations des clients que l’entreprise ' +
+	'résout. Déduis-les des bénéfices mis en avant, des pages « pourquoi nous / besoins / ' +
+	'fonctionnalités » ET des témoignages (ex. « je dors mieux la nuit » ou « avant on recopiait ' +
+	'toutes les commandes » → problèmes = charge mentale, ressaisie manuelle, dispersion des outils). ' +
+	'Reformule fidèlement en une ou deux phrases ; n’en fabrique pas un sans aucun appui\n' +
 	'- "preuveSociale" : tableau — clients références, chiffres clés, certifications, avis/témoignages ' +
 	'CITÉS sur le site\n\n' +
-	'RÈGLE ABSOLUE : reste strictement fidèle au contenu. N’invente RIEN, ne déduis RIEN. Si une ' +
-	'information est absente du site, mets une chaîne vide "" (ou un tableau vide). Ne devine jamais ' +
-	'un persona, un problème ou un ton non écrit. Écris en français.';
+	'RÈGLE : reste fidèle au site. N’invente aucune donnée FACTUELLE (nom, chiffres, coordonnées, ' +
+	'certifications) qui n’y figure pas. Pour la clientèle et les problèmes résolus, tu PEUX relier et ' +
+	'reformuler ce qui est clairement impliqué par l’offre et les témoignages, sans jamais fabriquer un ' +
+	'élément sans appui. Un champ sans aucun appui dans le texte → chaîne vide "" (ou tableau vide). ' +
+	'Écris en français.';
 
 // Message utilisateur : le markdown du site (multi-pages), borné en taille.
 export const buildSynthesisUserContent = (markdown: string): string => {

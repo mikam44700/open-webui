@@ -1,8 +1,8 @@
 <script lang="ts">
 	// Page de chargement DÉDIÉE (étape à part entière du parcours) : s'affiche entre « coller l'URL »
-	// et « le résultat ». Le crawl + la synthèse prennent ~15 s ; ici le dirigeant voit l'IA travailler
-	// (gros cercle animé + étapes qui se cochent + rassurance), impossible à rater. Le parent pilote
-	// `phase` (reading → thinking) au fil du traitement.
+	// et « le résultat ». Le crawl multi-pages + la synthèse peuvent prendre jusqu'à une minute ; ici le
+	// dirigeant voit l'IA travailler (gros cercle animé + étapes qui se cochent + rassurance), impossible
+	// à rater. Le parent pilote `phase` (reading → thinking) au fil du traitement.
 	import { getContext } from 'svelte';
 
 	const i18n = getContext('i18n');
@@ -27,7 +27,7 @@
 			</h1>
 			<p class="mt-3 text-[15px] leading-relaxed text-gray-600 dark:text-gray-300 max-w-md">
 				{$i18n.t(
-					'Cela prend une quinzaine de secondes — je parcours vos pages pour comprendre votre offre, votre ton et votre clientèle. Restez là, j’y suis presque.'
+					'Cela peut prendre jusqu’à une minute — je parcours plusieurs pages de votre site pour comprendre votre offre, votre ton et votre clientèle. Restez là, je m’en occupe.'
 				)}
 			</p>
 

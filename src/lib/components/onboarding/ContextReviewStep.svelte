@@ -118,6 +118,11 @@
 		return { destroy: () => node.removeEventListener('input', resize) };
 	};
 
+	// Champs encore vides (pour la note honnête + les puces « à compléter »). Réactif : suit les
+	// éditions — chaque puce disparaît dès que le dirigeant remplit le champ. Honnêteté D27 : on
+	// assume que le crawl ne trouve pas toujours tout et on invite à compléter, sans rien inventer.
+	$: emptyCount = SECTIONS.flatMap((s) => s.fields).filter((f) => !(form[f.key] ?? '').trim()).length;
+
 	let saving = false;
 	let errorMessage = '';
 
@@ -213,11 +218,31 @@
 				</div>
 			{/if}
 
+			{#if emptyCount > 0}
+				<p class="mt-3 text-[13px] leading-relaxed text-gray-500 dark:text-gray-400">
+					{$i18n.t(
+						'Je n’ai pas forcément tout trouvé sur votre site — les champs marqués « à compléter » ci-dessous, ajoutez-les en un mot si vous le souhaitez.'
+					)}
+				</p>
+			{/if}
+
 			{#snippet aiTag(show: boolean)}
 				{#if show}
 					<span
 						class="inline-flex items-center gap-1 text-[10px] font-semibold uppercase tracking-wide text-amber-700 dark:text-amber-300 bg-amber-100/70 dark:bg-amber-900/25 px-1.5 py-0.5 rounded"
 						title={$i18n.t('Pré-rempli par l’IA — modifiez pour valider vous-même')}>✎ {$i18n.t('IA')}</span
+					>
+				{/if}
+			{/snippet}
+
+			<!-- Puce honnête miroir du « ✎ IA » : le crawl n'a pas trouvé ce champ → on le dit et on invite
+			     à le compléter (jamais d'invention, D27). Disparaît dès que le dirigeant le renseigne. -->
+			{#snippet todoTag(show: boolean)}
+				{#if show}
+					<span
+						class="inline-flex items-center text-[10px] font-medium uppercase tracking-wide text-gray-400 dark:text-gray-500 bg-gray-100 dark:bg-white/5 px-1.5 py-0.5 rounded"
+						title={$i18n.t('Je n’ai pas trouvé cette info sur votre site — ajoutez-la si vous le souhaitez')}
+						>{$i18n.t('à compléter')}</span
 					>
 				{/if}
 			{/snippet}
@@ -236,7 +261,9 @@
 								<label class="block">
 									<span
 										class="flex items-center gap-2 text-sm font-medium text-gray-700 dark:text-gray-200"
-										>{$i18n.t(field.label)}{@render aiTag(fromAi(field.key))}</span
+										>{$i18n.t(field.label)}{@render aiTag(fromAi(field.key))}{@render todoTag(
+											!(form[field.key] ?? '').trim()
+										)}</span
 									>
 									{#if field.area}
 										<textarea

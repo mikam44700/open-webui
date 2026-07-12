@@ -10,14 +10,26 @@
 	import SiteCrawlStep from './SiteCrawlStep.svelte';
 	import CrawlLoadingStep from './CrawlLoadingStep.svelte';
 	import ContextReviewStep from './ContextReviewStep.svelte';
+	import InterviewStep from './InterviewStep.svelte';
 	import DoneStep from './DoneStep.svelte';
-	import { EMPTY_CONTEXT, isContextEmpty, type CompanyContext } from '$lib/onboarding/companySynthesis';
+	import {
+		EMPTY_CONTEXT,
+		isContextEmpty,
+		formatContextForProfile,
+		type CompanyContext
+	} from '$lib/onboarding/companySynthesis';
+	import {
+		formatInterviewForProfile,
+		answersToContext,
+		type Answers
+	} from '$lib/onboarding/interview';
+	import { saveProfile, writeInboxNote, initMemoryVault } from '$lib/apis/memory';
 	import { crawlSite, synthesizeContext, type CrawlResult } from '$lib/apis/onboarding';
 
 	const i18n = getContext('i18n');
 	const dispatch = createEventDispatcher();
 
-	type Step = 'welcome' | 'model' | 'site' | 'loading' | 'review' | 'done';
+	type Step = 'welcome' | 'model' | 'site' | 'loading' | 'review' | 'interview' | 'done';
 	let step: Step = 'welcome';
 
 	// Historique de navigation : permet un vrai « Retour » qui remonte l'étape réellement
@@ -32,18 +44,19 @@
 		step = history[history.length - 1];
 		history = history.slice(0, -1);
 	};
-	// Pas de « Retour » pendant le chargement (transitoire) ni sur l'écran final.
-	$: canGoBack = history.length > 0 && step !== 'done' && step !== 'loading';
+	// Pas de « Retour » pendant le chargement (transitoire), l'interview (navigation interne) ni l'écran final.
+	$: canGoBack = history.length > 0 && step !== 'done' && step !== 'loading' && step !== 'interview';
 
-	// Progression : 4 jalons visibles. « site », « loading » et « review » partagent le jalon 3.
-	const TOTAL = 4;
+	// Progression : 5 jalons. « site », « loading » et « review » partagent le jalon 3.
+	const TOTAL = 5;
 	const META: Record<Step, { index: number; label: string }> = {
 		welcome: { index: 1, label: 'Bienvenue' },
 		model: { index: 2, label: 'Votre modèle IA' },
 		site: { index: 3, label: 'Votre entreprise' },
 		loading: { index: 3, label: 'Votre entreprise' },
 		review: { index: 3, label: 'Votre entreprise' },
-		done: { index: 4, label: 'C’est prêt' }
+		interview: { index: 4, label: 'Faisons connaissance' },
+		done: { index: 5, label: 'C’est prêt' }
 	};
 	$: meta = META[step];
 
@@ -78,7 +91,7 @@
 	};
 
 	// Analyse du site : on bascule d'abord sur la PAGE DE CHARGEMENT dédiée (le dirigeant voit l'IA
-	// travailler ~15 s), puis on crawle et on synthétise. Succès → validation ; échec → retour à la
+	// travailler jusqu'à ~1 min), puis on crawle et on synthétise. Succès → validation ; échec → retour à la
 	// saisie avec un message honnête (jamais d'invention). « loading » reste hors historique (le
 	// « Retour » depuis la validation revient bien à « site », pas à l'écran de chargement).
 	const analyze = async (e: CustomEvent<{ url: string }>) => {
@@ -109,10 +122,51 @@
 		step = 'review'; // remplace « loading » sans l'empiler dans l'historique
 	};
 
+	// Deux entrées vers l'interview :
+	//  - « complement » (le site a été lu → review validée) : interview courte, profil dirigeant.
+	//  - « full » (pas de site) : interview guidée qui REMPLIT aussi la fiche entreprise (pas de
+	//    mur de champs vides) puis va directement à l'écran final.
+	let interviewMode: 'full' | 'complement' = 'complement';
+	let answers: Answers = {};
+
+	// « Je n'ai pas de site internet » → interview complète guidée (elle remplace le crawl).
 	const onManual = () => {
 		context = { ...EMPTY_CONTEXT };
 		crawlStatus = null;
-		go('review');
+		interviewMode = 'full';
+		go('interview');
+	};
+
+	// Fiche validée (avec site) → interview de compléments (profil dirigeant).
+	const onReviewDone = () => {
+		interviewMode = 'complement';
+		go('interview');
+	};
+
+	// Fin de l'interview : on persiste le profil COMBINÉ avec la fiche entreprise (saveProfile
+	// remplace tout le contenu). En mode « full », les réponses forment aussi la fiche.
+	const onInterviewDone = async (e: CustomEvent<{ answers: Answers }>) => {
+		answers = e.detail.answers ?? {};
+		if (interviewMode === 'full') context = answersToContext(answers);
+
+		const combined = [formatContextForProfile(context), formatInterviewForProfile(answers)]
+			.filter(Boolean)
+			.join('\n\n');
+		if (combined.trim()) {
+			try {
+				await saveProfile(localStorage.token, combined);
+				try {
+					await initMemoryVault(localStorage.token);
+					const date = new Date().toLocaleDateString('fr-FR');
+					await writeInboxNote(localStorage.token, `Contexte entreprise (${date})`, combined);
+				} catch (err) {
+					console.error(err);
+				}
+			} catch (err) {
+				console.error(err);
+			}
+		}
+		go('done');
 	};
 </script>
 
@@ -190,7 +244,16 @@
 		{:else if step === 'loading'}
 			<CrawlLoadingStep phase={loadingPhase} />
 		{:else if step === 'review'}
-			<ContextReviewStep {context} {crawlStatus} {pagesRead} on:done={() => go('done')} on:skip={skip} />
+			<ContextReviewStep {context} {crawlStatus} {pagesRead} on:done={onReviewDone} on:skip={skip} />
+		{:else if step === 'interview'}
+			<!-- « complement » (avec site) : questions courtes de profil. « full » (sans site) :
+			     interview guidée qui remplit aussi la fiche entreprise, sans mur de champs vides. -->
+			<InterviewStep
+				hasSite={interviewMode === 'complement'}
+				on:done={onInterviewDone}
+				on:back={back}
+				on:skip={skip}
+			/>
 		{:else if step === 'done'}
 			<DoneStep {context} on:done={finish} on:workspace={finish} />
 		{/if}
