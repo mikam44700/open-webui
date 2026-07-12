@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { getContext, onMount } from 'svelte';
+	import { getContext, onMount, createEventDispatcher } from 'svelte';
 	import { toast } from 'svelte-sonner';
 
 	import { getProviders, getActiveProvider } from '$lib/apis/providers';
@@ -18,6 +18,9 @@
 	import { expertMode } from '$lib/stores';
 
 	const i18n = getContext('i18n');
+	// Notifie le parent (ex. onboarding) à chaque (re)chargement : cerveau actif + son modèle ont
+	// pu changer (connexion d'une clé, choix d'un modèle dans une carte) → le parent se resynchronise.
+	const dispatch = createEventDispatcher();
 
 	type Model = { id: string; label: string };
 	type Provider = {
@@ -30,6 +33,13 @@
 		base_url?: string | null;
 		models?: Model[];
 	};
+
+	// Restriction d'onglets (optionnelle) : quand fournie (ex. onboarding), SEULS ces onglets sont
+	// montrés et l'onglet par défaut devient le 1er de la liste. Vide/null = comportement normal
+	// (page Modèles IA). Permet de cadrer le dirigeant sur « Comptes » + « Clés API » sans le Moteur.
+	export let allowedTabs: string[] | null = null;
+	// Laisse choisir le modèle directement dans chaque carte connectée (onboarding). Propagé aux cartes.
+	export let showModelPicker = false;
 
 	// Onglets : « Agent Hermes » (état/maj) + un onglet par mode de connexion (category du bridge)
 	const TABS = [
@@ -82,11 +92,20 @@
 		return p ? getProviderName(p.id, p.label) : (active?.provider_id ?? '');
 	})();
 
-	// Onglets visibles : on retire « Cerveaux combinés » et « Autres » hors mode Expert.
-	$: visibleTabs = $expertMode ? TABS : TABS.filter((t) => !EXPERT_TABS.has(t.key));
-	// Filet de sécurité : si on quitte le mode Expert alors qu'un onglet Expert est ouvert,
-	// on retombe sur « Moteur » (jamais coincé sur un onglet devenu invisible).
-	$: if (!$expertMode && EXPERT_TABS.has(activeTab)) activeTab = 'hermes';
+	// Onglets visibles : restriction explicite (allowedTabs) prioritaire ; sinon on retire
+	// « Cerveaux combinés » et « Autres » hors mode Expert.
+	$: visibleTabs = allowedTabs
+		? TABS.filter((t) => allowedTabs.includes(t.key))
+		: $expertMode
+			? TABS
+			: TABS.filter((t) => !EXPERT_TABS.has(t.key));
+	// Filet de sécurité : l'onglet actif doit toujours être visible. En mode restreint on retombe
+	// sur le 1er onglet autorisé ; sinon sur « Moteur » quand on quitte le mode Expert.
+	$: if (allowedTabs) {
+		if (!allowedTabs.includes(activeTab)) activeTab = allowedTabs[0];
+	} else if (!$expertMode && EXPERT_TABS.has(activeTab)) {
+		activeTab = 'hermes';
+	}
 
 	// Compteurs par onglet (réactifs au mode Expert via canShow).
 	$: counts = {
@@ -127,6 +146,8 @@
 			]);
 			providers = provRes?.providers ?? [];
 			active = activeRes;
+			// Remonte l'état frais au parent (provider actif + son modèle + le catalogue complet).
+			dispatch('changed', { active, providers });
 			// On reste sur l'onglet courant (Moteur par défaut) — pas de saut auto vers
 			// la catégorie du cerveau actif, pour un atterrissage stable et prévisible.
 		} catch (err) {
@@ -243,6 +264,7 @@
 						{:else}
 							<ProviderCard
 								{provider}
+								{showModelPicker}
 								activeModelId={active?.provider_id === provider.id ? active.model_id : ''}
 								on:changed={load}
 							/>
@@ -266,6 +288,7 @@
 						{#each connectedItems as provider (provider.id)}
 							<ProviderCard
 								{provider}
+								{showModelPicker}
 								activeModelId={active?.provider_id === provider.id ? active.model_id : ''}
 								on:changed={load}
 							/>
@@ -289,6 +312,7 @@
 								{#each group.items as provider (provider.id)}
 									<ProviderCard
 										{provider}
+										{showModelPicker}
 										activeModelId={active?.provider_id === provider.id ? active.model_id : ''}
 										on:changed={load}
 									/>
@@ -302,6 +326,7 @@
 					{#each discoverItems as provider (provider.id)}
 						<ProviderCard
 							{provider}
+							{showModelPicker}
 							activeModelId={active?.provider_id === provider.id ? active.model_id : ''}
 							on:changed={load}
 						/>

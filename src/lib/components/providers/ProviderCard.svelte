@@ -5,6 +5,7 @@
 	import ActiveBadge from '$lib/components/common/ActiveBadge.svelte';
 	import Spinner from '$lib/components/common/Spinner.svelte';
 	import ProviderOAuth from './ProviderOAuth.svelte';
+	import ModelSelect from './ModelSelect.svelte';
 	import { getModelPresentation } from '$lib/catalog/model-badges';
 	import { getProviderRegionFlag, getProviderRegionName } from '$lib/catalog/provider-taxonomy';
 	import { PROVIDER_INFO } from '$lib/catalog/provider-info';
@@ -18,7 +19,8 @@
 		validateProviderKey,
 		setAwsCredentials,
 		deleteProviderKey,
-		getModelCapabilities
+		getModelCapabilities,
+		setActiveProvider
 	} from '$lib/apis/providers';
 
 	const i18n = getContext('i18n');
@@ -35,6 +37,9 @@
 		models?: { id: string; label: string }[];
 	};
 	export let activeModelId = '';
+	// Choix du modèle DANS la carte (activé en onboarding). Hors onboarding la page « Modèles IA »
+	// garde son comportement (le choix se fait dans le chat) : cette prop reste false par défaut.
+	export let showModelPicker = false;
 
 	$: configured = provider.state !== 'not_configured';
 	// Présentation métier curée (libellé humain + badges) — repli neutre si inconnu (D27).
@@ -205,9 +210,33 @@
 		}
 	};
 
-	// Le choix du modèle actif (et le changement de cerveau) se fait dans le chat, via le
-	// sélecteur de cerveau — pas ici. La page « Modèles IA » sert à brancher les clés ;
-	// à l'enregistrement, le bridge auto-active le fournisseur (voir saveKey).
+	// --- Choix du modèle dans la carte (onboarding : showModelPicker) ---
+	// Modèle « courant » à afficher : celui réellement actif si CE fournisseur est le cerveau
+	// actif, sinon le recommandé (repère par défaut, jamais présenté comme actif — cf. ActiveBadge).
+	$: currentModelId = activeModelId || repModelId || '';
+	$: currentModelLabel =
+		provider.models?.find((m) => m.id === currentModelId)?.label ?? currentModelId ?? '';
+	let pickerOpen = false;
+	let switching = false;
+
+	const chooseModel = async (id: string) => {
+		if (!id || switching) return;
+		switching = true;
+		try {
+			await setActiveProvider(localStorage.token, provider.id, id);
+			const label = provider.models?.find((m) => m.id === id)?.label ?? id;
+			toast.success($i18n.t('Modèle sélectionné : {{name}}', { name: label }));
+			pickerOpen = false;
+			dispatch('changed');
+		} catch {
+			toast.error($i18n.t('Impossible de sélectionner ce modèle'));
+		} finally {
+			switching = false;
+		}
+	};
+
+	// Hors onboarding (showModelPicker=false), le choix du modèle actif se fait dans le chat, via
+	// le sélecteur de cerveau — la page « Modèles IA » sert alors surtout à brancher les clés.
 </script>
 
 <div
@@ -534,11 +563,46 @@
 		</div>
 	{/if}
 
-	<!-- Rappel discret sous CHAQUE clé connectée : le choix du cerveau se fait dans le chat. -->
 	{#if configured}
-		<div class="pt-2 border-t border-gray-100 dark:border-gray-850 text-xs text-gray-500">
-			{$i18n.t('Changez de modèle dans le chat, en haut à gauche.')}
-		</div>
+		{#if showModelPicker && provider.models?.length}
+			<!-- Onboarding : le client voit et choisit son modèle ICI, sans passer par le chat. -->
+			<div class="pt-2 border-t border-gray-100 dark:border-gray-850 flex flex-col gap-2">
+				<div class="flex items-center justify-between gap-2">
+					<div class="min-w-0">
+						<div class="text-[11px] font-semibold uppercase tracking-wide text-gray-400 dark:text-gray-500">
+							{$i18n.t('Modèle')}
+						</div>
+						<div class="text-sm text-gray-800 dark:text-gray-100 truncate">
+							{currentModelLabel || $i18n.t('Non défini')}
+						</div>
+					</div>
+					<button
+						type="button"
+						class="flex-none text-xs px-2.5 py-1.5 rounded-lg text-sky-600 dark:text-sky-400 hover:bg-gray-100 dark:hover:bg-gray-850 transition disabled:opacity-40"
+						on:click={() => (pickerOpen = !pickerOpen)}
+						disabled={switching}
+					>
+						{#if switching}
+							<Spinner className="size-3.5" />
+						{:else}
+							{pickerOpen ? $i18n.t('Fermer') : $i18n.t('Choisir le modèle')} ({provider.models.length})
+						{/if}
+					</button>
+				</div>
+				{#if pickerOpen}
+					<ModelSelect
+						models={provider.models}
+						value={currentModelId}
+						on:change={(e) => chooseModel(e.detail)}
+					/>
+				{/if}
+			</div>
+		{:else}
+			<!-- Rappel discret : hors onboarding, le choix du cerveau se fait dans le chat. -->
+			<div class="pt-2 border-t border-gray-100 dark:border-gray-850 text-xs text-gray-500">
+				{$i18n.t('Changez de modèle dans le chat, en haut à gauche.')}
+			</div>
+		{/if}
 	{/if}
 	</div>
 </div>

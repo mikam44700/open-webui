@@ -48,19 +48,16 @@
 				)}
 			</p>
 
-			<div class="mt-8 flex flex-wrap items-center justify-center gap-3">
+			<div class="mt-8 flex flex-col items-center gap-3">
 				<button
-					class="text-sm font-medium px-6 py-3 rounded-xl btn-premium bg-black text-white dark:bg-white dark:text-black"
+					class="text-sm font-semibold px-7 py-3 rounded-xl btn-premium bg-gradient-to-br from-amber-400 to-amber-600 text-amber-950"
 					on:click={() => dispatch('next')}
 				>
 					{$i18n.t('C’est parti')} →
 				</button>
-				<button
-					class="text-sm font-medium px-5 py-3 rounded-xl bg-white/70 dark:bg-white/10 text-gray-800 dark:text-gray-100 ring-1 ring-inset ring-gray-900/10 dark:ring-white/15 hover:bg-white dark:hover:bg-white/15 transition"
-					on:click={() => dispatch('skip')}
-				>
-					{$i18n.t('Plus tard')}
-				</button>
+				<span class="text-[13px] text-gray-500 dark:text-gray-400">
+					{$i18n.t('≈ 2 minutes · vous pouvez tout modifier plus tard')}
+				</span>
 			</div>
 		</div>
 	</div>

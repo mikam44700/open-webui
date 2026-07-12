@@ -30,6 +30,20 @@
 	let tonDeMarque = context.tonDeMarque;
 	let servicesText = context.services.join('\n');
 
+	// Champs REMPLIS par la synthèse (= non vides à l'arrivée) : on les marque « Généré par l'IA »
+	// (Gojiberry : badge « AI-generated ✎ », corrigeable). Le badge s'efface dès que le dirigeant
+	// modifie le champ — signal honnête « validé par vous ». Valeurs de référence figées au montage.
+	const seedOffre = context.offre.trim();
+	const seedClientele = context.clienteleCible.trim();
+	const seedTon = context.tonDeMarque.trim();
+	const seedServices = context.services.join('\n').trim();
+	const anyAi = !!(seedOffre || seedClientele || seedTon || seedServices);
+
+	$: offreFromAi = !!seedOffre && offre.trim() === seedOffre;
+	$: clienteleFromAi = !!seedClientele && clienteleCible.trim() === seedClientele;
+	$: tonFromAi = !!seedTon && tonDeMarque.trim() === seedTon;
+	$: servicesFromAi = !!seedServices && servicesText.trim() === seedServices;
+
 	let saving = false;
 	let errorMessage = '';
 
@@ -82,7 +96,7 @@
 
 <div class="min-h-[80vh] w-full flex items-center justify-center p-4 sm:p-8">
 	<div
-		class="relative w-full max-w-2xl overflow-hidden rounded-3xl bg-white/80 dark:bg-gray-900/60 ring-1 ring-inset ring-gray-900/10 dark:ring-white/10"
+		class="relative w-full max-w-4xl overflow-hidden rounded-3xl bg-white/80 dark:bg-gray-900/60 ring-1 ring-inset ring-gray-900/10 dark:ring-white/10"
 	>
 		<div class="relative z-20 px-6 py-8 sm:px-10 sm:py-10">
 			<div
@@ -97,6 +111,18 @@
 				{$i18n.t('Corrigez librement — rien n’est enregistré tant que vous n’avez pas validé.')}
 			</p>
 
+			{#if anyAi}
+				<!-- Transparence : ces champs ont été pré-remplis par l'IA à partir de votre site. -->
+				<div
+					class="mt-4 flex items-center gap-2 text-[13px] rounded-lg bg-amber-50/80 dark:bg-amber-900/15 text-amber-800 dark:text-amber-200 px-3 py-2 ring-1 ring-inset ring-amber-500/20"
+				>
+					<span class="font-semibold">✎ {$i18n.t('Généré par l’IA')}</span>
+					<span class="text-amber-700/80 dark:text-amber-200/70"
+						>{$i18n.t('à partir de votre site — vérifiez et corrigez si besoin.')}</span
+					>
+				</div>
+			{/if}
+
 			{#if crawlStatus === 'partiel'}
 				<div
 					class="mt-4 text-[13px] rounded-lg bg-amber-100/70 dark:bg-amber-900/20 text-amber-800 dark:text-amber-200 px-3 py-2 ring-1 ring-inset ring-amber-500/20"
@@ -105,28 +131,41 @@
 				</div>
 			{/if}
 
+			{#snippet aiTag(show: boolean)}
+				{#if show}
+					<span
+						class="inline-flex items-center gap-1 text-[10px] font-semibold uppercase tracking-wide text-amber-700 dark:text-amber-300 bg-amber-100/70 dark:bg-amber-900/25 px-1.5 py-0.5 rounded"
+						title={$i18n.t('Pré-rempli par l’IA — modifiez pour valider vous-même')}>✎ {$i18n.t('IA')}</span
+					>
+				{/if}
+			{/snippet}
+
 			<div class="mt-6 space-y-4 text-left">
 				<label class="block">
-					<span class="text-sm font-medium text-gray-700 dark:text-gray-200">{$i18n.t('Votre offre')}</span>
-					<input
-						bind:value={offre}
-						placeholder={$i18n.t('Ce que vous vendez, en une phrase')}
-						class="mt-1 w-full px-3 py-2 rounded-lg bg-white dark:bg-white/10 text-gray-900 dark:text-white ring-1 ring-inset ring-gray-900/10 dark:ring-white/15 focus:outline-none focus:ring-2 focus:ring-amber-400/60"
-					/>
-				</label>
-				<label class="block">
-					<span class="text-sm font-medium text-gray-700 dark:text-gray-200"
-						>{$i18n.t('Votre clientèle')}</span
+					<span class="flex items-center gap-2 text-sm font-medium text-gray-700 dark:text-gray-200"
+						>{$i18n.t('Votre offre')}{@render aiTag(offreFromAi)}</span
 					>
-					<input
-						bind:value={clienteleCible}
-						placeholder={$i18n.t('À qui vous vous adressez')}
-						class="mt-1 w-full px-3 py-2 rounded-lg bg-white dark:bg-white/10 text-gray-900 dark:text-white ring-1 ring-inset ring-gray-900/10 dark:ring-white/15 focus:outline-none focus:ring-2 focus:ring-amber-400/60"
-					/>
+					<textarea
+						bind:value={offre}
+						rows="3"
+						placeholder={$i18n.t('Ce que vous vendez, en une phrase')}
+						class="mt-1 w-full px-3 py-2 rounded-lg bg-white dark:bg-white/10 text-gray-900 dark:text-white ring-1 ring-inset ring-gray-900/10 dark:ring-white/15 focus:outline-none focus:ring-2 focus:ring-amber-400/60 resize-y leading-relaxed"
+					></textarea>
 				</label>
 				<label class="block">
-					<span class="text-sm font-medium text-gray-700 dark:text-gray-200"
-						>{$i18n.t('Votre ton de marque')}</span
+					<span class="flex items-center gap-2 text-sm font-medium text-gray-700 dark:text-gray-200"
+						>{$i18n.t('Votre clientèle')}{@render aiTag(clienteleFromAi)}</span
+					>
+					<textarea
+						bind:value={clienteleCible}
+						rows="2"
+						placeholder={$i18n.t('À qui vous vous adressez')}
+						class="mt-1 w-full px-3 py-2 rounded-lg bg-white dark:bg-white/10 text-gray-900 dark:text-white ring-1 ring-inset ring-gray-900/10 dark:ring-white/15 focus:outline-none focus:ring-2 focus:ring-amber-400/60 resize-y leading-relaxed"
+					></textarea>
+				</label>
+				<label class="block">
+					<span class="flex items-center gap-2 text-sm font-medium text-gray-700 dark:text-gray-200"
+						>{$i18n.t('Votre ton de marque')}{@render aiTag(tonFromAi)}</span
 					>
 					<input
 						bind:value={tonDeMarque}
@@ -135,14 +174,14 @@
 					/>
 				</label>
 				<label class="block">
-					<span class="text-sm font-medium text-gray-700 dark:text-gray-200"
-						>{$i18n.t('Vos services')}</span
+					<span class="flex items-center gap-2 text-sm font-medium text-gray-700 dark:text-gray-200"
+						>{$i18n.t('Vos services')}{@render aiTag(servicesFromAi)}</span
 					>
 					<textarea
 						bind:value={servicesText}
-						rows="3"
+						rows="6"
 						placeholder={$i18n.t('Un service par ligne')}
-						class="mt-1 w-full px-3 py-2 rounded-lg bg-white dark:bg-white/10 text-gray-900 dark:text-white ring-1 ring-inset ring-gray-900/10 dark:ring-white/15 focus:outline-none focus:ring-2 focus:ring-amber-400/60 resize-y"
+						class="mt-1 w-full px-3 py-2 rounded-lg bg-white dark:bg-white/10 text-gray-900 dark:text-white ring-1 ring-inset ring-gray-900/10 dark:ring-white/15 focus:outline-none focus:ring-2 focus:ring-amber-400/60 resize-y leading-relaxed max-h-72 overflow-y-auto"
 					></textarea>
 				</label>
 			</div>
