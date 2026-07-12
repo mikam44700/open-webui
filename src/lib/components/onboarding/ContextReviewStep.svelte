@@ -7,6 +7,8 @@
 	import { createEventDispatcher, getContext } from 'svelte';
 	import {
 		formatContextForProfile,
+		formatContextForKnowledge,
+		capProfileText,
 		isContextEmpty,
 		EMPTY_CONTEXT,
 		type CompanyContext
@@ -41,7 +43,7 @@
 	// Un champ est « issu de l'IA » s'il était pré-rempli ET n'a pas encore été modifié.
 	const fromAi = (key: string): boolean => !!seeds[key] && (form[key] ?? '').trim() === seeds[key];
 
-	type Field = { key: string; label: string; ph: string; area?: boolean; rows?: number };
+	type Field = { key: string; label: string; ph: string; area?: boolean; rows?: number; chips?: boolean };
 	type Section = { title: string; icon: string; fields: Field[] };
 
 	const SECTIONS: Section[] = [
@@ -70,9 +72,8 @@
 				{
 					key: 'vocabulaireText',
 					label: 'Votre vocabulaire maison',
-					ph: 'Vos mots et expressions, un par ligne',
-					area: true,
-					rows: 3
+					ph: 'Ajoutez un mot, appuyez sur Entrée',
+					chips: true
 				}
 			]
 		},
@@ -123,6 +124,49 @@
 	// assume que le crawl ne trouve pas toujours tout et on invite à compléter, sans rien inventer.
 	$: emptyCount = SECTIONS.flatMap((s) => s.fields).filter((f) => !(form[f.key] ?? '').trim()).length;
 
+	// Édition en chips (tags) pour le vocabulaire : plus moderne qu'un mur de lignes. Le stockage reste
+	// une chaîne « un par ligne » dans form[key] → collect()/validate()/fromAi() ne changent pas.
+	let chipDraft: Record<string, string> = {};
+	const chipsOf = (key: string): string[] =>
+		(form[key] ?? '')
+			.split('\n')
+			.map((s) => s.trim())
+			.filter(Boolean);
+	const addChip = (key: string) => {
+		const v = (chipDraft[key] ?? '').trim();
+		if (v) {
+			const cur = chipsOf(key);
+			if (!cur.some((x) => x.toLowerCase() === v.toLowerCase())) {
+				form = { ...form, [key]: [...cur, v].join('\n') };
+			}
+		}
+		chipDraft = { ...chipDraft, [key]: '' };
+	};
+	const removeChip = (key: string, val: string) => {
+		form = { ...form, [key]: chipsOf(key).filter((x) => x !== val).join('\n') };
+	};
+	const chipKeydown = (e: KeyboardEvent, key: string) => {
+		if (e.key === 'Enter' || e.key === ',') {
+			e.preventDefault();
+			addChip(key);
+		} else if (e.key === 'Backspace' && !(chipDraft[key] ?? '') && chipsOf(key).length) {
+			removeChip(key, chipsOf(key)[chipsOf(key).length - 1]);
+		}
+	};
+	// Map réactive key → chips[] (dépend explicitement de form → l'affichage se met bien à jour ;
+	// une fonction appelée dans le {#each} ne « verrait » pas form et ne re-rendrait pas de façon fiable).
+	$: chipMap = Object.fromEntries(
+		SECTIONS.flatMap((s) => s.fields)
+			.filter((f) => f.chips)
+			.map((f) => [
+				f.key,
+				(form[f.key] ?? '')
+					.split('\n')
+					.map((x) => x.trim())
+					.filter(Boolean)
+			])
+	);
+
 	let saving = false;
 	let errorMessage = '';
 
@@ -151,7 +195,10 @@
 			errorMessage = $i18n.t('Ajoutez au moins un élément avant de valider.');
 			return;
 		}
-		const profileText = formatContextForProfile(ctx);
+		// USER.md = fiche CONCISE plafonnée (injectée dans chaque agent). Le COFFRE reçoit la fiche
+		// COMPLÈTE (tous les services + témoignages), cherchable — rien n'est perdu.
+		const profileText = capProfileText(formatContextForProfile(ctx));
+		const fullText = formatContextForKnowledge(ctx);
 		errorMessage = '';
 		saving = true;
 		try {
@@ -161,13 +208,13 @@
 			try {
 				await initMemoryVault(localStorage.token);
 				const date = new Date().toLocaleDateString('fr-FR');
-				await writeInboxNote(localStorage.token, `Contexte entreprise (${date})`, profileText);
+				await writeInboxNote(localStorage.token, `Contexte entreprise (${date})`, fullText);
 			} catch (e) {
 				console.error(e);
 			}
 			dispatch('done', { context: ctx });
 		} catch (err: any) {
-			const code = err?.error?.code ?? err?.code;
+			const code = err?.detail?.error?.code ?? err?.error?.code ?? err?.code;
 			errorMessage =
 				code === 'too_long'
 					? $i18n.t('C’est un peu long — raccourcissez un peu pour enregistrer.')
@@ -247,43 +294,80 @@
 				{/if}
 			{/snippet}
 
-			<div class="mt-6 flex flex-col gap-7 text-left">
+			<div class="mt-6 flex flex-col gap-5 text-left">
 				{#each SECTIONS as section (section.title)}
-					<div>
-						<div
-							class="text-[12px] font-semibold uppercase tracking-[0.12em] text-gray-500 dark:text-gray-400 mb-3 flex items-center gap-2"
-						>
-							<span aria-hidden="true">{section.icon}</span>
-							{$i18n.t(section.title)}
+					<section
+						class="rounded-2xl bg-white/70 dark:bg-white/[0.03] ring-1 ring-inset ring-gray-900/[0.07] dark:ring-white/10 shadow-sm p-5 sm:p-6"
+					>
+						<div class="flex items-center gap-2.5 mb-4">
+							<span
+								class="flex-none h-8 w-8 rounded-xl bg-amber-100/80 dark:bg-amber-900/25 ring-1 ring-inset ring-amber-500/15 flex items-center justify-center text-[15px]"
+								aria-hidden="true">{section.icon}</span
+							>
+							<span
+								class="text-[13px] font-semibold uppercase tracking-[0.12em] text-gray-500 dark:text-gray-400"
+								>{$i18n.t(section.title)}</span
+							>
 						</div>
 						<div class="grid grid-cols-1 gap-4">
 							{#each section.fields as field (field.key)}
 								<label class="block">
 									<span
-										class="flex items-center gap-2 text-sm font-medium text-gray-700 dark:text-gray-200"
+										class="flex items-center gap-2 text-sm font-medium text-gray-700 dark:text-gray-200 mb-1.5"
 										>{$i18n.t(field.label)}{@render aiTag(fromAi(field.key))}{@render todoTag(
 											!(form[field.key] ?? '').trim()
 										)}</span
 									>
-									{#if field.area}
+									{#if field.chips}
+										<!-- Éditeur en chips : pastilles supprimables (×) + champ de saisie (Entrée/virgule pour ajouter). -->
+										<div
+											class="flex flex-wrap items-center gap-2 rounded-xl bg-white dark:bg-white/[0.06] ring-1 ring-inset ring-gray-900/10 dark:ring-white/15 px-2.5 py-2.5 focus-within:ring-2 focus-within:ring-amber-400/60 transition"
+										>
+											{#each chipMap[field.key] ?? [] as chip (chip)}
+												<span
+													class="inline-flex items-center gap-1.5 text-[13px] pl-3 pr-1.5 py-1 rounded-full bg-amber-100/70 dark:bg-amber-900/25 text-amber-900 dark:text-amber-100 ring-1 ring-inset ring-amber-500/20"
+												>
+													{chip}
+													<button
+														type="button"
+														on:click={() => removeChip(field.key, chip)}
+														aria-label={$i18n.t('Retirer')}
+														class="h-4 w-4 rounded-full flex items-center justify-center leading-none text-amber-700/70 hover:text-amber-950 hover:bg-amber-500/25 dark:text-amber-200/70 dark:hover:text-white transition"
+														>×</button
+													>
+												</span>
+											{/each}
+											<input
+												value={chipDraft[field.key] ?? ''}
+												on:input={(e) =>
+													(chipDraft = { ...chipDraft, [field.key]: e.currentTarget.value })}
+												on:keydown={(e) => chipKeydown(e, field.key)}
+												on:blur={() => addChip(field.key)}
+												placeholder={(chipMap[field.key] ?? []).length
+													? $i18n.t('Ajouter…')
+													: $i18n.t(field.ph)}
+												class="flex-1 min-w-[8rem] bg-transparent text-sm text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none px-1.5 py-1"
+											/>
+										</div>
+									{:else if field.area}
 										<textarea
 											bind:value={form[field.key]}
 											rows={field.rows ?? 2}
 											use:autogrow
 											placeholder={$i18n.t(field.ph)}
-											class="mt-1 w-full px-3 py-2 rounded-lg bg-white dark:bg-white/10 text-gray-900 dark:text-white ring-1 ring-inset ring-gray-900/10 dark:ring-white/15 focus:outline-none focus:ring-2 focus:ring-amber-400/60 resize-y leading-relaxed overflow-hidden max-h-[28rem]"
+											class="w-full px-3.5 py-2.5 rounded-xl bg-white dark:bg-white/[0.06] text-gray-900 dark:text-white ring-1 ring-inset ring-gray-900/10 dark:ring-white/15 focus:outline-none focus:ring-2 focus:ring-amber-400/60 resize-y leading-relaxed overflow-hidden max-h-[28rem] transition"
 										></textarea>
 									{:else}
 										<input
 											bind:value={form[field.key]}
 											placeholder={$i18n.t(field.ph)}
-											class="mt-1 w-full px-3 py-2 rounded-lg bg-white dark:bg-white/10 text-gray-900 dark:text-white ring-1 ring-inset ring-gray-900/10 dark:ring-white/15 focus:outline-none focus:ring-2 focus:ring-amber-400/60"
+											class="w-full px-3.5 py-2.5 rounded-xl bg-white dark:bg-white/[0.06] text-gray-900 dark:text-white ring-1 ring-inset ring-gray-900/10 dark:ring-white/15 focus:outline-none focus:ring-2 focus:ring-amber-400/60 transition"
 										/>
 									{/if}
 								</label>
 							{/each}
 						</div>
-					</div>
+					</section>
 				{/each}
 			</div>
 

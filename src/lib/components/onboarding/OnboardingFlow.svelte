@@ -16,6 +16,9 @@
 		EMPTY_CONTEXT,
 		isContextEmpty,
 		formatContextForProfile,
+		formatContextForKnowledge,
+		capProfileText,
+		USER_PROFILE_MAX_CHARS,
 		type CompanyContext
 	} from '$lib/onboarding/companySynthesis';
 	import {
@@ -149,16 +152,21 @@
 		answers = e.detail.answers ?? {};
 		if (interviewMode === 'full') context = answersToContext(answers);
 
-		const combined = [formatContextForProfile(context), formatInterviewForProfile(answers)]
-			.filter(Boolean)
-			.join('\n\n');
+		// USER.md (injecté dans chaque agent) = profil dirigeant + fiche entreprise CONCISE, plafonné.
+		// On réserve la place au profil dirigeant (toujours gardé) et on plafonne la part entreprise.
+		const profile = formatInterviewForProfile(answers);
+		const contextBudget = Math.max(200, USER_PROFILE_MAX_CHARS - profile.length - 4);
+		const conciseContext = capProfileText(formatContextForProfile(context), contextBudget);
+		const combined = [conciseContext, profile].filter(Boolean).join('\n\n');
+		// Le COFFRE reçoit la version COMPLÈTE (fiche entreprise entière + profil), cherchable.
+		const fullCombined = [formatContextForKnowledge(context), profile].filter(Boolean).join('\n\n');
 		if (combined.trim()) {
 			try {
 				await saveProfile(localStorage.token, combined);
 				try {
 					await initMemoryVault(localStorage.token);
 					const date = new Date().toLocaleDateString('fr-FR');
-					await writeInboxNote(localStorage.token, `Contexte entreprise (${date})`, combined);
+					await writeInboxNote(localStorage.token, `Contexte entreprise (${date})`, fullCombined);
 				} catch (err) {
 					console.error(err);
 				}
