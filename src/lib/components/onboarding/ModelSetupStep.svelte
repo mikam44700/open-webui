@@ -36,6 +36,9 @@
 
 	let modelPickerOpen = false;
 	let switching = false;
+	// Référence à la liste de fournisseurs (montée quand showAll) : sert à la resynchroniser
+	// après un changement de modèle fait ici, pour éviter un affichage périmé côté carte.
+	let providerList: { reload: () => void } | null = null;
 
 	// VRAI cerveau connecté vs défaut d'usine « auto/gpt-5.5 ». Le moteur retombe sur ce
 	// pseudo-fournisseur « auto » dès qu'aucune clé/compte n'est branché — mais « auto »
@@ -78,6 +81,8 @@
 			await setActiveProvider(localStorage.token, active.provider_id, id);
 			modelPickerOpen = false;
 			await refresh();
+			// Resynchronise la liste en dessous (si ouverte) pour qu'elle affiche le même modèle.
+			providerList?.reload();
 			toast.success($i18n.t('Modèle sélectionné'));
 		} catch {
 			toast.error($i18n.t('Impossible de sélectionner ce modèle'));
@@ -286,7 +291,12 @@
 	     Hors de la colonne étroite : prend la pleine largeur du conteneur pour aérer les cartes. -->
 	{#if showAll}
 		<div class="rounded-2xl ring-1 ring-inset ring-black/5 dark:ring-white/10 overflow-hidden">
-			<ProviderList allowedTabs={['oauth', 'api']} showModelPicker on:changed={refresh} />
+			<ProviderList
+				bind:this={providerList}
+				allowedTabs={['oauth', 'api']}
+				showModelPicker
+				on:changed={refresh}
+			/>
 		</div>
 	{/if}
 

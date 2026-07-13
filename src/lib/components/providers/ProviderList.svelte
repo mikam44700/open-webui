@@ -162,6 +162,12 @@
 	};
 
 	onMount(load);
+
+	// Permet à un parent (ex. l'onboarding) de resynchroniser la liste après un changement
+	// effectué ailleurs (choix de modèle depuis la carte « prêt »), via bind:this.
+	export function reload() {
+		return load();
+	}
 </script>
 
 <div class="w-full max-w-7xl mx-auto px-3 py-3">
