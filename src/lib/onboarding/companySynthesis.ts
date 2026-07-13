@@ -57,13 +57,17 @@ export const SYNTHESIS_SYSTEM_PROMPT =
 	'- "secteur" : son secteur d’activité / métier\n' +
 	'- "coordonnees" : téléphone, email, adresse, horaires, zone géographique. Utilise ce qui est ' +
 	'indiqué, ET en particulier le bloc « Coordonnées repérées sur le site » s’il est présent plus bas ' +
-	'(téléphone/email/adresse extraits du pied de page) — recopie ces valeurs telles quelles\n' +
+	'(téléphone/email/adresse extraits du pied de page) — recopie ces valeurs telles quelles. Présente ' +
+	'CHAQUE information sur sa propre ligne, préfixée de son intitulé (ex. « Téléphone : … », ' +
+	'« Email : … », « Adresse : … », « Horaires : … », « Zone : … ») ; n’inclus que les lignes trouvées\n' +
 	'- "resume" : l’ESSENCE de l’entreprise en 1 à 2 phrases claires et naturelles — qui elle est, ce ' +
 	'qu’elle fait et pour qui. C’est le texte qui personnalisera l’assistant : concret, sans jargon, ' +
 	'sans liste. Ex. « Zelty édite un logiciel de caisse et de gestion tout-en-un pour les restaurants, ' +
 	'qui centralise commandes, livraisons et pilotage multi-sites. »\n' +
 	'- "offre" : ce qu’elle vend, en une phrase claire\n' +
-	'- "services" : tableau des prestations/produits proposés\n' +
+	'- "services" : tableau des prestations/produits proposés — chaque entrée est un libellé COURT et ' +
+	'autonome (≈ 3 à 8 mots), une seule idée par entrée (jamais de phrase à rallonge), classées de la ' +
+	'plus importante à la plus secondaire\n' +
 	'- "tonDeMarque" : le registre/voix, DÉRIVÉ du style réel des textes du site (ex. « chaleureux, ' +
 	'direct ») — jamais un adjectif marketing deviné\n' +
 	'- "vocabulaire" : tableau des mots/expressions/noms d’offres propres à l’entreprise, récurrents\n' +
@@ -75,9 +79,13 @@ export const SYNTHESIS_SYSTEM_PROMPT =
 	'résout. Déduis-les des bénéfices mis en avant, des pages « pourquoi nous / besoins / ' +
 	'fonctionnalités » ET des témoignages (ex. « je dors mieux la nuit » ou « avant on recopiait ' +
 	'toutes les commandes » → problèmes = charge mentale, ressaisie manuelle, dispersion des outils). ' +
-	'Reformule fidèlement en une ou deux phrases ; n’en fabrique pas un sans aucun appui\n' +
-	'- "preuveSociale" : tableau — clients références, chiffres clés, certifications, avis/témoignages ' +
-	'CITÉS sur le site\n\n' +
+	'Présente 3 à 5 difficultés DISTINCTES, une par ligne commençant par « • », de la plus importante ' +
+	'à la plus secondaire ; chaque point en quelques mots. N’en fabrique pas un sans aucun appui\n' +
+	'- "preuveSociale" : tableau — chaque preuve est un item COURT et autonome, ordonné du plus fort au ' +
+	'moins fort : d’abord les chiffres clés (nombre de clients, notes, taux de fidélité) et les ' +
+	'certifications, puis 2 à 3 témoignages marquants AU MAXIMUM, chacun au format « Prénom Nom — ' +
+	'bénéfice en quelques mots ». Ne regroupe JAMAIS plusieurs témoignages ou faits dans un même item ; ' +
+	'ne cite que ce qui figure sur le site\n\n' +
 	'RÈGLE : reste fidèle au site. N’invente aucune donnée FACTUELLE (nom, chiffres, coordonnées, ' +
 	'certifications) qui n’y figure pas. Pour la clientèle et les problèmes résolus, tu PEUX relier et ' +
 	'reformuler ce qui est clairement impliqué par l’offre et les témoignages, sans jamais fabriquer un ' +

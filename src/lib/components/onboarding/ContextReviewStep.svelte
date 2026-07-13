@@ -29,12 +29,12 @@
 		coordonnees: context.coordonnees,
 		resume: context.resume,
 		offre: context.offre,
-		servicesText: context.services.join('\n'),
+		servicesText: context.services.map((s) => `• ${s}`).join('\n'),
 		tonDeMarque: context.tonDeMarque,
 		vocabulaireText: context.vocabulaire.join('\n'),
 		clienteleCible: context.clienteleCible,
 		problemesResolus: context.problemesResolus,
-		preuveSocialeText: context.preuveSociale.join('\n')
+		preuveSocialeText: context.preuveSociale.map((s) => `• ${s}`).join('\n')
 	};
 	// Valeurs de référence figées : servent à marquer « Généré par l'IA » tant que non modifié.
 	const seeds: Record<string, string> = Object.fromEntries(
@@ -174,10 +174,12 @@
 	let saving = false;
 	let errorMessage = '';
 
+	// Retire une puce d'affichage (• · *) en début de ligne pour ne jamais la stocker dans les données
+	// (le tiret « - » est préservé : il peut faire partie d'une valeur comme « -20% »).
 	const toList = (s: string): string[] =>
 		s
 			.split('\n')
-			.map((x) => x.trim())
+			.map((x) => x.replace(/^\s*[•·*]\s*/, '').trim())
 			.filter(Boolean);
 
 	const collect = (): CompanyContext => ({
@@ -232,7 +234,7 @@
 
 <div class="min-h-[80vh] w-full flex items-center justify-center p-4 sm:p-8">
 	<div
-		class="relative w-full max-w-4xl overflow-hidden rounded-3xl bg-white/80 dark:bg-gray-900/60 ring-1 ring-inset ring-gray-900/10 dark:ring-white/10"
+		class="relative w-full max-w-5xl overflow-hidden rounded-3xl bg-white/80 dark:bg-gray-900/60 ring-1 ring-inset ring-gray-900/10 dark:ring-white/10"
 	>
 		<div class="relative z-20 px-6 py-8 sm:px-10 sm:py-10">
 			<div
@@ -321,9 +323,11 @@
 								</div>
 							</div>
 						</div>
-						<div class="grid grid-cols-1 gap-4">
+						<div class="grid grid-cols-1 sm:grid-cols-2 gap-x-5 gap-y-4">
 							{#each section.fields as field (field.key)}
-								<label class="block">
+								<!-- Champs longs (textarea, chips) sur toute la largeur ; champs courts
+								     (nom, secteur, ton) côte à côte → meilleure occupation de l'espace. -->
+								<label class="block {field.area || field.chips ? 'sm:col-span-2' : ''}">
 									<span
 										class="flex items-center gap-2 text-sm font-medium text-gray-700 dark:text-gray-200 mb-1.5"
 										>{$i18n.t(field.label)}{@render aiTag(fromAi(field.key))}{@render todoTag(
