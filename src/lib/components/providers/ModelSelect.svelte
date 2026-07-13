@@ -40,13 +40,15 @@
 			{#each filtered as model (model.id)}
 				<button
 					type="button"
-					class="text-left text-sm px-3 py-2 rounded-xl transition line-clamp-1
+					class="w-full flex items-center text-left text-sm px-3 py-2 rounded-xl transition
 						{value === model.id
 						? 'bg-gray-100 dark:bg-gray-850 font-medium'
 						: 'hover:bg-gray-50 dark:hover:bg-gray-900'}"
 					on:click={() => choose(model.id)}
 				>
-					{model.label}
+					<!-- overflow/ellipsis porté par le span (pas le bouton) + hauteur de ligne
+					     garantie : le nom tient sur une ligne SANS jamais rogner les jambages. -->
+					<span class="min-w-0 flex-1 truncate leading-normal py-px">{model.label}</span>
 				</button>
 			{/each}
 		{/if}
