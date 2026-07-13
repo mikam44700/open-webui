@@ -108,13 +108,13 @@
 				href={OBSIDIAN_DOWNLOAD}
 				target="_blank"
 				rel="noopener noreferrer"
-				class="inline-flex items-center justify-center gap-2.5 text-sm font-semibold px-5 py-2.5 rounded-xl bg-[#0f0f10] text-white ring-1 ring-inset ring-white/10 shadow-sm hover:ring-violet-400/50 transition"
+				class="inline-flex items-center justify-center gap-2.5 text-sm font-semibold px-5 py-2.5 rounded-xl bg-[#7c3aed] text-white shadow-sm hover:bg-[#8b5cf6] transition"
 			>
 				<span class="inline-flex h-6 w-6 flex-none items-center justify-center rounded-lg bg-white">
 					<img src={obsidianLogo} alt="Obsidian" class="h-4 w-4" />
 				</span>
 				<span class="text-left leading-tight">
-					<span class="block text-[11px] font-medium text-white/50">{$i18n.t('Étape 1')}</span>
+					<span class="block text-[11px] font-medium text-white/60">{$i18n.t('Étape 1')}</span>
 					{$i18n.t('Télécharger Obsidian')}
 				</span>
 			</a>
