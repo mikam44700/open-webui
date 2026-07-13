@@ -9,7 +9,7 @@
 	import { avatarColor } from '$lib/components/agents/avatar-colors';
 	import { avatarImgFallback } from '$lib/utils/agentIdentity';
 	import { AGENT_TEMPLATES } from '$lib/components/agents/templates';
-	import obsidianLogo from '$lib/assets/integrations/obsidian.svg';
+	import obsidianLogo from '$lib/assets/integrations/obsidian-icon.webp';
 	import { getSyncPack, downloadSyncPack } from '$lib/apis/memory';
 
 	const i18n = getContext('i18n');
@@ -110,9 +110,7 @@
 				rel="noopener noreferrer"
 				class="inline-flex items-center justify-center gap-2.5 text-sm font-semibold px-5 py-2.5 rounded-xl bg-[#7c3aed] text-white shadow-sm hover:bg-[#8b5cf6] transition"
 			>
-				<span class="inline-flex h-6 w-6 flex-none items-center justify-center rounded-lg bg-white">
-					<img src={obsidianLogo} alt="Obsidian" class="h-4 w-4" />
-				</span>
+				<img src={obsidianLogo} alt="Obsidian" class="h-6 w-6 flex-none rounded-lg object-cover ring-1 ring-inset ring-white/15" />
 				<span class="text-left leading-tight">
 					<span class="block text-[11px] font-medium text-white/60">{$i18n.t('Étape 1')}</span>
 					{$i18n.t('Télécharger Obsidian')}
