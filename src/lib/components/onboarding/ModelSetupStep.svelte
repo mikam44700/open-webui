@@ -27,16 +27,27 @@
 	const codexLogo = providerLogoUrl({ id: CODEX_ID, logo: 'codex' });
 
 	let active: { provider_id: string; model_id: string } | null = null;
+	let providers: any[] = [];
 	let checking = true;
 	let showAll = false; // « ou choisissez un autre modèle » : replié par défaut (Codex mis en avant)
 	let codexState: 'idle' | 'connecting' | 'error' = 'idle';
 	let poller: ReturnType<typeof setInterval> | null = null;
 	let oauthPoller: ReturnType<typeof setInterval> | null = null;
 
-	// Modèles du fournisseur actif (pour choisir/changer directement dans le cadre « prêt »).
-	let activeModels: { id: string; label: string }[] = [];
 	let modelPickerOpen = false;
 	let switching = false;
+
+	// VRAI cerveau connecté vs défaut d'usine « auto/gpt-5.5 ». Le moteur retombe sur ce
+	// pseudo-fournisseur « auto » dès qu'aucune clé/compte n'est branché — mais « auto »
+	// n'existe PAS dans la liste des fournisseurs. On ne considère donc un modèle « prêt »
+	// que si le fournisseur actif existe réellement ET n'est pas « not_configured » (déconnecté).
+	// Couvre d'un seul test les deux cas : défaut d'usine ET déconnexion a posteriori.
+	$: activeProvider = active
+		? (providers.find((p: any) => p.id === active.provider_id) ?? null)
+		: null;
+	$: hasRealBrain = !!active && !!activeProvider && activeProvider.state !== 'not_configured';
+	// Modèles du fournisseur actif (pour choisir/changer directement dans le cadre « prêt »).
+	$: activeModels = (activeProvider?.models ?? []) as { id: string; label: string }[];
 
 	// Nom lisible + libellé du modèle actif (jamais le slug brut si on a mieux).
 	$: activeProviderName = active ? getProviderName(active.provider_id, active.provider_id) : '';
@@ -53,10 +64,7 @@
 				getProviders(localStorage.token).catch(() => null)
 			]);
 			active = a;
-			const provs = provRes?.providers ?? [];
-			activeModels = a
-				? (provs.find((p: any) => p.id === a.provider_id)?.models ?? [])
-				: [];
+			providers = provRes?.providers ?? [];
 		} finally {
 			checking = false;
 		}
@@ -80,10 +88,10 @@
 
 	onMount(async () => {
 		await refresh();
-		// Sonde tant qu'aucun cerveau n'est actif : capte les branchements faits dans ProviderList.
-		poller = setInterval(() => {
-			if (!active) refresh();
-		}, 3000);
+		// Sonde en continu : capte AUSSI BIEN un branchement qu'une déconnexion faite ailleurs
+		// (page Clés API, autre onglet…), pour que l'état « prêt / à connecter » reste honnête
+		// en temps réel. Écran d'onboarding transitoire → coût négligeable.
+		poller = setInterval(refresh, 3000);
 	});
 	onDestroy(() => {
 		if (poller) clearInterval(poller);
@@ -141,7 +149,7 @@
 		</p>
 	</div>
 
-	{#if active}
+	{#if hasRealBrain}
 		<!-- Cerveau actif : on confirme honnêtement + on laisse choisir le modèle ICI (se met à jour
 		     en direct quand le client change de modèle, ici ou dans une carte plus bas). -->
 		<div
@@ -279,11 +287,11 @@
 	<!-- Navigation -->
 	<div class="mt-8 flex flex-wrap items-center justify-center gap-3">
 		<button
-			disabled={!active}
+			disabled={!hasRealBrain}
 			class="text-sm font-semibold px-6 py-3 rounded-xl btn-premium bg-black text-white dark:bg-white dark:text-black disabled:opacity-40 disabled:cursor-not-allowed"
 			on:click={cont}
 		>
-			{active ? $i18n.t('Continuer') : $i18n.t('Connectez un modèle pour continuer')} →
+			{hasRealBrain ? $i18n.t('Continuer') : $i18n.t('Connectez un modèle pour continuer')} →
 		</button>
 		<button
 			class="text-sm font-medium px-5 py-3 rounded-xl bg-white/70 dark:bg-white/10 text-gray-800 dark:text-gray-100 ring-1 ring-inset ring-gray-900/10 dark:ring-white/15"
@@ -292,7 +300,7 @@
 			{$i18n.t('Plus tard')}
 		</button>
 	</div>
-	{#if !active && !checking}
+	{#if !hasRealBrain && !checking}
 		<p class="mt-3 text-center text-[13px] text-gray-500 dark:text-gray-400">
 			🔒 {$i18n.t('Connexion à votre compte. Aucune donnée partagée.')}
 		</p>
