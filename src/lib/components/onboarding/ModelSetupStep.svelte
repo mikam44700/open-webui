@@ -15,6 +15,7 @@
 	} from '$lib/apis/providers';
 	import ProviderList from '$lib/components/providers/ProviderList.svelte';
 	import ModelSelect from '$lib/components/providers/ModelSelect.svelte';
+	import CodexDeviceHelp from '$lib/components/providers/CodexDeviceHelp.svelte';
 	import { providerLogoUrl, PROVIDER_LOGO_FALLBACK } from '$lib/utils/providerLogos';
 	import { getProviderName } from '$lib/catalog/provider-info';
 
@@ -35,6 +36,7 @@
 	// seul, il génère une URL + un code à recopier. On les extrait du log du process pour les
 	// présenter proprement (sinon le client reste bloqué sur « Connexion en cours… »).
 	let codexDevice: { url: string; code: string } | null = null;
+	let showCodexHelp = false; // modale « comment activer les codes d'appareil ChatGPT »
 
 	// Retire les codes couleur ANSI (le CLI en émet) puis extrait l'URL d'autorisation + le code.
 	const parseDeviceFlow = (raw: string): { url: string; code: string } | null => {
@@ -287,6 +289,16 @@
 			{/if}
 		</button>
 
+		<!-- Pré-requis (codes d'appareil désactivés par défaut côté ChatGPT) : lien visible AVANT
+		     la connexion pour prévenir qu'une activation unique côté ChatGPT peut être nécessaire. -->
+		<button
+			type="button"
+			class="mt-3 w-full text-center text-[13px] text-gray-500 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-100 underline decoration-dotted underline-offset-2 transition"
+			on:click={() => (showCodexHelp = true)}
+		>
+			{$i18n.t('Première connexion ? Voir comment autoriser ChatGPT')}
+		</button>
+
 		{#if codexState === 'connecting' && codexDevice}
 			<!-- Device code flow : ChatGPT ne peut pas ouvrir le navigateur seul. On présente
 			     l'URL + le code à recopier proprement, et on attend l'autorisation. -->
@@ -404,4 +416,8 @@
 		</p>
 	{/if}
 	</div>
+
+	{#if showCodexHelp}
+		<CodexDeviceHelp on:close={() => (showCodexHelp = false)} />
+	{/if}
 </div>
