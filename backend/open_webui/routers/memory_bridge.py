@@ -77,6 +77,15 @@ async def write_inbox_note(body: InboxNoteBody, user=Depends(get_admin_user)):
     return await _bridge("POST", "/memory/inbox", json=body.model_dump())
 
 
+@router.get("/sync/pack")
+async def get_sync_pack(user=Depends(get_admin_user)):
+    """Pack Syncthing pré-appairé pour connecter le coffre du client (feature 005 US5).
+
+    Renvoie le zip en base64 ; le front le décode et le fait télécharger. 503 si la synchro n'est
+    pas encore provisionnée (Syncthing non démarré sur ce serveur)."""
+    return await _bridge("GET", "/memory/sync/pack")
+
+
 # ── Réglages du cerveau (feature 017) : Persona / Profil / Souvenirs ──────────
 
 

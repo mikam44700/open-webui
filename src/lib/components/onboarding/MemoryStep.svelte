@@ -10,12 +10,33 @@
 	import { avatarImgFallback } from '$lib/utils/agentIdentity';
 	import { AGENT_TEMPLATES } from '$lib/components/agents/templates';
 	import obsidianLogo from '$lib/assets/integrations/obsidian.svg';
+	import { getSyncPack, downloadSyncPack } from '$lib/apis/memory';
 
 	const i18n = getContext('i18n');
 	const dispatch = createEventDispatcher();
 
 	// Page de téléchargement officielle (Mac/Windows/Linux détectés automatiquement par Obsidian).
 	const OBSIDIAN_DOWNLOAD = 'https://obsidian.md/download';
+
+	// Étape 2 : télécharger « LunarIA Sync » = le pack Syncthing PRÉ-APPAIRÉ. Le client le lance et
+	// son coffre se connecte tout seul (zéro appairage). Généré à la demande par le bridge ; 503 tant
+	// que la synchro n'est pas provisionnée sur le serveur (ex. dev mono-machine sans coffre distant).
+	let syncing = false;
+	let syncError = '';
+	const connectVault = async () => {
+		syncing = true;
+		syncError = '';
+		try {
+			const pack = await getSyncPack(localStorage.token);
+			downloadSyncPack(pack);
+		} catch {
+			syncError = $i18n.t(
+				'La connexion du coffre n’est pas encore disponible ici. Votre mémoire reste consultable dans l’onglet Mémoire.'
+			);
+		} finally {
+			syncing = false;
+		}
+	};
 
 	// Adam = l'agent Obsidian (source unique : le template du socle). Fond du cercle = sa couleur signature.
 	const adam = AGENT_TEMPLATES.find((t) => t.id === 'agent-obsidian');
@@ -78,25 +99,46 @@
 		</div>
 		<p class="mt-1.5 text-[14px] leading-relaxed text-gray-600 dark:text-gray-300">
 			{$i18n.t(
-				'Installez Obsidian pour consulter et enrichir votre coffre directement depuis votre PC. Il reste synchronisé avec votre assistant : ce qu’Adam range apparaît chez vous, ce que vous notez, il le retrouve.'
+				'En 2 étapes, retrouvez votre coffre dans Obsidian sur votre PC — déjà rempli par Adam et synchronisé avec votre assistant.'
 			)}
 		</p>
-		<div class="mt-3.5 flex justify-center">
+		<div class="mt-4 flex flex-col sm:flex-row justify-center gap-2.5">
+			<!-- Étape 1 : installer Obsidian -->
 			<a
 				href={OBSIDIAN_DOWNLOAD}
 				target="_blank"
 				rel="noopener noreferrer"
-				class="inline-flex items-center gap-2.5 text-sm font-semibold px-6 py-2.5 rounded-xl bg-gradient-to-br from-violet-500 to-violet-700 text-white shadow-sm hover:brightness-110 transition"
+				class="inline-flex items-center justify-center gap-2.5 text-sm font-semibold px-5 py-2.5 rounded-xl bg-white dark:bg-white/10 text-gray-900 dark:text-white ring-1 ring-inset ring-gray-900/10 dark:ring-white/15 hover:ring-violet-400/60 transition"
 			>
-				<span class="inline-flex h-5 w-5 items-center justify-center rounded-full bg-white">
+				<span class="inline-flex h-5 w-5 flex-none items-center justify-center rounded-full bg-violet-100">
 					<img src={obsidianLogo} alt="" class="h-3.5 w-3.5" />
 				</span>
-				{$i18n.t('Télécharger Obsidian')}
+				<span class="text-left leading-tight">
+					<span class="block text-[11px] font-medium text-gray-400 dark:text-gray-500">
+						{$i18n.t('Étape 1')}
+					</span>
+					{$i18n.t('Télécharger Obsidian')}
+				</span>
 			</a>
+			<!-- Étape 2 : connecter le coffre (pack LunarIA Sync pré-appairé, zéro manip) -->
+			<button
+				type="button"
+				on:click={connectVault}
+				disabled={syncing}
+				class="inline-flex items-center justify-center gap-2.5 text-sm font-semibold px-5 py-2.5 rounded-xl bg-gradient-to-br from-amber-400 to-amber-600 text-amber-950 shadow-sm hover:brightness-105 disabled:opacity-60 transition"
+			>
+				<span class="text-left leading-tight">
+					<span class="block text-[11px] font-medium text-amber-900/70">{$i18n.t('Étape 2')}</span>
+					{syncing ? $i18n.t('Préparation…') : $i18n.t('Connecter mon coffre')}
+				</span>
+			</button>
 		</div>
+		{#if syncError}
+			<p class="mt-2.5 text-[13px] text-amber-700 dark:text-amber-300">{syncError}</p>
+		{/if}
 		<p class="mt-3 text-[13px] text-gray-500 dark:text-gray-400">
 			{$i18n.t(
-				'Pas besoin d’installer quoi que ce soit tout de suite : votre mémoire est déjà consultable dans l’onglet Mémoire de LunarIA.'
+				'Pas envie d’installer ? Votre mémoire est déjà consultable dans l’onglet Mémoire de LunarIA.'
 			)}
 		</p>
 	</div>

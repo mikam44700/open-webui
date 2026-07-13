@@ -112,3 +112,20 @@ export const updateEntry = (
 
 export const removeEntry = (token: string, index: number): Promise<MemoryEntriesResponse> =>
 	call(token, 'DELETE', `/entries/${index}`);
+
+// Pack de synchronisation du coffre (feature 005 US5) : identité Syncthing pré-appairée que le
+// client télécharge → son coffre se connecte tout seul (zéro appairage). Base64 (quelques Ko).
+export type SyncPack = { filename: string; content_b64: string; size: number };
+
+export const getSyncPack = (token: string): Promise<SyncPack> => call(token, 'GET', '/sync/pack');
+
+// Déclenche le téléchargement du pack (décode le base64 en fichier zip côté navigateur).
+export const downloadSyncPack = (pack: SyncPack): void => {
+	const bytes = Uint8Array.from(atob(pack.content_b64), (c) => c.charCodeAt(0));
+	const url = URL.createObjectURL(new Blob([bytes], { type: 'application/zip' }));
+	const a = document.createElement('a');
+	a.href = url;
+	a.download = pack.filename;
+	a.click();
+	URL.revokeObjectURL(url);
+};
