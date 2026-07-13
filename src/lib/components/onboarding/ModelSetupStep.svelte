@@ -129,7 +129,11 @@
 	const skip = () => dispatch('skip');
 </script>
 
-<div class="w-full max-w-3xl mx-auto px-5 py-8 sm:py-10">
+<div class="w-full max-w-5xl mx-auto px-5 py-8 sm:py-10">
+	<!-- Colonne « lecture » (en-tête, cerveau actif, Codex, nav) : centrée étroite pour rester
+	     lisible et premium. Le catalogue de fournisseurs, lui, s'élargit plus bas (pleine largeur
+	     du conteneur) pour que les cartes respirent au lieu d'être tassées au centre. -->
+	<div class="max-w-2xl mx-auto">
 	<!-- En-tête : le pourquoi, avant tout -->
 	<div class="text-center">
 		<div
@@ -276,14 +280,17 @@
 		<span class="flex-1 h-px bg-gray-200 dark:bg-white/10"></span>
 	</button>
 
+	</div>
 	<!-- Catalogue restreint à Comptes + Clés API (pas de « Moteur » ni « Local » : on n'embrouille
-	     pas le dirigeant avec l'état technique du moteur). Affiché à la demande, non bloquant. -->
+	     pas le dirigeant avec l'état technique du moteur). Affiché à la demande, non bloquant.
+	     Hors de la colonne étroite : prend la pleine largeur du conteneur pour aérer les cartes. -->
 	{#if showAll}
 		<div class="rounded-2xl ring-1 ring-inset ring-black/5 dark:ring-white/10 overflow-hidden">
 			<ProviderList allowedTabs={['oauth', 'api']} showModelPicker on:changed={refresh} />
 		</div>
 	{/if}
 
+	<div class="max-w-2xl mx-auto">
 	<!-- Navigation -->
 	<div class="mt-8 flex flex-wrap items-center justify-center gap-3">
 		<button
@@ -305,4 +312,5 @@
 			🔒 {$i18n.t('Connexion à votre compte. Aucune donnée partagée.')}
 		</p>
 	{/if}
+	</div>
 </div>
