@@ -31,6 +31,20 @@
 	let checking = true;
 	let showAll = false; // « ou choisissez un autre modèle » : replié par défaut (Codex mis en avant)
 	let codexState: 'idle' | 'connecting' | 'error' = 'idle';
+	// ChatGPT/Codex utilise un « device code flow » : le moteur ne peut pas ouvrir le navigateur
+	// seul, il génère une URL + un code à recopier. On les extrait du log du process pour les
+	// présenter proprement (sinon le client reste bloqué sur « Connexion en cours… »).
+	let codexDevice: { url: string; code: string } | null = null;
+
+	// Retire les codes couleur ANSI (le CLI en émet) puis extrait l'URL d'autorisation + le code.
+	const parseDeviceFlow = (raw: string): { url: string; code: string } | null => {
+		const clean = (raw || '').replace(/\[[0-9;]*m/g, '');
+		const url = clean.match(/https?:\/\/\S+/)?.[0] ?? '';
+		const code = clean.match(/\b[A-Z0-9]{4}-[A-Z0-9]{4,6}\b/)?.[0] ?? '';
+		// Nettoie l'URL d'un éventuel caractère de contrôle résiduel (ESC ANSI non retiré).
+		const cleanUrl = url.replace(/[^\x21-\x7e]/g, '');
+		return cleanUrl && code ? { url: cleanUrl, code } : null;
+	};
 	let poller: ReturnType<typeof setInterval> | null = null;
 	let oauthPoller: ReturnType<typeof setInterval> | null = null;
 
@@ -106,17 +120,27 @@
 	// Connexion Codex : ouvre le flux OAuth du moteur puis sonde son issue (comme ProviderOAuth).
 	const connectCodex = async () => {
 		codexState = 'connecting';
+		codexDevice = null;
 		try {
 			await startProviderOAuth(localStorage.token, CODEX_ID);
 			if (oauthPoller) clearInterval(oauthPoller);
 			oauthPoller = setInterval(async () => {
 				const st = await getProviderOAuthStatus(localStorage.token, CODEX_ID).catch(() => null);
-				if (st && st.running === false && st.started) {
+				if (!st) return;
+				// Tant que le flux tourne : extraire l'URL + le code à recopier (device flow).
+				if (st.running) {
+					const dev = parseDeviceFlow(st.log ?? '');
+					if (dev) codexDevice = dev;
+					return;
+				}
+				if (st.started) {
 					clearInterval(oauthPoller!);
 					oauthPoller = null;
+					codexDevice = null;
 					if (st.success) {
 						toast.success($i18n.t('Connexion réussie'));
 						await refresh();
+						providerList?.reload();
 						codexState = 'idle';
 					} else {
 						codexState = 'error';
@@ -127,6 +151,17 @@
 		} catch {
 			codexState = 'error';
 			toast.error($i18n.t('Impossible de démarrer la connexion'));
+		}
+	};
+
+	// Copie le code d'appairage dans le presse-papier (confort pour le recopier sur la page OpenAI).
+	const copyCodexCode = async () => {
+		if (!codexDevice?.code) return;
+		try {
+			await navigator.clipboard.writeText(codexDevice.code);
+			toast.success($i18n.t('Code copié'));
+		} catch {
+			// presse-papier indisponible : le code reste lisible à l'écran, rien de bloquant.
 		}
 	};
 
@@ -246,11 +281,57 @@
 			disabled={codexState === 'connecting'}
 		>
 			{#if codexState === 'connecting'}
-				{$i18n.t('Connexion en cours…')}
+				{codexDevice ? $i18n.t('En attente de votre autorisation…') : $i18n.t('Préparation…')}
 			{:else}
 				{$i18n.t('Se connecter avec ChatGPT')} →
 			{/if}
 		</button>
+
+		{#if codexState === 'connecting' && codexDevice}
+			<!-- Device code flow : ChatGPT ne peut pas ouvrir le navigateur seul. On présente
+			     l'URL + le code à recopier proprement, et on attend l'autorisation. -->
+			<div
+				class="mt-4 rounded-xl bg-amber-50/70 dark:bg-amber-900/15 ring-1 ring-inset ring-amber-500/25 p-4 sm:p-5"
+			>
+				<div class="text-sm font-semibold text-gray-900 dark:text-white">
+					{$i18n.t('Dernière étape : autorisez ChatGPT')}
+				</div>
+				<div class="mt-3 flex flex-col gap-3">
+					<a
+						href={codexDevice.url}
+						target="_blank"
+						rel="noopener noreferrer"
+						class="inline-flex items-center justify-center gap-2 text-sm font-semibold px-4 py-2.5 rounded-lg bg-black text-white dark:bg-white dark:text-black transition hover:opacity-90"
+					>
+						1. {$i18n.t('Ouvrir la page d’autorisation')} ↗
+					</a>
+					<div class="flex items-center gap-2 flex-wrap">
+						<span class="text-sm text-gray-700 dark:text-gray-200"
+							>2. {$i18n.t('Entrez ce code')} :</span
+						>
+						<code
+							class="text-base font-mono font-bold tracking-widest px-2.5 py-1 rounded-md bg-white dark:bg-white/10 ring-1 ring-inset ring-black/10 dark:ring-white/15 text-gray-900 dark:text-white select-all"
+							>{codexDevice.code}</code
+						>
+						<button
+							type="button"
+							class="text-xs font-medium px-2.5 py-1 rounded-md text-amber-700 dark:text-amber-300 hover:bg-amber-500/10 transition"
+							on:click={copyCodexCode}
+						>
+							{$i18n.t('Copier')}
+						</button>
+					</div>
+				</div>
+				<div
+					class="mt-3 pt-3 border-t border-amber-500/15 flex items-center gap-2 text-[13px] text-amber-700 dark:text-amber-300"
+				>
+					<span class="inline-block h-3.5 w-3.5 rounded-full border-2 border-current border-t-transparent animate-spin"
+					></span>
+					{$i18n.t('En attente de votre autorisation…')}
+				</div>
+			</div>
+		{/if}
+
 		{#if codexState === 'error'}
 			<p class="mt-2 text-[13px] text-red-600 dark:text-red-400">
 				{$i18n.t('La connexion n’a pas abouti. Réessayez, ou choisissez un autre modèle ci-dessous.')}
