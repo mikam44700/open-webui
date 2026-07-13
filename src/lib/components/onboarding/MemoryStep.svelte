@@ -134,7 +134,7 @@
 			</button>
 		</div>
 		{#if syncError}
-			<p class="mt-2.5 text-[13px] text-amber-700 dark:text-amber-300">{syncError}</p>
+			<p class="mt-2.5 text-[13px] text-gray-500 dark:text-gray-400">{syncError}</p>
 		{/if}
 		<p class="mt-3 text-[13px] text-gray-500 dark:text-gray-400">
 			{$i18n.t(
