@@ -11,6 +11,7 @@
 	import CrawlLoadingStep from './CrawlLoadingStep.svelte';
 	import ContextReviewStep from './ContextReviewStep.svelte';
 	import InterviewStep from './InterviewStep.svelte';
+	import MemoryStep from './MemoryStep.svelte';
 	import DoneStep from './DoneStep.svelte';
 	import {
 		EMPTY_CONTEXT,
@@ -28,11 +29,12 @@
 	} from '$lib/onboarding/interview';
 	import { saveProfile, writeInboxNote, initMemoryVault } from '$lib/apis/memory';
 	import { crawlSite, synthesizeContext, type CrawlResult } from '$lib/apis/onboarding';
+	import { saveDraft, loadDraft, clearDraft } from '$lib/onboarding/onboardingDraft';
 
 	const i18n = getContext('i18n');
 	const dispatch = createEventDispatcher();
 
-	type Step = 'welcome' | 'model' | 'site' | 'loading' | 'review' | 'interview' | 'done';
+	type Step = 'welcome' | 'model' | 'site' | 'loading' | 'review' | 'interview' | 'memory' | 'done';
 	let step: Step = 'welcome';
 
 	// Historique de navigation : permet un vrai « Retour » qui remonte l'étape réellement
@@ -47,11 +49,17 @@
 		step = history[history.length - 1];
 		history = history.slice(0, -1);
 	};
-	// Pas de « Retour » pendant le chargement (transitoire), l'interview (navigation interne) ni l'écran final.
-	$: canGoBack = history.length > 0 && step !== 'done' && step !== 'loading' && step !== 'interview';
+	// Pas de « Retour » pendant le chargement (transitoire), l'interview (navigation interne), l'étape
+	// mémoire (contexte déjà persisté) ni l'écran final.
+	$: canGoBack =
+		history.length > 0 &&
+		step !== 'done' &&
+		step !== 'loading' &&
+		step !== 'interview' &&
+		step !== 'memory';
 
-	// Progression : 5 jalons. « site », « loading » et « review » partagent le jalon 3.
-	const TOTAL = 5;
+	// Progression : 6 jalons. « site », « loading » et « review » partagent le jalon 3.
+	const TOTAL = 6;
 	const META: Record<Step, { index: number; label: string }> = {
 		welcome: { index: 1, label: 'Bienvenue' },
 		model: { index: 2, label: 'Votre modèle IA' },
@@ -59,7 +67,8 @@
 		loading: { index: 3, label: 'Votre entreprise' },
 		review: { index: 3, label: 'Votre entreprise' },
 		interview: { index: 4, label: 'Faisons connaissance' },
-		done: { index: 5, label: 'C’est prêt' }
+		memory: { index: 5, label: 'Votre second cerveau' },
+		done: { index: 6, label: 'C’est prêt' }
 	};
 	$: meta = META[step];
 
@@ -75,7 +84,6 @@
 			/* la synthèse basculera en saisie manuelle */
 		}
 	};
-	onMount(refreshModel);
 
 	// Contexte en cours de construction + statut du crawl (bandeau honnête à la relecture).
 	let context: CompanyContext = { ...EMPTY_CONTEXT };
@@ -85,8 +93,14 @@
 	let siteError = '';
 	let pagesRead = 0; // nb de pages réellement lues par le crawl multi-pages (affichage honnête)
 
-	const skip = () => dispatch('skip');
-	const finish = () => dispatch('done');
+	const skip = () => {
+		clearDraft();
+		dispatch('skip');
+	};
+	const finish = () => {
+		clearDraft();
+		dispatch('done');
+	};
 
 	const goToSite = async () => {
 		await refreshModel();
@@ -132,6 +146,31 @@
 	let interviewMode: 'full' | 'complement' = 'complement';
 	let answers: Answers = {};
 
+	// Reprise après rechargement : on restaure le brouillon (étape + fiche déjà crawlée + réponses)
+	// pour ne jamais reperdre le travail long (crawl ~1 min), puis on rafraîchit le modèle. `restored`
+	// évite d'écraser le brouillon avec l'état initial « welcome » tant qu'on n'a pas tenté de le relire.
+	let restored = false;
+	onMount(() => {
+		const draft = loadDraft();
+		if (draft && draft.step !== 'done') {
+			// Crawl interrompu (reload pendant le chargement) → on reprend à la saisie du site.
+			step = (draft.step === 'loading' ? 'site' : draft.step) as Step;
+			history = (draft.history ?? []) as Step[];
+			context = draft.context ?? { ...EMPTY_CONTEXT };
+			interviewMode = draft.interviewMode ?? 'complement';
+			answers = draft.answers ?? {};
+			crawlStatus = (draft.crawlStatus ?? null) as CrawlResult['status'] | null;
+			pagesRead = draft.pagesRead ?? 0;
+		}
+		restored = true;
+		refreshModel();
+	});
+
+	// Sauvegarde automatique à chaque évolution de l'état (jamais sur l'écran final : rien à reprendre).
+	$: if (restored && step !== 'done') {
+		saveDraft({ step, history, context, interviewMode, answers, crawlStatus, pagesRead });
+	}
+
 	// « Je n'ai pas de site internet » → interview complète guidée (elle remplace le crawl).
 	const onManual = () => {
 		context = { ...EMPTY_CONTEXT };
@@ -174,7 +213,10 @@
 				console.error(err);
 			}
 		}
-		go('done');
+		// Contexte validé et persisté côté moteur → le brouillon local n'a plus lieu d'être.
+		clearDraft();
+		// Adam vient réellement de recevoir/ranger le contexte : on le montre (second cerveau) avant l'écran final.
+		go('memory');
 	};
 </script>
 
@@ -258,10 +300,15 @@
 			     interview guidée qui remplit aussi la fiche entreprise, sans mur de champs vides. -->
 			<InterviewStep
 				hasSite={interviewMode === 'complement'}
+				initialAnswers={answers}
 				on:done={onInterviewDone}
 				on:back={back}
 				on:skip={skip}
 			/>
+		{:else if step === 'memory'}
+			<!-- Adam (agent mémoire) : second cerveau + coffre Obsidian, juste après l'interview.
+			     « Retour » revient au questionnaire (réponses conservées via initialAnswers). -->
+			<MemoryStep on:next={() => go('done')} on:back={back} on:skip={skip} />
 		{:else if step === 'done'}
 			<DoneStep {context} on:done={finish} on:workspace={finish} />
 		{/if}

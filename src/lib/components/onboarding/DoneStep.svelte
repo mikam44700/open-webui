@@ -6,7 +6,8 @@
 	import { createEventDispatcher, getContext } from 'svelte';
 	import { buildTeamProof } from '$lib/onboarding/teamProof';
 	import { EMPTY_CONTEXT, type CompanyContext } from '$lib/onboarding/companySynthesis';
-	import { faceFromImage } from '$lib/components/agents/avatars';
+	import { faceFromImage, avatarId } from '$lib/components/agents/avatars';
+	import { avatarColor } from '$lib/components/agents/avatar-colors';
 	import { avatarImgFallback } from '$lib/utils/agentIdentity';
 
 	const i18n = getContext('i18n');
@@ -45,14 +46,17 @@
 	<!-- La preuve : l'équipe réelle + ce que chacun connaît de la boîte -->
 	<div class="mt-7 grid gap-2.5 sm:grid-cols-2">
 		{#each team as agent (agent.id)}
+			{@const agentGradient = avatarColor(avatarId(agent.image) || agent.firstName).gradient}
 			<div
 				class="flex items-start gap-3 rounded-2xl bg-white dark:bg-white/[0.03] ring-1 ring-inset ring-black/5 dark:ring-white/10 px-4 py-3.5"
 			>
+				<!-- Visage détouré (transparent) : le fond du cercle = couleur signature de l'agent. -->
 				<img
 					src={faceFromImage(agent.image) ?? '/favicon.png'}
 					alt={agent.firstName}
 					on:error={(e) => avatarImgFallback(e, agent.image)}
-					class="flex-none h-11 w-11 rounded-full object-cover ring-1 ring-inset ring-black/10 dark:ring-white/15 bg-amber-100 dark:bg-amber-900/20"
+					style="background: {agentGradient}"
+					class="flex-none h-11 w-11 rounded-full object-cover ring-1 ring-inset ring-black/10 dark:ring-white/15"
 				/>
 				<div class="min-w-0">
 					<div class="flex items-baseline gap-2">

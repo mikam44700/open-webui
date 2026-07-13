@@ -5,19 +5,26 @@
 	// (persistées avec la fiche entreprise). Cf. interview.ts (logique + séquence).
 	import { createEventDispatcher, getContext } from 'svelte';
 	import { buildQuestions, type Answers, type Question } from '$lib/onboarding/interview';
+	import { faceFromImage } from '$lib/components/agents/avatars';
 
 	const i18n = getContext('i18n');
 	const dispatch = createEventDispatcher();
 
 	// Le crawl a-t-il déjà rempli la fiche ? → interview courte (compléments) vs complète (sans site).
 	export let hasSite = true;
+	// Réponses déjà données (ex. retour depuis l'étape Adam) : on les réaffiche et on reprend à la
+	// dernière question plutôt que de repartir de zéro. Vide au premier passage.
+	export let initialAnswers: Answers = {};
 
 	const questions: Question[] = buildQuestions(hasSite);
-	let idx = 0;
-	let answers: Answers = {};
+	let answers: Answers = { ...initialAnswers };
+	let idx = Object.keys(initialAnswers).length > 0 ? questions.length - 1 : 0;
 
 	let mikeError = false;
-	const mikeImage = '/assets/agents/mike.webp';
+	// Gros plan visage cadré pour le cercle (MÊME source que le chat/AgentSelector via VisageAvatars),
+	// repli sur le portrait buste si le visage manque — cohérence de l'identité de Mike partout.
+	const mikeBody = '/assets/agents/mike.webp';
+	const mikeImage = faceFromImage(mikeBody) ?? mikeBody;
 
 	$: q = questions[idx];
 	$: total = questions.length;
@@ -25,6 +32,17 @@
 	// Valeur courante (texte) ou sélection (chips).
 	$: textValue = typeof answers[q.key] === 'string' ? (answers[q.key] as string) : '';
 	$: multiValue = Array.isArray(answers[q.key]) ? (answers[q.key] as string[]) : [];
+	// Champ « Précisez… » : affiché quand l'option « Autre » de la question est sélectionnée.
+	// Stocké dans une clé compagnon `${key}Autre` ; le profil final la substitue à « Autre ».
+	$: otherKey = `${q.key}Autre`;
+	$: otherText = typeof answers[otherKey] === 'string' ? (answers[otherKey] as string) : '';
+	$: showOther =
+		(q.kind === 'chips' || q.kind === 'chipsMulti') &&
+		!!q.otherOption &&
+		(q.kind === 'chips' ? textValue === q.otherOption : multiValue.includes(q.otherOption));
+	$: otherPlaceholder =
+		(q.kind === 'chips' || q.kind === 'chipsMulti') && q.otherPlaceholder ? q.otherPlaceholder : 'Précisez';
+	const setOther = (v: string) => (answers = { ...answers, [otherKey]: v });
 	// Le prénom est la seule réponse requise pour avancer.
 	$: canNext = q.optional || (typeof answers[q.key] === 'string' && (answers[q.key] as string).trim() !== '');
 
@@ -83,7 +101,15 @@
 					<img
 						src={mikeImage}
 						alt="Mike"
-						on:error={() => (mikeError = true)}
+						on:error={(e) => {
+							const el = e.currentTarget;
+							if (!el.dataset.triedBody) {
+								el.dataset.triedBody = '1';
+								el.src = mikeBody;
+							} else {
+								mikeError = true;
+							}
+						}}
 						class="h-11 w-11 rounded-full object-cover ring-1 ring-inset ring-black/10 dark:ring-white/15 bg-amber-100 dark:bg-amber-900/20"
 					/>
 				{/if}
@@ -99,6 +125,9 @@
 			<h1 class="mt-5 text-2xl sm:text-3xl font-semibold tracking-tight text-gray-900 dark:text-white">
 				{$i18n.t(q.title)}
 			</h1>
+			{#if q.kind === 'chips' && q.hint}
+				<p class="mt-2 text-[15px] text-gray-500 dark:text-gray-400">{$i18n.t(q.hint)}</p>
+			{/if}
 
 			<div class="mt-6">
 				{#if q.kind === 'text'}
@@ -117,6 +146,31 @@
 						placeholder={$i18n.t(q.placeholder)}
 						class="w-full px-4 py-3 rounded-xl bg-white dark:bg-white/10 text-gray-900 dark:text-white ring-1 ring-inset ring-gray-900/10 dark:ring-white/15 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-amber-400/60 resize-y leading-relaxed"
 					></textarea>
+				{:else if q.kind === 'chips' && q.optionHints}
+					<!-- Choix important à expliciter : cartes (libellé + explication concrète). -->
+					<div class="flex flex-col gap-2.5">
+						{#each q.options as opt (opt)}
+							<button
+								type="button"
+								on:click={() => pickChip(opt)}
+								class="text-left px-4 py-3 rounded-xl ring-1 ring-inset transition {textValue === opt
+									? 'bg-amber-500/10 ring-amber-500'
+									: 'bg-white/70 dark:bg-white/5 ring-gray-900/10 dark:ring-white/15 hover:ring-amber-400/60'}"
+							>
+								<span class="flex items-center gap-2.5 text-sm font-semibold text-gray-900 dark:text-white">
+									<span
+										class="inline-flex h-4 w-4 flex-none rounded-full ring-1 ring-inset {textValue === opt
+											? 'bg-amber-500 ring-amber-500'
+											: 'ring-gray-400 dark:ring-white/30'}"
+									></span>
+									{$i18n.t(opt)}
+								</span>
+								<span class="mt-1 block pl-[26px] text-[13px] text-gray-500 dark:text-gray-400">
+									{$i18n.t(q.optionHints?.[opt] ?? '')}
+								</span>
+							</button>
+						{/each}
+					</div>
 				{:else if q.kind === 'chips'}
 					<div class="flex flex-wrap gap-2">
 						{#each q.options as opt (opt)}
@@ -145,6 +199,17 @@
 							</button>
 						{/each}
 					</div>
+				{/if}
+
+				<!-- Champ libre de précision quand « Autre » est sélectionné (rôle, outils…). -->
+				{#if showOther}
+					<input
+						type="text"
+						value={otherText}
+						on:input={(e) => setOther((e.currentTarget as HTMLInputElement).value)}
+						placeholder={$i18n.t(otherPlaceholder)}
+						class="mt-3 w-full px-4 py-3 rounded-xl bg-white dark:bg-white/10 text-gray-900 dark:text-white ring-1 ring-inset ring-gray-900/10 dark:ring-white/15 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-amber-400/60"
+					/>
 				{/if}
 			</div>
 

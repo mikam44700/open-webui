@@ -15,33 +15,80 @@ export type Answers = Record<string, string | string[]>;
 export type Question =
 	| { key: string; kind: 'text'; title: string; placeholder: string; optional?: boolean }
 	| { key: string; kind: 'textarea'; title: string; placeholder: string; optional?: boolean }
-	| { key: string; kind: 'chips'; title: string; options: string[]; optional?: boolean }
-	| { key: string; kind: 'chipsMulti'; title: string; options: string[]; optional?: boolean };
+	| {
+			key: string;
+			kind: 'chips';
+			title: string;
+			options: string[];
+			optional?: boolean;
+			// Sous-titre explicatif affiché sous la question (ex. concret) — pour les choix pas
+			// évidents (niveau d'autonomie…). Optionnel : sans lui, la question reste seule.
+			hint?: string;
+			// Descriptions par option : quand présent, les choix s'affichent en CARTES (libellé +
+			// explication) au lieu de pastilles — pour un choix important à expliciter au dirigeant.
+			optionHints?: Record<string, string>;
+			// Si présent et que cette option est choisie, un champ libre « Précisez… » s'affiche ;
+			// sa valeur (clé compagnon `${key}Autre`) REMPLACE le marqueur dans le profil final.
+			otherOption?: string;
+			otherPlaceholder?: string;
+	  }
+	| {
+			key: string;
+			kind: 'chipsMulti';
+			title: string;
+			options: string[];
+			optional?: boolean;
+			otherOption?: string;
+			otherPlaceholder?: string;
+	  };
 
 // Questions de COMPLÉMENT (cas « avec site ») : ce que le crawl ne trouve pas. Ordre = du plus
 // facile/engageant (prénom) vers le plus impliquant, dernière question chaleureuse.
 export const COMPLEMENT_QUESTIONS: Question[] = [
-	{ key: 'prenom', kind: 'text', title: 'Comment vous appelez-vous ?', placeholder: 'Votre prénom' },
+	{ key: 'prenom', kind: 'text', title: 'Quel est votre prénom ?', placeholder: 'Votre prénom' },
 	{
 		key: 'role',
 		kind: 'chips',
 		title: 'Quel est votre rôle dans l’entreprise ?',
-		options: ['Gérant(e)', 'Fondateur(trice)', 'Associé(e)', 'Directeur(trice)', 'Autre'],
-		optional: true
+		options: [
+			'Gérant(e)',
+			'Président(e)',
+			'Fondateur(trice)',
+			'Associé(e)',
+			'Directeur(trice)',
+			'Indépendant(e) / Auto-entrepreneur',
+			'Artisan / Commerçant',
+			'Autre'
+		],
+		optional: true,
+		otherOption: 'Autre',
+		otherPlaceholder: 'Précisez votre rôle'
 	},
 	{
 		key: 'tailleEquipe',
 		kind: 'chips',
-		title: 'Vous êtes combien dans l’équipe ?',
-		options: ['Seul(e)', '2 à 5', '6 à 15', '16 et plus'],
+		title: 'Quelle est la taille de votre équipe ?',
+		options: ['Seul(e)', '2 à 10', '11 à 50', '51 à 100', 'Plus de 100'],
 		optional: true
 	},
 	{
 		key: 'outils',
 		kind: 'chipsMulti',
 		title: 'Avec quoi travaillez-vous au quotidien ?',
-		options: ['E-mail', 'WhatsApp', 'Excel / Google Sheets', 'Logiciel de compta', 'CRM', 'Autre'],
-		optional: true
+		options: [
+			'E-mail',
+			'WhatsApp',
+			'Réseaux sociaux',
+			'Agenda / Calendrier',
+			'Excel / Google Sheets',
+			'Logiciel de compta',
+			'Facturation / devis',
+			'CRM',
+			'Autre'
+		],
+		optional: true,
+		otherOption: 'Autre',
+		otherPlaceholder: 'Précisez l’outil'
 	},
 	{
 		key: 'priorite',
@@ -53,14 +100,21 @@ export const COMPLEMENT_QUESTIONS: Question[] = [
 	{
 		key: 'faconTravailler',
 		kind: 'chips',
-		title: 'Comment préférez-vous qu’on vous aide ?',
-		options: ['Je valide tout', 'Agissez et prévenez-moi', 'Un mix des deux'],
+		title: 'Jusqu’où votre assistant peut-il agir seul ?',
+		hint: 'Par exemple pour envoyer un e-mail ou relancer un client à votre place.',
+		options: ['Je valide avant', 'Il agit et me prévient', 'Un mix selon l’importance'],
+		optionHints: {
+			'Je valide avant': 'Il prépare, vous approuvez, puis il exécute. Vous gardez la main sur tout.',
+			'Il agit et me prévient': 'Il fait les tâches lui-même et vous tient au courant après.',
+			'Un mix selon l’importance':
+				'Il agit seul sur les petites choses, et vous demande pour les décisions importantes.'
+		},
 		optional: true
 	},
 	{
 		key: 'tacheAgacante',
 		kind: 'textarea',
-		title: 'Quelle tâche répétitive aimeriez-vous ne plus jamais faire ?',
+		title: 'Quelle tâche répétitive aimeriez-vous déléguer en premier ?',
 		placeholder: 'Ex. relancer les impayés, trier mes mails, faire les devis…',
 		optional: true
 	}
@@ -113,9 +167,22 @@ const str = (v: string | string[] | undefined): string => {
 	return (v ?? '').trim();
 };
 
-// Vrai si l'interview n'a produit aucune réponse exploitable.
+// Remplace le marqueur « Autre » par la précision libre saisie (clé compagnon `${key}Autre`).
+// Ex. role='Autre' + roleAutre='Consultant' → 'Consultant'. Sans précision : valeur inchangée.
+const resolveOther = (key: string, a: Answers): string | string[] => {
+	const v = a[key] ?? '';
+	const custom = str(a[`${key}Autre`]);
+	if (!custom) return v;
+	if (Array.isArray(v)) return v.map((x) => (x === 'Autre' ? custom : x));
+	return v === 'Autre' ? custom : v;
+};
+
+// Vrai si l'interview n'a produit aucune réponse exploitable. Les clés compagnon `*Autre` seules
+// (sans que « Autre » soit coché) ne comptent pas comme réponse.
 export const isInterviewEmpty = (a: Answers): boolean =>
-	Object.values(a).every((v) => str(v) === '');
+	Object.keys(a)
+		.filter((k) => !k.endsWith('Autre'))
+		.every((k) => str(resolveOther(k, a)) === '');
 
 // Met en forme les réponses en une section USER.md « profil & façon de travailler ». Omet les
 // champs vides. Les clés qui appartiennent au contexte entreprise (nom, secteur…) sont exclues ici
@@ -143,7 +210,7 @@ export const answersToContext = (a: Answers): CompanyContext => ({
 export const formatInterviewForProfile = (a: Answers): string => {
 	const lines: string[] = [];
 	for (const [key, label] of Object.entries(PROFILE_LABELS)) {
-		const v = str(a[key]);
+		const v = str(resolveOther(key, a));
 		if (v) lines.push(`- ${label} : ${v}`);
 	}
 	if (lines.length === 0) return '';
