@@ -3,6 +3,7 @@ import {
 	parseSynthesis,
 	isContextEmpty,
 	formatContextForProfile,
+	formatContextForKnowledge,
 	buildSynthesisUserContent,
 	EMPTY_CONTEXT,
 	type CompanyContext
@@ -14,6 +15,7 @@ describe('parseSynthesis — jamais inventer, normaliser honnêtement', () => {
 			nomEntreprise: 'DentaSoft',
 			secteur: 'Logiciel médical',
 			coordonnees: '01 23 45 67 89 · contact@dentasoft.fr · Paris',
+			resume: 'DentaSoft édite un logiciel de gestion tout-en-un pour les cabinets dentaires.',
 			offre: 'Logiciel de gestion pour dentistes',
 			services: ['prise de rendez-vous', 'facturation', 'facturation'],
 			tonDeMarque: 'chaleureux, direct',
@@ -26,6 +28,7 @@ describe('parseSynthesis — jamais inventer, normaliser honnêtement', () => {
 		expect(ctx.nomEntreprise).toBe('DentaSoft');
 		expect(ctx.secteur).toBe('Logiciel médical');
 		expect(ctx.coordonnees).toContain('01 23 45 67 89');
+		expect(ctx.resume).toContain('tout-en-un pour les cabinets dentaires');
 		expect(ctx.offre).toBe('Logiciel de gestion pour dentistes');
 		expect(ctx.tonDeMarque).toBe('chaleureux, direct');
 		expect(ctx.clienteleCible).toBe('cabinets dentaires');
@@ -107,43 +110,74 @@ describe('isContextEmpty — honnêteté d’état', () => {
 	});
 });
 
-describe('formatContextForProfile — texte USER.md lisible, champs vides omis', () => {
-	it('assemble tous les champs renseignés', () => {
-		const ctx: CompanyContext = {
-			...EMPTY_CONTEXT,
-			nomEntreprise: 'DentaSoft',
-			secteur: 'Logiciel médical',
-			coordonnees: 'Paris',
-			offre: 'Logiciel dentaire',
-			services: ['RDV', 'facturation'],
-			tonDeMarque: 'direct',
-			vocabulaire: ['cabinet connecté'],
-			clienteleCible: 'cabinets',
-			problemesResolus: 'trop d’outils',
-			preuveSociale: ['500 cabinets']
-		};
-		const txt = formatContextForProfile(ctx);
+describe('formatContextForProfile — USER.md = ESSENCE seule (le nécessaire injecté partout)', () => {
+	const rich: CompanyContext = {
+		...EMPTY_CONTEXT,
+		nomEntreprise: 'DentaSoft',
+		secteur: 'Logiciel médical',
+		coordonnees: 'Paris',
+		resume: 'DentaSoft édite un logiciel pour cabinets dentaires.',
+		offre: 'Logiciel dentaire',
+		services: ['RDV', 'facturation'],
+		tonDeMarque: 'direct',
+		vocabulaire: ['cabinet connecté'],
+		clienteleCible: 'cabinets',
+		problemesResolus: 'trop d’outils',
+		preuveSociale: ['500 cabinets']
+	};
+
+	it('garde l’essence : nom, secteur, résumé (activité), clientèle, ton, coordonnées', () => {
+		const txt = formatContextForProfile(rich);
 		expect(txt).toContain('DentaSoft');
 		expect(txt).toContain('Logiciel médical');
-		expect(txt).toContain('Logiciel dentaire');
+		expect(txt).toContain('logiciel pour cabinets dentaires'); // le résumé sert d’activité
 		expect(txt).toContain('cabinets');
-		expect(txt).toContain('RDV');
-		expect(txt).toContain('trop d’outils');
-		expect(txt).toContain('500 cabinets');
-		expect(txt).toContain('cabinet connecté');
+		expect(txt).toContain('direct');
 		expect(txt).toContain('Paris');
 	});
 
-	it('omet les sections vides (pas de ligne fantôme)', () => {
+	it('EXCLUT le verbeux (services, problèmes, preuves, vocabulaire) → réservé au coffre', () => {
+		const txt = formatContextForProfile(rich);
+		expect(txt).not.toContain('RDV');
+		expect(txt).not.toContain('trop d’outils');
+		expect(txt).not.toContain('500 cabinets');
+		expect(txt).not.toContain('cabinet connecté');
+	});
+
+	it('repli sur l’offre si aucun résumé', () => {
 		const txt = formatContextForProfile({ ...EMPTY_CONTEXT, offre: 'Juste une offre' });
 		expect(txt).toContain('Juste une offre');
 		expect(txt.toLowerCase()).not.toContain('ton de marque');
 		expect(txt.toLowerCase()).not.toContain('preuves');
-		expect(txt.toLowerCase()).not.toContain('coordonnées');
 	});
 
 	it('contexte vide → chaîne vide (rien à persister)', () => {
 		expect(formatContextForProfile(EMPTY_CONTEXT)).toBe('');
+	});
+});
+
+describe('formatContextForKnowledge — coffre = fiche COMPLÈTE (tout, sans borne)', () => {
+	it('inclut résumé + tous les blocs (services, problèmes, preuves, vocabulaire)', () => {
+		const ctx: CompanyContext = {
+			...EMPTY_CONTEXT,
+			nomEntreprise: 'DentaSoft',
+			resume: 'Logiciel dentaire tout-en-un.',
+			offre: 'Logiciel dentaire',
+			services: ['RDV', 'facturation'],
+			problemesResolus: 'trop d’outils',
+			preuveSociale: ['500 cabinets équipés'],
+			vocabulaire: ['cabinet connecté']
+		};
+		const txt = formatContextForKnowledge(ctx);
+		expect(txt).toContain('Logiciel dentaire tout-en-un'); // résumé
+		expect(txt).toContain('RDV'); // services conservés
+		expect(txt).toContain('trop d’outils'); // problèmes conservés
+		expect(txt).toContain('500 cabinets équipés'); // preuves verbatim
+		expect(txt).toContain('cabinet connecté'); // vocabulaire complet
+	});
+
+	it('contexte vide → chaîne vide', () => {
+		expect(formatContextForKnowledge(EMPTY_CONTEXT)).toBe('');
 	});
 });
 

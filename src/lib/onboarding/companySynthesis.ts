@@ -18,6 +18,7 @@ export type CompanyContext = {
 	secteur: string;
 	coordonnees: string;
 	// Offre
+	resume: string; // essence en 1-2 phrases (l'ADN qui va dans USER.md, injecté dans chaque agent)
 	offre: string;
 	services: string[];
 	tonDeMarque: string;
@@ -32,6 +33,7 @@ export const EMPTY_CONTEXT: CompanyContext = {
 	nomEntreprise: '',
 	secteur: '',
 	coordonnees: '',
+	resume: '',
 	offre: '',
 	services: [],
 	tonDeMarque: '',
@@ -56,6 +58,10 @@ export const SYNTHESIS_SYSTEM_PROMPT =
 	'- "coordonnees" : téléphone, email, adresse, horaires, zone géographique. Utilise ce qui est ' +
 	'indiqué, ET en particulier le bloc « Coordonnées repérées sur le site » s’il est présent plus bas ' +
 	'(téléphone/email/adresse extraits du pied de page) — recopie ces valeurs telles quelles\n' +
+	'- "resume" : l’ESSENCE de l’entreprise en 1 à 2 phrases claires et naturelles — qui elle est, ce ' +
+	'qu’elle fait et pour qui. C’est le texte qui personnalisera l’assistant : concret, sans jargon, ' +
+	'sans liste. Ex. « Zelty édite un logiciel de caisse et de gestion tout-en-un pour les restaurants, ' +
+	'qui centralise commandes, livraisons et pilotage multi-sites. »\n' +
 	'- "offre" : ce qu’elle vend, en une phrase claire\n' +
 	'- "services" : tableau des prestations/produits proposés\n' +
 	'- "tonDeMarque" : le registre/voix, DÉRIVÉ du style réel des textes du site (ex. « chaleureux, ' +
@@ -166,6 +172,7 @@ export const parseSynthesis = (raw: string): CompanyContext => {
 		nomEntreprise: normStr(obj.nomEntreprise),
 		secteur: normStr(obj.secteur),
 		coordonnees: normStr(obj.coordonnees),
+		resume: normStr(obj.resume),
 		offre: normStr(obj.offre),
 		services: normList(obj.services),
 		tonDeMarque: normStr(obj.tonDeMarque),
@@ -182,6 +189,7 @@ export const isContextEmpty = (c: CompanyContext): boolean =>
 	!c.nomEntreprise.trim() &&
 	!c.secteur.trim() &&
 	!c.coordonnees.trim() &&
+	!c.resume.trim() &&
 	!c.offre.trim() &&
 	!c.tonDeMarque.trim() &&
 	!c.clienteleCible.trim() &&
@@ -225,33 +233,32 @@ const clip = (s: string, n: number): string => {
 	return t.slice(0, n).replace(/\s+\S*$/, '') + '…';
 };
 
-// Fiche CONCISE pour USER.md : essentiel personnalisant, champs écrêtés, listes bornées, preuves
-// courtes. Ordre = priorité (le plus utile aux agents d'abord) — `capProfileText` peut retirer la
-// queue (vocabulaire…) pour tenir dans la limite ; le coffre garde tout. Contexte vide → ''.
+// Fiche ESSENCE pour USER.md (injecté dans CHAQUE agent) : uniquement le nécessaire, écrit proprement
+// — le résumé (ADN), l'identité, la clientèle, le ton, les coordonnées. Le détail verbeux (offre
+// détaillée, services, problèmes, preuves, vocabulaire complet) vit au COFFRE, pas ici. On préfère le
+// `resume` du modèle ; à défaut, repli sur l'offre. `capProfileText` garantit la borne au moment
+// d'écrire (combiné au profil dirigeant). Contexte vide → ''.
 export const formatContextForProfile = (c: CompanyContext): string => {
 	if (isContextEmpty(c)) return '';
 	const lines: string[] = ['## Mon entreprise', ''];
 	if (c.nomEntreprise.trim()) lines.push(`- Nom : ${clip(c.nomEntreprise, 80)}`);
 	if (c.secteur.trim()) lines.push(`- Secteur : ${clip(c.secteur, 90)}`);
-	if (c.offre.trim()) lines.push(`- Offre : ${clip(c.offre, 180)}`);
-	if (c.clienteleCible.trim()) lines.push(`- Clientèle cible : ${clip(c.clienteleCible, 120)}`);
-	if (c.coordonnees.trim()) lines.push(`- Coordonnées : ${clip(c.coordonnees, 200)}`);
+	const essence = c.resume.trim() || c.offre.trim(); // le résumé du modèle, sinon l'offre en repli
+	if (essence) lines.push(`- Activité : ${clip(essence, 260)}`);
+	if (c.clienteleCible.trim()) lines.push(`- Clientèle cible : ${clip(c.clienteleCible, 130)}`);
 	if (c.tonDeMarque.trim()) lines.push(`- Ton de marque : ${clip(c.tonDeMarque, 120)}`);
-	if (c.problemesResolus.trim()) lines.push(`- Problèmes résolus : ${clip(c.problemesResolus, 200)}`);
-	if (c.services.length) lines.push(`- Services : ${clip(c.services.slice(0, 8).join(', '), 300)}`);
-	const shortProofs = c.preuveSociale.filter((p) => p.length <= SHORT_PROOF_MAX).slice(0, 4);
-	if (shortProofs.length) lines.push(`- Preuves / réassurance : ${clip(shortProofs.join(', '), 180)}`);
-	if (c.vocabulaire.length) lines.push(`- Vocabulaire maison : ${clip(c.vocabulaire.slice(0, 10).join(', '), 140)}`);
+	if (c.coordonnees.trim()) lines.push(`- Coordonnées : ${clip(c.coordonnees, 200)}`);
 	return lines.join('\n');
 };
 
-// Fiche COMPLÈTE pour le COFFRE (note datée, cherchable) : tout, sans borne — y compris tous les
+// Fiche COMPLÈTE pour le COFFRE (note datée, cherchable) : tout, sans borne — résumé + tous les
 // services et les témoignages verbatim. C'est la mémoire riche, pas le prompt injecté.
 export const formatContextForKnowledge = (c: CompanyContext): string => {
 	if (isContextEmpty(c)) return '';
 	const lines: string[] = ['## Mon entreprise', ''];
 	if (c.nomEntreprise.trim()) lines.push(`- Nom : ${c.nomEntreprise.trim()}`);
 	if (c.secteur.trim()) lines.push(`- Secteur : ${c.secteur.trim()}`);
+	if (c.resume.trim()) lines.push(`- Résumé : ${c.resume.trim()}`);
 	if (c.offre.trim()) lines.push(`- Offre : ${c.offre.trim()}`);
 	if (c.clienteleCible.trim()) lines.push(`- Clientèle cible : ${c.clienteleCible.trim()}`);
 	if (c.services.length) lines.push(`- Services : ${c.services.join(', ')}`);

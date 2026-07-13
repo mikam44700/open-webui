@@ -41,6 +41,7 @@ const FIELDS: { key: keyof CompanyContext; label: string }[] = [
 	{ key: 'nomEntreprise', label: 'Nom' },
 	{ key: 'secteur', label: 'Secteur' },
 	{ key: 'coordonnees', label: 'Coordonnées' },
+	{ key: 'resume', label: 'Résumé' },
 	{ key: 'offre', label: 'Offre' },
 	{ key: 'services', label: 'Services' },
 	{ key: 'tonDeMarque', label: 'Ton' },

@@ -27,6 +27,7 @@
 		nomEntreprise: context.nomEntreprise,
 		secteur: context.secteur,
 		coordonnees: context.coordonnees,
+		resume: context.resume,
 		offre: context.offre,
 		servicesText: context.services.join('\n'),
 		tonDeMarque: context.tonDeMarque,
@@ -44,15 +45,30 @@
 	const fromAi = (key: string): boolean => !!seeds[key] && (form[key] ?? '').trim() === seeds[key];
 
 	type Field = { key: string; label: string; ph: string; area?: boolean; rows?: number; chips?: boolean };
-	type Section = { title: string; icon: string; fields: Field[] };
+	type Section = { title: string; subtitle: string; icon: string; tone: 'profil' | 'base'; fields: Field[] };
 
+	// Groupé par DESTINATION (pas par thème) pour que le dirigeant VOIE le tri, en langage humain :
+	//  - « profil » = l'essence, gardée en tête par l'assistant à chaque échange (→ USER.md concis) ;
+	//  - « base » = le détail, rangé et consultable à la demande (→ coffre / base de connaissances).
+	// Ce découpage reflète EXACTEMENT formatContextForProfile (essence) vs formatContextForKnowledge (tout).
 	const SECTIONS: Section[] = [
 		{
-			title: 'Votre identité',
-			icon: '🏢',
+			title: 'Ce que votre assistant garde en tête',
+			subtitle: 'Il s’en sert dans chaque échange',
+			icon: '🧠',
+			tone: 'profil',
 			fields: [
+				{
+					key: 'resume',
+					label: 'En une phrase (l’ADN de votre entreprise)',
+					ph: 'Qui vous êtes, ce que vous faites, et pour qui',
+					area: true,
+					rows: 2
+				},
 				{ key: 'nomEntreprise', label: 'Nom de l’entreprise', ph: 'Le nom de votre entreprise' },
 				{ key: 'secteur', label: 'Secteur d’activité', ph: 'Votre métier, votre secteur' },
+				{ key: 'clienteleCible', label: 'Votre clientèle', ph: 'À qui vous vous adressez', area: true, rows: 2 },
+				{ key: 'tonDeMarque', label: 'Votre ton de marque', ph: 'Ex. chaleureux, direct' },
 				{
 					key: 'coordonnees',
 					label: 'Coordonnées',
@@ -63,31 +79,13 @@
 			]
 		},
 		{
-			title: 'Votre offre',
-			icon: '💡',
+			title: 'Rangé dans votre base de connaissances',
+			subtitle: 'Consultable quand un agent en a besoin',
+			icon: '📚',
+			tone: 'base',
 			fields: [
-				{ key: 'offre', label: 'Votre offre', ph: 'Ce que vous vendez, en une phrase', area: true, rows: 3 },
+				{ key: 'offre', label: 'Votre offre (détaillée)', ph: 'Ce que vous vendez', area: true, rows: 3 },
 				{ key: 'servicesText', label: 'Vos services', ph: 'Un service par ligne', area: true, rows: 5 },
-				{ key: 'tonDeMarque', label: 'Votre ton de marque', ph: 'Ex. chaleureux, direct' },
-				{
-					key: 'vocabulaireText',
-					label: 'Votre vocabulaire maison',
-					ph: 'Ajoutez un mot, appuyez sur Entrée',
-					chips: true
-				}
-			]
-		},
-		{
-			title: 'Votre marché',
-			icon: '🎯',
-			fields: [
-				{
-					key: 'clienteleCible',
-					label: 'Votre clientèle',
-					ph: 'À qui vous vous adressez',
-					area: true,
-					rows: 2
-				},
 				{
 					key: 'problemesResolus',
 					label: 'Les problèmes que vous résolvez',
@@ -101,6 +99,12 @@
 					ph: 'Clients, avis, chiffres clés — un par ligne',
 					area: true,
 					rows: 3
+				},
+				{
+					key: 'vocabulaireText',
+					label: 'Votre vocabulaire maison',
+					ph: 'Ajoutez un mot, appuyez sur Entrée',
+					chips: true
 				}
 			]
 		}
@@ -180,6 +184,7 @@
 		nomEntreprise: form.nomEntreprise.trim(),
 		secteur: form.secteur.trim(),
 		coordonnees: form.coordonnees.trim(),
+		resume: form.resume.trim(),
 		offre: form.offre.trim(),
 		services: toList(form.servicesText),
 		tonDeMarque: form.tonDeMarque.trim(),
@@ -299,15 +304,22 @@
 					<section
 						class="rounded-2xl bg-white/70 dark:bg-white/[0.03] ring-1 ring-inset ring-gray-900/[0.07] dark:ring-white/10 shadow-sm p-5 sm:p-6"
 					>
-						<div class="flex items-center gap-2.5 mb-4">
+						<div class="flex items-start gap-3 mb-4">
 							<span
-								class="flex-none h-8 w-8 rounded-xl bg-amber-100/80 dark:bg-amber-900/25 ring-1 ring-inset ring-amber-500/15 flex items-center justify-center text-[15px]"
+								class="flex-none h-9 w-9 rounded-xl ring-1 ring-inset flex items-center justify-center text-[16px] {section.tone ===
+								'base'
+									? 'bg-slate-100 dark:bg-white/10 ring-slate-400/20'
+									: 'bg-amber-100/80 dark:bg-amber-900/25 ring-amber-500/15'}"
 								aria-hidden="true">{section.icon}</span
 							>
-							<span
-								class="text-[13px] font-semibold uppercase tracking-[0.12em] text-gray-500 dark:text-gray-400"
-								>{$i18n.t(section.title)}</span
-							>
+							<div>
+								<div class="text-[14px] font-semibold text-gray-800 dark:text-gray-100 leading-tight">
+									{$i18n.t(section.title)}
+								</div>
+								<div class="text-[12px] text-gray-400 dark:text-gray-500 mt-0.5">
+									{$i18n.t(section.subtitle)}
+								</div>
+							</div>
 						</div>
 						<div class="grid grid-cols-1 gap-4">
 							{#each section.fields as field (field.key)}
