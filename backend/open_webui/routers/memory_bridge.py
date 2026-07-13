@@ -30,6 +30,11 @@ class InboxNoteBody(BaseModel):
     content: str
 
 
+class SearchBody(BaseModel):
+    query: str
+    limit: int = 8
+
+
 @router.get("/tree")
 async def memory_tree(user=Depends(get_admin_user)):
     """Arborescence du coffre (dossiers métier + notes)."""
@@ -52,6 +57,12 @@ async def memory_note(path: str, user=Depends(get_admin_user)):
 async def write_memory_note(body: NoteWriteBody, user=Depends(get_admin_user)):
     """Crée/corrige une note (relecture/correction humaine)."""
     return await _bridge("POST", "/memory/note", json=body.model_dump())
+
+
+@router.post("/search")
+async def search_memory(body: SearchBody, user=Depends(get_admin_user)):
+    """Recherche par mot dans les notes du coffre (spec 020). Résultats lisibles (titre + chemin)."""
+    return await _bridge("POST", "/memory/search", json=body.model_dump())
 
 
 @router.post("/init")
