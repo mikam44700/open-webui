@@ -8,7 +8,7 @@
 	import { uploadFile } from '$lib/apis/files';
 	import { createNewKnowledge, addFileToKnowledgeById } from '$lib/apis/knowledge';
 	import { syncKnowledgeToAgent } from '$lib/apis/knowledge-agent';
-	import { AGENT_TEMPLATES } from '$lib/components/agents/templates';
+	import { AGENT_TEMPLATES, SOCLE_IDS } from '$lib/components/agents/templates';
 	import { faceFromImage, avatarId } from '$lib/components/agents/avatars';
 	import { avatarColor } from '$lib/components/agents/avatar-colors';
 	import { avatarImgFallback } from '$lib/utils/agentIdentity';
@@ -22,27 +22,38 @@
 
 	// Pour chaque agent : un exemple CONCRET des documents qu'il attend (guide le dirigeant).
 	type AgentDoc = { id: string; example: string };
-	// 7 agents ACTIFS du socle (à fort besoin documentaire).
-	const PRIMARY_AGENTS: AgentDoc[] = [
-		{ id: 'commercial-devis', example: 'Votre catalogue, vos tarifs, un modèle de devis' },
-		{ id: 'comptable-impayes', example: 'Un modèle de facture, vos conditions de paiement, vos relances' },
-		{ id: 'service-client', example: 'Votre FAQ, vos procédures SAV, vos conditions de garantie' },
-		{ id: 'redacteur-documents', example: 'Votre plaquette, votre charte éditoriale, vos modèles de courriers' },
-		{ id: 'assistant-administratif', example: 'Vos procédures internes, vos modèles de courriers, votre organigramme' },
-		{ id: 'conformite-juridique', example: 'Vos CGV, vos contrats types, vos mentions légales' },
-		{ id: 'finance-previsionnel', example: 'Vos bilans, votre prévisionnel, votre budget' }
-	];
-	// 8 agents À ACTIVER (le dirigeant devra les activer depuis ses Capacités pour qu'ils s'en servent).
-	const MORE_AGENTS: AgentDoc[] = [
-		{ id: 'rh', example: 'Contrats de travail, fiches de poste, convention collective' },
-		{ id: 'achats-fournisseurs', example: 'Contrats et conditions fournisseurs' },
-		{ id: 'chasseur-clients', example: 'Personas, fichiers prospects, argumentaires' },
-		{ id: 'marketing-presence', example: 'Charte graphique, contenus, calendrier éditorial' },
-		{ id: 'pilote-briefing', example: 'Plannings, comptes-rendus, objectifs' },
-		{ id: 'analyste-commercial', example: 'Scripts et enregistrements d’appels' },
-		{ id: 'livraison-projet', example: 'Vos process de livraison client' },
-		{ id: 'veille', example: 'Vos documents de veille concurrents' }
-	];
+
+	// Exemple de documents attendus, par agent. Sert aussi de filtre : seuls les agents présents ici
+	// sont montrés sur cet écran documentaire.
+	const EXAMPLES: Record<string, string> = {
+		'assistant-administratif': 'Vos procédures internes, vos modèles de courriers, votre organigramme',
+		'commercial-devis': 'Votre catalogue, vos tarifs, un modèle de devis',
+		'comptable-impayes': 'Un modèle de facture, vos conditions de paiement, vos relances',
+		'redacteur-documents': 'Votre plaquette, votre charte éditoriale, vos modèles de courriers',
+		veille: 'Vos documents de veille concurrents',
+		'service-client': 'Votre FAQ, vos procédures SAV, vos conditions de garantie',
+		'conformite-juridique': 'Vos CGV, vos contrats types, vos mentions légales',
+		'finance-previsionnel': 'Vos bilans, votre prévisionnel, votre budget',
+		rh: 'Contrats de travail, fiches de poste, convention collective',
+		'achats-fournisseurs': 'Contrats et conditions fournisseurs',
+		'chasseur-clients': 'Personas, fichiers prospects, argumentaires',
+		'marketing-presence': 'Charte graphique, contenus, calendrier éditorial',
+		'pilote-briefing': 'Plannings, comptes-rendus, objectifs',
+		'analyste-commercial': 'Scripts et enregistrements d’appels',
+		'livraison-projet': 'Vos process de livraison client'
+	};
+
+	// Mike (chef d'orchestre, n'ingère pas de documents) et Adam (mémoire, il a sa propre étape juste
+	// après) sont volontairement écartés de cet écran, bien qu'ils fassent partie du socle.
+	const EXCLUDED = new Set(['mike-chef-orchestre', 'agent-obsidian']);
+	const shown = (t: (typeof AGENT_TEMPLATES)[number]) => !EXCLUDED.has(t.id) && !!EXAMPLES[t.id];
+	const toDoc = (t: (typeof AGENT_TEMPLATES)[number]): AgentDoc => ({ id: t.id, example: EXAMPLES[t.id] });
+
+	// ACTIFS = les agents du socle des 7 pertinents pour les documents (socle − Mike − Adam).
+	// Dérivé de SOCLE_IDS → reste automatiquement cohérent si le socle évolue (source de vérité unique).
+	const PRIMARY_AGENTS: AgentDoc[] = AGENT_TEMPLATES.filter((t) => SOCLE_IDS.has(t.id) && shown(t)).map(toDoc);
+	// À ACTIVER = le catalogue (hors socle) : le dirigeant devra les activer depuis ses Capacités.
+	const MORE_AGENTS: AgentDoc[] = AGENT_TEMPLATES.filter((t) => !SOCLE_IDS.has(t.id) && shown(t)).map(toDoc);
 	const tpl = (id: string) => AGENT_TEMPLATES.find((t) => t.id === id);
 	let showAll = false;
 
@@ -217,7 +228,9 @@
 		{@const t = tpl(a.id)}
 		{#if t}
 			<div class="flex flex-col h-full rounded-2xl bg-white dark:bg-white/[0.03] ring-1 ring-inset ring-black/5 dark:ring-white/10 p-4">
-				<div class="flex items-start gap-3">
+				<!-- flex-1 : le header occupe tout l'espace dispo → les boutons se calent au même niveau,
+				     que l'exemple tienne sur 1, 2 ou 3 lignes (cartes de hauteur égale via grid + h-full). -->
+				<div class="flex items-start gap-3 flex-1">
 					<img
 						src={faceFromImage(t.image) ?? '/favicon.png'}
 						alt={t.firstName}
@@ -228,7 +241,7 @@
 					<div class="min-w-0 flex-1">
 						<div class="text-sm font-semibold text-gray-900 dark:text-white">{t.firstName}</div>
 						<div class="text-[11px] text-gray-400 dark:text-gray-500">{$i18n.t(t.role)}</div>
-						<p class="mt-1.5 text-[12.5px] leading-snug text-gray-500 dark:text-gray-400 sm:min-h-[2.6em]">
+						<p class="mt-1.5 text-[12.5px] leading-snug text-gray-500 dark:text-gray-400">
 							<span class="text-gray-400 dark:text-gray-500">{$i18n.t('Ex :')}</span>
 							{$i18n.t(a.example)}
 						</p>
