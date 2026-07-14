@@ -139,14 +139,8 @@
 		</p>
 	</div>
 
-	<!-- Navigation : Retour (revient au questionnaire, réponses conservées) + Continuer -->
-	<div class="mt-7 flex items-center justify-between gap-3">
-		<button
-			class="text-sm font-medium px-4 py-2 rounded-lg text-gray-500 hover:text-gray-800 dark:hover:text-gray-200 transition"
-			on:click={() => dispatch('back')}
-		>
-			← {$i18n.t('Retour')}
-		</button>
+	<!-- Navigation : Continuer (le « Retour » est fourni par le header du parcours — pas de doublon). -->
+	<div class="mt-7 flex items-center justify-end gap-3">
 		<button
 			class="text-sm font-semibold px-6 py-3 rounded-xl btn-premium bg-gradient-to-br from-amber-400 to-amber-600 text-amber-950"
 			on:click={() => dispatch('next')}

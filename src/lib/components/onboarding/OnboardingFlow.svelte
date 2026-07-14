@@ -50,14 +50,10 @@
 		step = history[history.length - 1];
 		history = history.slice(0, -1);
 	};
-	// Pas de « Retour » pendant le chargement (transitoire), l'interview (navigation interne), l'étape
-	// mémoire (contexte déjà persisté) ni l'écran final.
-	$: canGoBack =
-		history.length > 0 &&
-		step !== 'done' &&
-		step !== 'loading' &&
-		step !== 'interview' &&
-		step !== 'memory';
+	// « Retour » disponible partout où l'on peut revenir, SAUF : le chargement (transitoire) et
+	// l'interview (qui a sa PROPRE navigation question par question, avec sortie à la 1re question).
+	// L'étape mémoire et l'écran final l'ont désormais aussi : on n'est jamais coincé sans retour.
+	$: canGoBack = history.length > 0 && step !== 'loading' && step !== 'interview';
 
 	// Progression : 6 jalons. « site », « loading » et « review » partagent le jalon 3.
 	const TOTAL = 6;
