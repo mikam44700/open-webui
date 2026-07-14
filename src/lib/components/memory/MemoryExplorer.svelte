@@ -77,14 +77,14 @@
 	$: noteTarget =
 		activeFolder ?? (tree.some((n) => n.path === '00-Réception') ? '00-Réception' : '');
 	// Cible d'un nouveau dossier : le dossier courant SAUF la Réception (boîte d'entrée d'Adam, jamais
-	// une zone de structure) → dans ce cas on retombe sur « Mon activité » (02-Domaines), sinon racine.
+	// une zone de structure) → dans ce cas on retombe sur « Mes responsabilités » (02-Mes responsabilités), sinon racine.
 	const inReception = (p: string | null): boolean =>
 		!!p && (p === RECEPTION || p.startsWith(`${RECEPTION}/`));
 	$: folderTarget =
 		activeFolder && !inReception(activeFolder)
 			? activeFolder
-			: tree.some((n) => n.path === '02-Domaines')
-				? '02-Domaines'
+			: tree.some((n) => n.path === '02-Mes responsabilités')
+				? '02-Mes responsabilités'
 				: '';
 
 	// Création de dossier : saisie inline (pas de prompt natif, cohérent avec la refonte).
@@ -126,14 +126,14 @@
 	// Renommer ICI ne touche que l'affichage : les vrais dossiers du coffre ne bougent pas.
 	const FRIENDLY_FOLDER: Record<string, string> = {
 		'00-Réception': 'Réception',
-		'01-Projets': 'En cours',
-		'02-Domaines': 'Mes responsabilités',
-		'03-Ressources': 'Idées & ressources',
-		'04-Archives': 'Archivées',
+		'01-En cours': 'En cours',
+		'02-Mes responsabilités': 'Mes responsabilités',
+		'03-Idées & ressources': 'Idées & ressources',
+		'04-Archivées': 'Archivées',
 		'05-Journal': 'Journal',
-		'06-Personnes': 'Contacts',
-		'07-Cartes': 'Mes réflexions',
-		'08-Modèles': 'Modèles de notes'
+		'06-Contacts': 'Contacts',
+		'07-Mes réflexions': 'Mes réflexions',
+		'08-Modèles de notes': 'Modèles de notes'
 	};
 	const friendlyFolder = (name: string): string => FRIENDLY_FOLDER[name] ?? name;
 
@@ -141,14 +141,14 @@
 	// Volontairement limité aux 9 dossiers du squelette PARA → les sous-dossiers du client restent nus.
 	const FOLDER_SUBTITLE: Record<string, string> = {
 		'00-Réception': "Tout ce qui arrive, avant d'être rangé",
-		'01-Projets': 'Vos projets et sujets actifs du moment',
-		'02-Domaines': 'Les domaines que vous suivez au quotidien',
-		'03-Ressources': 'Ce que vous gardez pour plus tard',
-		'04-Archives': 'Terminé ou mis de côté, mais conservé',
+		'01-En cours': 'Vos projets et sujets actifs du moment',
+		'02-Mes responsabilités': 'Les domaines que vous suivez au quotidien',
+		'03-Idées & ressources': 'Ce que vous gardez pour plus tard',
+		'04-Archivées': 'Terminé ou mis de côté, mais conservé',
 		'05-Journal': 'Votre fil au jour le jour',
-		'06-Personnes': 'Les personnes que vous suivez',
-		'07-Cartes': 'Vos notes d’idées reliées entre elles',
-		'08-Modèles': 'Vos gabarits réutilisables'
+		'06-Contacts': 'Les personnes que vous suivez',
+		'07-Mes réflexions': 'Vos notes d’idées reliées entre elles',
+		'08-Modèles de notes': 'Vos gabarits réutilisables'
 	};
 	const folderSubtitle = (name: string): string => FOLDER_SUBTITLE[name] ?? '';
 

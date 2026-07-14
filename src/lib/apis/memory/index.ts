@@ -59,7 +59,7 @@ export const getMemoryNote = (token: string, path: string): Promise<NoteContent>
 export const saveMemoryNote = (token: string, path: string, content: string): Promise<NoteContent> =>
 	call(token, 'POST', '/note', { path, content });
 
-// Crée la structure PARA du coffre (00-Réception, 01-Projets, … + INDEX). Idempotent.
+// Crée la structure PARA du coffre (00-Réception, 01-En cours, … + INDEX). Idempotent.
 export const initMemoryVault = (token: string): Promise<{ created: string[] }> =>
 	call(token, 'POST', '/init');
 

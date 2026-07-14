@@ -120,7 +120,7 @@ async def restore_memory_note(body: NoteRestoreBody, user=Depends(get_admin_user
 
 @router.post("/init")
 async def init_memory_vault(user=Depends(get_admin_user)):
-    """Crée la structure PARA du coffre (00-Réception, 01-Projets, … + INDEX). Idempotent."""
+    """Crée la structure PARA du coffre (00-Réception, 01-En cours, … + INDEX). Idempotent."""
     return await _bridge("POST", "/memory/init")
 
 
