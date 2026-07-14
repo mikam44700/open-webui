@@ -4,6 +4,7 @@
 
 	import Chat from '$lib/components/chat/Chat.svelte';
 	import OnboardingFlow from '$lib/components/onboarding/OnboardingFlow.svelte';
+	import { clearDraft } from '$lib/onboarding/onboardingDraft';
 	import { page } from '$app/stores';
 
 	// Affichage du parcours d'accueil au 1er login. Signal provisoire (drapeau local) : affiné
@@ -25,6 +26,14 @@
 			toast.error($page.url.searchParams.get('error') || 'An unknown error occurred.');
 		}
 		try {
+			// Lien de rejeu (tests) : ?onboarding=replay force un onboarding VIERGE — on efface le drapeau
+			// « déjà fait » ET le brouillon (dernier crawl/réponses), puis on affiche le parcours du début.
+			if ($page.url.searchParams.get('onboarding') === 'replay') {
+				localStorage.removeItem('lunaria_onboarding_done');
+				clearDraft();
+				showOnboarding = true;
+				return;
+			}
 			showOnboarding = localStorage.getItem('lunaria_onboarding_done') !== '1';
 		} catch {
 			showOnboarding = false;

@@ -15,6 +15,10 @@
 	const i18n = getContext('i18n');
 	const dispatch = createEventDispatcher();
 
+	// Des documents ont-ils été déposés à l'étape précédente ? → Adam ne mentionne les documents rangés
+	// que si c'est vrai (honnêteté D27, jamais de mention non vérifiée).
+	export let hasDocuments = false;
+
 	// Page de téléchargement officielle (Mac/Windows/Linux détectés automatiquement par Obsidian).
 	const OBSIDIAN_DOWNLOAD = 'https://obsidian.md/download';
 
@@ -64,9 +68,15 @@
 			{$i18n.t('Adam se souvient de tout')}
 		</h1>
 		<p class="mt-3 text-[15px] leading-relaxed text-gray-600 dark:text-gray-300 max-w-md mx-auto">
-			{$i18n.t(
-				'Adam vient de ranger le contexte de votre entreprise dans votre coffre. Tout ce que vous confierez à votre équipe, il s’en souviendra — pour toujours.'
-			)}
+			{#if hasDocuments}
+				{$i18n.t(
+					'Adam vient de ranger le contexte de votre entreprise — et vos documents — dans votre coffre. Tout ce que vous confierez à votre équipe, il s’en souviendra — pour toujours.'
+				)}
+			{:else}
+				{$i18n.t(
+					'Adam vient de ranger le contexte de votre entreprise dans votre coffre. Tout ce que vous confierez à votre équipe, il s’en souviendra — pour toujours.'
+				)}
+			{/if}
 		</p>
 	</div>
 

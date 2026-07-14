@@ -12,6 +12,7 @@
 	import CrawlLoadingStep from './CrawlLoadingStep.svelte';
 	import ContextReviewStep from './ContextReviewStep.svelte';
 	import InterviewStep from './InterviewStep.svelte';
+	import DocumentsStep from './DocumentsStep.svelte';
 	import MemoryStep from './MemoryStep.svelte';
 	import DoneStep from './DoneStep.svelte';
 	import {
@@ -35,7 +36,16 @@
 	const i18n = getContext('i18n');
 	const dispatch = createEventDispatcher();
 
-	type Step = 'welcome' | 'model' | 'site' | 'loading' | 'review' | 'interview' | 'memory' | 'done';
+	type Step =
+		| 'welcome'
+		| 'model'
+		| 'site'
+		| 'loading'
+		| 'review'
+		| 'interview'
+		| 'documents'
+		| 'memory'
+		| 'done';
 	let step: Step = 'welcome';
 
 	// Historique de navigation : permet un vrai « Retour » qui remonte l'étape réellement
@@ -55,8 +65,8 @@
 	// L'étape mémoire et l'écran final l'ont désormais aussi : on n'est jamais coincé sans retour.
 	$: canGoBack = history.length > 0 && step !== 'loading' && step !== 'interview';
 
-	// Progression : 6 jalons. « site », « loading » et « review » partagent le jalon 3.
-	const TOTAL = 6;
+	// Progression : 7 jalons. « site », « loading » et « review » partagent le jalon 3.
+	const TOTAL = 7;
 	const META: Record<Step, { index: number; label: string }> = {
 		welcome: { index: 1, label: 'Bienvenue' },
 		model: { index: 2, label: 'Votre modèle IA' },
@@ -64,8 +74,9 @@
 		loading: { index: 3, label: 'Votre entreprise' },
 		review: { index: 3, label: 'Votre entreprise' },
 		interview: { index: 4, label: 'Faisons connaissance' },
-		memory: { index: 5, label: 'Votre second cerveau' },
-		done: { index: 6, label: 'C’est prêt' }
+		documents: { index: 5, label: 'Vos documents' },
+		memory: { index: 6, label: 'Votre second cerveau' },
+		done: { index: 7, label: 'C’est prêt' }
 	};
 	$: meta = META[step];
 
@@ -150,6 +161,9 @@
 	//    mur de champs vides) puis va directement à l'écran final.
 	let interviewMode: 'full' | 'complement' = 'complement';
 	let answers: Answers = {};
+	// Nombre de documents réellement déposés à l'étape « Vos documents » → permet à Adam de n'annoncer
+	// les documents rangés QUE s'il y en a (honnêteté D27, jamais de mention non vérifiée).
+	let docsCount = 0;
 
 	// Reprise après rechargement : on restaure le brouillon (étape + fiche déjà crawlée + réponses)
 	// pour ne jamais reperdre le travail long (crawl ~1 min), puis on rafraîchit le modèle. `restored`
@@ -220,8 +234,9 @@
 		}
 		// Contexte validé et persisté côté moteur → le brouillon local n'a plus lieu d'être.
 		clearDraft();
-		// Adam vient réellement de recevoir/ranger le contexte : on le montre (second cerveau) avant l'écran final.
-		go('memory');
+		// Fil narratif : on propose d'abord de déposer des documents (ils nourrissent les agents), PUIS
+		// Adam révèle la mémoire remplie (contexte + documents) avant l'écran final.
+		go('documents');
 	};
 </script>
 
@@ -310,10 +325,19 @@
 				on:back={back}
 				on:skip={skip}
 			/>
+		{:else if step === 'documents'}
+			<!-- Documents de l'entreprise : ils nourrissent la base de connaissances des agents. Optionnel.
+			     « Continuer » (avec ou sans document) → Adam ; « Retour » / « Plus tard » vivent dans le header. -->
+			<DocumentsStep
+				on:next={(e) => {
+					docsCount = e.detail?.count ?? 0;
+					go('memory');
+				}}
+			/>
 		{:else if step === 'memory'}
-			<!-- Adam (agent mémoire) : second cerveau + coffre Obsidian, juste après l'interview.
-			     « Retour » revient au questionnaire (réponses conservées via initialAnswers). -->
-			<MemoryStep on:next={() => go('done')} on:back={back} on:skip={skip} />
+			<!-- Adam (agent mémoire) : second cerveau + coffre Obsidian, juste après les documents.
+			     « Retour » revient à l'étape précédente (documents). -->
+			<MemoryStep hasDocuments={docsCount > 0} on:next={() => go('done')} on:back={back} on:skip={skip} />
 		{:else if step === 'done'}
 			<DoneStep {context} on:done={finish} on:workspace={openWorkspace} />
 		{/if}
