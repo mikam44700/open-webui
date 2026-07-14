@@ -66,11 +66,19 @@ describe('formatInterviewForProfile — section USER.md, champs vides omis', () 
 		expect(txt).toContain('relancer les impayés');
 	});
 
-	it('exclut les clés de contexte entreprise (nom, secteur…)', () => {
-		const txt = formatInterviewForProfile({ prenom: 'Léa', nomEntreprise: 'Acme', secteur: 'BTP' });
+	it('exclut les clés de contexte entreprise (nom, secteur, ton, services…)', () => {
+		const txt = formatInterviewForProfile({
+			prenom: 'Léa',
+			nomEntreprise: 'Acme',
+			secteur: 'BTP',
+			tonDeMarque: 'Direct',
+			services: 'Toiture'
+		});
 		expect(txt).toContain('Léa');
 		expect(txt).not.toContain('Acme');
 		expect(txt).not.toContain('BTP');
+		expect(txt).not.toContain('Direct');
+		expect(txt).not.toContain('Toiture');
 	});
 
 	it('aucune réponse de profil → chaîne vide', () => {
@@ -95,5 +103,20 @@ describe('answersToContext — cas sans site : réponses → fiche entreprise', 
 		// les champs non captés par l'interview restent vides (pas de site à lire)
 		expect(ctx.services).toEqual([]);
 		expect(ctx.coordonnees).toBe('');
+	});
+
+	it('reverse aussi services, ton, preuves et coordonnées (listes découpées par ligne)', () => {
+		const ctx = answersToContext({
+			nomEntreprise: 'Plomberie Martin',
+			services: 'Dépannage\nInstallation de chaudières',
+			tonDeMarque: 'Chaleureux',
+			preuveSociale: '20 ans d’expérience\n4,8/5 sur Google',
+			coordonnees: '06 12 34 56 78, contact@martin.fr'
+		});
+		expect(ctx.services).toEqual(['Dépannage', 'Installation de chaudières']);
+		expect(ctx.tonDeMarque).toBe('Chaleureux');
+		// la virgule décimale (4,8) est préservée : on découpe par ligne, jamais par virgule
+		expect(ctx.preuveSociale).toEqual(['20 ans d’expérience', '4,8/5 sur Google']);
+		expect(ctx.coordonnees).toBe('06 12 34 56 78, contact@martin.fr');
 	});
 });

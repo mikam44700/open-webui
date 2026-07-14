@@ -120,8 +120,11 @@ export const COMPLEMENT_QUESTIONS: Question[] = [
 	}
 ];
 
-// Questions SUPPLÉMENTAIRES pour le cas « sans site » : elles remplacent le crawl en captant les
-// bases de l'entreprise (le reste vient des COMPLÉMENTS). Insérées juste après le prénom.
+// Questions SUPPLÉMENTAIRES pour le cas « sans site » : elles REMPLACENT le crawl en captant tout ce
+// que la lecture du site aurait donné (les 10 blocs de la fiche entreprise), pas seulement les bases.
+// Le crawl Facebook a été écarté (anti-bot Meta + CGU) → l'interview guidée est le chemin robuste,
+// qui marche à 100 % pour un dirigeant non-tech. Le reste (profil dirigeant) vient des COMPLÉMENTS.
+// Insérées juste après le prénom. Toutes optionnelles sauf le nom : on n'impose rien, on invite.
 export const NO_SITE_QUESTIONS: Question[] = [
 	{
 		key: 'nomEntreprise',
@@ -136,6 +139,13 @@ export const NO_SITE_QUESTIONS: Question[] = [
 		placeholder: 'Ex. plomberie et chauffage pour particuliers'
 	},
 	{
+		key: 'services',
+		kind: 'textarea',
+		title: 'Vos principaux services ou produits ?',
+		placeholder: 'Un par ligne — ex. dépannage, installation de chaudières, entretien annuel',
+		optional: true
+	},
+	{
 		key: 'clienteleCible',
 		kind: 'textarea',
 		title: 'Qui sont vos clients, en général ?',
@@ -147,6 +157,28 @@ export const NO_SITE_QUESTIONS: Question[] = [
 		kind: 'textarea',
 		title: 'Quel problème réglez-vous pour eux ?',
 		placeholder: 'Ce que vous leur apportez concrètement',
+		optional: true
+	},
+	{
+		key: 'tonDeMarque',
+		kind: 'chips',
+		title: 'Comment parlez-vous à vos clients ?',
+		hint: 'Le style que vos agents adopteront pour écrire à votre place.',
+		options: ['Chaleureux', 'Professionnel', 'Direct', 'Convivial', 'Expert'],
+		optional: true
+	},
+	{
+		key: 'preuveSociale',
+		kind: 'textarea',
+		title: 'Un chiffre ou un avis dont vous êtes fier ?',
+		placeholder: 'Un par ligne — ex. 20 ans d’expérience, 4,8/5 sur Google, 500 clients',
+		optional: true
+	},
+	{
+		key: 'coordonnees',
+		kind: 'textarea',
+		title: 'Vos coordonnées ?',
+		placeholder: 'Téléphone, e-mail, adresse, horaires…',
 		optional: true
 	}
 ];
@@ -197,14 +229,29 @@ const PROFILE_LABELS: Record<string, string> = {
 	tacheAgacante: 'Tâche à déléguer en priorité'
 };
 
-// Cas « sans site » : l'interview complète a capté les bases de l'entreprise. On les reverse dans
-// une fiche entreprise (les autres champs restent vides — le dirigeant n'a pas de site à lire).
+// Découpe une réponse libre en liste : par LIGNE uniquement (jamais par virgule, pour préserver
+// « 4,8/5 » et les adresses). Une réponse déjà en tableau (chipsMulti) est nettoyée telle quelle.
+const toList = (v: string | string[] | undefined): string[] => {
+	if (Array.isArray(v)) return v.map((x) => x.trim()).filter(Boolean);
+	return (v ?? '')
+		.split('\n')
+		.map((x) => x.trim())
+		.filter(Boolean);
+};
+
+// Cas « sans site » : l'interview guidée a capté la fiche entreprise à la place du crawl. On reverse
+// tous les blocs qu'elle couvre (nom, secteur, services, clientèle, offre, ton, preuves, coordonnées).
+// Les champs non demandés (résumé, vocabulaire) restent vides — le dirigeant n'a pas de site à lire.
 export const answersToContext = (a: Answers): CompanyContext => ({
 	...EMPTY_CONTEXT,
 	nomEntreprise: str(a.nomEntreprise),
 	secteur: str(a.secteur),
 	clienteleCible: str(a.clienteleCible),
-	offre: str(a.offre)
+	offre: str(a.offre),
+	services: toList(a.services),
+	tonDeMarque: str(a.tonDeMarque),
+	preuveSociale: toList(a.preuveSociale),
+	coordonnees: str(a.coordonnees)
 });
 
 export const formatInterviewForProfile = (a: Answers): string => {
