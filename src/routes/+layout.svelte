@@ -1059,7 +1059,11 @@
 				if (localStorage.token) {
 					// Get Session User Info
 					const sessionUser = await getSessionUser(localStorage.token).catch((error) => {
-						toast.error(`${error}`);
+						// Token périmé (serveur redémarré / container remonté) : cas NORMAL au démarrage.
+						// On nettoie le token invalide et on laisse la redirection vers /auth se faire
+						// silencieusement — pas de toast « 401 Unauthorized » bruyant à l'écran de connexion.
+						// (getBackendConfig a réussi juste avant : le réseau va bien, c'est bien un token mort.)
+						localStorage.removeItem('token');
 						return null;
 					});
 
