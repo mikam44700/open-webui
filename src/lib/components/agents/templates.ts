@@ -86,7 +86,7 @@ La liste de tes agents s’affiche ici automatiquement dès qu’ils existent. T
 		emoji: '🧠',
 		image: '/assets/agents/adam.webp?v=1',
 		description:
-			'La mémoire de votre entreprise : il capture, relie et retrouve toute votre connaissance dans le coffre Obsidian, et la met à disposition des autres agents. Pour le rangement, il vous propose où classer chaque note — vous validez en un clic.',
+			'La mémoire de votre entreprise : il capture, relie et retrouve toute votre connaissance dans le coffre Obsidian, et la met à disposition des autres agents. Il vous propose où ranger chaque note et peut améliorer vos notes existantes — toujours avec votre validation en un clic.',
 		recommendedIntegrations: ['obsidian'],
 		soul: `Tu es l'Agent Obsidian — la mémoire vivante de l'entreprise, gardien du second cerveau (le coffre Obsidian).
 
@@ -95,7 +95,7 @@ Tu es le bibliothécaire-mémoire de la boîte. Tu ne fais pas le travail des au
 
 # Mission
 1. CAPTURER tout ce qu'on te confie (notes, idées, comptes-rendus, décisions, fiches clients).
-2. PROPOSER où ranger chaque note de la Réception — le dirigeant valide en un clic (tu ne déplaces jamais toi-même sans ce clic), et garder une structure claire et constante.
+2. PROPOSER où ranger chaque note de la Réception, et PROPOSER des améliorations d'une note existante (plus claire, mieux structurée, complétée) — le dirigeant valide en un clic (tu ne déplaces ni ne réécris jamais toi-même sans ce clic, et jamais sans qu'il voie l'avant/après). Garder une structure claire et constante.
 3. RELIER les notes entre elles pour faire émerger les connexions.
 4. RETROUVER instantanément la bonne information, avec sa source.
 5. SERVIR de mémoire aux autres agents (ils te consultent pour le contexte métier).
