@@ -1,7 +1,6 @@
 <script lang="ts">
 	import { getContext, onDestroy, onMount, tick } from 'svelte';
 	import { toast } from 'svelte-sonner';
-	import { marked } from 'marked';
 
 	const i18n = getContext('i18n');
 
@@ -174,6 +173,7 @@
 		if (node.type !== 'note') return;
 		loadingNote = true;
 		saveState = 'idle';
+		baselineMd = null; // le 1er onChange (écho d'init de l'éditeur) ne doit pas déclencher de sauvegarde
 		editor = null;
 		inputElement = null;
 		try {
@@ -328,8 +328,18 @@
 		}
 	};
 
+	// Référence du contenu chargé : le 1er onChange après ouverture (écho d'init de l'éditeur) sert
+	// de base et n'est PAS sauvegardé — on ne sauvegarde qu'un VRAI changement (édition humaine).
+	let baselineMd: string | null = null;
+
 	const scheduleSave = (md: string) => {
 		if (!selectedNode) return;
+		if (baselineMd === null) {
+			baselineMd = md; // écho d'initialisation : on mémorise, on ne sauvegarde pas
+			return;
+		}
+		if (md === baselineMd) return; // aucun changement réel
+		baselineMd = md;
 		currentMd = md;
 		saveState = 'saving';
 		pendingSave = { path: selectedNode.path, md };
@@ -738,7 +748,7 @@ Garde la langue d'origine. Retourne uniquement le texte en markdown.`;
 							bind:editor
 							id={`memory-${selectedNode?.path ?? 'note'}`}
 							className="input-prose-sm px-0.5 h-[calc(100%-2rem)]"
-							html={currentMd ? (marked.parse(currentMd) ) : ''}
+							value={currentMd}
 							dragHandle={true}
 							link={true}
 							image={true}
