@@ -140,15 +140,15 @@
 	// Sous-titre « langage dirigeant » sous chaque dossier racine : explique le classeur d'un coup d'œil.
 	// Volontairement limité aux 9 dossiers du squelette PARA → les sous-dossiers du client restent nus.
 	const FOLDER_SUBTITLE: Record<string, string> = {
-		'00-Réception': "Tout ce qui arrive, avant d'être rangé",
-		'01-En cours': 'Vos projets et sujets actifs du moment',
-		'02-Mes responsabilités': 'Les domaines que vous suivez au quotidien',
-		'03-Idées & ressources': 'Ce que vous gardez pour plus tard',
-		'04-Archivées': 'Terminé ou mis de côté, mais conservé',
-		'05-Journal': 'Votre fil au jour le jour',
-		'06-Contacts': 'Les personnes que vous suivez',
-		'07-Mes réflexions': 'Vos notes d’idées reliées entre elles',
-		'08-Modèles de notes': 'Vos gabarits réutilisables'
+		'00-Réception': "Tout arrive ici avant d'être rangé",
+		'01-En cours': 'Ce sur quoi vous travaillez en ce moment',
+		'02-Mes responsabilités': 'Ce dont vous vous occupez en continu (ventes, équipe, finances…)',
+		'03-Idées & ressources': 'Documents et idées utiles à garder sous la main',
+		'04-Archivées': 'Ce qui est terminé, conservé au cas où',
+		'05-Journal': 'Vos notes datées : réunions, décisions, journées',
+		'06-Contacts': 'Vos clients, prospects et partenaires',
+		'07-Mes réflexions': 'Là où vous posez vos idées et vos notes',
+		'08-Modèles de notes': 'Des exemples prêts à réutiliser (compte-rendu, fiche client…)'
 	};
 	const folderSubtitle = (name: string): string => FOLDER_SUBTITLE[name] ?? '';
 
