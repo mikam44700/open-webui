@@ -4,6 +4,7 @@
 	// Porte aussi : glisser-déposer d'une note vers un dossier, renommage inline + suppression de dossier.
 	import { tick } from 'svelte';
 	import type { MemoryNode } from '$lib/apis/memory';
+	import type { FilingSuggestion } from '$lib/memory/suggestFiling';
 	import Self from './MemoryTreeNode.svelte';
 
 	export let node: MemoryNode;
@@ -21,6 +22,15 @@
 	export let onRequestMove: (node: MemoryNode) => void;
 	export let onRenameFolder: (node: MemoryNode, newName: string) => void;
 	export let onDeleteFolder: (node: MemoryNode) => void;
+	// Rangement assisté (feature 021) : suggestions de destination pour les notes de Réception.
+	export let suggestions: Record<string, FilingSuggestion[]> = {};
+	export let dismissed: Set<string> = new Set();
+	export let onFileHere: (notePath: string, dest: string) => void = () => {};
+	export let onDismiss: (notePath: string) => void = () => {};
+
+	// Suggestions de la note courante (uniquement les notes de Réception en ont). US2 en montre plusieurs.
+	$: noteSuggestions = node.type === 'note' ? (suggestions[node.path] ?? []) : [];
+	$: showSuggest = noteSuggestions.length > 0 && !dismissed.has(node.path);
 
 	$: children = node.children ?? [];
 	$: folders = children.filter((c) => c.type === 'folder');
@@ -57,6 +67,7 @@
 </script>
 
 {#if node.type === 'note'}
+	<div>
 	<div
 		class="group flex items-center gap-1.5 rounded-lg hover:bg-gray-100/70 dark:hover:bg-white/5 transition"
 		style="padding-left: {depth * 16 + 6}px"
@@ -98,6 +109,45 @@
 				><path d="M4 6h12M8 6V4h4v2m-6 0v10h8V6" stroke-linecap="round" stroke-linejoin="round" /></svg
 			>
 		</button>
+	</div>
+
+	<!-- Rangement assisté (021) : Adam suggère où ranger cette note de Réception (jusqu'à 3 pistes). -->
+	{#if showSuggest}
+		<div class="pb-1 pt-0.5" style="padding-left: {depth * 16 + 28}px">
+			<div class="flex items-center gap-1.5 flex-wrap">
+				<span class="inline-flex items-center gap-1 text-[11px] text-sky-600 dark:text-sky-300">
+					<svg class="w-3 h-3" viewBox="0 0 20 20" fill="currentColor"
+						><path
+							d="M10 2l1.6 4.4L16 8l-4.4 1.6L10 14l-1.6-4.4L4 8l4.4-1.6L10 2Zm5 9l.8 2.2L18 14l-2.2.8L15 17l-.8-2.2L12 14l2.2-.8L15 11Z"
+						/></svg
+					>
+					Adam suggère
+				</span>
+				{#each noteSuggestions as sug, i (sug.folder)}
+					<button
+						class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full transition text-[11.5px] {i === 0
+							? 'bg-sky-500/10 text-sky-700 dark:text-sky-200 ring-1 ring-inset ring-sky-500/25 hover:bg-sky-500/20 font-medium'
+							: 'text-gray-500 dark:text-gray-400 ring-1 ring-inset ring-gray-200 dark:ring-white/10 hover:bg-gray-100 dark:hover:bg-white/5'}"
+						title={sug.reason}
+						on:click={() => onFileHere(node.path, sug.folder)}
+					>
+						Ranger dans « {sug.label} »
+					</button>
+				{/each}
+				<button
+					class="px-1.5 py-0.5 rounded-md text-[11px] text-gray-400 dark:text-gray-500 hover:bg-gray-100 dark:hover:bg-white/5 transition"
+					on:click={() => onDismiss(node.path)}
+				>
+					Ignorer
+				</button>
+			</div>
+			{#if noteSuggestions[0].reason}
+				<div class="mt-0.5 text-[11px] italic text-gray-400 dark:text-gray-500">
+					{noteSuggestions[0].reason}
+				</div>
+			{/if}
+		</div>
+	{/if}
 	</div>
 {:else}
 	<div>
@@ -209,6 +259,10 @@
 					{onRequestMove}
 					{onRenameFolder}
 					{onDeleteFolder}
+					{suggestions}
+					{dismissed}
+					{onFileHere}
+					{onDismiss}
 				/>
 			{/each}
 			{#each notes.slice(0, cap) as n (n.path)}
@@ -228,6 +282,10 @@
 					{onRequestMove}
 					{onRenameFolder}
 					{onDeleteFolder}
+					{suggestions}
+					{dismissed}
+					{onFileHere}
+					{onDismiss}
 				/>
 			{/each}
 			{#if notes.length > cap}

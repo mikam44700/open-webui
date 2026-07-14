@@ -28,6 +28,12 @@
 		renameMemoryNote
 	} from '$lib/apis/memory';
 	import type { MemoryNode, MemoryStatus, SearchResult } from '$lib/apis/memory';
+	import {
+		buildFolderList,
+		buildSuggestPrompt,
+		parseSuggestions,
+		type FilingSuggestion
+	} from '$lib/memory/suggestFiling';
 
 	import type { Editor } from '@tiptap/core';
 
@@ -138,6 +144,14 @@
 	// range DEDANS (ses casquettes), mais ne casse pas le squelette clé en main. (Miroir du bridge.)
 	const STRUCTURAL_FOLDERS = new Set(Object.keys(FRIENDLY_FOLDER));
 	const isStructural = (path: string): boolean => STRUCTURAL_FOLDERS.has(path);
+
+	// ─── Rangement assisté par Adam (feature 021) ──────────────────────────────
+	// Suggestions de destination pour les notes de Réception. Calculées à la demande, éphémères.
+	const RECEPTION = '00-Réception';
+	let suggestionsByPath: Record<string, FilingSuggestion[]> = {};
+	let dismissedPaths = new Set<string>();
+	let suggestComputed = false; // évite de rappeler le modèle à chaque rendu
+	const isGuideNote = (name: string): boolean => name.startsWith('À lire');
 
 	// Déplacement d'une note : liste à plat des dossiers (cible du sélecteur « Déplacer vers »).
 	type FolderOpt = { path: string; label: string; depth: number };
@@ -417,6 +431,85 @@
 		}
 	};
 
+	// ─── Rangement assisté : génération des suggestions (à la demande, 1 appel groupé) ──
+
+	const generateSuggestions = async () => {
+		if (suggestComputed || !selectedModelId) return;
+		const reception = tree.find((n) => n.path === RECEPTION);
+		const notes = (reception?.children ?? [])
+			.filter((c) => c.type === 'note' && !isGuideNote(c.name))
+			.slice(0, 15); // borne le coût : au plus 15 notes par génération
+		if (notes.length === 0) return;
+		suggestComputed = true;
+		const folders = buildFolderList(tree, friendlyFolder);
+		if (folders.length === 0) return;
+		const model = $models
+			// eslint-disable-next-line @typescript-eslint/no-explicit-any
+			.filter((m) => !((m?.info?.meta as any)?.hidden ?? false))
+			.find((m) => m.id === selectedModelId);
+		if (!model) return;
+		try {
+			const withContent = await Promise.all(
+				notes.map(async (n) => {
+					try {
+						const r = await getMemoryNote(localStorage.token, n.path);
+						return { path: n.path, content: r.content ?? '' };
+					} catch {
+						return { path: n.path, content: '' };
+					}
+				})
+			);
+			const prompt = buildSuggestPrompt(withContent, folders);
+			const [res] = await chatCompletion(
+				localStorage.token,
+				{ model: model.id, stream: false, messages: [{ role: 'user', content: prompt }] },
+				`${WEBUI_BASE_URL}/api`
+			);
+			if (!res || !res.ok) return;
+			const data = await res.json();
+			const content = data?.choices?.[0]?.message?.content ?? '';
+			const map: Record<string, FilingSuggestion[]> = {};
+			for (const ns of parseSuggestions(content, folders)) {
+				if (ns.suggestions.length) map[ns.notePath] = ns.suggestions;
+			}
+			suggestionsByPath = map;
+		} catch {
+			// Silencieux : l'absence de suggestion ne bloque jamais l'onglet (FR-013).
+		}
+	};
+
+	// Applique une suggestion : range la note (réutilise moveNote, réversible en la renvoyant en Réception).
+	const fileHere = async (notePath: string, dest: string) => {
+		try {
+			const res = await moveNote(localStorage.token, notePath, dest);
+			const { [notePath]: _moved, ...rest } = suggestionsByPath;
+			suggestionsByPath = rest;
+			await load();
+			if (dest) openState = { ...openState, [dest]: true };
+			toast.success('Note rangée', {
+				action: {
+					label: 'Annuler',
+					onClick: async () => {
+						try {
+							await moveNote(localStorage.token, res.path, RECEPTION);
+							await load();
+							toast.success('Rangement annulé');
+						} catch (e) {
+							toast.error(typeof e === 'string' ? e : "Impossible d'annuler le rangement");
+						}
+					}
+				}
+			});
+		} catch (e) {
+			toast.error(typeof e === 'string' ? e : 'Impossible de ranger la note');
+		}
+	};
+
+	// Écarte la suggestion d'une note (le dirigeant ne veut pas la ranger maintenant).
+	const dismissSuggestion = (notePath: string) => {
+		dismissedPaths = new Set(dismissedPaths).add(notePath);
+	};
+
 	// ─── Initialiser la structure du coffre (PARA) ────────────────────────────
 
 	let initializing = false;
@@ -619,6 +712,9 @@ Garde la langue d'origine. Retourne uniquement le texte en markdown.`;
 				// eslint-disable-next-line @typescript-eslint/no-explicit-any
 				$models.filter((m) => !((m?.info?.meta as any)?.hidden ?? false))[0]?.id ?? '';
 		}
+
+		// Rangement assisté : Adam calcule ses suggestions à la demande (non bloquant).
+		generateSuggestions();
 	});
 
 	onDestroy(() => {
@@ -835,6 +931,8 @@ Garde la langue d'origine. Retourne uniquement le texte en markdown.`;
 							noteCap={NOTE_CAP}
 							{friendlyFolder}
 							{isStructural}
+							suggestions={suggestionsByPath}
+							dismissed={dismissedPaths}
 							onOpen={openNote}
 							onDelete={(n) => deleteNote(n)}
 							onToggle={toggleOpen}
@@ -843,6 +941,8 @@ Garde la langue d'origine. Retourne uniquement le texte en markdown.`;
 							onRequestMove={requestMove}
 							onRenameFolder={renameFolderHandler}
 							onDeleteFolder={deleteFolderHandler}
+							onFileHere={fileHere}
+							onDismiss={dismissSuggestion}
 						/>
 					{/each}
 				</div>
