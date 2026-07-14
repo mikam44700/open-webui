@@ -50,6 +50,21 @@ class FolderCreateBody(BaseModel):
     name: str
 
 
+class NoteMoveBody(BaseModel):
+    path: str
+    dest: str = ""
+
+
+class FolderRenameBody(BaseModel):
+    path: str
+    name: str
+
+
+class FolderRestoreBody(BaseModel):
+    trash_ref: str
+    path: str
+
+
 @router.get("/tree")
 async def memory_tree(user=Depends(get_admin_user)):
     """Arborescence du coffre (dossiers métier + notes)."""
@@ -108,6 +123,30 @@ async def init_memory_vault(user=Depends(get_admin_user)):
 async def create_memory_folder(body: FolderCreateBody, user=Depends(get_admin_user)):
     """Crée un dossier dans le coffre (rangement manuel du dirigeant, sans collision)."""
     return await _bridge("POST", "/memory/folder", json=body.model_dump())
+
+
+@router.post("/note/move")
+async def move_memory_note(body: NoteMoveBody, user=Depends(get_admin_user)):
+    """Déplace une note vers un autre dossier du coffre (rangement)."""
+    return await _bridge("POST", "/memory/note/move", json=body.model_dump())
+
+
+@router.post("/folder/rename")
+async def rename_memory_folder(body: FolderRenameBody, user=Depends(get_admin_user)):
+    """Renomme un dossier (non structurel — les dossiers PARA du squelette sont protégés)."""
+    return await _bridge("POST", "/memory/folder/rename", json=body.model_dump())
+
+
+@router.delete("/folder")
+async def delete_memory_folder(path: str, user=Depends(get_admin_user)):
+    """Suppression douce d'un dossier (corbeille, récupérable). Dossiers PARA protégés."""
+    return await _bridge("DELETE", f"/memory/folder?path={quote(path)}")
+
+
+@router.post("/folder/restore")
+async def restore_memory_folder(body: FolderRestoreBody, user=Depends(get_admin_user)):
+    """Restaure un dossier supprimé (annulation)."""
+    return await _bridge("POST", "/memory/folder/restore", json=body.model_dump())
 
 
 @router.post("/inbox")

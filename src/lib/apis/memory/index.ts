@@ -67,6 +67,22 @@ export const initMemoryVault = (token: string): Promise<{ created: string[] }> =
 export const createFolder = (token: string, parent: string, name: string): Promise<MemoryNode> =>
 	call(token, 'POST', '/folder', { parent, name });
 
+// Déplace une note vers un autre dossier (``dest`` = "" pour la racine).
+export const moveNote = (token: string, path: string, dest: string): Promise<NoteContent> =>
+	call(token, 'POST', '/note/move', { path, dest });
+
+// Renomme un dossier (non structurel ; les dossiers PARA du squelette sont protégés côté serveur).
+export const renameFolder = (token: string, path: string, name: string): Promise<MemoryNode> =>
+	call(token, 'POST', '/folder/rename', { path, name });
+
+// Suppression douce d'un dossier (corbeille récupérable).
+export const deleteFolder = (token: string, path: string): Promise<DeleteResult> =>
+	call(token, 'DELETE', `/folder?path=${encodeURIComponent(path)}`);
+
+// Restaure un dossier supprimé (annulation).
+export const restoreFolder = (token: string, trashRef: string, path: string): Promise<MemoryNode> =>
+	call(token, 'POST', '/folder/restore', { trash_ref: trashRef, path });
+
 // ─── Recherche serveur (FTS5) : scalable, ne charge pas toutes les notes côté client ───
 export type SearchResult = {
 	titre: string;

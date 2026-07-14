@@ -16,6 +16,10 @@
 		saveMemoryNote,
 		initMemoryVault,
 		createFolder,
+		moveNote,
+		renameFolder,
+		deleteFolder,
+		restoreFolder,
 		getSyncPack,
 		downloadSyncPack,
 		searchMemory,
@@ -125,6 +129,27 @@
 		_Cartes: 'Cartes'
 	};
 	const friendlyFolder = (name: string): string => FRIENDLY_FOLDER[name] ?? name;
+
+	// Dossiers structurels du squelette PARA : protégés (ni renommés, ni supprimés). Le dirigeant
+	// range DEDANS (ses casquettes), mais ne casse pas le squelette clé en main. (Miroir du bridge.)
+	const STRUCTURAL_FOLDERS = new Set(Object.keys(FRIENDLY_FOLDER));
+	const isStructural = (path: string): boolean => STRUCTURAL_FOLDERS.has(path);
+
+	// Déplacement d'une note : liste à plat des dossiers (cible du sélecteur « Déplacer vers »).
+	type FolderOpt = { path: string; label: string; depth: number };
+	const collectFolders = (nodes: MemoryNode[], d = 0): FolderOpt[] => {
+		const acc: FolderOpt[] = [];
+		for (const n of nodes) {
+			if (n.type === 'folder') {
+				acc.push({ path: n.path, label: friendlyFolder(n.name), depth: d });
+				acc.push(...collectFolders(n.children ?? [], d + 1));
+			}
+		}
+		return acc;
+	};
+	$: folderOptions = collectFolders(tree);
+	// Note en cours de déplacement (ouvre le sélecteur de dossier). null = sélecteur fermé.
+	let movingNote: MemoryNode | null = null;
 
 	// Dépliage des dossiers : niveau 0 ouvert par défaut, sous-dossiers fermés (scalable). Persisté.
 	// La logique de rendu récursif vit dans MemoryTreeNode ; ici on ne gère que l'état.
@@ -280,6 +305,61 @@
 			toast.success(`Dossier « ${node.name} » créé`);
 		} catch (e) {
 			toast.error(typeof e === 'string' ? e : 'Impossible de créer le dossier');
+		}
+	};
+
+	// ─── Déplacer une note (glisser-déposer OU sélecteur « Déplacer vers ») ─────
+
+	const doMove = async (notePath: string, destFolder: string) => {
+		try {
+			await moveNote(localStorage.token, notePath, destFolder);
+			await load();
+			if (destFolder) openState = { ...openState, [destFolder]: true };
+			toast.success('Note déplacée');
+		} catch (e) {
+			toast.error(typeof e === 'string' ? e : 'Impossible de déplacer la note');
+		}
+	};
+	const requestMove = (node: MemoryNode) => {
+		movingNote = node;
+	};
+	const chooseMoveTarget = async (destFolder: string) => {
+		const note = movingNote;
+		movingNote = null;
+		if (note) await doMove(note.path, destFolder);
+	};
+
+	// ─── Renommer / supprimer un dossier (les PARA structurels sont protégés) ───
+
+	const renameFolderHandler = async (node: MemoryNode, newName: string) => {
+		try {
+			await renameFolder(localStorage.token, node.path, newName);
+			await load();
+			toast.success('Dossier renommé');
+		} catch (e) {
+			toast.error(typeof e === 'string' ? e : 'Impossible de renommer le dossier');
+		}
+	};
+	const deleteFolderHandler = async (node: MemoryNode) => {
+		try {
+			const res = await deleteFolder(localStorage.token, node.path);
+			await load();
+			toast.success(`Dossier « ${node.name} » supprimé`, {
+				action: {
+					label: 'Annuler',
+					onClick: async () => {
+						try {
+							await restoreFolder(localStorage.token, res.trash_ref, res.path);
+							await load();
+							toast.success('Dossier restauré');
+						} catch (e) {
+							toast.error(typeof e === 'string' ? e : 'Impossible de restaurer le dossier');
+						}
+					}
+				}
+			});
+		} catch (e) {
+			toast.error(typeof e === 'string' ? e : 'Impossible de supprimer le dossier');
 		}
 	};
 
@@ -750,10 +830,15 @@ Garde la langue d'origine. Retourne uniquement le texte en markdown.`;
 							{expandedFull}
 							noteCap={NOTE_CAP}
 							{friendlyFolder}
+							{isStructural}
 							onOpen={openNote}
 							onDelete={(n) => deleteNote(n)}
 							onToggle={toggleOpen}
 							onShowAll={showAllIn}
+							onMoveNote={doMove}
+							onRequestMove={requestMove}
+							onRenameFolder={renameFolderHandler}
+							onDeleteFolder={deleteFolderHandler}
 						/>
 					{/each}
 				</div>
@@ -978,6 +1063,62 @@ Garde la langue d'origine. Retourne uniquement le texte en markdown.`;
 						</Tooltip>
 					</RecordMenu>
 				{/if}
+			</div>
+		</div>
+	</div>
+{/if}
+
+<!-- ═══════════════════════════════════════════════════════════════════════════
+     Sélecteur « Déplacer vers » (alternative robuste au glisser-déposer)
+     ═══════════════════════════════════════════════════════════════════════════ -->
+{#if movingNote}
+	<!-- svelte-ignore a11y_click_events_have_key_events a11y_no_static_element_interactions -->
+	<div
+		class="fixed inset-0 z-60 flex items-center justify-center bg-black/30 backdrop-blur-[2px] p-4"
+		on:click={() => (movingNote = null)}
+	>
+		<!-- svelte-ignore a11y_click_events_have_key_events a11y_no_static_element_interactions -->
+		<div
+			class="w-full max-w-sm max-h-[70vh] flex flex-col rounded-2xl bg-white dark:bg-gray-900 ring-1 ring-black/10 dark:ring-white/10 shadow-2xl overflow-hidden"
+			on:click|stopPropagation
+		>
+			<div class="px-4 py-3 border-b border-gray-100 dark:border-gray-800">
+				<div class="text-sm font-semibold text-gray-900 dark:text-white">Déplacer vers…</div>
+				<div class="mt-0.5 text-[12px] text-gray-500 dark:text-gray-400 truncate">
+					« {movingNote.name} »
+				</div>
+			</div>
+			<div class="flex-1 overflow-y-auto py-1.5">
+				<button
+					class="w-full text-left px-4 py-2 text-[13.5px] text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-white/5 transition flex items-center gap-2"
+					on:click={() => chooseMoveTarget('')}
+				>
+					<span class="text-gray-400">🗂️</span> Racine du coffre
+				</button>
+				{#each folderOptions as opt (opt.path)}
+					<button
+						class="w-full text-left py-2 text-[13.5px] text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-white/5 transition flex items-center gap-2"
+						style="padding-left: {opt.depth * 14 + 16}px; padding-right: 16px"
+						on:click={() => chooseMoveTarget(opt.path)}
+					>
+						<span class="shrink-0 text-amber-500/80">
+							<svg class="w-3.5 h-3.5" viewBox="0 0 20 20" fill="currentColor"
+								><path
+									d="M2 5.5A1.5 1.5 0 0 1 3.5 4h4l1.5 2h7A1.5 1.5 0 0 1 17.5 7.5v7A1.5 1.5 0 0 1 16 16H3.5A1.5 1.5 0 0 1 2 14.5v-9Z"
+								/></svg
+							>
+						</span>
+						<span class="truncate">{opt.label}</span>
+					</button>
+				{/each}
+			</div>
+			<div class="px-4 py-2.5 border-t border-gray-100 dark:border-gray-800 flex justify-end">
+				<button
+					class="px-3 py-1.5 rounded-lg text-[12.5px] text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-white/5 transition"
+					on:click={() => (movingNote = null)}
+				>
+					Annuler
+				</button>
 			</div>
 		</div>
 	</div>
