@@ -129,7 +129,7 @@
 		<div>
 			<div class="text-xl font-medium">{$i18n.t('Automatisations')}</div>
 			<div class="text-xs text-gray-500">
-				{$i18n.t('Vos tâches récurrentes, exécutées automatiquement par Agent OS.')}
+				{$i18n.t('Vos tâches récurrentes, exécutées automatiquement par LunarIA.')}
 			</div>
 		</div>
 		<button
@@ -147,7 +147,7 @@
 			<div class="text-3xl mb-2">🔌</div>
 			<div class="font-medium">{$i18n.t('Automatisations momentanément indisponibles')}</div>
 			<div class="text-xs text-gray-500 mt-1">
-				{$i18n.t('Le moteur Agent OS ne répond pas pour l’instant. Réessayez dans un moment.')}
+				{$i18n.t('Le moteur LunarIA ne répond pas pour l’instant. Réessayez dans un moment.')}
 			</div>
 			<button class="mt-3 text-sm underline" on:click={load}>{$i18n.t('Réessayer')}</button>
 		</div>
@@ -155,14 +155,14 @@
 		<!-- Accueil : explication + comment ça marche + modèles cliquables -->
 		<div class="flex flex-col items-center text-center pt-10 pb-6">
 			<div class="size-12 rounded-2xl bg-gray-100 dark:bg-gray-850 flex items-center justify-center text-2xl mb-4">⏱️</div>
-			<div class="text-2xl font-semibold">{$i18n.t('Définissez une automatisation. Agent OS s’en charge.')}</div>
+			<div class="text-2xl font-semibold">{$i18n.t('Définissez une automatisation. LunarIA s’en charge.')}</div>
 			<div class="text-sm text-gray-500 mt-2 max-w-xl">
 				{$i18n.t('Une automatisation s’exécute toute seule en arrière-plan, au rythme que vous fixez (chaque jour, chaque semaine, à intervalle régulier…).')}
 			</div>
 			<div class="flex flex-wrap justify-center gap-x-6 gap-y-2 mt-5 text-xs text-gray-500">
 				<span><span class="font-medium text-gray-700 dark:text-gray-300">1.</span> {$i18n.t('Décrivez la tâche')}</span>
 				<span><span class="font-medium text-gray-700 dark:text-gray-300">2.</span> {$i18n.t('Choisissez quand')}</span>
-				<span><span class="font-medium text-gray-700 dark:text-gray-300">3.</span> {$i18n.t('Agent OS l’exécute pour vous')}</span>
+				<span><span class="font-medium text-gray-700 dark:text-gray-300">3.</span> {$i18n.t('LunarIA l’exécute pour vous')}</span>
 			</div>
 		</div>
 

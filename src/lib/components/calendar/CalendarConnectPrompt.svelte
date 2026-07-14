@@ -41,7 +41,7 @@
 				{$i18n.t('Connectez votre agenda')}
 			</h2>
 			<p class="mt-1.5 text-sm text-gray-600 dark:text-gray-300 max-w-md">
-				{$i18n.t('Choisissez le calendrier que vous utilisez — Agent OS s’occupe du reste.')}
+				{$i18n.t('Choisissez le calendrier que vous utilisez — LunarIA s’occupe du reste.')}
 			</p>
 
 			<!-- Cartes cliquables : un logo par calendrier -->

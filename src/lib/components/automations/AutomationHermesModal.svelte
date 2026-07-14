@@ -126,7 +126,7 @@
 			</label>
 
 			<label class="text-sm">
-				<span class="text-gray-600 dark:text-gray-300">{$i18n.t('Que doit faire Agent OS ?')}</span>
+				<span class="text-gray-600 dark:text-gray-300">{$i18n.t('Que doit faire LunarIA ?')}</span>
 				<textarea
 					class="w-full mt-1 px-3 py-2 rounded-lg bg-gray-50 dark:bg-gray-850 outline-none text-sm resize-none"
 					rows="3"

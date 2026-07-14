@@ -561,7 +561,7 @@
 	<div class="p-5">
 		<div class="text-base font-semibold mb-1">⬇ {$i18n.t('Importer une skill')}</div>
 		<div class="text-xs text-gray-500 mb-4">
-			{$i18n.t('Colle l’adresse d’une compétence trouvée sur GitHub. On la récupère et on la transforme automatiquement au niveau Agent OS (en français, branchée à tes outils, avec garde-fous).')}
+			{$i18n.t('Colle l’adresse d’une compétence trouvée sur GitHub. On la récupère et on la transforme automatiquement au niveau LunarIA (en français, branchée à tes outils, avec garde-fous).')}
 		</div>
 
 		<label class="block text-xs font-medium text-gray-600 dark:text-gray-300 mb-1">

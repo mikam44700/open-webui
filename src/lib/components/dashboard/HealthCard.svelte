@@ -22,7 +22,7 @@
 </script>
 
 <div class="flex flex-col gap-2.5 p-4 rounded-2xl border border-gray-100 dark:border-gray-850">
-	<div class="text-sm font-medium">{$i18n.t('Mon Agent OS')}</div>
+	<div class="text-sm font-medium">{$i18n.t('Mon LunarIA')}</div>
 
 	{#if loading}
 		<div class="flex justify-center py-6"><Spinner className="size-5" /></div>

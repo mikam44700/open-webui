@@ -270,7 +270,7 @@
 
 		<!-- Moteur -->
 		<div class="flex items-center justify-between text-sm">
-			<span class="text-gray-500">{$i18n.t('Moteur d’Agent OS')}</span>
+			<span class="text-gray-500">{$i18n.t('Moteur de LunarIA')}</span>
 			<span
 				class="inline-flex items-center gap-1.5 text-xs font-medium {engineOk
 					? 'text-emerald-600 dark:text-emerald-400'

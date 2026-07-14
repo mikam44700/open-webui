@@ -16,7 +16,7 @@
 		publishing = true;
 		try {
 			await publishBriefing(localStorage.token);
-			toast.success($i18n.t('Briefing publié dans le canal Agent OS'));
+			toast.success($i18n.t('Briefing publié dans le canal LunarIA'));
 		} catch (err) {
 			toast.error(typeof err === 'string' ? err : $i18n.t('Publication impossible'));
 		} finally {
@@ -57,7 +57,7 @@
 					disabled={publishing}
 					on:click={publish}
 				>
-					{$i18n.t('Publier dans Agent OS')}
+					{$i18n.t('Publier dans LunarIA')}
 				</button>
 			{/if}
 			<button class="text-xs text-gray-400 hover:text-gray-700 dark:hover:text-white" on:click={load} aria-label="Rafraîchir">↻</button>

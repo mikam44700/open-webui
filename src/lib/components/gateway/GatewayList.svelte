@@ -132,8 +132,8 @@
 	// Manifest qui pré-configure l'app Slack (nom + scopes + Socket Mode + événements) :
 	// le client n'a rien à régler dans le tableau de bord, il clique et installe.
 	const SLACK_MANIFEST = {
-		display_information: { name: 'Agent OS' },
-		features: { bot_user: { display_name: 'Agent OS', always_online: true } },
+		display_information: { name: 'LunarIA' },
+		features: { bot_user: { display_name: 'LunarIA', always_online: true } },
 		oauth_config: {
 			scopes: {
 				bot: [
@@ -1568,7 +1568,7 @@
 								</a>
 								<div class="text-[11px] text-gray-400">
 									{$i18n.t(
-										'Invitez votre assistant dans un canal avec « /invite @Agent OS », puis écrivez-lui.'
+										'Invitez votre assistant dans un canal avec « /invite @LunarIA », puis écrivez-lui.'
 									)}
 								</div>
 							</div>

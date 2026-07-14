@@ -113,7 +113,7 @@
 			const { syncKnowledgeToAgent } = await import('$lib/apis/knowledge-agent');
 			const res = await syncKnowledgeToAgent(localStorage.token, id);
 			toast.success(
-				$i18n.t('{{n}} document(s) rendus lisibles par Agent OS', { n: res?.synced ?? 0 })
+				$i18n.t('{{n}} document(s) rendus lisibles par LunarIA', { n: res?.synced ?? 0 })
 			);
 		} catch (err) {
 			toast.error(typeof err === 'string' ? err : $i18n.t('Synchronisation impossible'));
@@ -1271,11 +1271,11 @@
 								class="bg-gray-50 hover:bg-gray-100 text-black dark:bg-gray-850 dark:hover:bg-gray-800 dark:text-white transition px-2 py-1 rounded-full flex gap-1 items-center disabled:opacity-50"
 								type="button"
 								disabled={syncingToAgent}
-								title={$i18n.t('Copie le contenu des documents dans le coffre d’Agent OS pour qu’Hermes puisse les lire')}
+								title={$i18n.t('Copie le contenu des documents dans le coffre de LunarIA pour qu’Hermes puisse les lire')}
 								on:click={syncToAgentHandler}
 							>
 								<div class="text-sm font-medium shrink-0">
-									{$i18n.t('Rendre lisible par Agent OS')}
+									{$i18n.t('Rendre lisible par LunarIA')}
 								</div>
 							</button>
 						</div>

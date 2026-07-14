@@ -22,7 +22,7 @@
 	const SUPPORT_EMAIL = 'support@agent-os.app';
 	const requestMailto =
 		`mailto:${SUPPORT_EMAIL}?subject=` +
-		encodeURIComponent('Demande de connecteur MCP — Agent OS') +
+		encodeURIComponent('Demande de connecteur MCP — LunarIA') +
 		'&body=' +
 		encodeURIComponent('Bonjour,\n\nJ’aimerais que vous ajoutiez le connecteur suivant :\n\n');
 

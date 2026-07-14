@@ -195,12 +195,12 @@ export const transformSkill = async (
 	let userContent =
 		`Voici une compétence existante (issue d'un dépôt public). Elle est souvent en anglais, liée à ` +
 		`un produit, une personne ou un prix précis, et rarement branchée à de vrais outils. ` +
-		`TRANSFORME-la en compétence « niveau 4 » pour Agent OS :\n` +
+		`TRANSFORME-la en compétence « niveau 4 » pour LunarIA :\n` +
 		`- garde l'OSSATURE utile (frameworks, étapes, critères) ;\n` +
 		`- GÉNÉRALISE : retire tout nom de produit, de personne, de prix ou de marque spécifique ;\n` +
 		`- traduis et peaufine en français impeccable, ton PME ;\n` +
 		`- BRANCHE-la : dis quels outils connectés elle mobilise et comment elle s'appuie sur le coffre ;\n` +
-		`- ajoute les garde-fous Agent OS (validation avant action externe, jamais inventer, citer ses sources).\n\n`;
+		`- ajoute les garde-fous LunarIA (validation avant action externe, jamais inventer, citer ses sources).\n\n`;
 
 	const tools = (opts.connectedTools ?? []).filter(Boolean);
 	if (tools.length) {

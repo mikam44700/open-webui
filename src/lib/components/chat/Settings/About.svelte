@@ -122,7 +122,7 @@
 				<span class=" capitalize">{$config?.license_metadata?.organization_name}</span>
 			</div>
 		{:else}
-			<div class="text-xs text-gray-500 dark:text-gray-300 font-medium">Agent OS</div>
+			<div class="text-xs text-gray-500 dark:text-gray-300 font-medium">LunarIA</div>
 		{/if}
 
 		<div class="mt-2 text-xs text-gray-400 dark:text-gray-500">
@@ -133,7 +133,7 @@
 
 		<div>
 			<pre
-				class="text-xs text-gray-400 dark:text-gray-500">Copyright (c) {new Date().getFullYear()} Agent OS — Tous droits réservés.</pre>
+				class="text-xs text-gray-400 dark:text-gray-500">Copyright (c) {new Date().getFullYear()} LunarIA — Tous droits réservés.</pre>
 		</div>
 
 		<!-- Masqué (Agent OS) : attribution auteur OpenWebUI retirée sur décision du propriétaire.

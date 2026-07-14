@@ -60,9 +60,9 @@
 	$: activeLabel = activeSourceObj?.label ?? 'calendrier';
 
 	const subtitle = (src: CalendarSource | null): string => {
-		if (!src) return $i18n.t('Votre agenda, géré par Agent OS.');
-		if (src.id === 'calendly') return $i18n.t('Vos rendez-vous Calendly, dans Agent OS.');
-		return $i18n.t('Votre agenda {{name}}, géré par Agent OS.', { name: src.label });
+		if (!src) return $i18n.t('Votre agenda, géré par LunarIA.');
+		if (src.id === 'calendly') return $i18n.t('Vos rendez-vous Calendly, dans LunarIA.');
+		return $i18n.t('Votre agenda {{name}}, géré par LunarIA.', { name: src.label });
 	};
 
 	const loadEvents = async () => {

@@ -33,7 +33,7 @@ async def _ensure_channel_and_webhook(user, db: AsyncSession):
     channel = next((c for c in channels if c.name == CHANNEL_NAME), None)
     if not channel:
         channel = await Channels.insert_new_channel(
-            CreateChannelForm(name=CHANNEL_NAME, description="Messages d'Agent OS"),
+            CreateChannelForm(name=CHANNEL_NAME, description="Messages de LunarIA"),
             user.id,
             db=db,
         )
@@ -41,7 +41,7 @@ async def _ensure_channel_and_webhook(user, db: AsyncSession):
     webhook = (
         webhooks[0]
         if webhooks
-        else await Channels.insert_webhook(channel.id, user.id, ChannelWebhookForm(name="Agent OS"), db=db)
+        else await Channels.insert_webhook(channel.id, user.id, ChannelWebhookForm(name="LunarIA"), db=db)
     )
     return channel, webhook
 

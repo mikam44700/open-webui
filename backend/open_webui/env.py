@@ -768,7 +768,7 @@ if LICENSE_PUBLIC_KEY:
 # WEBUI Identity
 ####################################
 
-WEBUI_NAME = os.getenv('WEBUI_NAME', 'Agent OS')
+WEBUI_NAME = os.getenv('WEBUI_NAME', 'LunarIA')
 # Agent OS (feature 006) : suffixe « (Open WebUI) » retiré sur décision du propriétaire,
 # pour que la marque affichée soit purement « Agent OS ».
 
