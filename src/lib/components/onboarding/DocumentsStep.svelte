@@ -1,16 +1,13 @@
 <script lang="ts">
-	// Étape « Vos documents » (juste avant Adam) : le dirigeant dépose des fichiers (plaquette,
-	// catalogue, CGV, tarifs…) qui NOURRISSENT la base de connaissances de ses agents. Vaut pour les
-	// deux chemins (avec site ET sans site). 100 % optionnel. Le fil narratif : on fournit ici → Adam
-	// range → l'écran final révèle une équipe qui « a tout lu ». L'upload réel est délégué à l'API
-	// (uploadCompanyDocument) ; ici on gère la file d'attente + l'état honnête de chaque fichier.
+	// Étape « Vos documents » (juste avant Adam) : le dirigeant nourrit ses agents avec des fichiers.
+	// Présentée PAR AGENT — chaque agent a SON bouton « Ajouter » et SA base de documents (rangée chez
+	// lui, option A) : les docs de Maxime vont chez Maxime, ils ne se mélangent pas. 100 % optionnel.
+	// Pipeline 100 % existant : uploadFile (extraction) → base de connaissances DE L'AGENT →
+	// syncKnowledgeToAgent (recopie dans le coffre, lisible par Hermes). Aucun code backend nouveau.
 	import { createEventDispatcher, getContext } from 'svelte';
-	// Pipeline 100 % existant : upload (extraction du texte) → base de connaissances → recopie dans le
-	// coffre Obsidian (lisible par les agents Hermes). Aucun code backend nouveau.
 	import { uploadFile } from '$lib/apis/files';
 	import { createNewKnowledge, addFileToKnowledgeById } from '$lib/apis/knowledge';
 	import { syncKnowledgeToAgent } from '$lib/apis/knowledge-agent';
-	// Avatars réels des agents (même source que le chat / l'écran final).
 	import { AGENT_TEMPLATES } from '$lib/components/agents/templates';
 	import { faceFromImage, avatarId } from '$lib/components/agents/avatars';
 	import { avatarColor } from '$lib/components/agents/avatar-colors';
@@ -19,26 +16,29 @@
 	const i18n = getContext('i18n');
 	const dispatch = createEventDispatcher();
 
-	// On présente l'upload PAR AGENT (visage + exemple CONCRET du document dont il a besoin) plutôt
-	// que par catégories abstraites : le dirigeant voit à qui ça sert. Les documents vont dans la base
-	// commune (tous les agents y accèdent) — cliquer une carte est un pur guide, aucune cible imposée.
-	// 7 agents principaux visibles ; les autres, repliés (moins de besoin documentaire au quotidien).
+	// Garde-fous d'upload : évitent d'abuser la mémoire d'un agent (et de la noyer de bruit).
+	const MAX_FILE_MB = 20; // taille max par fichier
+	const MAX_DOCS_PER_AGENT = 15; // nombre max de documents par agent
+
+	// Pour chaque agent : un exemple CONCRET des documents qu'il attend (guide le dirigeant).
 	type AgentDoc = { id: string; example: string };
+	// 7 agents ACTIFS du socle (à fort besoin documentaire).
 	const PRIMARY_AGENTS: AgentDoc[] = [
-		{ id: 'commercial-devis', example: 'Votre catalogue et vos tarifs' },
-		{ id: 'comptable-impayes', example: 'Vos factures et conditions de paiement' },
-		{ id: 'service-client', example: 'Votre FAQ et vos procédures SAV' },
-		{ id: 'redacteur-documents', example: 'Votre plaquette et vos modèles de courriers' },
-		{ id: 'assistant-administratif', example: 'Vos procédures internes' },
-		{ id: 'conformite-juridique', example: 'Vos CGV, contrats et mentions légales' },
-		{ id: 'finance-previsionnel', example: 'Vos bilans et votre prévisionnel' }
+		{ id: 'commercial-devis', example: 'Votre catalogue, vos tarifs, un modèle de devis' },
+		{ id: 'comptable-impayes', example: 'Un modèle de facture, vos conditions de paiement, vos relances' },
+		{ id: 'service-client', example: 'Votre FAQ, vos procédures SAV, vos conditions de garantie' },
+		{ id: 'redacteur-documents', example: 'Votre plaquette, votre charte éditoriale, vos modèles de courriers' },
+		{ id: 'assistant-administratif', example: 'Vos procédures internes, vos modèles de courriers, votre organigramme' },
+		{ id: 'conformite-juridique', example: 'Vos CGV, vos contrats types, vos mentions légales' },
+		{ id: 'finance-previsionnel', example: 'Vos bilans, votre prévisionnel, votre budget' }
 	];
+	// 8 agents À ACTIVER (le dirigeant devra les activer depuis ses Capacités pour qu'ils s'en servent).
 	const MORE_AGENTS: AgentDoc[] = [
-		{ id: 'rh', example: 'Contrats de travail, fiches de poste' },
+		{ id: 'rh', example: 'Contrats de travail, fiches de poste, convention collective' },
 		{ id: 'achats-fournisseurs', example: 'Contrats et conditions fournisseurs' },
-		{ id: 'chasseur-clients', example: 'Personas, fichiers prospects' },
-		{ id: 'marketing-presence', example: 'Charte graphique, contenus' },
-		{ id: 'pilote-briefing', example: 'Plannings, comptes-rendus' },
+		{ id: 'chasseur-clients', example: 'Personas, fichiers prospects, argumentaires' },
+		{ id: 'marketing-presence', example: 'Charte graphique, contenus, calendrier éditorial' },
+		{ id: 'pilote-briefing', example: 'Plannings, comptes-rendus, objectifs' },
 		{ id: 'analyste-commercial', example: 'Scripts et enregistrements d’appels' },
 		{ id: 'livraison-projet', example: 'Vos process de livraison client' },
 		{ id: 'veille', example: 'Vos documents de veille concurrents' }
@@ -48,25 +48,15 @@
 
 	type DocState = 'uploading' | 'done' | 'error';
 	type Doc = { id: string; name: string; size: number; status: DocState };
-	let docs: Doc[] = [];
-	let dragOver = false;
-	let fileInput: HTMLInputElement;
-	let seq = 0; // identifiants locaux stables (pas de Math.random dans ce projet)
-	// Base de connaissances dédiée, créée à la volée au 1er document puis réutilisée pour les suivants.
-	let kbId: string | null = null;
-	let finishing = false; // recopie finale vers le coffre en cours
+	// Documents ET base de connaissances PAR agent (rangé chez lui — option A).
+	let docsByAgent: Record<string, Doc[]> = {};
+	let kbByAgent: Record<string, string> = {};
+	let noticeByAgent: Record<string, string> = {}; // message de garde-fou par agent (limite atteinte…)
+	let seq = 0;
+	let finishing = false;
 
-	const ensureKb = async (token: string): Promise<string> => {
-		if (kbId) return kbId;
-		const kb = await createNewKnowledge(
-			token,
-			'Documents de l’entreprise',
-			'Documents fournis à l’accueil pour nourrir les agents.',
-			[] // aucun partage : la base reste privée au dirigeant
-		);
-		kbId = kb.id;
-		return kbId;
-	};
+	let fileInput: HTMLInputElement;
+	let pickerAgent: string | null = null; // agent pour lequel le sélecteur de fichiers est ouvert
 
 	const humanSize = (bytes: number): string => {
 		if (bytes < 1024) return `${bytes} o`;
@@ -74,51 +64,107 @@
 		return `${(bytes / (1024 * 1024)).toFixed(1)} Mo`;
 	};
 
-	const setStatus = (id: string, status: DocState) => {
-		docs = docs.map((d) => (d.id === id ? { ...d, status } : d));
+	const setStatus = (agentId: string, docId: string, status: DocState) => {
+		docsByAgent = {
+			...docsByAgent,
+			[agentId]: (docsByAgent[agentId] ?? []).map((d) => (d.id === docId ? { ...d, status } : d))
+		};
+	};
+	const removeDoc = (agentId: string, docId: string) => {
+		docsByAgent = { ...docsByAgent, [agentId]: (docsByAgent[agentId] ?? []).filter((d) => d.id !== docId) };
+		clearNotice(agentId); // libère la place → l'avertissement de limite n'a plus lieu d'être
 	};
 
-	// Ajoute puis téléverse chaque fichier, en reflétant honnêtement l'issue (jamais bloquant).
-	const addFiles = async (list: FileList | File[]) => {
-		const files = Array.from(list);
-		for (const file of files) {
+	// Base de connaissances propre à l'agent, créée à la volée au 1er document.
+	const ensureKbFor = async (agentId: string, label: string): Promise<string> => {
+		if (kbByAgent[agentId]) return kbByAgent[agentId];
+		const kb = await createNewKnowledge(
+			token(),
+			`Documents ${label}`,
+			`Documents fournis à l’accueil pour l’agent ${label}.`,
+			[] // aucun partage : la base reste privée au dirigeant
+		);
+		kbByAgent = { ...kbByAgent, [agentId]: kb.id };
+		return kb.id;
+	};
+
+	const token = (): string => localStorage.token;
+
+	const setNotice = (agentId: string, msg: string) => {
+		noticeByAgent = { ...noticeByAgent, [agentId]: msg };
+	};
+	const clearNotice = (agentId: string) => {
+		if (!noticeByAgent[agentId]) return;
+		const { [agentId]: _drop, ...rest } = noticeByAgent;
+		noticeByAgent = rest;
+	};
+
+	const addFilesForAgent = async (agentId: string, label: string, list: FileList | File[]) => {
+		clearNotice(agentId);
+		// On compte les documents déjà présents (en cours ou réussis) pour cet agent.
+		let current = (docsByAgent[agentId] ?? []).filter((d) => d.status !== 'error').length;
+		for (const file of Array.from(list)) {
+			// Garde-fou nombre : au-delà de la limite, on arrête et on prévient.
+			if (current >= MAX_DOCS_PER_AGENT) {
+				setNotice(
+					agentId,
+					$i18n.t('Maximum {{n}} documents par agent. Retirez-en pour en ajouter d’autres.', {
+						n: MAX_DOCS_PER_AGENT
+					})
+				);
+				break;
+			}
+			// Garde-fou taille : on refuse le fichier trop lourd sans bloquer les suivants.
+			if (file.size > MAX_FILE_MB * 1024 * 1024) {
+				setNotice(
+					agentId,
+					$i18n.t('« {{name}} » dépasse {{n}} Mo et n’a pas été ajouté.', {
+						name: file.name,
+						n: MAX_FILE_MB
+					})
+				);
+				continue;
+			}
 			const id = `doc-${seq++}`;
-			docs = [...docs, { id, name: file.name, size: file.size, status: 'uploading' }];
+			current += 1;
+			docsByAgent = {
+				...docsByAgent,
+				[agentId]: [...(docsByAgent[agentId] ?? []), { id, name: file.name, size: file.size, status: 'uploading' }]
+			};
 			try {
-				// 1) upload + extraction du texte, 2) ajout à la base de connaissances (créée au besoin).
-				const uploaded = await uploadFile(localStorage.token, file, null, true);
-				const kb = await ensureKb(localStorage.token);
-				await addFileToKnowledgeById(localStorage.token, kb, uploaded.id);
-				setStatus(id, 'done');
+				const uploaded = await uploadFile(token(), file, null, true);
+				const kb = await ensureKbFor(agentId, label);
+				await addFileToKnowledgeById(token(), kb, uploaded.id);
+				setStatus(agentId, id, 'done');
 			} catch (e) {
 				console.error(e);
-				setStatus(id, 'error');
+				setStatus(agentId, id, 'error');
 			}
 		}
 	};
 
+	const openPickerFor = (agentId: string) => {
+		pickerAgent = agentId;
+		fileInput?.click();
+	};
 	const onPick = (e: Event) => {
 		const input = e.currentTarget as HTMLInputElement;
-		if (input.files?.length) addFiles(input.files);
+		if (input.files?.length && pickerAgent) {
+			addFilesForAgent(pickerAgent, tpl(pickerAgent)?.firstName ?? '', input.files);
+		}
 		input.value = ''; // permet de re-choisir le même fichier
 	};
-	const onDrop = (e: DragEvent) => {
-		e.preventDefault();
-		dragOver = false;
-		if (e.dataTransfer?.files?.length) addFiles(e.dataTransfer.files);
-	};
-	const removeDoc = (id: string) => (docs = docs.filter((d) => d.id !== id));
 
-	// « Continuer » : on recopie les documents dans le coffre (lisible par les agents Hermes) AVANT de
-	// passer à Adam. Best-effort — un échec de recopie n'empêche jamais d'avancer.
+	// « Continuer » : on recopie CHAQUE base d'agent dans le coffre (best-effort) avant de passer à Adam.
 	const finishDocuments = async () => {
-		const count = docs.filter((d) => d.status === 'done').length;
-		if (kbId) {
+		const count = Object.values(docsByAgent)
+			.flat()
+			.filter((d) => d.status === 'done').length;
+		const kbs = Object.values(kbByAgent);
+		if (kbs.length) {
 			finishing = true;
 			try {
-				await syncKnowledgeToAgent(localStorage.token, kbId);
-			} catch (e) {
-				console.error(e);
+				for (const kbId of kbs) await syncKnowledgeToAgent(token(), kbId).catch((e) => console.error(e));
 			} finally {
 				finishing = false;
 			}
@@ -126,7 +172,12 @@
 		dispatch('next', { count });
 	};
 
-	$: anyUploading = docs.some((d) => d.status === 'uploading');
+	$: anyUploading = Object.values(docsByAgent)
+		.flat()
+		.some((d) => d.status === 'uploading');
+	$: anyDone = Object.values(docsByAgent)
+		.flat()
+		.some((d) => d.status === 'done');
 </script>
 
 <div class="w-full max-w-2xl mx-auto px-5 py-9 sm:py-10">
@@ -140,112 +191,126 @@
 		</h1>
 		<p class="mt-3 text-[15px] leading-relaxed text-gray-600 dark:text-gray-300 max-w-md mx-auto">
 			{$i18n.t(
-				'Déposez ce que vous voulez — vos agents le liront pour mieux vous répondre. C’est facultatif, et vous pourrez en ajouter à tout moment.'
+				'Ce n’est pas obligatoire — mais c’est le meilleur moyen pour que vos agents connaissent votre entreprise à 100 %. Chaque document va directement à l’agent concerné.'
+			)}
+		</p>
+		<p class="mt-2 text-[12.5px] text-gray-400 dark:text-gray-500 max-w-md mx-auto">
+			🔒 {$i18n.t(
+				'Vos documents restent privés. Chaque agent n’utilise que les siens, rangés dans sa propre mémoire.'
 			)}
 		</p>
 	</div>
 
-	<!-- Carte agent : visage (fond = couleur signature) + prénom + rôle + exemple de document. -->
+	<!-- Sélecteur de fichiers unique, réutilisé pour l'agent en cours (pickerAgent). -->
+	<input
+		bind:this={fileInput}
+		type="file"
+		multiple
+		on:change={onPick}
+		class="hidden"
+		accept=".pdf,.doc,.docx,.txt,.md,.csv,.xls,.xlsx,.ppt,.pptx"
+	/>
+
+	<!-- Carte agent : visage + prénom (sur sa ligne, jamais coupé) + rôle + exemple de docs + bouton
+	     « Ajouter » DÉDIÉ + la liste des fichiers de CET agent. -->
 	{#snippet agentCard(a: AgentDoc)}
 		{@const t = tpl(a.id)}
 		{#if t}
-			<button
-				type="button"
-				on:click={() => fileInput?.click()}
-				class="flex items-start gap-3 rounded-2xl bg-white dark:bg-white/[0.03] ring-1 ring-inset ring-black/5 dark:ring-white/10 px-4 py-3.5 text-left hover:ring-amber-400/50 transition"
-			>
-				<img
-					src={faceFromImage(t.image) ?? '/favicon.png'}
-					alt={t.firstName}
-					on:error={(e) => avatarImgFallback(e, t.image)}
-					style="background: {avatarColor(avatarId(t.image) || t.firstName).gradient}"
-					class="flex-none h-10 w-10 rounded-full object-cover ring-1 ring-inset ring-black/10 dark:ring-white/15"
-				/>
-				<span class="min-w-0">
-					<span class="flex items-baseline gap-1.5">
-						<span class="text-sm font-semibold text-gray-900 dark:text-white">{t.firstName}</span>
-						<span class="text-[11px] text-gray-400 dark:text-gray-500 truncate">{$i18n.t(t.role)}</span>
-					</span>
-					<span class="block text-[12.5px] text-gray-500 dark:text-gray-400">→ {$i18n.t(a.example)}</span>
-				</span>
-			</button>
+			<div class="flex flex-col h-full rounded-2xl bg-white dark:bg-white/[0.03] ring-1 ring-inset ring-black/5 dark:ring-white/10 p-4">
+				<div class="flex items-start gap-3">
+					<img
+						src={faceFromImage(t.image) ?? '/favicon.png'}
+						alt={t.firstName}
+						on:error={(e) => avatarImgFallback(e, t.image)}
+						style="background: {avatarColor(avatarId(t.image) || t.firstName).gradient}"
+						class="flex-none h-10 w-10 rounded-full object-cover ring-1 ring-inset ring-black/10 dark:ring-white/15"
+					/>
+					<div class="min-w-0 flex-1">
+						<div class="text-sm font-semibold text-gray-900 dark:text-white">{t.firstName}</div>
+						<div class="text-[11px] text-gray-400 dark:text-gray-500">{$i18n.t(t.role)}</div>
+						<p class="mt-1.5 text-[12.5px] leading-snug text-gray-500 dark:text-gray-400 sm:min-h-[2.6em]">
+							<span class="text-gray-400 dark:text-gray-500">{$i18n.t('Ex :')}</span>
+							{$i18n.t(a.example)}
+						</p>
+					</div>
+				</div>
+
+				<button
+					type="button"
+					on:click={() => openPickerFor(a.id)}
+					class="mt-3 w-full inline-flex items-center justify-center gap-1.5 text-[13px] font-semibold px-4 py-2 rounded-xl bg-amber-50 text-amber-800 ring-1 ring-inset ring-amber-500/25 hover:bg-amber-100 dark:bg-amber-900/20 dark:text-amber-200 dark:hover:bg-amber-900/30 transition"
+				>
+					+ {$i18n.t('Ajouter un document')}
+				</button>
+				<p class="mt-1.5 text-center text-[11px] text-gray-400 dark:text-gray-500">
+					{$i18n.t('PDF, Word, Excel, texte…')} · {$i18n.t('{{n}} Mo max', { n: MAX_FILE_MB })}
+				</p>
+				{#if noticeByAgent[a.id]}
+					<p class="mt-1.5 text-center text-[11px] text-amber-700 dark:text-amber-300">
+						{noticeByAgent[a.id]}
+					</p>
+				{/if}
+
+				<!-- Fichiers déposés POUR cet agent -->
+				{#if (docsByAgent[a.id] ?? []).length}
+					<div class="mt-2 flex flex-col gap-1.5">
+						{#each docsByAgent[a.id] as d (d.id)}
+							<div class="flex items-center gap-2 rounded-lg bg-gray-50 dark:bg-white/[0.04] px-2.5 py-1.5">
+								<span class="text-sm" aria-hidden="true">📎</span>
+								<span class="min-w-0 flex-1">
+									<span class="block text-[12.5px] text-gray-800 dark:text-gray-100 truncate">{d.name}</span>
+									<span class="block text-[10.5px] text-gray-400">{humanSize(d.size)}</span>
+								</span>
+								{#if d.status === 'uploading'}
+									<span class="inline-block h-3.5 w-3.5 rounded-full border-2 border-amber-500 border-t-transparent animate-spin"></span>
+								{:else if d.status === 'done'}
+									<span class="text-emerald-500 text-sm font-bold" title={$i18n.t('Ajouté')}>✓</span>
+								{:else}
+									<span class="text-[11px] text-red-500" title={$i18n.t('Échec de l’envoi')}>{$i18n.t('échec')}</span>
+								{/if}
+								<button
+									type="button"
+									on:click={() => removeDoc(a.id, d.id)}
+									aria-label={$i18n.t('Retirer')}
+									class="h-5 w-5 flex-none rounded-full flex items-center justify-center text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 hover:bg-gray-200/60 dark:hover:bg-white/10 transition"
+								>×</button>
+							</div>
+						{/each}
+					</div>
+				{/if}
+			</div>
 		{/if}
 	{/snippet}
 
-	<!-- Suggestions PAR AGENT : 7 principaux, puis les autres à la demande -->
+	<!-- Les 7 agents ACTIFS -->
 	<div class="mt-7 grid gap-2.5 sm:grid-cols-2">
 		{#each PRIMARY_AGENTS as a (a.id)}{@render agentCard(a)}{/each}
-		{#if showAll}
-			{#each MORE_AGENTS as a (a.id)}{@render agentCard(a)}{/each}
-		{/if}
 	</div>
+
+	<!-- Les 8 agents À ACTIVER : section séparée, avec la précision qu'ils ne sont pas encore actifs. -->
 	<button
 		type="button"
 		on:click={() => (showAll = !showAll)}
-		class="mt-3 w-full text-center text-[13px] font-medium text-gray-500 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-100 transition"
+		class="mt-4 w-full text-center text-[13px] font-medium text-gray-500 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-100 transition"
 	>
 		{showAll
-			? $i18n.t('Voir moins')
-			: $i18n.t('Voir les {{n}} autres agents', { n: MORE_AGENTS.length })}
+			? $i18n.t('Masquer les autres agents')
+			: $i18n.t('Voir les {{n}} autres agents (à activer)', { n: MORE_AGENTS.length })}
 	</button>
-
-	<!-- Zone de dépôt (glisser-déposer + parcourir) -->
-	<label
-		on:dragover|preventDefault={() => (dragOver = true)}
-		on:dragleave={() => (dragOver = false)}
-		on:drop={onDrop}
-		class="mt-4 flex flex-col items-center justify-center gap-1.5 rounded-2xl border border-dashed px-5 py-8 text-center cursor-pointer transition {dragOver
-			? 'border-amber-500 bg-amber-50/60 dark:bg-amber-400/[0.06]'
-			: 'border-gray-300 dark:border-white/15 hover:border-amber-400/60'}"
-	>
-		<input
-			bind:this={fileInput}
-			type="file"
-			multiple
-			on:change={onPick}
-			class="hidden"
-			accept=".pdf,.doc,.docx,.txt,.md,.csv,.xls,.xlsx,.ppt,.pptx"
-		/>
-		<span class="text-sm font-semibold text-gray-800 dark:text-gray-100">
-			{$i18n.t('Glissez vos fichiers ici')}
-		</span>
-		<span class="text-[13px] text-gray-500 dark:text-gray-400">
-			{$i18n.t('ou cliquez pour parcourir · PDF, Word, Excel, texte…')}
-		</span>
-	</label>
-
-	<!-- Liste des fichiers déposés + état honnête -->
-	{#if docs.length}
-		<div class="mt-4 flex flex-col gap-2">
-			{#each docs as d (d.id)}
-				<div
-					class="flex items-center gap-3 rounded-xl bg-white dark:bg-white/[0.03] ring-1 ring-inset ring-black/5 dark:ring-white/10 px-3.5 py-2.5"
-				>
-					<span class="text-lg leading-none" aria-hidden="true">📎</span>
-					<span class="min-w-0 flex-1">
-						<span class="block text-sm text-gray-900 dark:text-white truncate">{d.name}</span>
-						<span class="block text-[12px] text-gray-400 dark:text-gray-500">{humanSize(d.size)}</span>
-					</span>
-					{#if d.status === 'uploading'}
-						<span class="inline-block h-4 w-4 rounded-full border-2 border-amber-500 border-t-transparent animate-spin"></span>
-					{:else if d.status === 'done'}
-						<span class="text-emerald-500 font-bold" title={$i18n.t('Ajouté')}>✓</span>
-					{:else}
-						<span class="text-[12px] text-red-500" title={$i18n.t('Échec de l’envoi')}>{$i18n.t('échec')}</span>
-					{/if}
-					<button
-						type="button"
-						on:click={() => removeDoc(d.id)}
-						aria-label={$i18n.t('Retirer')}
-						class="h-6 w-6 flex-none rounded-full flex items-center justify-center text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-white/10 transition"
-					>×</button>
-				</div>
-			{/each}
+	{#if showAll}
+		<div class="mt-3 rounded-2xl border border-dashed border-gray-300 dark:border-white/15 p-3.5">
+			<p class="mb-3 text-[12.5px] leading-relaxed text-gray-500 dark:text-gray-400">
+				⚙️ {$i18n.t(
+					'Ces agents ne sont pas encore actifs. Activez-les depuis vos Capacités pour qu’ils utilisent ces documents.'
+				)}
+			</p>
+			<div class="grid gap-2.5 sm:grid-cols-2">
+				{#each MORE_AGENTS as a (a.id)}{@render agentCard(a)}{/each}
+			</div>
 		</div>
 	{/if}
 
-	<!-- Navigation (le « Retour » ET le « Plus tard » global sont fournis par le header du parcours).
-	     Un seul bouton d'action : il continue avec ou sans document. -->
+	<!-- Navigation (le « Retour » et le « Plus tard » global vivent dans le header du parcours). -->
 	<div class="mt-8 flex items-center justify-end">
 		<button
 			disabled={anyUploading || finishing}
@@ -255,7 +320,7 @@
 			{#if finishing}
 				{$i18n.t('Enregistrement…')}
 			{:else}
-				{docs.some((d) => d.status === 'done') ? $i18n.t('Continuer') : $i18n.t('Continuer sans document')} →
+				{anyDone ? $i18n.t('Continuer') : $i18n.t('Continuer sans document')} →
 			{/if}
 		</button>
 	</div>
