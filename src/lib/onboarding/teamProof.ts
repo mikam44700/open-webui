@@ -28,14 +28,18 @@ export const TEAM_PROOF_ORDER: readonly string[] = [
 	'veille' // Léo — veille
 ];
 
-// Tronque une valeur libre du contexte pour l'insérer dans une phrase courte, sans casser la mise
-// en page. On coupe au mot le plus proche sous la limite (pas en plein milieu).
-const clip = (value: string, max = 64): string => {
+// Réduit une valeur libre du contexte à la PREMIÈRE PHRASE (jusqu'au 1er point / point-virgule /
+// saut de ligne), SANS ellipse : une preuve d'onboarding doit se lire comme une phrase finie, jamais
+// coupée par « … » en plein milieu. Les virgules internes sont conservées (ex. « chaleureux, direct
+// et zen », « Restaurateurs et gérants, notamment multi-sites »). Les cartes (grid items-start)
+// grandissent pour absorber le texte. N'affecte QUE l'affichage : la mémoire réelle de l'agent
+// (USER.md concis + coffre complet et cherchable) garde le contexte entier — rien n'est perdu.
+const clip = (value: string): string => {
 	const s = (value ?? '').trim();
-	if (s.length <= max) return s;
-	const cut = s.slice(0, max);
-	const lastSpace = cut.lastIndexOf(' ');
-	return `${(lastSpace > max * 0.5 ? cut.slice(0, lastSpace) : cut).trim()}…`;
+	if (!s) return s;
+	const end = s.search(/[.;\n]/);
+	const out = end > 0 ? s.slice(0, end) : s;
+	return out.replace(/[\s,;:]+$/, '').trim(); // pas de ponctuation traînante en fin
 };
 
 // Preuve par agent : ancrée sur le champ du contexte le plus pertinent pour son rôle quand il est
@@ -44,7 +48,7 @@ const clip = (value: string, max = 64): string => {
 const proofFor = (id: string, ctx: CompanyContext): string => {
 	const offre = clip(ctx.offre);
 	const clientele = clip(ctx.clienteleCible);
-	const ton = clip(ctx.tonDeMarque, 40);
+	const ton = clip(ctx.tonDeMarque);
 	switch (id) {
 		case 'agent-obsidian':
 			return 'A rangé le contexte de votre entreprise dans la mémoire';

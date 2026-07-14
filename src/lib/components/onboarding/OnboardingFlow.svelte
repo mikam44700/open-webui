@@ -4,6 +4,7 @@
 	//   Bienvenue (Mike) → Modèle IA (Codex recommandé, non bloquant) → Votre entreprise (crawl +
 	//   synthèse + validation) → C'est prêt (récap). L'espace de travail (Google/MS) s'insèrera ensuite.
 	import { createEventDispatcher, onMount, getContext } from 'svelte';
+	import { goto } from '$app/navigation';
 	import { getModels } from '$lib/apis';
 	import WelcomeStep from './WelcomeStep.svelte';
 	import ModelSetupStep from './ModelSetupStep.svelte';
@@ -100,6 +101,14 @@
 	const finish = () => {
 		clearDraft();
 		dispatch('done');
+	};
+	// « Connecter mon espace de travail » (écran final) : on termine l'onboarding (pose le drapeau,
+	// ferme l'overlay) PUIS on ouvre la page Intégrations — au lieu de retomber sur le chat sans rien
+	// avoir connecté. Le dirigeant qui clique pour brancher agenda/mail atterrit là où il peut le faire.
+	const openWorkspace = () => {
+		clearDraft();
+		dispatch('done');
+		goto('/connectors');
 	};
 
 	const goToSite = async () => {
@@ -310,7 +319,7 @@
 			     « Retour » revient au questionnaire (réponses conservées via initialAnswers). -->
 			<MemoryStep on:next={() => go('done')} on:back={back} on:skip={skip} />
 		{:else if step === 'done'}
-			<DoneStep {context} on:done={finish} on:workspace={finish} />
+			<DoneStep {context} on:done={finish} on:workspace={openWorkspace} />
 		{/if}
 	</div>
 </div>

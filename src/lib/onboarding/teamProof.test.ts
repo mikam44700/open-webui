@@ -48,15 +48,19 @@ describe('buildTeamProof', () => {
 		expect(lines.every((l) => !/:\s*$/.test(l.proof))).toBe(true);
 	});
 
-	it('tronque proprement une offre très longue (au mot, avec ellipse)', () => {
+	it('garde la 1re phrase en entier (virgules incluses), sans ellipse', () => {
 		const longCtx: CompanyContext = {
 			...EMPTY_CONTEXT,
 			offre:
-				'Nous concevons et installons des solutions complètes de plomberie, chauffage, climatisation et énergies renouvelables pour les particuliers exigeants'
+				'Solutions complètes de plomberie, chauffage et climatisation. Nous intervenons aussi en énergies renouvelables pour les particuliers exigeants.'
 		};
 		const maxime = buildTeamProof(longCtx).find((l) => l.id === 'commercial-devis');
-		expect(maxime?.proof.length).toBeLessThan(90);
-		expect(maxime?.proof.endsWith('…')).toBe(true);
-		expect(maxime?.proof).not.toContain(' …'); // pas d'espace avant l'ellipse
+		// Preuve = 1re phrase ENTIÈRE (virgules internes conservées), coupée au 1er point, JAMAIS
+		// d'ellipse. La 2e phrase est écartée. L'affichage est court sans rien couper en plein mot.
+		expect(maxime?.proof).toBe(
+			'Connaît votre offre : Solutions complètes de plomberie, chauffage et climatisation'
+		);
+		expect(maxime?.proof).not.toContain('…');
+		expect(maxime?.proof).not.toContain('énergies renouvelables'); // 2e phrase écartée
 	});
 });
