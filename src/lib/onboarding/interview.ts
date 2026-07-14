@@ -139,6 +139,13 @@ export const NO_SITE_QUESTIONS: Question[] = [
 		placeholder: 'Ex. plomberie et chauffage pour particuliers'
 	},
 	{
+		key: 'offre',
+		kind: 'textarea',
+		title: 'Que vendez-vous, et comment ?',
+		placeholder: 'Ex. abonnement mensuel, forfait, à l’unité, prestation sur devis…',
+		optional: true
+	},
+	{
 		key: 'services',
 		kind: 'textarea',
 		title: 'Vos principaux services ou produits ?',
@@ -153,7 +160,7 @@ export const NO_SITE_QUESTIONS: Question[] = [
 		optional: true
 	},
 	{
-		key: 'offre',
+		key: 'problemesResolus',
 		kind: 'textarea',
 		title: 'Quel problème réglez-vous pour eux ?',
 		placeholder: 'Ce que vous leur apportez concrètement',
@@ -165,6 +172,13 @@ export const NO_SITE_QUESTIONS: Question[] = [
 		title: 'Comment parlez-vous à vos clients ?',
 		hint: 'Le style que vos agents adopteront pour écrire à votre place.',
 		options: ['Chaleureux', 'Professionnel', 'Direct', 'Convivial', 'Expert'],
+		optional: true
+	},
+	{
+		key: 'vocabulaire',
+		kind: 'textarea',
+		title: 'Des mots ou expressions « maison » ?',
+		placeholder: 'Vos termes métier, le nom de vos offres… un par ligne (facultatif)',
 		optional: true
 	},
 	{
@@ -183,13 +197,41 @@ export const NO_SITE_QUESTIONS: Question[] = [
 	}
 ];
 
-// Construit la séquence de questions selon le contexte (site déjà lu ou non).
+// Construit la séquence PLATE de questions selon le contexte (site déjà lu ou non). Conservée pour la
+// logique/les tests ; l'affichage, lui, passe par buildPages (regroupement thématique).
 export const buildQuestions = (hasSite: boolean): Question[] => {
 	if (hasSite) return COMPLEMENT_QUESTIONS;
 	// Sans site : prénom, puis les bases (entreprise), puis le reste des compléments.
 	const [prenom, ...rest] = COMPLEMENT_QUESTIONS;
 	return [prenom, ...NO_SITE_QUESTIONS, ...rest];
 };
+
+// Regroupement en PAGES thématiques (3-4 questions) pour alléger le rythme : au lieu d'un écran par
+// question (15 sans site), le dirigeant remplit un petit bloc cohérent à la fois (~5 pages). L'ordre
+// commence par lui (engagement : prénom en 1er), puis l'entreprise, puis le quotidien.
+export type Page = { title: string; questions: Question[] };
+
+const ALL_BY_KEY: Record<string, Question> = Object.fromEntries(
+	[...COMPLEMENT_QUESTIONS, ...NO_SITE_QUESTIONS].map((q) => [q.key, q])
+);
+const pageOf = (title: string, keys: string[]): Page => ({
+	title,
+	questions: keys.map((k) => ALL_BY_KEY[k]).filter(Boolean)
+});
+
+export const buildPages = (hasSite: boolean): Page[] =>
+	hasSite
+		? [
+				pageOf('Faisons connaissance', ['prenom', 'role', 'tailleEquipe']),
+				pageOf('Votre quotidien', ['outils', 'priorite', 'faconTravailler', 'tacheAgacante'])
+			]
+		: [
+				pageOf('Faisons connaissance', ['prenom', 'role', 'tailleEquipe']),
+				pageOf('Votre entreprise', ['nomEntreprise', 'secteur', 'offre', 'services']),
+				pageOf('Vos clients', ['clienteleCible', 'problemesResolus', 'tonDeMarque']),
+				pageOf('Votre réputation', ['preuveSociale', 'coordonnees', 'vocabulaire']),
+				pageOf('Votre quotidien', ['outils', 'priorite', 'faconTravailler', 'tacheAgacante'])
+			];
 
 export const EMPTY_ANSWERS: Answers = {};
 
@@ -239,20 +281,38 @@ const toList = (v: string | string[] | undefined): string[] => {
 		.filter(Boolean);
 };
 
-// Cas « sans site » : l'interview guidée a capté la fiche entreprise à la place du crawl. On reverse
-// tous les blocs qu'elle couvre (nom, secteur, services, clientèle, offre, ton, preuves, coordonnées).
-// Les champs non demandés (résumé, vocabulaire) restent vides — le dirigeant n'a pas de site à lire.
-export const answersToContext = (a: Answers): CompanyContext => ({
-	...EMPTY_CONTEXT,
-	nomEntreprise: str(a.nomEntreprise),
-	secteur: str(a.secteur),
-	clienteleCible: str(a.clienteleCible),
-	offre: str(a.offre),
-	services: toList(a.services),
-	tonDeMarque: str(a.tonDeMarque),
-	preuveSociale: toList(a.preuveSociale),
-	coordonnees: str(a.coordonnees)
-});
+// Résumé (ADN) : avec site, le modèle le RÉDIGE à partir du crawl. Sans site, on le COMPOSE depuis les
+// réponses clés (nom + « ce que vous faites ») pour que USER.md ait toujours une phrase d'accroche — le
+// champ le plus injecté dans chaque agent. Vide si ni nom ni activité (rien à résumer, jamais d'invention).
+const buildResume = (nom: string, secteur: string): string => {
+	const activite = secteur.replace(/\s*\.\s*$/, '').trim();
+	if (nom && activite) return `${nom} — ${activite}.`;
+	if (activite) return `${activite}.`;
+	if (nom) return `${nom}.`;
+	return '';
+};
+
+// Cas « sans site » : l'interview guidée a capté la fiche entreprise à la place du crawl. PARITÉ avec la
+// synthèse du site (11 blocs) : chaque bloc a SA question (offre distincte du secteur), « quel problème »
+// alimente les problèmes résolus, le résumé est généré. Les blocs non renseignés restent vides (D27).
+export const answersToContext = (a: Answers): CompanyContext => {
+	const nom = str(a.nomEntreprise);
+	const secteur = str(a.secteur);
+	return {
+		...EMPTY_CONTEXT,
+		nomEntreprise: nom,
+		secteur,
+		coordonnees: str(a.coordonnees),
+		resume: buildResume(nom, secteur),
+		offre: str(a.offre), // question dédiée « Que vendez-vous, et comment ? » (distincte du secteur)
+		services: toList(a.services),
+		tonDeMarque: str(a.tonDeMarque),
+		vocabulaire: toList(a.vocabulaire),
+		clienteleCible: str(a.clienteleCible),
+		problemesResolus: str(a.problemesResolus),
+		preuveSociale: toList(a.preuveSociale)
+	};
+};
 
 export const formatInterviewForProfile = (a: Answers): string => {
 	const lines: string[] = [];

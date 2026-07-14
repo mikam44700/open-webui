@@ -44,7 +44,8 @@
 	// Un champ est « issu de l'IA » s'il était pré-rempli ET n'a pas encore été modifié.
 	const fromAi = (key: string): boolean => !!seeds[key] && (form[key] ?? '').trim() === seeds[key];
 
-	type Field = { key: string; label: string; ph: string; area?: boolean; rows?: number; chips?: boolean };
+	// `wide` = champ court mais sur TOUTE la largeur (ne se met pas côte à côte avec le suivant).
+	type Field = { key: string; label: string; ph: string; area?: boolean; rows?: number; chips?: boolean; wide?: boolean };
 	type Section = { title: string; subtitle: string; icon: string; tone: 'profil' | 'base'; fields: Field[] };
 
 	// Groupé par DESTINATION (pas par thème) pour que le dirigeant VOIE le tri, en langage humain :
@@ -65,8 +66,8 @@
 					area: true,
 					rows: 2
 				},
-				{ key: 'nomEntreprise', label: 'Nom de l’entreprise', ph: 'Le nom de votre entreprise' },
-				{ key: 'secteur', label: 'Secteur d’activité', ph: 'Votre métier, votre secteur' },
+				{ key: 'nomEntreprise', label: 'Nom de l’entreprise', ph: 'Le nom de votre entreprise', wide: true },
+				{ key: 'secteur', label: 'Secteur d’activité', ph: 'Votre métier, votre secteur', area: true, rows: 2 },
 				{ key: 'clienteleCible', label: 'Votre clientèle', ph: 'À qui vous vous adressez', area: true, rows: 2 },
 				{ key: 'tonDeMarque', label: 'Votre ton de marque', ph: 'Ex. chaleureux, direct' },
 				{
@@ -325,9 +326,9 @@
 						</div>
 						<div class="grid grid-cols-1 sm:grid-cols-2 gap-x-5 gap-y-4">
 							{#each section.fields as field (field.key)}
-								<!-- Champs longs (textarea, chips) sur toute la largeur ; champs courts
-								     (nom, secteur, ton) côte à côte → meilleure occupation de l'espace. -->
-								<label class="block {field.area || field.chips ? 'sm:col-span-2' : ''}">
+								<!-- Pleine largeur pour les champs longs (textarea, chips) ET les champs `wide`
+								     (nom, secteur empilés). Les autres courts (ton) se mettent côte à côte. -->
+								<label class="block {field.area || field.chips || field.wide ? 'sm:col-span-2' : ''}">
 									<span
 										class="flex items-center gap-2 text-sm font-medium text-gray-700 dark:text-gray-200 mb-1.5"
 										>{$i18n.t(field.label)}{@render aiTag(fromAi(field.key))}{@render todoTag(
@@ -337,7 +338,7 @@
 									{#if field.chips}
 										<!-- Éditeur en chips : pastilles supprimables (×) + champ de saisie (Entrée/virgule pour ajouter). -->
 										<div
-											class="flex flex-wrap items-center gap-2 rounded-xl bg-white dark:bg-white/[0.06] ring-1 ring-inset ring-gray-900/10 dark:ring-white/15 px-2.5 py-2.5 focus-within:ring-2 focus-within:ring-amber-400/60 transition"
+											class="flex flex-wrap items-center gap-2 rounded-xl bg-gray-50/70 dark:bg-white/[0.04] ring-1 ring-inset ring-gray-200/80 dark:ring-white/10 px-2.5 py-2.5 focus-within:ring-2 focus-within:ring-amber-400/60 transition"
 										>
 											{#each chipMap[field.key] ?? [] as chip (chip)}
 												<span
