@@ -17,6 +17,7 @@
 		initMemoryVault,
 		createFolder,
 		moveNote,
+		moveFolder,
 		renameFolder,
 		deleteFolder,
 		restoreFolder,
@@ -83,10 +84,16 @@
 	// Cible d'une nouvelle note : dossier courant, sinon la Réception si elle existe, sinon racine.
 	$: noteTarget =
 		activeFolder ?? (tree.some((n) => n.path === '00-Réception') ? '00-Réception' : '');
-	// Cible d'un nouveau dossier : dossier courant, sinon « Mon activité » (02-Domaines, la maison
-	// des casquettes du dirigeant) si elle existe, sinon racine → évite les dossiers orphelins.
+	// Cible d'un nouveau dossier : le dossier courant SAUF la Réception (boîte d'entrée d'Adam, jamais
+	// une zone de structure) → dans ce cas on retombe sur « Mon activité » (02-Domaines), sinon racine.
+	const inReception = (p: string | null): boolean =>
+		!!p && (p === RECEPTION || p.startsWith(`${RECEPTION}/`));
 	$: folderTarget =
-		activeFolder ?? (tree.some((n) => n.path === '02-Domaines') ? '02-Domaines' : '');
+		activeFolder && !inReception(activeFolder)
+			? activeFolder
+			: tree.some((n) => n.path === '02-Domaines')
+				? '02-Domaines'
+				: '';
 
 	// Création de dossier : saisie inline (pas de prompt natif, cohérent avec la refonte).
 	let creatingFolder = false;
@@ -175,8 +182,19 @@
 		return acc;
 	};
 	$: folderOptions = collectFolders(tree);
-	// Note en cours de déplacement (ouvre le sélecteur de dossier). null = sélecteur fermé.
-	let movingNote: MemoryNode | null = null;
+	// Élément en cours de déplacement (note OU dossier) → ouvre le sélecteur. null = fermé.
+	let movingItem: MemoryNode | null = null;
+	// Destinations proposées : pour un DOSSIER, on exclut la Réception, le dossier lui-même et ses
+	// descendants (pas de cycle). Pour une NOTE, tout est permis (y compris la Réception).
+	$: pickerOptions =
+		movingItem?.type === 'folder'
+			? folderOptions.filter(
+					(o) =>
+						!inReception(o.path) &&
+						o.path !== movingItem?.path &&
+						!o.path.startsWith(`${movingItem?.path}/`)
+				)
+			: folderOptions;
 
 	// Dépliage des dossiers : niveau 0 ouvert par défaut, sous-dossiers fermés (scalable). Persisté.
 	// La logique de rendu récursif vit dans MemoryTreeNode ; ici on ne gère que l'état.
@@ -351,13 +369,25 @@
 			toast.error(typeof e === 'string' ? e : 'Impossible de déplacer la note');
 		}
 	};
-	const requestMove = (node: MemoryNode) => {
-		movingNote = node;
+	const doMoveFolder = async (folderPath: string, destParent: string) => {
+		try {
+			await moveFolder(localStorage.token, folderPath, destParent);
+			await load();
+			if (destParent) openState = { ...openState, [destParent]: true };
+			toast.success('Dossier déplacé');
+		} catch (e) {
+			toast.error(typeof e === 'string' ? e : 'Impossible de déplacer le dossier');
+		}
 	};
-	const chooseMoveTarget = async (destFolder: string) => {
-		const note = movingNote;
-		movingNote = null;
-		if (note) await doMove(note.path, destFolder);
+	const requestMove = (node: MemoryNode) => {
+		movingItem = node;
+	};
+	const chooseMoveTarget = async (dest: string) => {
+		const item = movingItem;
+		movingItem = null;
+		if (!item) return;
+		if (item.type === 'folder') await doMoveFolder(item.path, dest);
+		else await doMove(item.path, dest);
 	};
 
 	// ─── Renommer / supprimer un dossier (les PARA structurels sont protégés) ───
@@ -1001,6 +1031,7 @@ Retourne UNIQUEMENT le markdown de la note améliorée, sans texte ni commentair
 							onToggle={toggleOpen}
 							onShowAll={showAllIn}
 							onMoveNote={doMove}
+							onMoveFolder={doMoveFolder}
 							onRequestMove={requestMove}
 							onRenameFolder={renameFolderHandler}
 							onDeleteFolder={deleteFolderHandler}
@@ -1249,11 +1280,11 @@ Retourne UNIQUEMENT le markdown de la note améliorée, sans texte ni commentair
 <!-- ═══════════════════════════════════════════════════════════════════════════
      Sélecteur « Déplacer vers » (alternative robuste au glisser-déposer)
      ═══════════════════════════════════════════════════════════════════════════ -->
-{#if movingNote}
+{#if movingItem}
 	<!-- svelte-ignore a11y_click_events_have_key_events a11y_no_static_element_interactions -->
 	<div
 		class="fixed inset-0 z-60 flex items-center justify-center bg-black/30 backdrop-blur-[2px] p-4"
-		on:click={() => (movingNote = null)}
+		on:click={() => (movingItem = null)}
 	>
 		<!-- svelte-ignore a11y_click_events_have_key_events a11y_no_static_element_interactions -->
 		<div
@@ -1263,7 +1294,7 @@ Retourne UNIQUEMENT le markdown de la note améliorée, sans texte ni commentair
 			<div class="px-4 py-3 border-b border-gray-100 dark:border-gray-800">
 				<div class="text-sm font-semibold text-gray-900 dark:text-white">Déplacer vers…</div>
 				<div class="mt-0.5 text-[12px] text-gray-500 dark:text-gray-400 truncate">
-					« {movingNote.name} »
+					« {movingItem.name} »
 				</div>
 			</div>
 			<div class="flex-1 overflow-y-auto py-1.5">
@@ -1273,7 +1304,7 @@ Retourne UNIQUEMENT le markdown de la note améliorée, sans texte ni commentair
 				>
 					<span class="text-gray-400">🗂️</span> Racine du coffre
 				</button>
-				{#each folderOptions as opt (opt.path)}
+				{#each pickerOptions as opt (opt.path)}
 					<button
 						class="w-full text-left py-2 text-[13.5px] text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-white/5 transition flex items-center gap-2"
 						style="padding-left: {opt.depth * 14 + 16}px; padding-right: 16px"
@@ -1293,7 +1324,7 @@ Retourne UNIQUEMENT le markdown de la note améliorée, sans texte ni commentair
 			<div class="px-4 py-2.5 border-t border-gray-100 dark:border-gray-800 flex justify-end">
 				<button
 					class="px-3 py-1.5 rounded-lg text-[12.5px] text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-white/5 transition"
-					on:click={() => (movingNote = null)}
+					on:click={() => (movingItem = null)}
 				>
 					Annuler
 				</button>

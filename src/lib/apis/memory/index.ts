@@ -75,6 +75,10 @@ export const moveNote = (token: string, path: string, dest: string): Promise<Not
 export const renameFolder = (token: string, path: string, name: string): Promise<MemoryNode> =>
 	call(token, 'POST', '/folder/rename', { path, name });
 
+// Déplace un dossier vers un autre parent (`dest` = "" pour la racine ; Réception/PARA protégés).
+export const moveFolder = (token: string, path: string, dest: string): Promise<MemoryNode> =>
+	call(token, 'POST', '/folder/move', { path, dest });
+
 // Suppression douce d'un dossier (corbeille récupérable).
 export const deleteFolder = (token: string, path: string): Promise<DeleteResult> =>
 	call(token, 'DELETE', `/folder?path=${encodeURIComponent(path)}`);

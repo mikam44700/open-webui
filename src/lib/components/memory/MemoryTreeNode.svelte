@@ -19,6 +19,7 @@
 	export let onToggle: (path: string, depth: number) => void;
 	export let onShowAll: (path: string) => void;
 	export let onMoveNote: (notePath: string, destFolder: string) => void;
+	export let onMoveFolder: (folderPath: string, destParent: string) => void = () => {};
 	export let onRequestMove: (node: MemoryNode) => void;
 	export let onRenameFolder: (node: MemoryNode, newName: string) => void;
 	export let onDeleteFolder: (node: MemoryNode) => void;
@@ -73,7 +74,7 @@
 		style="padding-left: {depth * 16 + 6}px"
 		draggable="true"
 		on:dragstart={(e) => {
-			e.dataTransfer?.setData('text/plain', node.path);
+			e.dataTransfer?.setData('text/plain', JSON.stringify({ type: 'note', path: node.path }));
 			if (e.dataTransfer) e.dataTransfer.effectAllowed = 'move';
 		}}
 	>
@@ -158,6 +159,12 @@
 			role="treeitem"
 			aria-selected={open}
 			tabindex="-1"
+			draggable={!renaming && !protectedFolder}
+			on:dragstart={(e) => {
+				e.stopPropagation();
+				e.dataTransfer?.setData('text/plain', JSON.stringify({ type: 'folder', path: node.path }));
+				if (e.dataTransfer) e.dataTransfer.effectAllowed = 'move';
+			}}
 			on:dragover={(e) => {
 				e.preventDefault();
 				dragOver = true;
@@ -166,8 +173,22 @@
 			on:drop={(e) => {
 				e.preventDefault();
 				dragOver = false;
-				const p = e.dataTransfer?.getData('text/plain');
-				if (p && p !== node.path) onMoveNote(p, node.path);
+				let data: { type?: string; path?: string } | null = null;
+				try {
+					data = JSON.parse(e.dataTransfer?.getData('text/plain') ?? '');
+				} catch {
+					data = null;
+				}
+				if (!data?.path) return;
+				if (data.type === 'note' && data.path !== node.path) {
+					onMoveNote(data.path, node.path);
+				} else if (
+					data.type === 'folder' &&
+					data.path !== node.path &&
+					!node.path.startsWith(`${data.path}/`)
+				) {
+					onMoveFolder(data.path, node.path);
+				}
 			}}
 		>
 			<button
@@ -219,6 +240,16 @@
 			<!-- Actions du dossier (au survol) — masquées sur les dossiers structurels PARA (protégés). -->
 			{#if !protectedFolder && !renaming}
 				<button
+					class="shrink-0 p-1 rounded-md text-gray-300 dark:text-gray-600 opacity-0 group-hover:opacity-100 hover:text-sky-500 hover:bg-sky-50 dark:hover:bg-sky-900/20 transition"
+					title="Déplacer le dossier"
+					aria-label="Déplacer le dossier"
+					on:click|stopPropagation={() => onRequestMove(node)}
+				>
+					<svg class="w-3.5 h-3.5" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6"
+						><path d="M3 8V5.5A1.5 1.5 0 0 1 4.5 4h3l1.5 2H16a1 1 0 0 1 1 1v1M3 8h14M3 8l1 7.5A1.5 1.5 0 0 0 5.5 17h9a1.5 1.5 0 0 0 1.5-1.5L17 8" stroke-linecap="round" stroke-linejoin="round" /></svg
+					>
+				</button>
+				<button
 					class="shrink-0 p-1 rounded-md text-gray-300 dark:text-gray-600 opacity-0 group-hover:opacity-100 hover:text-gray-700 dark:hover:text-gray-200 hover:bg-gray-200/60 dark:hover:bg-white/10 transition"
 					title="Renommer le dossier"
 					aria-label="Renommer le dossier"
@@ -256,6 +287,7 @@
 					{onToggle}
 					{onShowAll}
 					{onMoveNote}
+					{onMoveFolder}
 					{onRequestMove}
 					{onRenameFolder}
 					{onDeleteFolder}
@@ -279,6 +311,7 @@
 					{onToggle}
 					{onShowAll}
 					{onMoveNote}
+					{onMoveFolder}
 					{onRequestMove}
 					{onRenameFolder}
 					{onDeleteFolder}

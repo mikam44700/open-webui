@@ -60,6 +60,11 @@ class FolderRenameBody(BaseModel):
     name: str
 
 
+class FolderMoveBody(BaseModel):
+    path: str
+    dest: str = ""
+
+
 class FolderRestoreBody(BaseModel):
     trash_ref: str
     path: str
@@ -135,6 +140,12 @@ async def move_memory_note(body: NoteMoveBody, user=Depends(get_admin_user)):
 async def rename_memory_folder(body: FolderRenameBody, user=Depends(get_admin_user)):
     """Renomme un dossier (non structurel — les dossiers PARA du squelette sont protégés)."""
     return await _bridge("POST", "/memory/folder/rename", json=body.model_dump())
+
+
+@router.post("/folder/move")
+async def move_memory_folder(body: FolderMoveBody, user=Depends(get_admin_user)):
+    """Déplace un dossier vers un autre parent (« » = racine). PARA/Réception protégés."""
+    return await _bridge("POST", "/memory/folder/move", json=body.model_dump())
 
 
 @router.delete("/folder")
