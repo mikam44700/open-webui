@@ -52,8 +52,6 @@
 	import SparklesSolid from '$lib/components/icons/SparklesSolid.svelte';
 	import MicSolid from '$lib/components/icons/MicSolid.svelte';
 
-	import AiMenu from '$lib/components/notes/AIMenu.svelte';
-	import RecordMenu from '$lib/components/notes/RecordMenu.svelte';
 	import VoiceRecording from '$lib/components/chat/MessageInput/VoiceRecording.svelte';
 
 	// ─── State ───────────────────────────────────────────────────────────────
@@ -762,6 +760,25 @@ Retourne UNIQUEMENT le markdown de la note améliorée, sans texte ni commentair
 
 	// ─── VoiceRecording (insertion du texte transcrit) ────────────────────────
 
+	// Dicter une note : ouvre l'enregistrement micro → transcription Whisper → texte inséré.
+	const startDictation = async () => {
+		displayMediaRecord = false;
+		try {
+			const stream = await navigator.mediaDevices
+				.getUserMedia({ audio: true })
+				.catch((err) => {
+					toast.error(`Permission micro refusée : ${err}`);
+					return null;
+				});
+			if (stream) {
+				recording = true;
+				stream.getTracks().forEach((t) => t.stop());
+			}
+		} catch {
+			toast.error('Permission micro refusée');
+		}
+	};
+
 	const onVoiceConfirm = async (data: { text?: string; file?: File }) => {
 		recording = false;
 		displayMediaRecord = false;
@@ -1189,77 +1206,37 @@ Retourne UNIQUEMENT le markdown de la note améliorée, sans texte ni commentair
 						/>
 					</div>
 				{:else}
-					<!-- FAB AI -->
-					<div
-						class="cursor-pointer flex gap-0.5 rounded-full border border-gray-50 dark:border-gray-850/30 dark:bg-gray-850 transition shadow-xl"
-					>
-						<Tooltip content="IA" placement="top">
-							{#if editing}
-								<button
-									class="p-2 flex justify-center items-center hover:bg-gray-50 dark:hover:bg-gray-800 rounded-full transition shrink-0"
-									on:click={stopResponseHandler}
-									type="button"
-								>
-									<Spinner className="size-5" />
-								</button>
-							{:else}
-								<AiMenu
-									onEdit={proposeImprovement}
-									onChat={() => {}}
-								>
-									<div
-										class="cursor-pointer p-2.5 flex rounded-full border border-gray-50 bg-white dark:border-none dark:bg-gray-850 hover:bg-gray-50 dark:hover:bg-gray-800 transition shadow-xl"
-									>
-										<SparklesSolid />
-									</div>
-								</AiMenu>
-							{/if}
-						</Tooltip>
-					</div>
-
-					<!-- FAB Record -->
-					<RecordMenu
-						onRecord={async () => {
-							displayMediaRecord = false;
-							try {
-								const stream = await navigator.mediaDevices
-									.getUserMedia({ audio: true })
-									.catch((err) => {
-										toast.error(`Permission micro refusée : ${err}`);
-										return null;
-									});
-								if (stream) {
-									recording = true;
-									stream.getTracks().forEach((t) => t.stop());
-								}
-							} catch {
-								toast.error('Permission micro refusée');
-							}
-						}}
-						onCaptureAudio={() => {
-							displayMediaRecord = true;
-							recording = true;
-						}}
-						onUpload={() => {
-							const input = document.createElement('input');
-							input.type = 'file';
-							input.accept = 'audio/*';
-							input.click();
-							input.onchange = async (e) => {
-								const target = e.target as HTMLInputElement;
-								const file = target.files?.[0];
-								if (file) toast.info('Fichier audio reçu — transcription non implémentée en v1.');
-							};
-						}}
-					>
-						<Tooltip content="Enregistrer" placement="top">
-							<div
-								class="cursor-pointer p-2.5 flex rounded-full border border-gray-50 bg-white dark:border-none dark:bg-gray-850 hover:bg-gray-50 dark:hover:bg-gray-800 transition shadow-xl"
+					<!-- FAB IA — un clic = améliore la note (proposition avant/après validé, feature 022). -->
+					<Tooltip content={editing ? 'Génération…' : 'Améliorer la note'} placement="top">
+						{#if editing}
+							<button
+								class="cursor-pointer p-2.5 flex justify-center items-center rounded-full border border-gray-50 bg-white dark:border-none dark:bg-gray-850 hover:bg-gray-50 dark:hover:bg-gray-800 transition shadow-xl"
+								on:click={stopResponseHandler}
+								type="button"
 							>
-								<MicSolid className="size-4.5" />
-							</div>
-						</Tooltip>
-					</RecordMenu>
+								<Spinner className="size-5" />
+							</button>
+						{:else}
+							<button
+								class="cursor-pointer p-2.5 flex rounded-full border border-gray-50 bg-white dark:border-none dark:bg-gray-850 hover:bg-gray-50 dark:hover:bg-gray-800 transition shadow-xl"
+								on:click={proposeImprovement}
+								type="button"
+							>
+								<SparklesSolid />
+							</button>
+						{/if}
+					</Tooltip>
+
+					<!-- FAB Micro — un clic = dicter une note (transcription Whisper). -->
+					<Tooltip content="Dicter une note" placement="top">
+						<button
+							class="cursor-pointer p-2.5 flex rounded-full border border-gray-50 bg-white dark:border-none dark:bg-gray-850 hover:bg-gray-50 dark:hover:bg-gray-800 transition shadow-xl"
+							type="button"
+							on:click={startDictation}
+						>
+							<MicSolid className="size-4.5" />
+						</button>
+					</Tooltip>
 				{/if}
 			</div>
 		</div>
