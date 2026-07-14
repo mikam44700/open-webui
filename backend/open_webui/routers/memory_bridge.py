@@ -45,6 +45,11 @@ class NoteRestoreBody(BaseModel):
     path: str
 
 
+class FolderCreateBody(BaseModel):
+    parent: str = ""
+    name: str
+
+
 @router.get("/tree")
 async def memory_tree(user=Depends(get_admin_user)):
     """Arborescence du coffre (dossiers métier + notes)."""
@@ -97,6 +102,12 @@ async def restore_memory_note(body: NoteRestoreBody, user=Depends(get_admin_user
 async def init_memory_vault(user=Depends(get_admin_user)):
     """Crée la structure PARA du coffre (00-Réception, 01-Projets, … + INDEX). Idempotent."""
     return await _bridge("POST", "/memory/init")
+
+
+@router.post("/folder")
+async def create_memory_folder(body: FolderCreateBody, user=Depends(get_admin_user)):
+    """Crée un dossier dans le coffre (rangement manuel du dirigeant, sans collision)."""
+    return await _bridge("POST", "/memory/folder", json=body.model_dump())
 
 
 @router.post("/inbox")

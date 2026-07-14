@@ -63,6 +63,10 @@ export const saveMemoryNote = (token: string, path: string, content: string): Pr
 export const initMemoryVault = (token: string): Promise<{ created: string[] }> =>
 	call(token, 'POST', '/init');
 
+// Crée un dossier dans le coffre (rangement manuel). ``parent`` = "" pour la racine.
+export const createFolder = (token: string, parent: string, name: string): Promise<MemoryNode> =>
+	call(token, 'POST', '/folder', { parent, name });
+
 // ─── Recherche serveur (FTS5) : scalable, ne charge pas toutes les notes côté client ───
 export type SearchResult = {
 	titre: string;

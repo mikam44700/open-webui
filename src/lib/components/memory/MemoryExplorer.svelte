@@ -15,6 +15,7 @@
 		getMemoryNote,
 		saveMemoryNote,
 		initMemoryVault,
+		createFolder,
 		getSyncPack,
 		downloadSyncPack,
 		searchMemory,
@@ -62,6 +63,19 @@
 	const NOTE_CAP = 40; // notes rendues d'emblée par dossier (le reste via « Afficher les autres »)
 	let openState: Record<string, boolean> = {}; // choix explicites de dépliage (persistés)
 	let expandedFull: Record<string, boolean> = {}; // dossiers affichant TOUTES leurs notes
+
+	// Dossier « courant » : où atterrissent les créations (note/dossier). Suit le dernier dossier
+	// cliqué ou la note ouverte ; null = pas de choix explicite → défaut (Réception pour les notes).
+	let activeFolder: string | null = null;
+	const parentOf = (p: string): string => (p.includes('/') ? p.slice(0, p.lastIndexOf('/')) : '');
+	// Cible d'une nouvelle note : dossier courant, sinon la Réception si elle existe, sinon racine.
+	$: noteTarget =
+		activeFolder ?? (tree.some((n) => n.path === '00-Réception') ? '00-Réception' : '');
+
+	// Création de dossier : saisie inline (pas de prompt natif, cohérent avec la refonte).
+	let creatingFolder = false;
+	let newFolderName = '';
+	let folderInput: HTMLInputElement | null = null;
 
 	// Éditeur
 	let titleDraft = ''; // titre éditable (renommage)
@@ -115,6 +129,7 @@
 	// Dépliage des dossiers : niveau 0 ouvert par défaut, sous-dossiers fermés (scalable). Persisté.
 	// La logique de rendu récursif vit dans MemoryTreeNode ; ici on ne gère que l'état.
 	const toggleOpen = (path: string, depth: number): void => {
+		activeFolder = path; // cliquer un dossier en fait la cible des créations
 		const currentlyOpen = openState[path] ?? depth === 0;
 		openState = { ...openState, [path]: !currentlyOpen };
 		try {
@@ -179,6 +194,7 @@
 		try {
 			const res = await getMemoryNote(localStorage.token, node.path);
 			selectedNode = node;
+			activeFolder = parentOf(node.path); // les créations suivent le dossier de la note ouverte
 			titleDraft = node.name;
 			currentMd = res.content ?? '';
 			view = 'editor';
@@ -205,22 +221,65 @@
 
 	// ─── Nouvelle note (création propre, sans prompt natif) ────────────────────
 
-	const newNote = async () => {
-		const base = 'Nouvelle note';
-		const existing = new Set(allNotes.map((x) => x.name.toLowerCase()));
-		let title = base;
+	// Chemin libre pour une nouvelle note dans un dossier donné (suffixe si collision DANS ce dossier).
+	const uniqueNotePath = (folder: string, base: string): { path: string; name: string } => {
+		const prefix = folder ? `${folder}/` : '';
+		const existing = new Set(allNotes.map((x) => x.path.toLowerCase()));
+		let name = base;
 		let i = 2;
-		while (existing.has(title.toLowerCase())) title = `${base} ${i++}`;
+		while (existing.has(`${prefix}${name}.md`.toLowerCase())) name = `${base} ${i++}`;
+		return { path: `${prefix}${name}.md`, name };
+	};
+
+	const newNote = async () => {
+		const folder = noteTarget; // dossier courant, sinon Réception, sinon racine
+		const { path, name } = uniqueNotePath(folder, 'Nouvelle note');
 		try {
-			await saveMemoryNote(localStorage.token, `${title}.md`, '');
+			await saveMemoryNote(localStorage.token, path, '');
 			await load();
-			await openNote({ path: `${title}.md`, name: title, type: 'note', children: [] });
+			if (folder) openState = { ...openState, [folder]: true }; // rend la note visible
+			await openNote({ path, name, type: 'note', children: [] });
 			// Titre prêt à être renommé tout de suite.
 			await tick();
 			titleInput?.focus();
 			titleInput?.select();
 		} catch (e) {
 			toast.error(typeof e === 'string' ? e : 'Impossible de créer la note');
+		}
+	};
+
+	// ─── Nouveau dossier (saisie inline, sans prompt natif) ────────────────────
+
+	const startNewFolder = async () => {
+		creatingFolder = true;
+		newFolderName = '';
+		await tick();
+		folderInput?.focus();
+	};
+
+	const cancelNewFolder = () => {
+		creatingFolder = false;
+		newFolderName = '';
+	};
+
+	const confirmNewFolder = async () => {
+		const name = newFolderName.trim();
+		if (!name) {
+			cancelNewFolder();
+			return;
+		}
+		const parent = activeFolder ?? ''; // un nouveau dossier va dans le dossier courant, sinon racine
+		try {
+			const node = await createFolder(localStorage.token, parent, name);
+			await load();
+			if (parent) openState = { ...openState, [parent]: true };
+			openState = { ...openState, [node.path]: true };
+			activeFolder = node.path; // le nouveau dossier devient la cible
+			creatingFolder = false;
+			newFolderName = '';
+			toast.success(`Dossier « ${node.name} » créé`);
+		} catch (e) {
+			toast.error(typeof e === 'string' ? e : 'Impossible de créer le dossier');
 		}
 	};
 
@@ -510,14 +569,78 @@ Garde la langue d'origine. Retourne uniquement le texte en markdown.`;
 						Il range et retrouve tout ce que vous notez, dans votre coffre.
 					</div>
 				</div>
-				<button
-					class="flex-none px-2.5 py-1.5 rounded-xl btn-premium bg-black text-white dark:bg-white dark:text-black transition font-medium text-sm flex items-center"
-					on:click={newNote}
-				>
-					<Plus className="size-3" strokeWidth="2.5" />
-					<div class="ml-1 text-xs">Nouvelle note</div>
-				</button>
+				<div class="flex-none flex items-center gap-1.5">
+					<Tooltip content={`Créer dans : ${friendlyFolder(noteTarget) || 'Réception'}`}>
+						<button
+							class="px-2.5 py-1.5 rounded-xl btn-premium bg-black text-white dark:bg-white dark:text-black transition font-medium text-sm flex items-center"
+							on:click={newNote}
+						>
+							<Plus className="size-3" strokeWidth="2.5" />
+							<div class="ml-1 text-xs">Nouvelle note</div>
+						</button>
+					</Tooltip>
+					<Tooltip content="Nouveau dossier">
+						<button
+							class="p-2 rounded-xl ring-1 ring-inset ring-black/10 dark:ring-white/15 text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-white/10 transition"
+							on:click={startNewFolder}
+							aria-label="Nouveau dossier"
+						>
+							<svg class="w-4 h-4" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6">
+								<path
+									d="M2.5 6A1.5 1.5 0 0 1 4 4.5h3l1.5 2H16A1.5 1.5 0 0 1 17.5 8v6.5A1.5 1.5 0 0 1 16 16H4a1.5 1.5 0 0 1-1.5-1.5V6Z"
+									stroke-linejoin="round"
+								/>
+								<path d="M10 9.5v4M8 11.5h4" stroke-linecap="round" />
+							</svg>
+						</button>
+					</Tooltip>
+				</div>
 			</div>
+
+			<!-- Création de dossier : saisie inline (pas de prompt natif). -->
+			{#if creatingFolder}
+				<div
+					class="mb-3 flex items-center gap-2 rounded-2xl bg-gray-50 dark:bg-white/5 ring-1 ring-inset ring-black/5 dark:ring-white/10 px-3 py-2"
+				>
+					<span class="shrink-0 text-amber-500/80">
+						<svg class="w-4 h-4" viewBox="0 0 20 20" fill="currentColor"
+							><path
+								d="M2 5.5A1.5 1.5 0 0 1 3.5 4h4l1.5 2h7A1.5 1.5 0 0 1 17.5 7.5v7A1.5 1.5 0 0 1 16 16H3.5A1.5 1.5 0 0 1 2 14.5v-9Z"
+							/></svg
+						>
+					</span>
+					<input
+						bind:this={folderInput}
+						bind:value={newFolderName}
+						class="flex-1 min-w-0 text-sm bg-transparent outline-hidden"
+						placeholder="Nom du dossier"
+						on:keydown={(e) => {
+							if (e.key === 'Enter') {
+								e.preventDefault();
+								confirmNewFolder();
+							} else if (e.key === 'Escape') {
+								cancelNewFolder();
+							}
+						}}
+					/>
+					<span class="shrink-0 text-[11px] text-gray-400 dark:text-gray-500">
+						dans {activeFolder ? friendlyFolder(activeFolder.split('/').pop() ?? '') : 'la racine'}
+					</span>
+					<button
+						class="shrink-0 px-2.5 py-1 rounded-lg bg-black text-white dark:bg-white dark:text-black text-xs font-medium transition disabled:opacity-40"
+						on:click={confirmNewFolder}
+						disabled={!newFolderName.trim()}
+					>
+						Créer
+					</button>
+					<button
+						class="shrink-0 px-2 py-1 rounded-lg text-gray-500 dark:text-gray-400 hover:bg-gray-200/60 dark:hover:bg-white/10 text-xs transition"
+						on:click={cancelNewFolder}
+					>
+						Annuler
+					</button>
+				</div>
+			{/if}
 
 			<!-- Bandeau de synchronisation avec Obsidian — 3 états honnêtes. -->
 			{#if status}
