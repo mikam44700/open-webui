@@ -208,6 +208,30 @@
 		expandedFull = { ...expandedFull, [path]: true };
 	};
 
+	// Tout déplier / tout replier (comme Obsidian) : bascule l'état d'ouverture de TOUS les dossiers.
+	let allExpanded = false;
+	const collectFolderPaths = (nodes: MemoryNode[]): string[] => {
+		const acc: string[] = [];
+		for (const n of nodes) {
+			if (n.type === 'folder') {
+				acc.push(n.path);
+				acc.push(...collectFolderPaths(n.children ?? []));
+			}
+		}
+		return acc;
+	};
+	const toggleExpandAll = (): void => {
+		allExpanded = !allExpanded;
+		const next: Record<string, boolean> = { ...openState };
+		for (const p of collectFolderPaths(tree)) next[p] = allExpanded;
+		openState = next;
+		try {
+			localStorage.setItem('lunaria:memory-open', JSON.stringify(openState));
+		} catch {
+			/* localStorage indisponible : sans conséquence */
+		}
+	};
+
 	// ─── Recherche serveur (FTS5) : scalable, ne scanne pas les notes côté client ──
 	const runSearch = async (q: string): Promise<void> => {
 		const my = ++searchSeq;
@@ -696,6 +720,23 @@
 						>
 							<Plus className="size-3" strokeWidth="2.5" />
 							<div class="ml-1 text-xs">Nouvelle note</div>
+						</button>
+					</Tooltip>
+					<Tooltip content={allExpanded ? 'Tout replier' : 'Tout déplier'}>
+						<button
+							class="p-2 rounded-xl ring-1 ring-inset ring-black/10 dark:ring-white/15 text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-white/10 transition"
+							on:click={toggleExpandAll}
+							aria-label={allExpanded ? 'Tout replier' : 'Tout déplier'}
+						>
+							<svg class="w-4 h-4" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+								{#if allExpanded}
+									<!-- chevrons vers l'intérieur = tout replier -->
+									<path d="M6 5l4 4 4-4M6 15l4-4 4 4" />
+								{:else}
+									<!-- chevrons vers l'extérieur = tout déplier -->
+									<path d="M6 8l4-4 4 4M6 12l4 4 4-4" />
+								{/if}
+							</svg>
 						</button>
 					</Tooltip>
 					<Tooltip content="Nouveau dossier">
