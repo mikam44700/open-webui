@@ -286,7 +286,10 @@
 			type="button"
 			bind:this={triggerEl}
 			style="-webkit-app-region: no-drag;"
-			class="flex items-center gap-1.5 rounded-xl px-2 py-1 text-sm hover:bg-gray-100 dark:hover:bg-gray-850 transition max-w-full"
+			class="flex items-center gap-1.5 rounded-xl px-2 py-1 text-sm hover:bg-gray-100 dark:hover:bg-gray-850 transition max-w-full {!hasBrain &&
+			!loading
+				? 'ring-1 ring-inset ring-amber-500/40 bg-amber-50/70 dark:bg-amber-900/15'
+				: ''}"
 			on:click={toggle}
 			aria-haspopup="menu"
 			aria-expanded={open}
@@ -309,7 +312,18 @@
 			{/if}
 			<span class="flex min-w-0 flex-col text-left leading-tight">
 				<span class="flex items-center gap-1.5">
-					<span class="font-medium text-gray-900 dark:text-white truncate">
+					{#if !hasBrain && !loading}
+						<!-- Point d'alerte pulsant : aucun modèle branché = l'assistant ne peut pas répondre. -->
+						<span class="relative flex h-2 w-2 shrink-0" aria-hidden="true">
+							<span class="absolute inline-flex h-full w-full animate-ping rounded-full bg-amber-400/70"></span>
+							<span class="relative inline-flex h-2 w-2 rounded-full bg-amber-500"></span>
+						</span>
+					{/if}
+					<span
+						class="font-medium truncate {!hasBrain && !loading
+							? 'text-amber-700 dark:text-amber-300'
+							: 'text-gray-900 dark:text-white'}"
+					>
 						{loading ? $i18n.t('Chargement…') : hasBrain ? activeBrainName : $i18n.t('Aucun modèle IA')}
 					</span>
 					{#if activeLevel && showIntelligence}
@@ -389,6 +403,19 @@
 						</div>
 					{/if}
 				</div>
+
+				{#if !hasBrain}
+					<!-- Aucun cerveau branché : CTA direct et visible dès l'ouverture du menu (le dirigeant
+					     a peut-être esquivé l'onboarding → on le ramène brancher son modèle en un clic). -->
+					<a
+						href="/providers"
+						on:click={() => (open = false)}
+						class="mx-1 mb-1.5 flex items-center justify-between gap-2 rounded-xl bg-amber-50 px-3 py-2.5 text-sm font-semibold text-amber-800 ring-1 ring-inset ring-amber-500/25 transition hover:bg-amber-100 dark:bg-amber-900/20 dark:text-amber-200 dark:hover:bg-amber-900/30"
+					>
+						<span>{$i18n.t('Brancher mon modèle IA')}</span>
+						<span aria-hidden="true">→</span>
+					</a>
+				{/if}
 
 				<!-- Switch fournisseur : bascule TOUTE la card (capacités + intelligence + modèles)
 				     sur l'autre fournisseur. Visible dès qu'au moins 2 sont connectés. -->

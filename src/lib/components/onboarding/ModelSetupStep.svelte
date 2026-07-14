@@ -168,7 +168,18 @@
 	};
 
 	const cont = () => dispatch('next');
-	const skip = () => dispatch('skip');
+	// Sortie honnête : quitter l'onboarding SANS modèle branché = entrer dans une app qui ne peut pas
+	// encore répondre. Plutôt que de lâcher le dirigeant sans un mot, on demande confirmation (choix
+	// éclairé). Avec un modèle actif, « Plus tard » sort directement — rien à signaler.
+	let showLeaveConfirm = false;
+	const skip = () => {
+		if (hasRealBrain) dispatch('skip');
+		else showLeaveConfirm = true;
+	};
+	const leaveAnyway = () => {
+		showLeaveConfirm = false;
+		dispatch('skip');
+	};
 </script>
 
 <div class="w-full max-w-5xl mx-auto px-5 py-8 sm:py-10">
@@ -419,5 +430,48 @@
 
 	{#if showCodexHelp}
 		<CodexDeviceHelp on:close={() => (showCodexHelp = false)} />
+	{/if}
+
+	{#if showLeaveConfirm}
+		<!-- Sortie sans modèle : confirmation honnête (choix éclairé), jamais un mur. Le rappel se
+		     poursuit ensuite dans l'app (BrainSelector en alerte tant qu'aucun modèle n'est branché). -->
+		<div class="fixed inset-0 z-[70] flex items-center justify-center p-4">
+			<button
+				class="absolute inset-0 bg-black/40"
+				on:click={() => (showLeaveConfirm = false)}
+				aria-label={$i18n.t('Fermer')}
+			></button>
+			<div
+				class="relative z-10 w-full max-w-md rounded-2xl bg-white dark:bg-gray-900 ring-1 ring-inset ring-black/10 dark:ring-white/10 shadow-xl p-6 text-center"
+			>
+				<div
+					class="mx-auto h-11 w-11 rounded-full bg-amber-100 dark:bg-amber-900/30 text-amber-600 dark:text-amber-300 flex items-center justify-center text-xl"
+				>
+					⚠️
+				</div>
+				<h2 class="mt-4 text-lg font-semibold text-gray-900 dark:text-white">
+					{$i18n.t('Continuer sans modèle IA ?')}
+				</h2>
+				<p class="mt-2 text-sm leading-relaxed text-gray-600 dark:text-gray-300">
+					{$i18n.t(
+						'Sans modèle IA, votre assistant ne pourra pas encore répondre. Vous pourrez le brancher à tout moment depuis les Réglages.'
+					)}
+				</p>
+				<div class="mt-6 flex flex-col gap-2.5">
+					<button
+						class="w-full text-sm font-semibold px-5 py-3 rounded-xl btn-premium bg-gradient-to-br from-amber-400 to-amber-600 text-amber-950"
+						on:click={() => (showLeaveConfirm = false)}
+					>
+						{$i18n.t('Rester et brancher mon modèle')}
+					</button>
+					<button
+						class="w-full text-sm font-medium px-5 py-2.5 rounded-xl text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-white/5 transition"
+						on:click={leaveAnyway}
+					>
+						{$i18n.t('Explorer quand même')}
+					</button>
+				</div>
+			</div>
+		</div>
 	{/if}
 </div>
