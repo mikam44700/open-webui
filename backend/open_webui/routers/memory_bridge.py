@@ -35,6 +35,16 @@ class SearchBody(BaseModel):
     limit: int = 8
 
 
+class NoteRenameBody(BaseModel):
+    path: str
+    title: str
+
+
+class NoteRestoreBody(BaseModel):
+    trash_ref: str
+    path: str
+
+
 @router.get("/tree")
 async def memory_tree(user=Depends(get_admin_user)):
     """Arborescence du coffre (dossiers métier + notes)."""
@@ -63,6 +73,24 @@ async def write_memory_note(body: NoteWriteBody, user=Depends(get_admin_user)):
 async def search_memory(body: SearchBody, user=Depends(get_admin_user)):
     """Recherche par mot dans les notes du coffre (spec 020). Résultats lisibles (titre + chemin)."""
     return await _bridge("POST", "/memory/search", json=body.model_dump())
+
+
+@router.delete("/note")
+async def delete_memory_note(path: str, user=Depends(get_admin_user)):
+    """Suppression douce d'une note (déplacée en corbeille, récupérable)."""
+    return await _bridge("DELETE", f"/memory/note?path={quote(path)}")
+
+
+@router.post("/note/rename")
+async def rename_memory_note(body: NoteRenameBody, user=Depends(get_admin_user)):
+    """Renomme une note (titre lisible, même dossier)."""
+    return await _bridge("POST", "/memory/note/rename", json=body.model_dump())
+
+
+@router.post("/note/restore")
+async def restore_memory_note(body: NoteRestoreBody, user=Depends(get_admin_user)):
+    """Restaure une note supprimée (annulation)."""
+    return await _bridge("POST", "/memory/note/restore", json=body.model_dump())
 
 
 @router.post("/init")

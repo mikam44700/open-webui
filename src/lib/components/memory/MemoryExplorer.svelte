@@ -15,9 +15,15 @@
 		getMemoryStatus,
 		getMemoryNote,
 		saveMemoryNote,
-		initMemoryVault
+		initMemoryVault,
+		getSyncPack,
+		downloadSyncPack,
+		searchMemory,
+		deleteMemoryNote,
+		restoreMemoryNote,
+		renameMemoryNote
 	} from '$lib/apis/memory';
-	import type { MemoryNode, MemoryStatus } from '$lib/apis/memory';
+	import type { MemoryNode, MemoryStatus, SearchResult } from '$lib/apis/memory';
 
 	import type { Editor } from '@tiptap/core';
 
@@ -45,11 +51,21 @@
 	// Vue : 'list' | 'editor'
 	let view: 'list' | 'editor' = 'list';
 
-	// Liste
+	// Liste / recherche serveur
 	let query = '';
-	let searchDebounceTimer: ReturnType<typeof setTimeout> | undefined = undefined;
+	let queryTimer: ReturnType<typeof setTimeout> | undefined = undefined;
+	let searching = false;
+	let searchResults: SearchResult[] = [];
+	let searchSeq = 0;
+
+	// Arbre : dossiers repliés/dépliés (persistés) + affichage progressif des grosses listes
+	const NOTE_CAP = 40; // notes rendues d'emblée par dossier (le reste via « Afficher les autres »)
+	let openState: Record<string, boolean> = {}; // choix explicites de dépliage (persistés)
+	let expandedFull: Record<string, boolean> = {}; // dossiers affichant TOUTES leurs notes
 
 	// Éditeur
+	let titleDraft = ''; // titre éditable (renommage)
+	let titleInput: HTMLInputElement | null = null;
 	let selectedNode: MemoryNode | null = null;
 	let currentMd = '';
 	let loadingNote = false;
@@ -69,45 +85,84 @@
 	let stopResponseFlag = false;
 	let selectedModelId = '';
 
-	// ─── Données ──────────────────────────────────────────────────────────────
+	// ─── Données & arbre ───────────────────────────────────────────────────────
 
-	// Aplatir l'arbre en liste avec info de dossier parent
-	type FlatNote = MemoryNode & { folder: string };
-
-	const flattenNotes = (nodes: MemoryNode[], folder = ''): FlatNote[] => {
-		const acc: FlatNote[] = [];
+	// Aplatir l'arbre (pour compter et garantir des noms uniques à la création).
+	const flattenNotes = (nodes: MemoryNode[]): MemoryNode[] => {
+		const acc: MemoryNode[] = [];
 		for (const n of nodes) {
-			if (n.type === 'folder') {
-				const sub = flattenNotes(n.children ?? [], n.name);
-				acc.push(...sub);
-			} else {
-				acc.push({ ...n, folder });
-			}
+			if (n.type === 'folder') acc.push(...flattenNotes(n.children ?? []));
+			else acc.push(n);
 		}
 		return acc;
 	};
-
-	// Notes filtrées par la recherche
 	$: allNotes = flattenNotes(tree);
 
-	$: filteredNotes = query.trim()
-		? allNotes.filter((n) =>
-				n.name.toLowerCase().includes(query.toLowerCase())
-			)
-		: allNotes;
+	// Noms de dossiers PARA traduits en langage dirigeant (les autres gardent leur nom).
+	const FRIENDLY_FOLDER: Record<string, string> = {
+		'00-Réception': 'Réception',
+		'01-Projets': 'En cours',
+		'02-Domaines': 'Mon activité',
+		'03-Ressources': 'Idées & ressources',
+		'04-Archives': 'Archivées',
+		Journal: 'Journal',
+		Personnes: 'Personnes',
+		_Modèles: 'Modèles',
+		_Cartes: 'Cartes'
+	};
+	const friendlyFolder = (name: string): string => FRIENDLY_FOLDER[name] ?? name;
 
-	// Notes groupées par dossier
-	const groupByFolder = (notes: FlatNote[]): [string, FlatNote[]][] => {
-		const map = new Map<string, FlatNote[]>();
-		for (const n of notes) {
-			const key = n.folder || '';
-			if (!map.has(key)) map.set(key, []);
-			map.get(key)!.push(n);
-		}
-		return Array.from(map.entries());
+	const splitChildren = (node: MemoryNode): { folders: MemoryNode[]; notes: MemoryNode[] } => {
+		const children = node.children ?? [];
+		return {
+			folders: children.filter((c) => c.type === 'folder'),
+			notes: children.filter((c) => c.type === 'note')
+		};
 	};
 
-	$: groupedNotes = groupByFolder(filteredNotes);
+	const countNotes = (node: MemoryNode): number =>
+		(node.children ?? []).reduce((sum, c) => sum + (c.type === 'note' ? 1 : countNotes(c)), 0);
+
+	// Dépliage : niveau 0 ouvert par défaut, sous-dossiers fermés (scalable à 1000+ notes).
+	const isOpen = (path: string, depth: number): boolean => openState[path] ?? depth === 0;
+	const toggleOpen = (path: string, depth: number): void => {
+		openState = { ...openState, [path]: !isOpen(path, depth) };
+		try {
+			localStorage.setItem('lunaria:memory-open', JSON.stringify(openState));
+		} catch {
+			/* localStorage indisponible : dépliage non persisté, sans conséquence */
+		}
+	};
+	const capFor = (node: MemoryNode): number =>
+		expandedFull[node.path] ? Number.POSITIVE_INFINITY : NOTE_CAP;
+	const showAllIn = (path: string): void => {
+		expandedFull = { ...expandedFull, [path]: true };
+	};
+
+	// ─── Recherche serveur (FTS5) : scalable, ne scanne pas les notes côté client ──
+	const runSearch = async (q: string): Promise<void> => {
+		const my = ++searchSeq;
+		const trimmed = q.trim();
+		if (!trimmed) {
+			searchResults = [];
+			searching = false;
+			return;
+		}
+		searching = true;
+		try {
+			const res = await searchMemory(localStorage.token, trimmed, 30);
+			if (my === searchSeq) searchResults = res?.results ?? [];
+		} catch (_) {
+			if (my === searchSeq) searchResults = [];
+		}
+		if (my === searchSeq) searching = false;
+	};
+	// Débounce : relance la recherche 300 ms après la dernière frappe.
+	const scheduleSearch = () => {
+		clearTimeout(queryTimer);
+		const q = query;
+		queryTimer = setTimeout(() => runSearch(q), 300);
+	};
 
 	// ─── Chargement ───────────────────────────────────────────────────────────
 
@@ -135,6 +190,7 @@
 		try {
 			const res = await getMemoryNote(localStorage.token, node.path);
 			selectedNode = node;
+			titleDraft = node.name;
 			currentMd = res.content ?? '';
 			view = 'editor';
 		} catch (e) {
@@ -142,6 +198,10 @@
 		}
 		loadingNote = false;
 	};
+
+	// Ouvre une note à partir d'un simple chemin (résultat de recherche).
+	const openNoteByPath = (path: string, name: string) =>
+		openNote({ path, name, type: 'note', children: [] });
 
 	const goBack = async () => {
 		// Flush la sauvegarde en attente : ne pas perdre la dernière modif si on revient
@@ -154,19 +214,74 @@
 		clearTimeout(saveTimeout);
 	};
 
-	// ─── Nouvelle note ────────────────────────────────────────────────────────
+	// ─── Nouvelle note (création propre, sans prompt natif) ────────────────────
 
 	const newNote = async () => {
-		const title = (prompt('Nom de la nouvelle note ?') ?? '').trim();
-		if (!title) return;
-		const path = `${title}.md`;
+		const base = 'Nouvelle note';
+		const existing = new Set(allNotes.map((x) => x.name.toLowerCase()));
+		let title = base;
+		let i = 2;
+		while (existing.has(title.toLowerCase())) title = `${base} ${i++}`;
 		try {
-			await saveMemoryNote(localStorage.token, path, `# ${title}\n\n`);
+			await saveMemoryNote(localStorage.token, `${title}.md`, '');
 			await load();
-			const node: MemoryNode = { path, name: title, type: 'note', children: [] };
-			await openNote(node);
+			await openNote({ path: `${title}.md`, name: title, type: 'note', children: [] });
+			// Titre prêt à être renommé tout de suite.
+			await tick();
+			titleInput?.focus();
+			titleInput?.select();
 		} catch (e) {
 			toast.error(typeof e === 'string' ? e : 'Impossible de créer la note');
+		}
+	};
+
+	// ─── Renommage (titre éditable) ────────────────────────────────────────────
+
+	const commitRename = async () => {
+		if (!selectedNode) return;
+		const t = titleDraft.trim();
+		if (!t || t === selectedNode.name) {
+			titleDraft = selectedNode.name;
+			return;
+		}
+		try {
+			const res = await renameMemoryNote(localStorage.token, selectedNode.path, t);
+			selectedNode = { ...selectedNode, path: res.path, name: t };
+			titleDraft = t;
+			await load();
+		} catch (e) {
+			toast.error(typeof e === 'string' ? e : 'Impossible de renommer la note');
+			titleDraft = selectedNode.name;
+		}
+	};
+
+	// ─── Suppression douce (corbeille) + annulation ────────────────────────────
+
+	const deleteNote = async (node: MemoryNode, fromEditor = false) => {
+		try {
+			const res = await deleteMemoryNote(localStorage.token, node.path);
+			if (fromEditor) {
+				view = 'list';
+				selectedNode = null;
+				currentMd = '';
+			}
+			await load();
+			toast.success(`« ${node.name} » supprimée`, {
+				action: {
+					label: 'Annuler',
+					onClick: async () => {
+						try {
+							await restoreMemoryNote(localStorage.token, res.trash_ref, res.path);
+							await load();
+							toast.success('Note restaurée');
+						} catch (e) {
+							toast.error(typeof e === 'string' ? e : 'Impossible de restaurer la note');
+						}
+					}
+				}
+			});
+		} catch (e) {
+			toast.error(typeof e === 'string' ? e : 'Impossible de supprimer la note');
 		}
 	};
 
@@ -185,6 +300,25 @@
 			toast.error(typeof e === 'string' ? e : "Impossible d'initialiser le coffre");
 		}
 		initializing = false;
+	};
+
+	// ─── Connexion du coffre à Obsidian (sync Syncthing pré-appairée) ─────────
+	let connectingSync = false;
+
+	const connectVault = async () => {
+		connectingSync = true;
+		try {
+			const pack = await getSyncPack(localStorage.token);
+			downloadSyncPack(pack);
+			toast.success('Coffre prêt — ouvrez le fichier téléchargé pour le connecter à Obsidian.');
+		} catch (e) {
+			toast.error(
+				typeof e === 'string'
+					? e
+					: "La synchronisation avec Obsidian n'est pas encore disponible sur ce serveur."
+			);
+		}
+		connectingSync = false;
 	};
 
 	// ─── Sauvegarde débouncée ─────────────────────────────────────────────────
@@ -313,6 +447,14 @@ Garde la langue d'origine. Retourne uniquement le texte en markdown.`;
 	// ─── Cycle de vie ─────────────────────────────────────────────────────────
 
 	onMount(async () => {
+		// Restaure l'état de dépliage des dossiers (persisté).
+		try {
+			const raw = localStorage.getItem('lunaria:memory-open');
+			if (raw) openState = JSON.parse(raw);
+		} catch {
+			/* état de dépliage illisible : on repart des défauts */
+		}
+
 		await load();
 
 		// Sélectionner le modèle par défaut
@@ -341,7 +483,7 @@ Garde la langue d'origine. Retourne uniquement le texte en markdown.`;
 		// Best-effort : déclenche la sauvegarde en attente avant de détruire le composant.
 		flushSave();
 		clearTimeout(saveTimeout);
-		clearTimeout(searchDebounceTimer);
+		clearTimeout(queryTimer);
 	});
 </script>
 
@@ -352,155 +494,229 @@ Garde la langue d'origine. Retourne uniquement le texte en markdown.`;
 {#if view === 'list'}
 	<div class="w-full min-h-full h-full px-3 md:px-[18px]">
 		{#if loaded}
-			<!-- Barre d'actions du coffre (le titre + la phrase sont dans l'en-tête du layout).
-			     Statut honnête à gauche, actions à droite. -->
-			<div class="flex flex-wrap items-center justify-between gap-2 px-1 mt-3 mb-3">
-				<!-- Statut honnête -->
-				{#if status}
-					<div class="flex items-center gap-1.5 px-0.5 text-xs text-gray-500 dark:text-gray-500">
-						{#if status.ok}
-							<span class="relative flex size-2 shrink-0">
-								<span
-									class="absolute inline-flex h-full w-full animate-ping rounded-full bg-green-400 opacity-60"
-								></span>
-								<span class="relative inline-flex size-2 rounded-full bg-green-500"></span>
-							</span>
-							<span>Mémoire active</span>
-							<span class="text-gray-300 dark:text-gray-700">·</span>
-							<span>Partagée avec votre assistant</span>
-							<span class="text-gray-300 dark:text-gray-700">·</span>
-							<span>{status.note_count} notes</span>
-							{#if status.local_copy}
-								<span class="text-gray-300 dark:text-gray-700">·</span>
-								<span>Copie locale reliée</span>
-							{/if}
-						{:else}
-							<span class="relative flex size-2 shrink-0">
-								<span class="relative inline-flex size-2 rounded-full bg-amber-500"></span>
-							</span>
-							<span class="text-amber-600 dark:text-amber-400">Mémoire indisponible</span>
-						{/if}
+			<!-- Adam : le gardien de la mémoire — incarne la page (avatar + rôle) + action « Nouvelle note ». -->
+			<div class="mt-3 mb-3 flex items-center gap-3 px-1">
+				<img
+					src="/assets/agents/adam.webp"
+					alt="Adam"
+					on:error={(e) => ((e.currentTarget as HTMLImageElement).src = '/favicon.png')}
+					class="flex-none h-11 w-11 rounded-full object-cover ring-1 ring-inset ring-black/10 dark:ring-white/15 bg-sky-100 dark:bg-sky-900/30"
+				/>
+				<div class="min-w-0 flex-1">
+					<div class="text-sm font-semibold text-gray-900 dark:text-white">
+						Adam
+						<span class="font-normal text-gray-400 dark:text-gray-500">· votre gardien de mémoire</span>
 					</div>
-				{/if}
-
-				<div class="flex justify-end gap-1.5 shrink-0 ml-auto">
-					<button
-						class="px-2 py-1.5 rounded-xl border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-850 transition font-medium text-xs flex items-center disabled:opacity-50"
-						on:click={initVault}
-						disabled={initializing}
-						title="Crée la structure de rangement du coffre (Réception, Projets, Domaines…)"
-					>
-						{initializing ? 'Initialisation…' : 'Initialiser le coffre'}
-					</button>
-					<button
-						class="px-2 py-1.5 rounded-xl btn-premium bg-black text-white dark:bg-white dark:text-black transition font-medium text-sm flex items-center"
-						on:click={newNote}
-					>
-						<Plus className="size-3" strokeWidth="2.5" />
-						<div class="ml-1 text-xs">Nouvelle note</div>
-					</button>
+					<div class="text-[12.5px] leading-snug text-gray-500 dark:text-gray-400">
+						Il range et retrouve tout ce que vous notez, dans votre coffre.
+					</div>
 				</div>
+				<button
+					class="flex-none px-2.5 py-1.5 rounded-xl btn-premium bg-black text-white dark:bg-white dark:text-black transition font-medium text-sm flex items-center"
+					on:click={newNote}
+				>
+					<Plus className="size-3" strokeWidth="2.5" />
+					<div class="ml-1 text-xs">Nouvelle note</div>
+				</button>
 			</div>
 
-			<!-- Panneau recherche (markup identique à Notes.svelte) -->
-			<div
-				class="py-2 bg-white dark:bg-gray-900 rounded-3xl border border-gray-100/30 dark:border-gray-850/30"
-			>
-				<div class="px-3.5 flex flex-1 items-center w-full space-x-2 py-0.5 pb-2">
-					<div class="flex flex-1 items-center">
-						<div class="self-center ml-1 mr-3">
-							<Search className="size-3.5" />
-						</div>
-						<input
-							class="w-full text-sm py-1 rounded-r-xl outline-hidden bg-transparent"
-							bind:value={query}
-							placeholder="Rechercher dans la mémoire"
-						/>
-						{#if query}
-							<div class="self-center pl-1.5 translate-y-[0.5px] rounded-l-xl bg-transparent">
-								<button
-									class="p-0.5 rounded-full hover:bg-gray-100 dark:hover:bg-gray-900 transition"
-									on:click={() => { query = ''; }}
-								>
-									<XMark className="size-3" strokeWidth="2" />
-								</button>
-							</div>
-						{/if}
+			<!-- Bandeau de synchronisation avec Obsidian — 3 états honnêtes. -->
+			{#if status}
+				{#if !status.ok}
+					<div
+						class="mb-3 flex items-center gap-2 rounded-2xl bg-amber-50 dark:bg-amber-900/15 ring-1 ring-inset ring-amber-500/20 px-3.5 py-2.5"
+					>
+						<span class="flex-none size-2 rounded-full bg-amber-500"></span>
+						<span class="text-[13px] text-amber-700 dark:text-amber-300"
+							>Mémoire momentanément indisponible — réessayez dans un instant.</span
+						>
 					</div>
-				</div>
-
-				<!-- Liste organisée par dossier -->
-				{#if groupedNotes.length > 0}
-					<div class="@container h-full py-2.5 px-2.5">
-						<div>
-							{#each groupedNotes as [folder, notes], idx}
-								<!-- Titre de section (dossier) — même style que le groupement par date dans Notes -->
-								{#if folder}
-									<div
-										class="w-full text-xs text-gray-500 dark:text-gray-500 font-medium px-2.5 pb-2.5 uppercase tracking-wide"
-									>
-										{folder}
-									</div>
-								{/if}
-
-								<div class="{groupedNotes.length - 1 !== idx ? 'mb-4' : ''} grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2.5">
-									{#each notes as note}
-										<div
-											class="group cursor-pointer w-full px-3.5 py-3 border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 rounded-2xl transition-all duration-200 hover:-translate-y-0.5 hover:shadow-[0_2px_10px_rgba(0,0,0,0.05)] hover:border-gray-300 dark:hover:border-gray-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-gray-300 dark:focus-visible:ring-gray-700"
-											on:click={() => openNote(note)}
-											on:keydown={(e) => e.key === 'Enter' && openNote(note)}
-											role="button"
-											tabindex="0"
-										>
-											<div class="flex items-center gap-2.5">
-												<span class="shrink-0 flex items-center justify-center w-8 h-8 rounded-lg bg-gray-100 dark:bg-gray-800 text-gray-400 group-hover:text-gray-600 dark:group-hover:text-gray-300 transition">
-													<svg class="w-4 h-4" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M5 3h6l4 4v10H5V3Z" stroke-linejoin="round"/><path d="M11 3v4h4" stroke-linejoin="round"/></svg>
-												</span>
-												<Tooltip content={note.name} className="flex-1 min-w-0" placement="top-start">
-													<div class="text-sm font-medium capitalize line-clamp-1">
-														{note.name}
-													</div>
-													{#if folder}
-														<div class="text-xs text-gray-400 dark:text-gray-500 line-clamp-1">{folder}</div>
-													{/if}
-												</Tooltip>
-											</div>
-										</div>
-									{/each}
-								</div>
-							{/each}
-						</div>
-					</div>
-				{:else if query}
-					<!-- Recherche sans résultats -->
-					<div class="w-full h-full flex flex-col items-center justify-center">
-						<div class="py-20 text-center">
-							<div class="text-sm text-gray-400 dark:text-gray-600">
-								Aucune note trouvée pour « {query} »
-							</div>
-						</div>
+				{:else if status.local_copy}
+					<div
+						class="mb-3 flex items-center gap-2 rounded-2xl bg-emerald-50/70 dark:bg-emerald-900/15 ring-1 ring-inset ring-emerald-500/20 px-3.5 py-2.5"
+					>
+						<span class="relative flex size-2 flex-none">
+							<span
+								class="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-60"
+							></span>
+							<span class="relative inline-flex size-2 rounded-full bg-emerald-500"></span>
+						</span>
+						<span class="text-[13px] text-gray-700 dark:text-gray-200"
+							>Coffre synchronisé avec votre Obsidian</span
+						>
+						<span class="text-gray-300 dark:text-gray-600">·</span>
+						<span class="text-[13px] text-gray-500 dark:text-gray-400">{status.note_count} notes</span>
 					</div>
 				{:else}
-					<!-- État vide accueillant -->
-					<div class="w-full h-full flex flex-col items-center justify-center">
-						<div class="py-20 text-center">
-							<div class="text-sm text-gray-400 dark:text-gray-600">
-								Votre mémoire se remplira au fil de vos échanges.
+					<div
+						class="mb-3 flex flex-wrap items-center gap-3 rounded-2xl bg-sky-50/70 dark:bg-sky-900/15 ring-1 ring-inset ring-sky-500/20 px-3.5 py-3"
+					>
+						<div class="min-w-0 flex-1">
+							<div class="text-[13px] font-medium text-gray-900 dark:text-white">
+								Pas encore connecté à Obsidian
 							</div>
-							<div class="mt-1 text-xs text-gray-300 dark:text-gray-700">
-								Créez votre première note, ou mettez en place le rangement du coffre.
+							<div class="text-[12px] text-gray-500 dark:text-gray-400">
+								Vos {status.note_count} notes sont en sécurité. Connectez votre coffre pour l'ouvrir dans
+								Obsidian sur votre ordinateur.
 							</div>
-							<button
-								class="mt-3 px-3 py-1.5 rounded-xl btn-premium bg-black text-white dark:bg-white dark:text-black transition font-medium text-xs disabled:opacity-50"
-								on:click={initVault}
-								disabled={initializing}
-							>
-								{initializing ? 'Initialisation…' : 'Créer la structure du coffre'}
-							</button>
 						</div>
+						<button
+							class="flex-none px-3 py-1.5 rounded-xl bg-sky-500/15 text-sky-800 dark:text-sky-200 ring-1 ring-inset ring-sky-500/30 hover:bg-sky-500/25 transition font-semibold text-[12.5px] disabled:opacity-60"
+							on:click={connectVault}
+							disabled={connectingSync}
+						>
+							{connectingSync ? 'Préparation…' : 'Connecter mon coffre'}
+						</button>
 					</div>
 				{/if}
+			{/if}
+
+			<!-- Snippets récursifs de l'arbre (comme Obsidian) : dossier repliable + ligne de note. -->
+			{#snippet noteRow(note: MemoryNode, depth: number)}
+				<div
+					class="group flex items-center gap-1.5 rounded-lg hover:bg-gray-100/70 dark:hover:bg-white/[0.05] transition"
+					style="padding-left: {depth * 16 + 6}px"
+				>
+					<button
+						class="flex-1 min-w-0 flex items-center gap-2 py-1.5 pr-1 text-left"
+						on:click={() => openNote(note)}
+					>
+						<span class="shrink-0 text-gray-400 dark:text-gray-500">
+							<svg class="w-3.5 h-3.5" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M5 3h6l4 4v10H5V3Z" stroke-linejoin="round"/><path d="M11 3v4h4" stroke-linejoin="round"/></svg>
+						</span>
+						<span class="text-[13.5px] text-gray-800 dark:text-gray-100 truncate">{note.name}</span>
+					</button>
+					<button
+						class="shrink-0 mr-1 p-1 rounded-md text-gray-300 dark:text-gray-600 opacity-0 group-hover:opacity-100 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 transition"
+						title="Supprimer"
+						aria-label="Supprimer la note"
+						on:click={() => deleteNote(note)}
+					>
+						<svg class="w-3.5 h-3.5" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M4 6h12M8 6V4h4v2m-6 0v10h8V6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+					</button>
+				</div>
+			{/snippet}
+
+			{#snippet folderBlock(node: MemoryNode, depth: number)}
+				{@const kids = splitChildren(node)}
+				{@const open = isOpen(node.path, depth)}
+				<div>
+					<button
+						class="w-full flex items-center gap-1.5 py-1.5 rounded-lg hover:bg-gray-100/70 dark:hover:bg-white/[0.05] transition text-left"
+						style="padding-left: {depth * 16 + 2}px"
+						on:click={() => toggleOpen(node.path, depth)}
+					>
+						<svg
+							class="w-3.5 h-3.5 shrink-0 text-gray-400 transition-transform {open ? 'rotate-90' : ''}"
+							viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2"
+						><path d="M8 5l5 5-5 5" stroke-linecap="round" stroke-linejoin="round" /></svg>
+						<span class="shrink-0 text-amber-500/80">
+							<svg class="w-3.5 h-3.5" viewBox="0 0 20 20" fill="currentColor"><path d="M2 5.5A1.5 1.5 0 0 1 3.5 4h4l1.5 2h7A1.5 1.5 0 0 1 17.5 7.5v7A1.5 1.5 0 0 1 16 16H3.5A1.5 1.5 0 0 1 2 14.5v-9Z" /></svg>
+						</span>
+						<span class="text-[13.5px] font-medium text-gray-800 dark:text-gray-100 truncate">{friendlyFolder(node.name)}</span>
+						{#if countNotes(node)}
+							<span class="ml-auto pr-1 text-[11px] text-gray-400 dark:text-gray-600">{countNotes(node)}</span>
+						{/if}
+					</button>
+					{#if open}
+						{#each kids.folders as f (f.path)}{@render folderBlock(f, depth + 1)}{/each}
+						{#each kids.notes.slice(0, capFor(node)) as note (note.path)}{@render noteRow(note, depth + 1)}{/each}
+						{#if kids.notes.length > capFor(node)}
+							<button
+								class="text-[12px] text-gray-500 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-100 py-1.5 transition"
+								style="padding-left: {(depth + 1) * 16 + 24}px"
+								on:click={() => showAllIn(node.path)}
+							>
+								Afficher les {kids.notes.length - NOTE_CAP} autres…
+							</button>
+						{/if}
+					{/if}
+				</div>
+			{/snippet}
+
+			<!-- Barre de recherche (serveur, FTS5 — scalable). -->
+			<div class="py-1.5 bg-white dark:bg-gray-900 rounded-2xl border border-gray-100/60 dark:border-gray-850/40">
+				<div class="px-3.5 flex items-center w-full py-0.5">
+					<div class="self-center ml-1 mr-3"><Search className="size-3.5" /></div>
+					<input
+						class="w-full text-sm py-1.5 outline-hidden bg-transparent"
+						bind:value={query}
+						on:input={scheduleSearch}
+						placeholder="Rechercher dans vos notes"
+					/>
+					{#if searching}
+						<Spinner className="size-3.5" />
+					{:else if query}
+						<button
+							class="p-0.5 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800 transition"
+							on:click={() => {
+								query = '';
+								runSearch('');
+							}}
+						>
+							<XMark className="size-3" strokeWidth="2" />
+						</button>
+					{/if}
+				</div>
 			</div>
+
+			<!-- Résultats de recherche (serveur) OU arbre du coffre. -->
+			{#if query.trim()}
+				{#if searchResults.length > 0}
+					<div class="mt-2.5 flex flex-col gap-1.5">
+						{#each searchResults as r (r.chemin)}
+							<button
+								class="group w-full text-left px-3.5 py-2.5 rounded-2xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 hover:border-gray-300 dark:hover:border-gray-700 transition"
+								on:click={() => openNoteByPath(r.chemin, r.titre)}
+							>
+								<div class="text-sm font-medium text-gray-900 dark:text-white truncate">{r.titre}</div>
+								{#if r.extrait}
+									<div class="mt-0.5 text-[12px] text-gray-500 dark:text-gray-400 line-clamp-2">{r.extrait}</div>
+								{/if}
+							</button>
+						{/each}
+					</div>
+				{:else if !searching}
+					<div class="py-16 text-center text-sm text-gray-400 dark:text-gray-600">
+						Aucune note pour « {query} »
+					</div>
+				{/if}
+			{:else if tree.length > 0}
+				<div class="mt-2.5 px-1">
+					{#each tree as node (node.path)}
+						{#if node.type === 'folder'}
+							{@render folderBlock(node, 0)}
+						{:else}
+							{@render noteRow(node, 0)}
+						{/if}
+					{/each}
+				</div>
+			{:else}
+				<!-- État vide accueillant, incarné par Adam -->
+				<div class="w-full flex flex-col items-center justify-center">
+					<div class="py-16 text-center">
+						<img
+							src="/assets/agents/adam.webp"
+							alt="Adam"
+							on:error={(e) => ((e.currentTarget as HTMLImageElement).src = '/favicon.png')}
+							class="mx-auto h-14 w-14 rounded-full object-cover ring-1 ring-inset ring-black/10 dark:ring-white/15 bg-sky-100 dark:bg-sky-900/30"
+						/>
+						<div class="mt-3 text-sm text-gray-500 dark:text-gray-400">
+							Je n'ai encore rien rangé pour vous.
+						</div>
+						<div class="mt-1 text-xs text-gray-400 dark:text-gray-600">
+							Créez une première note — ou laissez-moi remplir votre coffre au fil de vos échanges.
+						</div>
+						<button
+							class="mt-3 px-3 py-1.5 rounded-xl btn-premium bg-black text-white dark:bg-white dark:text-black transition font-medium text-xs disabled:opacity-50"
+							on:click={initVault}
+							disabled={initializing}
+						>
+							{initializing ? 'Préparation…' : 'Préparer mon coffre'}
+						</button>
+					</div>
+				</div>
+			{/if}
 		{:else}
 			<div class="w-full h-full flex justify-center items-center">
 				<Spinner className="size-4" />
@@ -532,23 +748,41 @@ Garde la langue d'origine. Retourne uniquement le texte en markdown.`;
 							</button>
 						</Tooltip>
 
-						<!-- Titre de la note (non éditable en v1) -->
+						<!-- Titre de la note — éditable (renommage à la validation / perte de focus). -->
 						<input
+							bind:this={titleInput}
 							class="w-full text-2xl font-medium bg-transparent outline-hidden"
 							type="text"
-							value={selectedNode?.name ?? ''}
+							bind:value={titleDraft}
 							placeholder="Sans titre"
-							disabled
+							on:blur={commitRename}
+							on:keydown={(e) => {
+								if (e.key === 'Enter') {
+									e.preventDefault();
+									(e.currentTarget as HTMLInputElement).blur();
+								}
+							}}
 						/>
 					</div>
 
-					<!-- Indicateur de sauvegarde -->
-					<div class="shrink-0 text-xs text-gray-500 dark:text-gray-500 pr-1">
-						{#if saveState === 'saving'}
-							Enregistrement…
-						{:else if saveState === 'saved'}
-							Enregistré
-						{/if}
+					<div class="shrink-0 flex items-center gap-1.5 pr-1">
+						<!-- Indicateur de sauvegarde -->
+						<div class="text-xs text-gray-500 dark:text-gray-500">
+							{#if saveState === 'saving'}
+								Enregistrement…
+							{:else if saveState === 'saved'}
+								Enregistré
+							{/if}
+						</div>
+						<!-- Supprimer la note (corbeille récupérable) -->
+						<Tooltip content="Supprimer">
+							<button
+								class="cursor-pointer flex rounded-lg text-gray-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 transition p-1.5"
+								on:click={() => selectedNode && deleteNote(selectedNode, true)}
+							>
+								<svg class="w-4 h-4" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M4 6h12M8 6V4h4v2m-6 0v10h8V6" stroke-linecap="round" stroke-linejoin="round" /></svg>
+							</button>
+						</Tooltip>
 					</div>
 				</div>
 

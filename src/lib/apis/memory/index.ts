@@ -63,6 +63,37 @@ export const saveMemoryNote = (token: string, path: string, content: string): Pr
 export const initMemoryVault = (token: string): Promise<{ created: string[] }> =>
 	call(token, 'POST', '/init');
 
+// ─── Recherche serveur (FTS5) : scalable, ne charge pas toutes les notes côté client ───
+export type SearchResult = {
+	titre: string;
+	chemin: string;
+	extrait: string;
+	score: number;
+	source_type: 'note' | 'document';
+};
+export type SearchResponse = { ok: boolean; query: string; results: SearchResult[]; count: number };
+
+export const searchMemory = (
+	token: string,
+	query: string,
+	limit = 30
+): Promise<SearchResponse> => call(token, 'POST', '/search', { query, limit });
+
+// ─── CRUD note : suppression douce (corbeille), restauration (annulation), renommage ───
+export type DeleteResult = { ok: boolean; path: string; trash_ref: string };
+
+export const deleteMemoryNote = (token: string, path: string): Promise<DeleteResult> =>
+	call(token, 'DELETE', `/note?path=${encodeURIComponent(path)}`);
+
+export const restoreMemoryNote = (
+	token: string,
+	trashRef: string,
+	path: string
+): Promise<NoteContent> => call(token, 'POST', '/note/restore', { trash_ref: trashRef, path });
+
+export const renameMemoryNote = (token: string, path: string, title: string): Promise<NoteContent> =>
+	call(token, 'POST', '/note/rename', { path, title });
+
 // Dépose une note dans la Boîte de réception (zone d'écriture sûre de l'agent).
 export const writeInboxNote = (token: string, title: string, content: string): Promise<NoteContent> =>
 	call(token, 'POST', '/inbox', { title, content });
