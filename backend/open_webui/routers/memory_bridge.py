@@ -76,6 +76,12 @@ async def memory_tree(user=Depends(get_admin_user)):
     return await _bridge("GET", "/memory/tree")
 
 
+@router.get("/trash")
+async def memory_trash(user=Depends(get_admin_user)):
+    """Corbeille : notes/dossiers supprimés dans LunarIA, récupérables."""
+    return await _bridge("GET", "/memory/trash")
+
+
 @router.get("/status")
 async def memory_status(user=Depends(get_admin_user)):
     """Statut honnête du coffre."""

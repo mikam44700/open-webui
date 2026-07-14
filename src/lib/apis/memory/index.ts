@@ -9,11 +9,13 @@ export type MemoryNode = {
 	path: string;
 	type: 'folder' | 'note';
 	children: MemoryNode[];
+	modified?: number | null; // date de dernière modif (epoch, notes)
 };
 
 export type NoteContent = {
 	path: string;
 	content: string;
+	modified?: number | null; // date de dernière modif (epoch)
 };
 
 export type MemoryStatus = {
@@ -86,6 +88,18 @@ export const deleteFolder = (token: string, path: string): Promise<DeleteResult>
 // Restaure un dossier supprimé (annulation).
 export const restoreFolder = (token: string, trashRef: string, path: string): Promise<MemoryNode> =>
 	call(token, 'POST', '/folder/restore', { trash_ref: trashRef, path });
+
+// Corbeille : notes/dossiers supprimés dans LunarIA, récupérables.
+export type TrashItem = {
+	ref: string;
+	path: string;
+	name: string;
+	type: 'folder' | 'note';
+	deleted_at: number;
+};
+
+export const getTrash = (token: string): Promise<{ items: TrashItem[] }> =>
+	call(token, 'GET', '/trash');
 
 // ─── Recherche serveur (FTS5) : scalable, ne charge pas toutes les notes côté client ───
 export type SearchResult = {

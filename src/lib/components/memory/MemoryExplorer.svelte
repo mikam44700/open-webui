@@ -25,9 +25,10 @@
 		searchMemory,
 		deleteMemoryNote,
 		restoreMemoryNote,
-		renameMemoryNote
+		renameMemoryNote,
+		getTrash
 	} from '$lib/apis/memory';
-	import type { MemoryNode, MemoryStatus, SearchResult } from '$lib/apis/memory';
+	import type { MemoryNode, MemoryStatus, SearchResult, TrashItem } from '$lib/apis/memory';
 	import {
 		buildFolderList,
 		buildSuggestPrompt,
@@ -99,6 +100,7 @@
 	let currentMd = '';
 	let loadingNote = false;
 	let saveState: 'idle' | 'saving' | 'saved' = 'idle';
+	let noteModified: number | null = null; // date de dernière modif de la note ouverte (epoch)
 	let saveTimeout: ReturnType<typeof setTimeout>;
 	// Sauvegarde en attente (debounce) : permet de la flusher avant de quitter la note.
 	let pendingSave: { path: string; md: string } | null = null;
@@ -151,6 +153,44 @@
 		'08-Modèles de notes': 'Des exemples prêts à réutiliser (compte-rendu, fiche client…)'
 	};
 	const folderSubtitle = (name: string): string => FOLDER_SUBTITLE[name] ?? '';
+
+	// Date lisible « langage dirigeant » à partir d'un epoch (secondes). Vide si absente.
+	const formatModified = (epoch: number | null): string => {
+		if (!epoch) return '';
+		return new Date(epoch * 1000).toLocaleDateString('fr-FR', {
+			day: 'numeric',
+			month: 'short',
+			year: 'numeric'
+		});
+	};
+
+	// ─── Corbeille : notes/dossiers supprimés dans LunarIA, récupérables ────────
+	let showTrash = false;
+	let trashItems: TrashItem[] = [];
+	let trashLoading = false;
+
+	const openTrash = async () => {
+		showTrash = true;
+		trashLoading = true;
+		try {
+			trashItems = (await getTrash(localStorage.token)).items ?? [];
+		} catch (e) {
+			toast.error(typeof e === 'string' ? e : "Impossible d'ouvrir la corbeille");
+		}
+		trashLoading = false;
+	};
+
+	const restoreFromTrash = async (item: TrashItem) => {
+		try {
+			if (item.type === 'folder') await restoreFolder(localStorage.token, item.ref, item.path);
+			else await restoreMemoryNote(localStorage.token, item.ref, item.path);
+			trashItems = trashItems.filter((t) => t.ref !== item.ref);
+			await load(); // recharge l'arbre pour faire réapparaître l'élément restauré
+			toast.success(`« ${item.name} » restauré`);
+		} catch (e) {
+			toast.error(typeof e === 'string' ? e : 'Impossible de restaurer cet élément');
+		}
+	};
 
 	// Dossiers structurels du squelette PARA : protégés (ni renommés, ni supprimés). Le dirigeant
 	// range DEDANS (ses casquettes), mais ne casse pas le squelette clé en main. (Miroir du bridge.)
@@ -287,6 +327,7 @@
 			activeFolder = parentOf(node.path); // les créations suivent le dossier de la note ouverte
 			titleDraft = node.name;
 			currentMd = res.content ?? '';
+			noteModified = res.modified ?? null;
 			view = 'editor';
 		} catch (e) {
 			toast.error(typeof e === 'string' ? e : "Impossible d'ouvrir cette note");
@@ -853,6 +894,51 @@
 				{/if}
 			{/if}
 
+			{#if showTrash}
+				<!-- ═══ Corbeille : éléments supprimés, récupérables ═══ -->
+				<div class="mt-2.5">
+					<div class="flex items-center gap-2 px-1 mb-3">
+						<button
+							class="p-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-white/10 transition"
+							on:click={() => (showTrash = false)}
+							aria-label="Retour au coffre"
+						>
+							<ChevronLeft className="size-4" />
+						</button>
+						<div class="text-sm font-semibold text-gray-800 dark:text-gray-100">Corbeille</div>
+						<div class="text-xs text-gray-400 dark:text-gray-600">· éléments supprimés, récupérables</div>
+					</div>
+					{#if trashLoading}
+						<div class="py-16 flex justify-center"><Spinner className="size-4" /></div>
+					{:else if trashItems.length === 0}
+						<div class="py-16 text-center text-sm text-gray-400 dark:text-gray-600">
+							La corbeille est vide.
+						</div>
+					{:else}
+						<div class="flex flex-col gap-1.5">
+							{#each trashItems as item (item.ref)}
+								<div
+									class="flex items-center gap-2.5 px-3 py-2.5 rounded-2xl border border-gray-100 dark:border-gray-850 bg-white dark:bg-gray-900"
+								>
+									<span class="shrink-0 text-base">{item.type === 'folder' ? '📁' : '📄'}</span>
+									<div class="min-w-0 flex-1">
+										<div class="text-sm text-gray-800 dark:text-gray-100 truncate">{item.name}</div>
+										<div class="text-[11px] text-gray-400 dark:text-gray-600 truncate">
+											Supprimé le {formatModified(item.deleted_at)}{#if item.path.includes('/')} · depuis {friendlyFolder(item.path.split('/')[0])}{/if}
+										</div>
+									</div>
+									<button
+										class="shrink-0 text-xs px-2.5 py-1.5 rounded-lg text-sky-600 dark:text-sky-400 hover:bg-sky-50 dark:hover:bg-sky-900/20 transition font-medium"
+										on:click={() => restoreFromTrash(item)}
+									>
+										Restaurer
+									</button>
+								</div>
+							{/each}
+						</div>
+					{/if}
+				</div>
+			{:else}
 			<!-- Barre de recherche (serveur, FTS5 — scalable). -->
 			<div class="py-1.5 bg-white dark:bg-gray-900 rounded-2xl border border-gray-100/60 dark:border-gray-850/40">
 				<div class="px-3.5 flex items-center w-full py-0.5">
@@ -954,6 +1040,16 @@
 					</div>
 				</div>
 			{/if}
+
+			<!-- Accès à la corbeille (discret, en bas du coffre) -->
+			<button
+				class="mt-3 mb-8 mx-auto flex items-center gap-1.5 text-xs text-gray-400 dark:text-gray-600 hover:text-gray-700 dark:hover:text-gray-300 transition"
+				on:click={openTrash}
+			>
+				<svg class="w-3.5 h-3.5" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M4 6h12M8 6V4h4v2m-6 0v10h8V6" stroke-linecap="round" stroke-linejoin="round" /></svg>
+				Corbeille
+			</button>
+			{/if}
 		{:else}
 			<div class="w-full h-full flex justify-center items-center">
 				<Spinner className="size-4" />
@@ -1003,12 +1099,14 @@
 					</div>
 
 					<div class="shrink-0 flex items-center gap-1.5 pr-1">
-						<!-- Indicateur de sauvegarde -->
+						<!-- Indicateur de sauvegarde / date de dernière modif -->
 						<div class="text-xs text-gray-500 dark:text-gray-500">
 							{#if saveState === 'saving'}
 								Enregistrement…
 							{:else if saveState === 'saved'}
 								Enregistré
+							{:else if noteModified}
+								Modifié le {formatModified(noteModified)}
 							{/if}
 						</div>
 						<!-- Supprimer la note (corbeille récupérable) -->
