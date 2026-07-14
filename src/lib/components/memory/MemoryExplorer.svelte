@@ -123,18 +123,34 @@
 	$: allNotes = flattenNotes(tree);
 
 	// Noms de dossiers PARA traduits en langage dirigeant (les autres gardent leur nom).
+	// Renommer ICI ne touche que l'affichage : les vrais dossiers du coffre ne bougent pas.
 	const FRIENDLY_FOLDER: Record<string, string> = {
 		'00-Réception': 'Réception',
 		'01-Projets': 'En cours',
-		'02-Domaines': 'Mon activité',
+		'02-Domaines': 'Mes responsabilités',
 		'03-Ressources': 'Idées & ressources',
 		'04-Archives': 'Archivées',
 		Journal: 'Journal',
-		Personnes: 'Personnes',
-		_Modèles: 'Modèles',
-		_Cartes: 'Cartes'
+		Personnes: 'Contacts',
+		_Modèles: 'Modèles de notes',
+		_Cartes: 'Mes réflexions'
 	};
 	const friendlyFolder = (name: string): string => FRIENDLY_FOLDER[name] ?? name;
+
+	// Sous-titre « langage dirigeant » sous chaque dossier racine : explique le classeur d'un coup d'œil.
+	// Volontairement limité aux 9 dossiers du squelette PARA → les sous-dossiers du client restent nus.
+	const FOLDER_SUBTITLE: Record<string, string> = {
+		'00-Réception': "Tout ce qui arrive, avant d'être rangé",
+		'01-Projets': 'Vos projets et sujets actifs du moment',
+		'02-Domaines': 'Les domaines que vous suivez au quotidien',
+		'03-Ressources': 'Ce que vous gardez pour plus tard',
+		'04-Archives': 'Terminé ou mis de côté, mais conservé',
+		Journal: 'Votre fil au jour le jour',
+		Personnes: 'Les personnes que vous suivez',
+		_Modèles: 'Vos gabarits réutilisables',
+		_Cartes: 'Vos notes d’idées reliées entre elles'
+	};
+	const folderSubtitle = (name: string): string => FOLDER_SUBTITLE[name] ?? '';
 
 	// Dossiers structurels du squelette PARA : protégés (ni renommés, ni supprimés). Le dirigeant
 	// range DEDANS (ses casquettes), mais ne casse pas le squelette clé en main. (Miroir du bridge.)
@@ -853,6 +869,7 @@
 							{expandedFull}
 							noteCap={NOTE_CAP}
 							{friendlyFolder}
+							{folderSubtitle}
 							{isStructural}
 							suggestions={suggestionsByPath}
 							dismissed={dismissedPaths}

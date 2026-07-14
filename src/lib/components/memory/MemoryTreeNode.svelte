@@ -13,6 +13,7 @@
 	export let expandedFull: Record<string, boolean>;
 	export let noteCap = 40;
 	export let friendlyFolder: (name: string) => string;
+	export let folderSubtitle: (name: string) => string = () => '';
 	export let isStructural: (path: string) => boolean;
 	export let onOpen: (node: MemoryNode) => void;
 	export let onDelete: (node: MemoryNode) => void;
@@ -44,6 +45,9 @@
 	$: open = openState[node.path] ?? depth === 0;
 	$: cap = expandedFull[node.path] ? Number.POSITIVE_INFINITY : noteCap;
 	$: protectedFolder = node.type === 'folder' && isStructural(node.path);
+
+	// Sous-titre explicatif : uniquement sur les dossiers racine du squelette (pas les sous-dossiers du client).
+	$: subtitle = node.type === 'folder' && depth === 0 ? folderSubtitle(node.name) : '';
 
 	// Glisser-déposer : une note est la source, un dossier est la cible.
 	let dragOver = false;
@@ -228,9 +232,14 @@
 						on:blur={commitRename}
 					/>
 				{:else}
-					<span class="text-[13.5px] font-medium text-gray-800 dark:text-gray-100 truncate"
-						>{friendlyFolder(node.name)}</span
-					>
+					<span class="flex flex-col min-w-0">
+						<span class="text-[13.5px] font-medium text-gray-800 dark:text-gray-100 truncate"
+							>{friendlyFolder(node.name)}</span
+						>
+						{#if subtitle}
+							<span class="text-[11px] leading-tight text-gray-400 dark:text-gray-500 truncate">{subtitle}</span>
+						{/if}
+					</span>
 					{#if countNotes(node)}
 						<span class="ml-auto pr-1 text-[11px] text-gray-400 dark:text-gray-600">{countNotes(node)}</span>
 					{/if}
@@ -281,6 +290,7 @@
 					{expandedFull}
 					{noteCap}
 					{friendlyFolder}
+					{folderSubtitle}
 					{isStructural}
 					{onOpen}
 					{onDelete}
@@ -305,6 +315,7 @@
 					{expandedFull}
 					{noteCap}
 					{friendlyFolder}
+					{folderSubtitle}
 					{isStructural}
 					{onOpen}
 					{onDelete}
