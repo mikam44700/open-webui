@@ -130,10 +130,10 @@
 		'02-Domaines': 'Mes responsabilités',
 		'03-Ressources': 'Idées & ressources',
 		'04-Archives': 'Archivées',
-		Journal: 'Journal',
-		Personnes: 'Contacts',
-		_Modèles: 'Modèles de notes',
-		_Cartes: 'Mes réflexions'
+		'05-Journal': 'Journal',
+		'06-Personnes': 'Contacts',
+		'07-Cartes': 'Mes réflexions',
+		'08-Modèles': 'Modèles de notes'
 	};
 	const friendlyFolder = (name: string): string => FRIENDLY_FOLDER[name] ?? name;
 
@@ -145,10 +145,10 @@
 		'02-Domaines': 'Les domaines que vous suivez au quotidien',
 		'03-Ressources': 'Ce que vous gardez pour plus tard',
 		'04-Archives': 'Terminé ou mis de côté, mais conservé',
-		Journal: 'Votre fil au jour le jour',
-		Personnes: 'Les personnes que vous suivez',
-		_Modèles: 'Vos gabarits réutilisables',
-		_Cartes: 'Vos notes d’idées reliées entre elles'
+		'05-Journal': 'Votre fil au jour le jour',
+		'06-Personnes': 'Les personnes que vous suivez',
+		'07-Cartes': 'Vos notes d’idées reliées entre elles',
+		'08-Modèles': 'Vos gabarits réutilisables'
 	};
 	const folderSubtitle = (name: string): string => FOLDER_SUBTITLE[name] ?? '';
 
