@@ -7,7 +7,6 @@
 	import { config, models, settings } from '$lib/stores';
 	import { WEBUI_BASE_URL } from '$lib/constants';
 	import { chatCompletion } from '$lib/apis/openai';
-	import { splitStream } from '$lib/utils';
 
 	import {
 		getMemoryTree,
@@ -35,8 +34,6 @@
 		parseSuggestions,
 		type FilingSuggestion
 	} from '$lib/memory/suggestFiling';
-	import { hasChanges } from '$lib/memory/noteDiff';
-	import NoteImproveReview from '$lib/components/memory/NoteImproveReview.svelte';
 
 	import type { Editor } from '@tiptap/core';
 
@@ -49,10 +46,7 @@
 	import Search from '$lib/components/icons/Search.svelte';
 	import XMark from '$lib/components/icons/XMark.svelte';
 	import ChevronLeft from '$lib/components/icons/ChevronLeft.svelte';
-	import SparklesSolid from '$lib/components/icons/SparklesSolid.svelte';
-	import MicSolid from '$lib/components/icons/MicSolid.svelte';
 
-	import VoiceRecording from '$lib/components/chat/MessageInput/VoiceRecording.svelte';
 
 	// ─── State ───────────────────────────────────────────────────────────────
 
@@ -112,20 +106,8 @@
 	let inputElement: RichTextInput | null = null;
 	let editor: Editor | null = null;
 
-	// FABs
-	let recording = false;
-	let displayMediaRecord = false;
-	let editing = false;
-	let streaming = false;
-	let stopResponseFlag = false;
+	// Modèle actif (utilisé par le rangement assisté d'Adam, feature 021).
 	let selectedModelId = '';
-
-	// ─── Édition assistée (feature 022) : Adam propose, le dirigeant valide ─────
-	// La proposition vit à part ; le contenu ENREGISTRÉ ne change qu'au clic « Appliquer ».
-	let improveStatus: 'idle' | 'generating' | 'ready' | 'nochange' = 'idle';
-	let proposedMd = ''; // version proposée par Adam (jamais écrite tant que non appliquée)
-	let improveOriginalMd = ''; // contenu au moment de la demande (référence de l'avant/après)
-	let editorNonce = 0; // force le remontage de l'éditeur après application/annulation
 
 	// ─── Données & arbre ───────────────────────────────────────────────────────
 
@@ -265,8 +247,6 @@
 			activeFolder = parentOf(node.path); // les créations suivent le dossier de la note ouverte
 			titleDraft = node.name;
 			currentMd = res.content ?? '';
-			improveStatus = 'idle'; // pas de proposition d'édition héritée d'une autre note
-			proposedMd = '';
 			view = 'editor';
 		} catch (e) {
 			toast.error(typeof e === 'string' ? e : "Impossible d'ouvrir cette note");
@@ -285,8 +265,6 @@
 		view = 'list';
 		selectedNode = null;
 		currentMd = '';
-		improveStatus = 'idle'; // abandonne toute proposition d'édition en cours
-		proposedMd = '';
 		saveState = 'idle';
 		clearTimeout(saveTimeout);
 	};
@@ -622,171 +600,6 @@
 		pendingSave = { path: selectedNode.path, md };
 		clearTimeout(saveTimeout);
 		saveTimeout = setTimeout(flushSave, 600);
-	};
-
-	// ─── Enhance (FAB AI) ─────────────────────────────────────────────────────
-
-	const stopResponseHandler = () => {
-		stopResponseFlag = true;
-	};
-
-	// Adam PROPOSE une amélioration : le résultat va dans `proposedMd`, JAMAIS dans le contenu
-	// enregistré (currentMd inchangé). Le dirigeant valide ensuite via le panneau de revue.
-	const proposeImprovement = async () => {
-		if (improveStatus === 'generating') return;
-		if (!selectedModelId) {
-			toast.error('Veuillez sélectionner un modèle.');
-			return;
-		}
-		const model = $models
-			// eslint-disable-next-line @typescript-eslint/no-explicit-any
-			.filter((m) => !((m?.info?.meta as any)?.hidden ?? false))
-			.find((m) => m.id === selectedModelId);
-		if (!model) {
-			toast.error('Modèle introuvable.');
-			return;
-		}
-
-		improveOriginalMd = currentMd;
-		proposedMd = '';
-		improveStatus = 'generating';
-		editing = true;
-		stopResponseFlag = false;
-
-		const systemPrompt = `Améliore la note ci-dessous : rends-la plus claire, mieux structurée et plus complète.
-Garde la langue d'origine et le format markdown. NE SUPPRIME AUCUNE information existante (améliore et complète, n'appauvris pas).
-Retourne UNIQUEMENT le markdown de la note améliorée, sans texte ni commentaire autour.`;
-
-		let out = '';
-		try {
-			const [res, controller] = await chatCompletion(
-				localStorage.token,
-				{
-					model: model.id,
-					stream: true,
-					messages: [
-						{ role: 'system', content: systemPrompt },
-						{ role: 'user', content: `<note>${improveOriginalMd}</note>` }
-					]
-				},
-				`${WEBUI_BASE_URL}/api`
-			);
-			streaming = true;
-			if (res && res.ok && res.body) {
-				const reader = res.body
-					.pipeThrough(new TextDecoderStream())
-					.pipeThrough(splitStream('\n'))
-					.getReader();
-				while (true) {
-					const { value, done } = await reader.read();
-					if (done || stopResponseFlag) {
-						if (stopResponseFlag) controller.abort('User: Stop Response');
-						break;
-					}
-					try {
-						for (const line of value.split('\n')) {
-							if (!line || line === 'data: [DONE]') continue;
-							const data = JSON.parse(line.replace(/^data: /, ''));
-							const delta = data?.choices?.[0]?.delta?.content;
-							if (delta) out += delta; // accumulé hors écran, JAMAIS dans currentMd
-						}
-					} catch (_) {
-						// ignore parse errors mid-stream
-					}
-				}
-			}
-		} catch (_) {
-			streaming = false;
-			editing = false;
-			improveStatus = 'idle';
-			proposedMd = '';
-			toast.error("L'amélioration n'est pas disponible pour le moment.");
-			return;
-		}
-
-		streaming = false;
-		editing = false;
-
-		// Abandon si interrompu, réponse vide, ou si le dirigeant a quitté/changé la note entre-temps.
-		if (stopResponseFlag || !out.trim() || currentMd !== improveOriginalMd || view !== 'editor') {
-			improveStatus = 'idle';
-			proposedMd = '';
-			return;
-		}
-
-		proposedMd = out.trim();
-		improveStatus = hasChanges(improveOriginalMd, proposedMd) ? 'ready' : 'nochange';
-	};
-
-	// Applique la proposition : enregistre proposedMd (réversible en réécrivant l'ancien contenu).
-	const applyImprovement = async () => {
-		if (improveStatus !== 'ready' || !selectedNode) return;
-		const path = selectedNode.path;
-		const previousMd = improveOriginalMd;
-		const applied = proposedMd;
-		try {
-			await saveMemoryNote(localStorage.token, path, applied);
-			baselineMd = null; // le remontage éditeur ne doit pas re-sauvegarder l'écho d'init
-			currentMd = applied;
-			editorNonce += 1; // force l'éditeur à recharger le nouveau contenu
-			improveStatus = 'idle';
-			proposedMd = '';
-			toast.success('Note améliorée', {
-				action: {
-					label: 'Annuler',
-					onClick: async () => {
-						try {
-							await saveMemoryNote(localStorage.token, path, previousMd);
-							baselineMd = null;
-							currentMd = previousMd;
-							editorNonce += 1;
-							toast.success('Amélioration annulée');
-						} catch (e) {
-							toast.error(typeof e === 'string' ? e : "Impossible d'annuler l'amélioration");
-						}
-					}
-				}
-			});
-		} catch (e) {
-			toast.error(typeof e === 'string' ? e : "Impossible d'appliquer l'amélioration");
-		}
-	};
-
-	// Rejette la proposition : rien n'est écrit, la note reste strictement inchangée.
-	const rejectImprovement = () => {
-		improveStatus = 'idle';
-		proposedMd = '';
-	};
-
-	// ─── VoiceRecording (insertion du texte transcrit) ────────────────────────
-
-	// Dicter une note : ouvre l'enregistrement micro → transcription Whisper → texte inséré.
-	const startDictation = async () => {
-		displayMediaRecord = false;
-		try {
-			const stream = await navigator.mediaDevices
-				.getUserMedia({ audio: true })
-				.catch((err) => {
-					toast.error(`Permission micro refusée : ${err}`);
-					return null;
-				});
-			if (stream) {
-				recording = true;
-				stream.getTracks().forEach((t) => t.stop());
-			}
-		} catch {
-			toast.error('Permission micro refusée');
-		}
-	};
-
-	const onVoiceConfirm = async (data: { text?: string; file?: File }) => {
-		recording = false;
-		displayMediaRecord = false;
-		if (data?.text) {
-			const inserted = `\n\n${data.text}`;
-			currentMd = currentMd + inserted;
-			scheduleSave(currentMd);
-		}
 	};
 
 	// ─── Cycle de vie ─────────────────────────────────────────────────────────
@@ -1157,15 +970,7 @@ Retourne UNIQUEMENT le markdown de la note améliorée, sans texte ni commentair
 					class="flex-1 w-full h-full overflow-auto px-3.5 relative"
 					id="memory-content-container"
 				>
-					{#if editing}
-						<div
-							class="w-full h-full fixed top-0 left-0 {streaming
-								? ''
-								: 'backdrop-blur-xs bg-white/10 dark:bg-gray-900/10'} flex items-center justify-center z-10 cursor-not-allowed"
-						></div>
-					{/if}
-
-					{#key `${selectedNode?.path}:${editorNonce}`}
+					{#key selectedNode?.path}
 						<RichTextInput
 							bind:this={inputElement}
 							bind:editor
@@ -1176,7 +981,6 @@ Retourne UNIQUEMENT le markdown de la note améliorée, sans texte ni commentair
 							link={true}
 							image={true}
 							placeholder="Écrivez quelque chose…"
-							editable={!editing}
 							onChange={(content) => {
 								scheduleSave(content.md ?? '');
 							}}
@@ -1185,73 +989,7 @@ Retourne UNIQUEMENT le markdown de la note améliorée, sans texte ni commentair
 				</div>
 			</div>
 		{/if}
-
-		<!-- FABs flottants (markup EXACT de NoteEditor.svelte) -->
-		<div class="absolute z-50 bottom-0 right-0 p-3.5 flex select-none">
-			<div class="flex flex-col gap-2 justify-end">
-				{#if recording}
-					<div class="flex-1 w-full">
-						<VoiceRecording
-							bind:recording
-							className="p-1 w-full max-w-full"
-							transcribe={true}
-							displayMedia={displayMediaRecord}
-							echoCancellation={false}
-							noiseSuppression={false}
-							onCancel={() => {
-								recording = false;
-								displayMediaRecord = false;
-							}}
-							onConfirm={onVoiceConfirm}
-						/>
-					</div>
-				{:else}
-					<!-- FAB IA — un clic = améliore la note (proposition avant/après validé, feature 022). -->
-					<Tooltip content={editing ? 'Génération…' : 'Améliorer la note'} placement="top">
-						{#if editing}
-							<button
-								class="cursor-pointer p-2.5 flex justify-center items-center rounded-full border border-gray-50 bg-white dark:border-none dark:bg-gray-850 hover:bg-gray-50 dark:hover:bg-gray-800 transition shadow-xl"
-								on:click={stopResponseHandler}
-								type="button"
-							>
-								<Spinner className="size-5" />
-							</button>
-						{:else}
-							<button
-								class="cursor-pointer p-2.5 flex rounded-full border border-gray-50 bg-white dark:border-none dark:bg-gray-850 hover:bg-gray-50 dark:hover:bg-gray-800 transition shadow-xl"
-								on:click={proposeImprovement}
-								type="button"
-							>
-								<SparklesSolid />
-							</button>
-						{/if}
-					</Tooltip>
-
-					<!-- FAB Micro — un clic = dicter une note (transcription Whisper). -->
-					<Tooltip content="Dicter une note" placement="top">
-						<button
-							class="cursor-pointer p-2.5 flex rounded-full border border-gray-50 bg-white dark:border-none dark:bg-gray-850 hover:bg-gray-50 dark:hover:bg-gray-800 transition shadow-xl"
-							type="button"
-							on:click={startDictation}
-						>
-							<MicSolid className="size-4.5" />
-						</button>
-					</Tooltip>
-				{/if}
-			</div>
-		</div>
 	</div>
-{/if}
-
-<!-- Édition assistée (022) : revue de la proposition d'Adam (avant/après validé). -->
-{#if improveStatus === 'ready' || improveStatus === 'nochange'}
-	<NoteImproveReview
-		before={improveOriginalMd}
-		after={proposedMd}
-		status={improveStatus}
-		onApply={applyImprovement}
-		onReject={rejectImprovement}
-	/>
 {/if}
 
 <!-- ═══════════════════════════════════════════════════════════════════════════
