@@ -75,6 +75,10 @@
 	// Cible d'une nouvelle note : dossier courant, sinon la Réception si elle existe, sinon racine.
 	$: noteTarget =
 		activeFolder ?? (tree.some((n) => n.path === '00-Réception') ? '00-Réception' : '');
+	// Cible d'un nouveau dossier : dossier courant, sinon « Mon activité » (02-Domaines, la maison
+	// des casquettes du dirigeant) si elle existe, sinon racine → évite les dossiers orphelins.
+	$: folderTarget =
+		activeFolder ?? (tree.some((n) => n.path === '02-Domaines') ? '02-Domaines' : '');
 
 	// Création de dossier : saisie inline (pas de prompt natif, cohérent avec la refonte).
 	let creatingFolder = false;
@@ -293,7 +297,7 @@
 			cancelNewFolder();
 			return;
 		}
-		const parent = activeFolder ?? ''; // un nouveau dossier va dans le dossier courant, sinon racine
+		const parent = folderTarget; // dossier courant, sinon « Mon activité » par défaut
 		try {
 			const node = await createFolder(localStorage.token, parent, name);
 			await load();
@@ -704,7 +708,7 @@ Garde la langue d'origine. Retourne uniquement le texte en markdown.`;
 						}}
 					/>
 					<span class="shrink-0 text-[11px] text-gray-400 dark:text-gray-500">
-						dans {activeFolder ? friendlyFolder(activeFolder.split('/').pop() ?? '') : 'la racine'}
+						dans {folderTarget ? friendlyFolder(folderTarget.split('/').pop() ?? '') : 'la racine'}
 					</span>
 					<button
 						class="shrink-0 px-2.5 py-1 rounded-lg bg-black text-white dark:bg-white dark:text-black text-xs font-medium transition disabled:opacity-40"
