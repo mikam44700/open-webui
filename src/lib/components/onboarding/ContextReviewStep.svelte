@@ -13,7 +13,8 @@
 		EMPTY_CONTEXT,
 		type CompanyContext
 	} from '$lib/onboarding/companySynthesis';
-	import { saveProfile, writeInboxNote, initMemoryVault } from '$lib/apis/memory';
+	import { saveProfile, upsertManagedNote, initMemoryVault } from '$lib/apis/memory';
+	import { COMPANY_NOTE_ID, COMPANY_NOTE_TITLE } from '$lib/onboarding/companyNote';
 
 	const i18n = getContext('i18n');
 	const dispatch = createEventDispatcher();
@@ -212,11 +213,14 @@
 		try {
 			// Profil = source de vérité lue par tous les agents (l'écriture propage aux profils).
 			await saveProfile(localStorage.token, profileText);
-			// Trace datée dans le coffre (best-effort : n'empêche pas la validation si le coffre manque).
+			// Fiche dans le coffre (best-effort : n'empêche pas la validation si le coffre manque).
+			// Note GÉRÉE : un rejeu la met à jour sur place au lieu d'empiler des doublons datés.
+			// L'interview la réécrira ensuite, enrichie du profil dirigeant — même identité.
 			try {
 				await initMemoryVault(localStorage.token);
-				const date = new Date().toLocaleDateString('fr-FR');
-				await writeInboxNote(localStorage.token, `Contexte entreprise (${date})`, fullText);
+				if (fullText.trim()) {
+					await upsertManagedNote(localStorage.token, COMPANY_NOTE_ID, COMPANY_NOTE_TITLE, fullText);
+				}
 			} catch (e) {
 				console.error(e);
 			}

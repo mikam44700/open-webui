@@ -136,6 +136,16 @@ export const renameMemoryNote = (token: string, path: string, title: string): Pr
 export const writeInboxNote = (token: string, title: string, content: string): Promise<NoteContent> =>
 	call(token, 'POST', '/inbox', { title, content });
 
+// Crée ou met à jour une note GÉRÉE, identifiée par noteId (frontmatter lunaria-id).
+// Idempotent : un rejeu réécrit la note sur place, où que le dirigeant l'ait rangée — jamais de
+// doublon. À utiliser pour toute note que le produit réécrit (fiche entreprise de l'onboarding).
+export const upsertManagedNote = (
+	token: string,
+	noteId: string,
+	title: string,
+	content: string
+): Promise<NoteContent> => call(token, 'POST', '/managed-note', { note_id: noteId, title, content });
+
 // ─── Réglages du cerveau (feature 017) : Persona / Profil / Souvenirs ───────
 
 export type PersonaContent = { content: string };

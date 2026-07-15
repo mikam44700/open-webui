@@ -29,7 +29,8 @@
 		answersToContext,
 		type Answers
 	} from '$lib/onboarding/interview';
-	import { saveProfile, writeInboxNote, initMemoryVault } from '$lib/apis/memory';
+	import { saveProfile, upsertManagedNote, initMemoryVault } from '$lib/apis/memory';
+	import { COMPANY_NOTE_ID, COMPANY_NOTE_TITLE } from '$lib/onboarding/companyNote';
 	import { crawlSite, synthesizeContext, type CrawlResult } from '$lib/apis/onboarding';
 	import { saveDraft, loadDraft, clearDraft } from '$lib/onboarding/onboardingDraft';
 
@@ -221,10 +222,19 @@
 		if (combined.trim()) {
 			try {
 				await saveProfile(localStorage.token, combined);
+				// Note GÉRÉE (même identité qu'à l'étape « fiche relue ») : cette écriture MET À JOUR
+				// la fiche déjà déposée en l'enrichissant du profil dirigeant — elle n'en ajoute pas
+				// une seconde. Le garde porte sur ce qui part au coffre, pas sur `combined`.
 				try {
 					await initMemoryVault(localStorage.token);
-					const date = new Date().toLocaleDateString('fr-FR');
-					await writeInboxNote(localStorage.token, `Contexte entreprise (${date})`, fullCombined);
+					if (fullCombined.trim()) {
+						await upsertManagedNote(
+							localStorage.token,
+							COMPANY_NOTE_ID,
+							COMPANY_NOTE_TITLE,
+							fullCombined
+						);
+					}
 				} catch (err) {
 					console.error(err);
 				}

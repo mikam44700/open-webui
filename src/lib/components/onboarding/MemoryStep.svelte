@@ -1,7 +1,7 @@
 <script lang="ts">
 	// Étape « second cerveau » (juste après l'interview, avant l'écran final). Adam — l'agent mémoire
 	// (coffre Obsidian) — vient RÉELLEMENT de ranger le contexte de l'entreprise (persisté à la fin de
-	// l'interview via writeInboxNote). On le rend tangible : ce qu'il fait + comment le dirigeant
+	// l'interview via upsertManagedNote). On le rend tangible : ce qu'il fait + comment le dirigeant
 	// retrouve sa mémoire (dans l'app tout de suite, et sur son PC via Obsidian synchronisé au coffre).
 	// La synchro PC ↔ coffre (Syncthing) est un chantier ops séparé ; ici on présente + on donne le lien.
 	import { createEventDispatcher, getContext } from 'svelte';

@@ -30,6 +30,12 @@ class InboxNoteBody(BaseModel):
     content: str
 
 
+class ManagedNoteBody(BaseModel):
+    note_id: str
+    title: str
+    content: str
+
+
 class SearchBody(BaseModel):
     query: str
     limit: int = 8
@@ -170,6 +176,12 @@ async def restore_memory_folder(body: FolderRestoreBody, user=Depends(get_admin_
 async def write_inbox_note(body: InboxNoteBody, user=Depends(get_admin_user)):
     """Dépose une note dans la Boîte de réception (zone d'écriture sûre de l'agent)."""
     return await _bridge("POST", "/memory/inbox", json=body.model_dump())
+
+
+@router.post("/managed-note")
+async def upsert_managed_note(body: ManagedNoteBody, user=Depends(get_admin_user)):
+    """Crée ou met à jour une note gérée (identité stable) — un rejeu ne duplique jamais."""
+    return await _bridge("POST", "/memory/managed-note", json=body.model_dump())
 
 
 @router.get("/sync/pack")
