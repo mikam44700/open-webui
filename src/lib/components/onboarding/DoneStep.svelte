@@ -17,7 +17,12 @@
 	// si le dirigeant a sauté la saisie : le helper retombe alors sur des phrases de repli honnêtes.
 	export let context: CompanyContext = { ...EMPTY_CONTEXT };
 
-	$: team = buildTeamProof(context);
+	// Agents RÉELLEMENT présents dans le moteur (lus après le provisionnement du socle). L'écran est
+	// une preuve : il ne montre que ce qui existe. Avant le 2026-07-15 il lisait le catalogue et
+	// affichait donc une équipe entière à un client qui n'avait aucun agent.
+	export let teamIds: string[] = [];
+
+	$: team = buildTeamProof(context, teamIds);
 </script>
 
 <div class="w-full max-w-2xl mx-auto px-5 py-9 sm:py-10">
@@ -31,15 +36,24 @@
 		<div
 			class="mt-5 text-[11px] font-semibold uppercase tracking-[0.16em] text-amber-600 dark:text-amber-300/90"
 		>
-			{$i18n.t('Votre équipe est prête')}
+			{team.length ? $i18n.t('Votre équipe est prête') : $i18n.t('Votre contexte est enregistré')}
 		</div>
+		<!-- Deux discours, parce que deux réalités. Si l'équipe n'a pas pu être mise en place (moteur
+		     injoignable), on ne parle PAS d'équipe : le contexte, lui, est bien enregistré, et Mike
+		     est là. Promettre une équipe absente serait le premier mensonge du produit (D27). -->
 		<h1 class="mt-2 text-2xl sm:text-3xl font-semibold tracking-tight text-gray-900 dark:text-white">
-			{$i18n.t('Ils connaissent déjà votre entreprise')}
+			{team.length
+				? $i18n.t('Ils connaissent déjà votre entreprise')
+				: $i18n.t('Mike connaît déjà votre entreprise')}
 		</h1>
 		<p class="mt-3 text-[15px] leading-relaxed text-gray-600 dark:text-gray-300 max-w-md mx-auto">
-			{$i18n.t(
-				'Mike a transmis votre contexte à toute l’équipe. Voici ce que chacun sait déjà — avant même votre première demande.'
-			)}
+			{team.length
+				? $i18n.t(
+						'Mike a transmis votre contexte à toute l’équipe. Voici ce que chacun sait déjà — avant même votre première demande.'
+					)
+				: $i18n.t(
+						'Votre contexte est en mémoire. Votre équipe de spécialistes n’a pas encore pu être mise en place — vous pourrez l’ajouter depuis « Mes agents ».'
+					)}
 		</p>
 	</div>
 

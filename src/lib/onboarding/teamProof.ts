@@ -75,10 +75,20 @@ const byId = (id: string): AgentTemplate | undefined =>
 // Construit les lignes de preuve d'équipe, dans l'ordre défini, en ignorant tout id introuvable
 // (robuste si le socle évolue). `context` peut être vide (onboarding en saisie manuelle sautée) :
 // on retombe alors proprement sur les phrases de repli.
-export const buildTeamProof = (context: CompanyContext): TeamProofLine[] =>
-	TEAM_PROOF_ORDER.map((id): TeamProofLine | null => {
+//
+// `presentIds` = les agents qui EXISTENT vraiment dans le moteur (source : `getAgents`). Paramètre
+// OBLIGATOIRE, et c'est délibéré : tant qu'il était absent, l'écran lisait le catalogue et montrait
+// 6 agents à un client qui n'en avait aucun (trou du 2026-07-15). Un écran de preuve qui déduit
+// l'équipe d'une liste de templates ne prouve rien. Vide → on ne montre personne (l'appelant dit la
+// vérité), jamais une équipe imaginaire.
+export const buildTeamProof = (
+	context: CompanyContext,
+	presentIds: readonly string[]
+): TeamProofLine[] => {
+	const present = new Set(presentIds);
+	return TEAM_PROOF_ORDER.map((id): TeamProofLine | null => {
 		const t = byId(id);
-		if (!t) return null;
+		if (!t || !present.has(id)) return null;
 		return {
 			id,
 			firstName: t.firstName ?? t.label,
@@ -87,3 +97,4 @@ export const buildTeamProof = (context: CompanyContext): TeamProofLine[] =>
 			proof: proofFor(id, context)
 		};
 	}).filter((l): l is TeamProofLine => l !== null);
+};

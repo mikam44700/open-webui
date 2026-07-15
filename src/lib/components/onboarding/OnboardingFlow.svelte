@@ -29,6 +29,8 @@
 		answersToContext,
 		type Answers
 	} from '$lib/onboarding/interview';
+	import { getAgents, createAgent } from '$lib/apis/agents';
+	import { provisionSocleTeam } from '$lib/onboarding/provisionTeam';
 	import { saveProfile, upsertManagedNote, initMemoryVault } from '$lib/apis/memory';
 	import { COMPANY_NOTE_ID, COMPANY_NOTE_TITLE } from '$lib/onboarding/companyNote';
 	import { crawlSite, synthesizeContext, type CrawlResult } from '$lib/apis/onboarding';
@@ -119,9 +121,62 @@
 		goto('/connectors');
 	};
 
+	// --- L'ÉQUIPE (socle) -------------------------------------------------------------------
+	// Les 6 spécialistes du socle n'étaient créés NULLE PART (trou du 2026-07-15) : chez un client
+	// neuf, Mike démarrait sans équipe et l'écran final présentait des agents inexistants.
+	// On les crée ICI, et pas au déploiement, parce que le moteur clone la config du profil actif à
+	// la naissance de chaque agent : avant l'étape « Votre modèle IA », ils naîtraient sans cerveau.
+	//
+	// Lancé en TÂCHE DE FOND au sortir de l'étape modèle : le dirigeant enchaîne sur le crawl et
+	// l'interview (plusieurs minutes) pendant que l'équipe se met en place. Rien ne l'attend.
+	let teamIds: string[] = []; // agents RÉELLEMENT présents — ce que l'écran final a le droit de montrer
+	let teamReady: Promise<void> | null = null;
+
+	const readTeam = async (): Promise<string[]> => {
+		const res = await getAgents(localStorage.token);
+		return (res?.agents ?? []).map((a: { name: string }) => a.name);
+	};
+
+	const provisionTeam = async () => {
+		try {
+			const result = await provisionSocleTeam(await readTeam(), async (tpl) => {
+				await createAgent(localStorage.token, {
+					// `name` = l'IDENTIFIANT, jamais le libellé : le bridge le slugifie, et
+					// « Recherche & Veille » créerait un second Léo (cf. AgentCatalogue).
+					name: tpl.id,
+					description: tpl.description,
+					soul: tpl.soul,
+					avatar: tpl.image
+				});
+			});
+			if (result.failed.length) console.error('Agents non créés :', result.failed);
+		} catch (err) {
+			// Moteur injoignable : on n'interrompt PAS l'onboarding pour autant. L'écran final ne
+			// montrera que les agents réellement lus — il ne promettra rien de faux.
+			console.error(err);
+		}
+		// L'état réel fait foi, jamais ce qu'on croit avoir créé.
+		try {
+			teamIds = await readTeam();
+		} catch (err) {
+			console.error(err);
+			teamIds = [];
+		}
+	};
+
 	const goToSite = async () => {
 		await refreshModel();
+		if (!teamReady) teamReady = provisionTeam(); // une seule fois, même si on repasse par ici
 		go('site');
+	};
+
+	// Écran final : on attend que l'équipe soit en place avant de la présenter. À ce stade elle
+	// l'est déjà presque toujours (le crawl + l'interview ont duré des minutes) — ce garde-fou
+	// couvre le dirigeant qui traverse le parcours très vite.
+	const goToDone = async () => {
+		if (!teamReady) teamReady = provisionTeam(); // parcours repris après rechargement
+		await teamReady;
+		go('done');
 	};
 
 	// Analyse du site : on bascule d'abord sur la PAGE DE CHARGEMENT dédiée (le dirigeant voit l'IA
@@ -352,9 +407,9 @@
 		{:else if step === 'memory'}
 			<!-- Adam (agent mémoire) : second cerveau + coffre Obsidian, juste après les documents.
 			     « Retour » revient à l'étape précédente (documents). -->
-			<MemoryStep hasDocuments={docsCount > 0} on:next={() => go('done')} on:back={back} on:skip={skip} />
+			<MemoryStep hasDocuments={docsCount > 0} on:next={goToDone} on:back={back} on:skip={skip} />
 		{:else if step === 'done'}
-			<DoneStep {context} on:done={finish} on:workspace={openWorkspace} />
+			<DoneStep {context} {teamIds} on:done={finish} on:workspace={openWorkspace} />
 		{/if}
 	</div>
 </div>
