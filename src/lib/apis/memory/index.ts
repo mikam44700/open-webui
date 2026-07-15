@@ -171,14 +171,30 @@ export const getEntries = (token: string): Promise<MemoryEntriesResponse> =>
 export const addEntry = (token: string, content: string): Promise<MemoryEntriesResponse> =>
 	call(token, 'POST', '/entries', { content });
 
+// ``expectedContent`` = le contenu vu par le dirigeant au dernier ``getEntries`` pour cet
+// index (concurrence optimiste). Si l'entrée a changé entre-temps (le moteur écrit aussi dans
+// MEMORY.md, par contenu — pas par position), le serveur répond 409 ``entry_conflict`` plutôt
+// que d'écraser/supprimer une autre entrée que celle affichée à l'écran.
 export const updateEntry = (
 	token: string,
 	index: number,
-	content: string
-): Promise<MemoryEntriesResponse> => call(token, 'PUT', `/entries/${index}`, { content });
+	content: string,
+	expectedContent?: string
+): Promise<MemoryEntriesResponse> =>
+	call(token, 'PUT', `/entries/${index}`, { content, expected_content: expectedContent ?? null });
 
-export const removeEntry = (token: string, index: number): Promise<MemoryEntriesResponse> =>
-	call(token, 'DELETE', `/entries/${index}`);
+export const removeEntry = (
+	token: string,
+	index: number,
+	expectedContent?: string
+): Promise<MemoryEntriesResponse> =>
+	call(
+		token,
+		'DELETE',
+		expectedContent !== undefined
+			? `/entries/${index}?expected_content=${encodeURIComponent(expectedContent)}`
+			: `/entries/${index}`
+	);
 
 // Pack de synchronisation du coffre (feature 005 US5) : identité Syncthing pré-appairée que le
 // client télécharge → son coffre se connecte tout seul (zéro appairage). Base64 (quelques Ko).

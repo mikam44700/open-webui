@@ -20,6 +20,7 @@
 	let newContent = '';
 	let editingIndex: number | null = null;
 	let editContent = '';
+	let editingExpected = ''; // contenu vu au dernier chargement, pour la garde de concurrence
 	let confirmDelete: number | null = null;
 	let busy = false;
 
@@ -61,27 +62,52 @@
 		}
 	};
 
+	// L'assistant écrit aussi dans MEMORY.md pendant que le dirigeant a l'écran ouvert : si
+	// l'entrée visée a changé depuis le dernier chargement, le serveur répond 409
+	// (entry_conflict) plutôt que d'écraser/supprimer la mauvaise entrée. On referme l'édition
+	// en cours et on recharge la liste pour repartir d'un état sûr.
+	const isConflict = (e: any) => e?.error?.code === 'entry_conflict';
+
+	const handleConflict = async (e: any, fallback: string) => {
+		toast.error(e?.error?.message ?? fallback);
+		editingIndex = null;
+		editContent = '';
+		confirmDelete = null;
+		await load();
+	};
+
 	const doUpdate = async () => {
 		if (editingIndex === null) return;
 		busy = true;
 		try {
-			applyResult(await updateEntry(localStorage.token, editingIndex, editContent.trim()));
+			applyResult(
+				await updateEntry(localStorage.token, editingIndex, editContent.trim(), editingExpected)
+			);
 			editingIndex = null;
 			editContent = '';
 		} catch (e: any) {
-			toast.error(e?.error?.message ?? $i18n.t('Impossible de modifier.'));
+			if (isConflict(e)) {
+				await handleConflict(e, $i18n.t('Ce souvenir a changé, réessayez.'));
+			} else {
+				toast.error(e?.error?.message ?? $i18n.t('Impossible de modifier.'));
+			}
 		} finally {
 			busy = false;
 		}
 	};
 
 	const doDelete = async (index: number) => {
+		const expected = entries.find((e) => e.index === index)?.content;
 		busy = true;
 		try {
-			applyResult(await removeEntry(localStorage.token, index));
+			applyResult(await removeEntry(localStorage.token, index, expected));
 			confirmDelete = null;
 		} catch (e: any) {
-			toast.error(e?.error?.message ?? $i18n.t('Impossible de supprimer.'));
+			if (isConflict(e)) {
+				await handleConflict(e, $i18n.t('Ce souvenir a changé, réessayez.'));
+			} else {
+				toast.error(e?.error?.message ?? $i18n.t('Impossible de supprimer.'));
+			}
 		} finally {
 			busy = false;
 		}
@@ -173,7 +199,7 @@
 										<button class="px-2 py-1 rounded-md text-xs font-medium hover:bg-gray-100 dark:hover:bg-gray-850" on:click={() => (confirmDelete = null)}>{$i18n.t('Non')}</button>
 									{:else}
 										<div class="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 focus-within:opacity-100 transition">
-											<button class="p-1.5 rounded-md text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-gray-850 transition" title={$i18n.t('Modifier')} on:click={() => { editingIndex = entry.index; editContent = entry.content; }}>
+											<button class="p-1.5 rounded-md text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-gray-850 transition" title={$i18n.t('Modifier')} on:click={() => { editingIndex = entry.index; editContent = entry.content; editingExpected = entry.content; }}>
 												<svg class="w-4 h-4" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M4 13.5V16h2.5l7.4-7.4-2.5-2.5L4 13.5Z" stroke-linejoin="round"/><path d="m12.6 4.9 2.5 2.5" stroke-linecap="round"/></svg>
 											</button>
 											<button class="p-1.5 rounded-md text-gray-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-950/40 transition" title={$i18n.t('Supprimer')} on:click={() => (confirmDelete = entry.index)}>

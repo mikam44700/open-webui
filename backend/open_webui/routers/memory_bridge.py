@@ -259,13 +259,30 @@ async def add_entry(body: ContentBody, user=Depends(get_admin_user)):
     return await _bridge("POST", "/memory/entries", json=body.model_dump())
 
 
+class MemoryEntryWriteBody(BaseModel):
+    """Corps d'écriture d'un souvenir existant.
+
+    ``expected_content`` (optionnel) : contenu vu par le dirigeant au dernier ``GET
+    /entries`` pour cet index — concurrence optimiste contre le décalage d'index (le moteur
+    mute ``MEMORY.md`` par contenu, le bridge adresse par position). Transmis tel quel au
+    Providers Bridge, qui répond 409 (``entry_conflict``) si ça ne correspond plus."""
+
+    content: str
+    expected_content: str | None = None
+
+
 @router.put("/entries/{index}")
-async def update_entry(index: int, body: ContentBody, user=Depends(get_admin_user)):
-    """Modifie le souvenir ``index``."""
+async def update_entry(index: int, body: MemoryEntryWriteBody, user=Depends(get_admin_user)):
+    """Modifie le souvenir ``index``. 409 si son contenu a changé depuis le dernier ``GET``
+    (``expected_content`` fourni et divergent)."""
     return await _bridge("PUT", f"/memory/entries/{index}", json=body.model_dump())
 
 
 @router.delete("/entries/{index}")
-async def delete_entry(index: int, user=Depends(get_admin_user)):
-    """Supprime le souvenir ``index`` (confirmation côté UI)."""
-    return await _bridge("DELETE", f"/memory/entries/{index}")
+async def delete_entry(
+    index: int, expected_content: str | None = None, user=Depends(get_admin_user)
+):
+    """Supprime le souvenir ``index`` (confirmation côté UI). 409 si son contenu a changé
+    depuis le dernier ``GET`` (``expected_content`` fourni et divergent)."""
+    suffix = f"?expected_content={quote(expected_content)}" if expected_content is not None else ""
+    return await _bridge("DELETE", f"/memory/entries/{index}{suffix}")
