@@ -122,6 +122,7 @@ from open_webui.config import (
     COMFYUI_WORKFLOW,
     COMFYUI_WORKFLOW_NODES,
     CONTENT_EXTRACTION_ENGINE,
+    CORS_ALLOW_CREDENTIALS,
     CORS_ALLOW_ORIGIN,
     DATALAB_MARKER_ADDITIONAL_CONFIG,
     DATALAB_MARKER_API_BASE_URL,
@@ -1417,7 +1418,13 @@ app.add_middleware(WebsocketUpgradeGuardMiddleware)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=CORS_ALLOW_ORIGIN,
-    allow_credentials=True,
+    # SÉCURITÉ CRITIQUE (fix 2026-07-15) : jamais `True` en dur ici. Avec
+    # CORS_ALLOW_ORIGIN='*' (défaut), Starlette réfléchit l'origine exacte du
+    # visiteur dès qu'un cookie de session est présent — équivalent à autoriser
+    # N'IMPORTE QUEL site tiers à voler la session. CORS_ALLOW_CREDENTIALS (calculé
+    # dans config.py) vaut False tant que CORS_ALLOW_ORIGIN reste en wildcard, et ne
+    # passe à True que si une liste d'origines explicite est fournie (déploiement).
+    allow_credentials=CORS_ALLOW_CREDENTIALS,
     allow_methods=['*'],
     allow_headers=['*'],
 )

@@ -3048,11 +3048,31 @@ CORS_ALLOW_CUSTOM_SCHEME = os.getenv('CORS_ALLOW_CUSTOM_SCHEME', '').split(';')
 
 if CORS_ALLOW_ORIGIN == ['*']:
     log.warning("\n\nWARNING: CORS_ALLOW_ORIGIN IS SET TO '*' - NOT RECOMMENDED FOR PRODUCTION DEPLOYMENTS.\n")
+    # SÉCURITÉ CRITIQUE (fix 2026-07-15) : `allow_origins=['*']` combiné à
+    # `allow_credentials=True` permettrait à N'IMPORTE QUEL site tiers d'émettre des
+    # requêtes authentifiées (cookies de session) vers cette instance et de lire les
+    # réponses = vol de session. Starlette (CORSMiddleware) NE renvoie PAS un simple
+    # '*' dans ce cas : dès qu'un cookie est présent (ou en preflight avec credentials),
+    # il RÉFLÉCHIT l'origine exacte du visiteur pour contourner l'interdiction du
+    # standard fetch (Access-Control-Allow-Origin: * + credentials est invalide côté
+    # navigateur) — voir starlette/middleware/cors.py: `if self.allow_all_origins and
+    # has_cookie`. Résultat : wildcard + credentials = accès cross-origin authentifié
+    # depuis N'IMPORTE QUEL domaine.
+    # Tant que CORS_ALLOW_ORIGIN n'est pas restreint à un domaine précis (variable
+    # d'env fournie au déploiement, cf. docker-compose), on désactive les credentials
+    # cross-origin. Aucun impact sur l'usage légitime : le front et le backend vivent
+    # sur le MÊME domaine en production (Caddy relaie en interne), et une requête
+    # same-origin n'a jamais besoin de CORS, credentials ou pas.
+    CORS_ALLOW_CREDENTIALS = False
 else:
     # You have to pick between a single wildcard or a list of origins.
     # Doing both will result in CORS errors in the browser.
     for origin in CORS_ALLOW_ORIGIN:
         validate_cors_origin(origin)
+    # Liste d'origines explicite fournie (ex. https://clientX.lunaria.app) : les
+    # credentials cross-origin sont sûrs, l'attaquant ne peut pas se faire passer
+    # pour une origine listée.
+    CORS_ALLOW_CREDENTIALS = True
 
 
 class BannerModel(BaseModel):
