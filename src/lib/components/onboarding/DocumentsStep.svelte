@@ -167,20 +167,31 @@
 	};
 
 	// « Continuer » : on recopie CHAQUE base d'agent dans le coffre (best-effort) avant de passer à Adam.
+	// Best-effort ASSUMÉ (non bloquant) : un échec de synchro n'arrête pas le parcours, mais il n'est
+	// plus avalé en silence — `syncFailures` remonte jusqu'à l'écran final (audit 2026-07-15 : le
+	// dirigeant croyait ses documents rangés à tort).
 	const finishDocuments = async () => {
 		const count = Object.values(docsByAgent)
 			.flat()
 			.filter((d) => d.status === 'done').length;
 		const kbs = Object.values(kbByAgent);
+		let syncFailures = 0;
 		if (kbs.length) {
 			finishing = true;
 			try {
-				for (const kbId of kbs) await syncKnowledgeToAgent(token(), kbId).catch((e) => console.error(e));
+				for (const kbId of kbs) {
+					try {
+						await syncKnowledgeToAgent(token(), kbId);
+					} catch (e) {
+						console.error(e);
+						syncFailures += 1;
+					}
+				}
 			} finally {
 				finishing = false;
 			}
 		}
-		dispatch('next', { count });
+		dispatch('next', { count, syncFailures });
 	};
 
 	$: anyUploading = Object.values(docsByAgent)

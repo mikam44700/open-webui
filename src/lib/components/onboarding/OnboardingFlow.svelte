@@ -131,6 +131,9 @@
 	// l'interview (plusieurs minutes) pendant que l'équipe se met en place. Rien ne l'attend.
 	let teamIds: string[] = []; // agents RÉELLEMENT présents — ce que l'écran final a le droit de montrer
 	let teamReady: Promise<void> | null = null;
+	// Nombre d'agents du socle que le moteur a refusés (remonté à l'écran final — audit 2026-07-15 :
+	// un échec de création ne doit plus finir en simple console.error invisible au dirigeant).
+	let agentsFailedCount = 0;
 
 	const readTeam = async (): Promise<string[]> => {
 		const res = await getAgents(localStorage.token);
@@ -149,6 +152,7 @@
 					avatar: tpl.image
 				});
 			});
+			agentsFailedCount = result.failed.length;
 			if (result.failed.length) console.error('Agents non créés :', result.failed);
 		} catch (err) {
 			// Moteur injoignable : on n'interrompt PAS l'onboarding pour autant. L'écran final ne
@@ -220,6 +224,9 @@
 	// Nombre de documents réellement déposés à l'étape « Vos documents » → permet à Adam de n'annoncer
 	// les documents rangés QUE s'il y en a (honnêteté D27, jamais de mention non vérifiée).
 	let docsCount = 0;
+	// Nombre de bases documentaires qui n'ont pas pu être synchronisées vers le coffre (remonté à
+	// l'écran final — audit 2026-07-15 : le dirigeant croyait ses documents rangés à tort).
+	let docsSyncFailedCount = 0;
 
 	// Reprise après rechargement : on restaure le brouillon (étape + fiche déjà crawlée + réponses)
 	// pour ne jamais reperdre le travail long (crawl ~1 min), puis on rafraîchit le modèle. `restored`
@@ -401,6 +408,7 @@
 			<DocumentsStep
 				on:next={(e) => {
 					docsCount = e.detail?.count ?? 0;
+					docsSyncFailedCount = e.detail?.syncFailures ?? 0;
 					go('memory');
 				}}
 			/>
@@ -409,7 +417,14 @@
 			     « Retour » revient à l'étape précédente (documents). -->
 			<MemoryStep hasDocuments={docsCount > 0} on:next={goToDone} on:back={back} on:skip={skip} />
 		{:else if step === 'done'}
-			<DoneStep {context} {teamIds} on:done={finish} on:workspace={openWorkspace} />
+			<DoneStep
+				{context}
+				{teamIds}
+				{agentsFailedCount}
+				{docsSyncFailedCount}
+				on:done={finish}
+				on:workspace={openWorkspace}
+			/>
 		{/if}
 	</div>
 </div>

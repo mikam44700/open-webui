@@ -22,7 +22,28 @@
 	// affichait donc une équipe entière à un client qui n'avait aucun agent.
 	export let teamIds: string[] = [];
 
+	// Deux échecs non bloquants du parcours, auparavant avalés en simple console.error (audit
+	// 2026-07-15) : agents du socle refusés par le moteur, et bases documentaires non synchronisées
+	// vers le coffre. On ne bloque toujours rien (choix produit assumé) — mais le dirigeant le sait.
+	export let agentsFailedCount: number = 0;
+	export let docsSyncFailedCount: number = 0;
+
 	$: team = buildTeamProof(context, teamIds);
+
+	// Bandeau discret, honnête, non alarmiste. Le cas « agents » n'est affiché que si une ÉQUIPE est
+	// par ailleurs montrée (team.length > 0) : équipe totalement absente est déjà couvert par le
+	// discours principal ci-dessus (« Mike connaît déjà votre entreprise »), pas la peine d'insister.
+	$: notices = [
+		agentsFailedCount > 0 && team.length > 0
+			? $i18n.t('Certains agents n’ont pas pu être créés. Retrouvez-les depuis « Mes agents ».')
+			: null,
+		docsSyncFailedCount > 0
+			? $i18n.t(
+					'{{n}} document(s) n’ont pas pu être synchronisés. Réessayez depuis « Mémoire ».',
+					{ n: docsSyncFailedCount }
+				)
+			: null
+	].filter((m): m is string => !!m);
 </script>
 
 <div class="w-full max-w-2xl mx-auto px-5 py-9 sm:py-10">
@@ -85,6 +106,17 @@
 			</div>
 		{/each}
 	</div>
+
+	<!-- Bandeau discret : échecs non bloquants remontés (agents refusés / documents non synchronisés). -->
+	{#if notices.length}
+		<div
+			class="mt-4 rounded-xl bg-amber-50 dark:bg-amber-900/15 ring-1 ring-inset ring-amber-500/20 px-4 py-3 text-[13px] leading-snug text-amber-800 dark:text-amber-200"
+		>
+			{#each notices as msg}
+				<p>{msg}</p>
+			{/each}
+		</div>
+	{/if}
 
 	<!-- Aller plus loin (non bloquant) -->
 	<div

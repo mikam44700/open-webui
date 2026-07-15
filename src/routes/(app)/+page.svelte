@@ -26,9 +26,12 @@
 			toast.error($page.url.searchParams.get('error') || 'An unknown error occurred.');
 		}
 		try {
-			// Lien de rejeu (tests) : ?onboarding=replay force un onboarding VIERGE — on efface le drapeau
-			// « déjà fait » ET le brouillon (dernier crawl/réponses), puis on affiche le parcours du début.
-			if ($page.url.searchParams.get('onboarding') === 'replay') {
+			// Lien de rejeu (DEV UNIQUEMENT) : ?onboarding=replay force un onboarding VIERGE — on efface
+			// le drapeau « déjà fait » ET le brouillon (dernier crawl/réponses), puis on affiche le
+			// parcours du début. Gaté par import.meta.env.DEV : en production, ce paramètre d'URL ne
+			// doit RIEN faire (sinon n'importe quel utilisateur connecté pouvait effacer le brouillon
+			// d'un autre dirigeant en cours et relancer l'onboarding sans confirmation — audit 2026-07-15).
+			if (import.meta.env.DEV && $page.url.searchParams.get('onboarding') === 'replay') {
 				localStorage.removeItem('lunaria_onboarding_done');
 				clearDraft();
 				showOnboarding = true;
