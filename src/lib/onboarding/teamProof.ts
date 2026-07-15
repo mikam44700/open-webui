@@ -23,7 +23,7 @@ export const TEAM_PROOF_ORDER: readonly string[] = [
 	'agent-obsidian', // Adam — mémoire
 	'assistant-administratif', // Emma — administratif
 	'commercial-devis', // Maxime — commercial
-	'redacteur-documents', // Nicolas — documents
+	'redacteur-de-documents', // Nicolas — documents
 	'comptable-impayes', // Lina — comptable
 	'veille' // Léo — veille
 ];
@@ -58,7 +58,7 @@ const proofFor = (id: string, ctx: CompanyContext): string => {
 				: 'Prête à gérer votre agenda et vos mails';
 		case 'commercial-devis':
 			return offre ? `Connaît votre offre : ${offre}` : 'Prêt à suivre vos devis et relances';
-		case 'redacteur-documents':
+		case 'redacteur-de-documents':
 			return ton ? `Écrira dans votre ton : ${ton}` : 'Prêt à rédiger vos documents';
 		case 'comptable-impayes':
 			return 'Prête à suivre vos factures et impayés';

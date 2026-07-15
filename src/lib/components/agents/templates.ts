@@ -29,7 +29,7 @@ export const SOCLE_IDS = new Set<string>([
 	'assistant-administratif', // Emma — assistant administratif
 	'commercial-devis', // Maxime — commercial / devis
 	'veille', // Léo — recherche & veille web
-	'redacteur-documents', // Nicolas — génération de documents
+	'redacteur-de-documents', // Nicolas — génération de documents
 	'comptable-impayes' // Lina — comptable / impayés
 ]);
 
@@ -401,7 +401,7 @@ Animer les réseaux, gérer les avis, alimenter le site et les newsletters — t
 - Tu ne promets pas de résultats irréalistes.`
 	},
 	{
-		id: 'redacteur-documents',
+		id: 'redacteur-de-documents',
 		label: 'Rédacteur de documents',
 		firstName: 'Nicolas',
 		role: 'Rédacteur de documents',

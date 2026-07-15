@@ -135,7 +135,8 @@
 	const installTemplate = async (tpl: (typeof AGENT_TEMPLATES)[number]) => {
 		try {
 			await createAgent(localStorage.token, {
-				name: tpl.label,
+				// L'identité, c'est l'`id`, jamais le `label` (cf. AgentCatalogue + templates.test.ts).
+				name: tpl.id,
 				description: tpl.description,
 				soul: tpl.soul,
 				avatar: tpl.image // persiste le visage de l'agent (sinon repli sur l'initiale)
@@ -158,9 +159,13 @@
 			await activate(mikeAgent);
 			return;
 		}
+		// Filet : depuis le 2026-07-15, Mike est LIVRÉ comme profil `default` (deploy/hermes-defaults).
+		// On ne devrait donc jamais passer ici — `mikeAgent` le trouve via son avatar. Si on y passe,
+		// c'est une instance antérieure à cette livraison : on crée Mike sous son `id` (jamais son
+		// libellé, qui donnait `mike-chef-dorchestre`).
 		try {
 			await createAgent(localStorage.token, {
-				name: mikeTpl.label,
+				name: mikeTpl.id,
 				description: mikeTpl.description,
 				soul: mikeTpl.soul,
 				avatar: mikeTpl.image

@@ -29,7 +29,7 @@
 		'assistant-administratif': 'Vos procédures internes, vos modèles de courriers, votre organigramme',
 		'commercial-devis': 'Votre catalogue, vos tarifs, un modèle de devis',
 		'comptable-impayes': 'Un modèle de facture, vos conditions de paiement, vos relances',
-		'redacteur-documents': 'Votre plaquette, votre charte éditoriale, vos modèles de courriers',
+		'redacteur-de-documents': 'Votre plaquette, votre charte éditoriale, vos modèles de courriers',
 		veille: 'Vos documents de veille concurrents',
 		'service-client': 'Votre FAQ, vos procédures SAV, vos conditions de garantie',
 		'conformite-juridique': 'Vos CGV, vos contrats types, vos mentions légales',

@@ -33,7 +33,7 @@ describe('buildTeamProof', () => {
 		const lines = buildTeamProof(FULL);
 		const maxime = lines.find((l) => l.id === 'commercial-devis');
 		const emma = lines.find((l) => l.id === 'assistant-administratif');
-		const nicolas = lines.find((l) => l.id === 'redacteur-documents');
+		const nicolas = lines.find((l) => l.id === 'redacteur-de-documents');
 		expect(maxime?.proof).toContain('Plomberie');
 		expect(emma?.proof).toContain('propriétaires');
 		expect(nicolas?.proof).toContain('chaleureux');

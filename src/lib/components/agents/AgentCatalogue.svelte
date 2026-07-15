@@ -58,7 +58,12 @@
 	const installTemplate = async (tpl: AgentTemplate) => {
 		try {
 			await createAgent(localStorage.token, {
-				name: tpl.label,
+				// L'IDENTITÉ, c'est l'`id` — jamais le `label`. Le bridge slugifie ce champ pour nommer
+				// le profil : passer le libellé faisait dépendre l'identité de l'agent du texte affiché.
+				// « Recherche & Veille » donnait `recherche-veille` alors que Léo s'appelle `veille` →
+				// installer le template créait un SECOND Léo, sans conflit ni message. L'id est déjà un
+				// slug valide (test dans templates.test.ts) : il traverse slugify() inchangé.
+				name: tpl.id,
 				description: tpl.description,
 				soul: tpl.soul,
 				avatar: tpl.image
