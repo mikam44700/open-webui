@@ -181,7 +181,7 @@
 	const onDisconnectOAuth = async () => {
 		busy = true;
 		try {
-			await disconnectOAuth(localStorage.token, integration.id);
+			await disconnectOAuth(localStorage.token, oauthProviderId);
 			toast.success($i18n.t('Déconnecté.'));
 			dispatch('changed');
 		} catch {
