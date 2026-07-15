@@ -230,6 +230,32 @@ export const capProfileText = (text: string, max: number = USER_PROFILE_MAX_CHAR
 	return out.join('\n').trimEnd();
 };
 
+/**
+ * Compose le contenu de USER.md (fiche entreprise concise + profil dirigeant) en garantissant
+ * qu'il NE DÉPASSE JAMAIS `max`.
+ *
+ * POURQUOI : le backend refuse (400) au-delà de `USER_CHAR_LIMIT` (1375). L'onboarding calculait
+ * son budget avec un plancher (`Math.max(200, …)`) : un profil dirigeant déjà volumineux se voyait
+ * ajouter 200 caractères de contexte par-dessus, et le total dépassait. Le 400 était avalé par un
+ * `catch { console.error }` → le contexte de l'entreprise était perdu EN SILENCE, au moment le plus
+ * critique du parcours. On plafonne donc le profil lui-même, puis on donne au contexte ce qui reste.
+ *
+ * Le détail complet n'est pas perdu pour autant : la fiche entière part au coffre (cherchable) via
+ * `formatContextForKnowledge`. USER.md ne porte que l'essentiel injecté dans chaque agent.
+ */
+export const buildUserProfile = (
+	contextText: string,
+	profileText: string,
+	max: number = USER_PROFILE_MAX_CHARS
+): string => {
+	const separator = '\n\n';
+	// Le profil dirigeant est prioritaire, mais il n'échappe pas à la limite.
+	const profile = capProfileText(profileText ?? '', max);
+	const budget = max - profile.length - (profile ? separator.length : 0);
+	const context = budget > 0 ? capProfileText(contextText ?? '', budget) : '';
+	return [context, profile].filter(Boolean).join(separator);
+};
+
 // Preuves courtes uniquement (chiffres, notes, certifs) : les témoignages verbatim (longs) sont du
 // bruit dans un prompt d'agent → ils restent dans la fiche complète (coffre), pas dans USER.md.
 const SHORT_PROOF_MAX = 140;

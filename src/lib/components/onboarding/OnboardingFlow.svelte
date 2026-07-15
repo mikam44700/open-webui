@@ -5,6 +5,7 @@
 	//   synthèse + validation) → C'est prêt (récap). L'espace de travail (Google/MS) s'insèrera ensuite.
 	import { createEventDispatcher, onMount, getContext } from 'svelte';
 	import { goto } from '$app/navigation';
+	import { toast } from 'svelte-sonner';
 	import { getModels } from '$lib/apis';
 	import WelcomeStep from './WelcomeStep.svelte';
 	import ModelSetupStep from './ModelSetupStep.svelte';
@@ -20,8 +21,7 @@
 		isContextEmpty,
 		formatContextForProfile,
 		formatContextForKnowledge,
-		capProfileText,
-		USER_PROFILE_MAX_CHARS,
+		buildUserProfile,
 		type CompanyContext
 	} from '$lib/onboarding/companySynthesis';
 	import {
@@ -211,12 +211,10 @@
 		answers = e.detail.answers ?? {};
 		if (interviewMode === 'full') context = answersToContext(answers);
 
-		// USER.md (injecté dans chaque agent) = profil dirigeant + fiche entreprise CONCISE, plafonné.
-		// On réserve la place au profil dirigeant (toujours gardé) et on plafonne la part entreprise.
+		// USER.md (injecté dans chaque agent) = profil dirigeant + fiche entreprise CONCISE.
+		// `buildUserProfile` GARANTIT la limite du backend (un dépassement = 400 = contexte perdu).
 		const profile = formatInterviewForProfile(answers);
-		const contextBudget = Math.max(200, USER_PROFILE_MAX_CHARS - profile.length - 4);
-		const conciseContext = capProfileText(formatContextForProfile(context), contextBudget);
-		const combined = [conciseContext, profile].filter(Boolean).join('\n\n');
+		const combined = buildUserProfile(formatContextForProfile(context), profile);
 		// Le COFFRE reçoit la version COMPLÈTE (fiche entreprise entière + profil), cherchable.
 		const fullCombined = [formatContextForKnowledge(context), profile].filter(Boolean).join('\n\n');
 		if (combined.trim()) {
@@ -239,7 +237,14 @@
 					console.error(err);
 				}
 			} catch (err) {
+				// Ne JAMAIS avaler cet échec : sans USER.md, aucun agent ne connaît l'entreprise, et
+				// l'écran final prétendrait le contraire. Le dirigeant doit le savoir.
 				console.error(err);
+				toast.error(
+					$i18n.t(
+						"Votre contexte n'a pas pu être enregistré. Vos agents ne le connaissent pas encore — vous pourrez le renseigner dans Mémoire › Mon profil."
+					)
+				);
 			}
 		}
 		// Contexte validé et persisté côté moteur → le brouillon local n'a plus lieu d'être.

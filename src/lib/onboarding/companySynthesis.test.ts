@@ -5,6 +5,8 @@ import {
 	formatContextForProfile,
 	formatContextForKnowledge,
 	buildSynthesisUserContent,
+	buildUserProfile,
+	USER_PROFILE_MAX_CHARS,
 	EMPTY_CONTEXT,
 	type CompanyContext
 } from './companySynthesis';
@@ -188,5 +190,50 @@ describe('buildSynthesisUserContent — borne la taille du markdown', () => {
 	it('tronque un markdown gigantesque', () => {
 		const huge = 'x'.repeat(100_000);
 		expect(buildSynthesisUserContent(huge).length).toBeLessThan(huge.length);
+	});
+});
+
+// Le backend REFUSE (400) un USER.md au-delà de 1375 caractères, et l'onboarding avalait cette
+// erreur en silence : le contexte de l'entreprise était perdu sans un mot, au moment le plus
+// critique du parcours. La seule vraie garantie est de ne jamais dépasser.
+describe('buildUserProfile — ne dépasse JAMAIS la limite de USER.md', () => {
+	const ligne = (n: number) => `- Ligne ${n} : ${'texte '.repeat(8)}`;
+	const long = (n: number) =>
+		Array.from({ length: n }, (_, i) => ligne(i)).join('\n');
+
+	it('laisse passer un contexte et un profil courts', () => {
+		const out = buildUserProfile('- Secteur : restauration', '- Prénom : Michael');
+		expect(out).toContain('- Secteur : restauration');
+		expect(out).toContain('- Prénom : Michael');
+	});
+
+	it('reste sous la limite quand le profil dirigeant est énorme', () => {
+		const out = buildUserProfile(long(40), long(60));
+		expect(out.length).toBeLessThanOrEqual(USER_PROFILE_MAX_CHARS);
+	});
+
+	// LE cas qui cassait : un profil qui remplit déjà le budget + le plancher de 200 du contexte.
+	it('reste sous la limite même quand le profil seul dépasse le budget', () => {
+		const profilSeul = long(200);
+		expect(profilSeul.length).toBeGreaterThan(USER_PROFILE_MAX_CHARS);
+		const out = buildUserProfile(long(30), profilSeul);
+		expect(out.length).toBeLessThanOrEqual(USER_PROFILE_MAX_CHARS);
+	});
+
+	it('garde le profil dirigeant en priorité sur la fiche entreprise', () => {
+		const out = buildUserProfile('- Secteur : restauration', '- Prénom : Michael');
+		expect(out.indexOf('Michael')).toBeGreaterThan(-1);
+	});
+
+	it('accepte un contexte vide', () => {
+		expect(buildUserProfile('', '- Prénom : Michael')).toBe('- Prénom : Michael');
+	});
+
+	it('accepte un profil vide', () => {
+		expect(buildUserProfile('- Secteur : restauration', '')).toBe('- Secteur : restauration');
+	});
+
+	it('rend une chaîne vide quand tout est vide', () => {
+		expect(buildUserProfile('', '')).toBe('');
 	});
 });
