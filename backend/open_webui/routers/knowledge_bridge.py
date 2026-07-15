@@ -45,7 +45,11 @@ async def sync_to_agent(
         raise HTTPException(status_code=404, detail="Base de connaissances introuvable")
 
     file_ids = (kb.data or {}).get("file_ids", []) if kb.data else []
-    base_dir = f"connaissances/{_slug(kb.name)}"
+    # Les documents des agents sont des RESSOURCES (PARA) → rangés sous « 03-Idées & ressources »
+    # dans un sous-dossier explicite, jamais à la racine : la racine reste les 9 dossiers PARA
+    # (règle « aucun dossier racine muet »). Regroupés sous « Documents des agents » pour ne pas
+    # éparpiller un « documents-<prénom> » par agent au milieu des ressources du dirigeant.
+    base_dir = f"03-Idées & ressources/Documents des agents/{_slug(kb.name)}"
     synced, skipped = 0, 0
 
     for fid in file_ids:
