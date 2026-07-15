@@ -88,6 +88,18 @@ async def memory_trash(user=Depends(get_admin_user)):
     return await _bridge("GET", "/memory/trash")
 
 
+@router.delete("/trash/item")
+async def purge_memory_trash_item(ref: str, user=Depends(get_admin_user)):
+    """Suppression DÉFINITIVE d'un élément de la corbeille (irréversible, confirmée côté UI)."""
+    return await _bridge("DELETE", f"/memory/trash/item?ref={quote(ref)}")
+
+
+@router.delete("/trash")
+async def empty_memory_trash(user=Depends(get_admin_user)):
+    """Vide la corbeille (définitif). Ne touche que les éléments visibles dans LunarIA."""
+    return await _bridge("DELETE", "/memory/trash")
+
+
 @router.get("/status")
 async def memory_status(user=Depends(get_admin_user)):
     """Statut honnête du coffre."""

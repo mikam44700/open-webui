@@ -26,7 +26,9 @@
 		deleteMemoryNote,
 		restoreMemoryNote,
 		renameMemoryNote,
-		getTrash
+		getTrash,
+		purgeTrashItem,
+		emptyTrash
 	} from '$lib/apis/memory';
 	import type { MemoryNode, MemoryStatus, SearchResult, TrashItem } from '$lib/apis/memory';
 	import {
@@ -38,6 +40,7 @@
 
 	import type { Editor } from '@tiptap/core';
 
+	import ConfirmDialog from '$lib/components/common/ConfirmDialog.svelte';
 	import RichTextInput from '$lib/components/common/RichTextInput.svelte';
 	import Spinner from '$lib/components/common/Spinner.svelte';
 	import Tooltip from '$lib/components/common/Tooltip.svelte';
@@ -189,6 +192,54 @@
 			toast.success(`« ${item.name} » restauré`);
 		} catch (e) {
 			toast.error(typeof e === 'string' ? e : 'Impossible de restaurer cet élément');
+		}
+	};
+
+	// Suppression DÉFINITIVE : rien ne part sans un « oui » explicite du dirigeant. Le produit, lui,
+	// ne purge jamais tout seul (pas de délai d'expiration) — mais on ne l'enferme pas non plus.
+	let purgeTarget: TrashItem | null = null;
+	let showPurgeConfirm = false;
+	let showEmptyTrashConfirm = false;
+
+	const askPurge = (item: TrashItem) => {
+		purgeTarget = item;
+		showPurgeConfirm = true;
+	};
+
+	const trashTotalSize = (items: TrashItem[]): number =>
+		items.reduce((sum, i) => sum + (i.size ?? 0), 0);
+
+	// Taille lisible (« 4,2 Mo ») — le dirigeant doit voir la place qu'il récupère.
+	const formatSize = (bytes: number): string => {
+		if (!bytes) return '0 o';
+		const units = ['o', 'Ko', 'Mo', 'Go'];
+		const i = Math.min(Math.floor(Math.log(bytes) / Math.log(1024)), units.length - 1);
+		const value = bytes / Math.pow(1024, i);
+		return `${value.toLocaleString('fr-FR', { maximumFractionDigits: i === 0 ? 0 : 1 })} ${units[i]}`;
+	};
+
+	const purgeOne = async () => {
+		const item = purgeTarget;
+		if (!item) return;
+		try {
+			await purgeTrashItem(localStorage.token, item.ref);
+			trashItems = trashItems.filter((t) => t.ref !== item.ref);
+			toast.success(`« ${item.name} » supprimé définitivement`);
+		} catch (e) {
+			toast.error(typeof e === 'string' ? e : 'Impossible de supprimer cet élément');
+		}
+		purgeTarget = null;
+	};
+
+	const purgeAll = async () => {
+		try {
+			const { purged } = await emptyTrash(localStorage.token);
+			trashItems = [];
+			toast.success(
+				purged > 1 ? `${purged} éléments supprimés définitivement` : 'Corbeille vidée'
+			);
+		} catch (e) {
+			toast.error(typeof e === 'string' ? e : 'Impossible de vider la corbeille');
 		}
 	};
 
@@ -795,6 +846,17 @@
 							</svg>
 						</button>
 					</Tooltip>
+					<Tooltip content="Corbeille">
+						<button
+							class="p-2 rounded-xl ring-1 ring-inset ring-black/10 dark:ring-white/15 text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-white/10 transition"
+							on:click={openTrash}
+							aria-label="Corbeille"
+						>
+							<svg class="w-4 h-4" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+								<path d="M4 6h12M8 6V4h4v2m-6 0v10h8V6" />
+							</svg>
+						</button>
+					</Tooltip>
 				</div>
 			</div>
 
@@ -870,17 +932,19 @@
 						<span class="text-gray-300 dark:text-gray-600">·</span>
 						<span class="text-[13px] text-gray-500 dark:text-gray-400">{status.note_count} notes</span>
 					</div>
-				{:else}
+				{:else if status.sync_available}
+					<!-- Une invitation, pas un défaut : le coffre existe déjà, il ne lui manque qu'une copie
+					     locale. Et ce bloc n'apparaît QUE là où le pack peut vraiment être généré. -->
 					<div
 						class="mb-3 flex flex-wrap items-center gap-3 rounded-2xl bg-sky-50/70 dark:bg-sky-900/15 ring-1 ring-inset ring-sky-500/20 px-3.5 py-3"
 					>
 						<div class="min-w-0 flex-1">
 							<div class="text-[13px] font-medium text-gray-900 dark:text-white">
-								Pas encore connecté à Obsidian
+								Ouvrir votre coffre dans Obsidian
 							</div>
 							<div class="text-[12px] text-gray-500 dark:text-gray-400">
-								Vos {status.note_count} notes sont en sécurité. Connectez votre coffre pour l'ouvrir dans
-								Obsidian sur votre ordinateur.
+								Vos {status.note_count} notes sont enregistrées. Installez la copie sur votre ordinateur
+								pour les ouvrir dans Obsidian.
 							</div>
 						</div>
 						<button
@@ -906,7 +970,9 @@
 							<ChevronLeft className="size-4" />
 						</button>
 						<div class="text-sm font-semibold text-gray-800 dark:text-gray-100">Corbeille</div>
-						<div class="text-xs text-gray-400 dark:text-gray-600">· éléments supprimés, récupérables</div>
+						<div class="text-xs text-gray-400 dark:text-gray-600">
+							· rien n'est supprimé tout seul{#if trashItems.length > 0} · {formatSize(trashTotalSize(trashItems))}{/if}
+						</div>
 					</div>
 					{#if trashLoading}
 						<div class="py-16 flex justify-center"><Spinner className="size-4" /></div>
@@ -924,7 +990,7 @@
 									<div class="min-w-0 flex-1">
 										<div class="text-sm text-gray-800 dark:text-gray-100 truncate">{item.name}</div>
 										<div class="text-[11px] text-gray-400 dark:text-gray-600 truncate">
-											Supprimé le {formatModified(item.deleted_at)}{#if item.path.includes('/')} · depuis {friendlyFolder(item.path.split('/')[0])}{/if}
+											Supprimé le {formatModified(item.deleted_at)}{#if item.path.includes('/')} · depuis {friendlyFolder(item.path.split('/')[0])}{/if}{#if item.size} · {formatSize(item.size)}{/if}
 										</div>
 									</div>
 									<button
@@ -933,9 +999,24 @@
 									>
 										Restaurer
 									</button>
+									<Tooltip content="Supprimer définitivement">
+										<button
+											class="shrink-0 text-xs px-2.5 py-1.5 rounded-lg text-gray-400 dark:text-gray-500 hover:text-red-600 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 transition font-medium"
+											on:click={() => askPurge(item)}
+											aria-label={`Supprimer définitivement ${item.name}`}
+										>
+											Supprimer
+										</button>
+									</Tooltip>
 								</div>
 							{/each}
 						</div>
+						<button
+							class="mt-4 mb-8 mx-auto flex items-center gap-1.5 text-xs text-gray-400 dark:text-gray-600 hover:text-red-600 dark:hover:text-red-400 transition"
+							on:click={() => (showEmptyTrashConfirm = true)}
+						>
+							Vider la corbeille
+						</button>
 					{/if}
 				</div>
 			{:else}
@@ -1041,14 +1122,7 @@
 				</div>
 			{/if}
 
-			<!-- Accès à la corbeille (discret, en bas du coffre) -->
-			<button
-				class="mt-3 mb-8 mx-auto flex items-center gap-1.5 text-xs text-gray-400 dark:text-gray-600 hover:text-gray-700 dark:hover:text-gray-300 transition"
-				on:click={openTrash}
-			>
-				<svg class="w-3.5 h-3.5" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M4 6h12M8 6V4h4v2m-6 0v10h8V6" stroke-linecap="round" stroke-linejoin="round" /></svg>
-				Corbeille
-			</button>
+			<div class="mb-8"></div>
 			{/if}
 		{:else}
 			<div class="w-full h-full flex justify-center items-center">
@@ -1203,3 +1277,27 @@
 		</div>
 	</div>
 {/if}
+
+<!-- Suppression définitive : on NOMME ce qui disparaît et on dit que c'est sans retour. -->
+<ConfirmDialog
+	bind:show={showPurgeConfirm}
+	title="Supprimer définitivement ?"
+	message={purgeTarget
+		? `« ${purgeTarget.name} » sera effacé de votre coffre pour de bon. Cette action est irréversible : nous ne pourrons pas le récupérer.`
+		: ''}
+	confirmLabel="Supprimer définitivement"
+	cancelLabel="Annuler"
+	on:confirm={purgeOne}
+	on:cancel={() => (purgeTarget = null)}
+/>
+
+<ConfirmDialog
+	bind:show={showEmptyTrashConfirm}
+	title="Vider la corbeille ?"
+	message={`Les ${trashItems.length} éléments de la corbeille (${formatSize(
+		trashTotalSize(trashItems)
+	)}) seront effacés pour de bon. Cette action est irréversible : nous ne pourrons rien récupérer.`}
+	confirmLabel="Vider la corbeille"
+	cancelLabel="Annuler"
+	on:confirm={purgeAll}
+/>

@@ -21,8 +21,9 @@ export type NoteContent = {
 export type MemoryStatus = {
 	ok: boolean;
 	note_count: number;
-	local_copy: boolean;
+	local_copy: boolean; // une copie locale Obsidian est reliée (Syncthing détecté)
 	local_copy_synced_at: number | null;
+	sync_available: boolean; // ce serveur PEUT relier une copie locale (Syncthing provisionné)
 };
 
 const call = async (token: string, method: string, path: string, body?: unknown) => {
@@ -96,10 +97,19 @@ export type TrashItem = {
 	name: string;
 	type: 'folder' | 'note';
 	deleted_at: number;
+	size: number; // octets occupés (la place récupérée en supprimant définitivement)
 };
 
 export const getTrash = (token: string): Promise<{ items: TrashItem[] }> =>
 	call(token, 'GET', '/trash');
+
+// Suppression DÉFINITIVE d'un élément de la corbeille. Irréversible : toujours confirmer avant.
+export const purgeTrashItem = (token: string, ref: string): Promise<{ ok: boolean; ref: string }> =>
+	call(token, 'DELETE', `/trash/item?ref=${encodeURIComponent(ref)}`);
+
+// Vide la corbeille (définitif). Ne touche que les éléments visibles dans LunarIA.
+export const emptyTrash = (token: string): Promise<{ ok: boolean; purged: number }> =>
+	call(token, 'DELETE', '/trash');
 
 // ─── Recherche serveur (FTS5) : scalable, ne charge pas toutes les notes côté client ───
 export type SearchResult = {
