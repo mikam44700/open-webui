@@ -1,33 +1,8 @@
-import { WEBUI_API_BASE_URL } from '$lib/constants';
+import { apiCall } from '$lib/apis/apiCall';
 
-// Helper interne : un appel JSON authentifié vers /api/v1/gateway
-const call = async (token: string, method: string, path: string, body?: unknown) => {
-	let error = null;
-
-	const res = await fetch(`${WEBUI_API_BASE_URL}/gateway${path}`, {
-		method,
-		headers: {
-			'Content-Type': 'application/json',
-			Authorization: `Bearer ${token}`
-		},
-		...(body !== undefined ? { body: JSON.stringify(body) } : {})
-	})
-		.then(async (res) => {
-			if (!res.ok) throw await res.json();
-			return res.json();
-		})
-		.catch((err) => {
-			console.error(err);
-			error = err.detail ?? err;
-			return null;
-		});
-
-	if (error) {
-		throw error;
-	}
-
-	return res;
-};
+// Helper interne : un appel JSON authentifié vers /api/v1/gateway (mutualisé dans $lib/apis/apiCall).
+const call = (token: string, method: string, path: string, body?: unknown) =>
+	apiCall(token, '/gateway', method, path, body);
 
 export type GatewayStatus = {
 	running: boolean;

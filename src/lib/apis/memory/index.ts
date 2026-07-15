@@ -1,4 +1,4 @@
-import { WEBUI_API_BASE_URL } from '$lib/constants';
+import { apiCall } from '$lib/apis/apiCall';
 
 // Client API de l'onglet Mémoire / Second Cerveau (Agent OS). Appelle le router admin
 // /api/v1/memory, qui proxifie vers le Providers Bridge (coffre Obsidian — source de vérité).
@@ -26,30 +26,8 @@ export type MemoryStatus = {
 	sync_available: boolean; // ce serveur PEUT relier une copie locale (Syncthing provisionné)
 };
 
-const call = async (token: string, method: string, path: string, body?: unknown) => {
-	let error = null;
-
-	const res = await fetch(`${WEBUI_API_BASE_URL}/memory${path}`, {
-		method,
-		headers: {
-			'Content-Type': 'application/json',
-			Authorization: `Bearer ${token}`
-		},
-		...(body !== undefined ? { body: JSON.stringify(body) } : {})
-	})
-		.then(async (res) => {
-			if (!res.ok) throw await res.json();
-			return res.json();
-		})
-		.catch((err) => {
-			console.error(err);
-			error = err.detail ?? err;
-			return null;
-		});
-
-	if (error) throw error;
-	return res;
-};
+const call = (token: string, method: string, path: string, body?: unknown) =>
+	apiCall(token, '/memory', method, path, body);
 
 export const getMemoryTree = (token: string): Promise<{ tree: MemoryNode[] }> =>
 	call(token, 'GET', '/tree');

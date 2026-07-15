@@ -1,36 +1,11 @@
-import { WEBUI_API_BASE_URL } from '$lib/constants';
+import { apiCall } from '$lib/apis/apiCall';
 
 // Client API de l'onglet Intégrations (Agent OS). Appelle le router admin /api/v1/integrations,
 // qui proxifie vers le Providers Bridge (skills connectables de Hermes — source de vérité unique).
 // Cf. specs/004-integrations.
 
-const call = async (token: string, method: string, path: string, body?: unknown) => {
-	let error = null;
-
-	const res = await fetch(`${WEBUI_API_BASE_URL}/integrations${path}`, {
-		method,
-		headers: {
-			'Content-Type': 'application/json',
-			Authorization: `Bearer ${token}`
-		},
-		...(body !== undefined ? { body: JSON.stringify(body) } : {})
-	})
-		.then(async (res) => {
-			if (!res.ok) throw await res.json();
-			return res.json();
-		})
-		.catch((err) => {
-			console.error(err);
-			error = err.detail ?? err;
-			return null;
-		});
-
-	if (error) {
-		throw error;
-	}
-
-	return res;
-};
+const call = (token: string, method: string, path: string, body?: unknown) =>
+	apiCall(token, '/integrations', method, path, body);
 
 // US1 — lister les intégrations connectables avec leur état réel
 export const getIntegrations = (token: string) => call(token, 'GET', '/');
