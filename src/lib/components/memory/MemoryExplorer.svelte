@@ -399,7 +399,7 @@
 			cancelNewFolder();
 			return;
 		}
-		const parent = folderTarget; // dossier courant, sinon « Mon activité » par défaut
+		const parent = folderTarget; // dossier courant, sinon « 02-Mes responsabilités » par défaut
 		try {
 			const node = await createFolder(localStorage.token, parent, name);
 			await load();
