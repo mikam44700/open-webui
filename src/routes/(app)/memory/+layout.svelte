@@ -37,10 +37,14 @@
 		if (p.includes('/memory/assistant'))
 			return {
 				strong: 'Le caractère de votre assistant',
-				sub: "Décrivez son rôle, son ton, ses règles — il en tiendra compte dans toutes vos conversations.",
+				// Même patron que le coffre d'Adam : le prénom se lit dans la phrase, l'image à côté
+				// fait le lien. Ce tiroir règle le caractère de Mike (profil « default » du moteur),
+				// pas celui des six autres agents, qui gardent le leur.
+				sub: 'Décrivez le rôle, le ton et les règles de votre assistant Mike — il en tiendra compte dans toutes vos conversations.',
 				wrap: 'from-violet-200/70 via-violet-100/50 to-indigo-100/60 dark:from-violet-900/30 dark:via-violet-900/20 dark:to-indigo-900/20',
 				halo1: 'bg-violet-400/30 dark:bg-violet-500/20',
-				halo2: 'bg-indigo-300/30 dark:bg-indigo-500/10'
+				halo2: 'bg-indigo-300/30 dark:bg-indigo-500/10',
+				avatar: '/assets/agents/mike.webp'
 			};
 		if (p.includes('/memory/profil'))
 			return {
@@ -76,7 +80,8 @@
 			halo2: 'bg-blue-300/30 dark:bg-blue-500/10',
 			// Adam incarne le coffre : plan complet (fond transparent) posé à même la bannière — on le
 			// veut avec le cristal entre les mains, sa signature, pas un simple visage.
-			// Seul cet onglet a un gardien — les autres tiroirs n'en affichent pas.
+			// Un gardien seulement là où un agent est en jeu : Adam ici, Mike sur « Mon assistant ».
+			// Les autres tiroirs n'en affichent pas.
 			avatar: '/assets/agents/adam.webp'
 		};
 	})();
