@@ -789,7 +789,15 @@
 		{#if loaded}
 			<!-- Actions du coffre. Adam, lui, incarne la bannière du haut (cf. memory/+layout.svelte)
 			     — une seule apparition, sinon on le voit deux fois sur le même écran. -->
-			<div class="mt-3 mb-3 flex items-center justify-end gap-3 px-1">
+			<div class="mt-3 mb-3 flex items-center justify-between gap-3 px-1">
+				<!-- Le total vit ici, pas dans la bannière Obsidian : celle-ci disparaît là où la synchro
+				     n'est pas provisionnée, et emportait le seul compteur du coffre avec elle. -->
+				<div class="min-w-0 text-xs text-gray-400 dark:text-gray-500">
+					{#if status?.ok}
+						{status.note_count}
+						{status.note_count > 1 ? 'notes' : 'note'}
+					{/if}
+				</div>
 				<div class="flex-none flex items-center gap-1.5">
 					<Tooltip content={`Créer dans : ${friendlyFolder(noteTarget) || 'Réception'}`}>
 						<button
