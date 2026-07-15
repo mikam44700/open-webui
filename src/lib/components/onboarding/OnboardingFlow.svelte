@@ -30,7 +30,11 @@
 		type Answers
 	} from '$lib/onboarding/interview';
 	import { getAgents, createAgent } from '$lib/apis/agents';
-	import { provisionSocleTeam } from '$lib/onboarding/provisionTeam';
+	import {
+		provisionSocleTeam,
+		acquireProvisionLock,
+		releaseProvisionLock
+	} from '$lib/onboarding/provisionTeam';
 	import { saveProfile, upsertManagedNote, initMemoryVault } from '$lib/apis/memory';
 	import { COMPANY_NOTE_ID, COMPANY_NOTE_TITLE } from '$lib/onboarding/companyNote';
 	import { crawlSite, synthesizeContext, type CrawlResult } from '$lib/apis/onboarding';
@@ -140,26 +144,40 @@
 		return (res?.agents ?? []).map((a: { name: string }) => a.name);
 	};
 
+	// `teamReady` (ci-dessus) ne protège QUE dans cette instance de composant : un rechargement de
+	// page pendant le crawl ou l'interview (plusieurs minutes) détruit l'instance sans annuler la
+	// boucle async en vol, et la nouvelle instance repart avec `teamReady = null` → un second
+	// provisioning concurrent du premier (audit HAUTE #1, 2026-07-15). `localStorage` survit au
+	// reload et est vu par tout onglet : c'est lui qui porte le vrai verrou, posé AVANT de lancer le
+	// provisioning et levé à la fin (détails du choix et du TTL → `provisionTeam.ts`).
 	const provisionTeam = async () => {
-		try {
-			const result = await provisionSocleTeam(await readTeam(), async (tpl) => {
-				await createAgent(localStorage.token, {
-					// `name` = l'IDENTIFIANT, jamais le libellé : le bridge le slugifie, et
-					// « Recherche & Veille » créerait un second Léo (cf. AgentCatalogue).
-					name: tpl.id,
-					description: tpl.description,
-					soul: tpl.soul,
-					avatar: tpl.image
+		if (acquireProvisionLock(localStorage)) {
+			try {
+				const result = await provisionSocleTeam(await readTeam(), async (tpl) => {
+					await createAgent(localStorage.token, {
+						// `name` = l'IDENTIFIANT, jamais le libellé : le bridge le slugifie, et
+						// « Recherche & Veille » créerait un second Léo (cf. AgentCatalogue).
+						name: tpl.id,
+						description: tpl.description,
+						soul: tpl.soul,
+						avatar: tpl.image
+					});
 				});
-			});
-			agentsFailedCount = result.failed.length;
-			if (result.failed.length) console.error('Agents non créés :', result.failed);
-		} catch (err) {
-			// Moteur injoignable : on n'interrompt PAS l'onboarding pour autant. L'écran final ne
-			// montrera que les agents réellement lus — il ne promettra rien de faux.
-			console.error(err);
+				agentsFailedCount = result.failed.length;
+				if (result.failed.length) console.error('Agents non créés :', result.failed);
+			} catch (err) {
+				// Moteur injoignable : on n'interrompt PAS l'onboarding pour autant. L'écran final ne
+				// montrera que les agents réellement lus — il ne promettra rien de faux.
+				console.error(err);
+			} finally {
+				releaseProvisionLock(localStorage);
+			}
 		}
-		// L'état réel fait foi, jamais ce qu'on croit avoir créé.
+		// Verrou posé ici ou déjà tenu ailleurs (autre onglet, ou instance précédente avant reload) :
+		// dans les deux cas, l'état réel du moteur fait foi, jamais ce qu'on croit avoir créé. Si un
+		// autre onglet tient encore le verrou à cet instant précis, `teamIds` peut ne pas refléter une
+		// équipe pas tout à fait finie ailleurs — l'écran final n'en montrera alors qu'une partie, sans
+		// jamais rien inventer ; c'est le compromis choisi pour rester non bloquant.
 		try {
 			teamIds = await readTeam();
 		} catch (err) {

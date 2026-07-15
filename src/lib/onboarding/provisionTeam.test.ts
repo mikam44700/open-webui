@@ -2,9 +2,28 @@ import { describe, it, expect, vi } from 'vitest';
 import {
 	socleSpecialists,
 	provisionSocleTeam,
+	acquireProvisionLock,
+	releaseProvisionLock,
+	PROVISION_LOCK_TTL_MS,
 	MIKE_TEMPLATE_ID,
-	type CreateFn
+	type CreateFn,
+	type LockStorage
 } from './provisionTeam';
+
+// Storage en mémoire (pas de jsdom dans cette suite) : implémente juste l'interface `LockStorage`,
+// suffisant pour prouver le comportement du verrou sans dépendre du vrai `localStorage`.
+const fakeStorage = (): LockStorage => {
+	const store = new Map<string, string>();
+	return {
+		getItem: (key) => (store.has(key) ? store.get(key)! : null),
+		setItem: (key, value) => {
+			store.set(key, value);
+		},
+		removeItem: (key) => {
+			store.delete(key);
+		}
+	};
+};
 
 // Un `create` qui réussit toujours et note ce qu'on lui a demandé.
 const spyCreate = () => {
@@ -130,5 +149,61 @@ describe('provisionSocleTeam', () => {
 		expect(calls).toHaveLength(6); // `default` n'est pas un spécialiste : les 6 sont à créer
 		expect(res.failed).toEqual([]);
 		expect(calls).not.toContain('default');
+	});
+});
+
+describe('acquireProvisionLock / releaseProvisionLock (audit HAUTE #1 — reload pendant le provisioning)', () => {
+	it('pose le verrou quand rien n’est en cours', () => {
+		const storage = fakeStorage();
+		expect(acquireProvisionLock(storage, 1000)).toBe(true);
+	});
+
+	it('refuse un second verrou tant que le premier est actif — c’est le cœur du correctif : un reload (même onglet) ou un second onglet NE relance PAS le provisioning', () => {
+		const storage = fakeStorage();
+		expect(acquireProvisionLock(storage, 1000)).toBe(true);
+		// Quelques secondes plus tard (reload, ou un autre onglet) : le verrou tient encore.
+		expect(acquireProvisionLock(storage, 1500)).toBe(false);
+		expect(acquireProvisionLock(storage, 1000 + PROVISION_LOCK_TTL_MS - 1)).toBe(false);
+	});
+
+	it('un verrou EXPIRÉ (TTL dépassé) autorise un nouveau provisioning — le crash d’un onglet précédent ne bloque pas éternellement', () => {
+		const storage = fakeStorage();
+		expect(acquireProvisionLock(storage, 1000)).toBe(true);
+		expect(acquireProvisionLock(storage, 1000 + PROVISION_LOCK_TTL_MS)).toBe(true);
+	});
+
+	it('releaseProvisionLock lève le verrou : un nouveau provisioning peut repartir immédiatement', () => {
+		const storage = fakeStorage();
+		expect(acquireProvisionLock(storage, 1000)).toBe(true);
+		releaseProvisionLock(storage);
+		expect(acquireProvisionLock(storage, 1001)).toBe(true);
+	});
+
+	it('une valeur corrompue dans le verrou (jamais écrite par nous) est traitée comme « absente », jamais comme bloquante', () => {
+		const storage = fakeStorage();
+		storage.setItem('lunaria-onboarding-team-provision-lock', 'pas-un-nombre');
+		expect(acquireProvisionLock(storage, 1000)).toBe(true);
+	});
+
+	it('simule le scénario du finding : deux « instances » (deux appels concurrents) — la seconde ne provisionne pas tant que la première tient le verrou', async () => {
+		const storage = fakeStorage();
+		const { fn: createA, calls: callsA } = spyCreate();
+		const { fn: createB, calls: callsB } = spyCreate();
+
+		// Instance 1 (avant reload) : pose le verrou puis lance son provisioning séquentiel.
+		const gotLockA = acquireProvisionLock(storage, 2000);
+		const runA = gotLockA ? provisionSocleTeam([], createA) : Promise.resolve(null);
+
+		// Instance 2 (après reload, `teamReady` local reparti à null) : le verrou tient encore.
+		const gotLockB = acquireProvisionLock(storage, 2050);
+
+		expect(gotLockA).toBe(true);
+		expect(gotLockB).toBe(false); // ne doit PAS obtenir le verrou tant que A tourne
+
+		await runA;
+		if (gotLockA) releaseProvisionLock(storage);
+
+		expect(callsA.length).toBeGreaterThan(0);
+		expect(callsB).toEqual([]); // B n'a rien créé : pas de double `create_profile` concurrent
 	});
 });
