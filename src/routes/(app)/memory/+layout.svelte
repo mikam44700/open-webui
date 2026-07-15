@@ -68,7 +68,9 @@
 			};
 		return {
 			strong: 'Votre coffre de notes',
-			sub: 'Tout ce que votre assistant retient pour vous, dans un coffre qui vous appartient.',
+			// Le prénom se lit dans la phrase (plutôt qu'en étiquette posée sur l'image) : « votre
+			// assistant » présente Adam à qui découvre la page — l'image juste à côté fait le lien.
+			sub: 'Tout ce que votre assistant Adam retient pour vous, dans un coffre qui vous appartient.',
 			wrap: 'from-sky-200/70 via-sky-100/50 to-blue-100/60 dark:from-sky-900/30 dark:via-sky-900/20 dark:to-blue-900/20',
 			halo1: 'bg-sky-400/30 dark:bg-sky-500/20',
 			halo2: 'bg-blue-300/30 dark:bg-blue-500/10',
@@ -149,25 +151,22 @@
 						<!-- Matière moderne (mesh + grain), color-agnostique. -->
 						<div class="hero-mesh pointer-events-none absolute inset-0"></div>
 						<div class="hero-grain pointer-events-none absolute inset-0"></div>
-						<div class="relative flex items-center gap-4 px-6 py-5">
-							{#if memoryBanner.avatar}
-								<div class="flex-none flex flex-col items-center gap-1">
-									<img
-										src={memoryBanner.avatar}
-										alt="Adam"
-										class="h-44 w-auto object-contain drop-shadow-md"
-									/>
-									<div class="text-xs font-semibold text-gray-700 dark:text-gray-200">Adam</div>
-								</div>
-							{/if}
-							<div class="flex flex-1 flex-col items-center justify-center gap-2 text-center">
-								<div
-									class="rounded-full bg-white/90 px-5 py-2 text-sm text-gray-800 shadow-sm backdrop-blur dark:bg-gray-900/80 dark:text-gray-100"
-								>
-									<span class="font-semibold text-gray-900 dark:text-white">{$i18n.t(memoryBanner.strong)}</span>
-								</div>
-								<p class="text-sm text-gray-500 dark:text-gray-400">{$i18n.t(memoryBanner.sub)}</p>
+						{#if memoryBanner.avatar}
+							<!-- HORS DU FLUX : la bannière garde EXACTEMENT la hauteur des autres onglets. Adam est
+							     rogné par son overflow-hidden (cadrage tête → mains + cristal), il ne l'étire pas. -->
+							<img
+								src={memoryBanner.avatar}
+								alt="Adam"
+								class="pointer-events-none absolute left-6 top-0 h-48 w-auto object-contain drop-shadow-md"
+							/>
+						{/if}
+						<div class="relative flex flex-col items-center justify-center gap-2 px-6 py-8 text-center">
+							<div
+								class="rounded-full bg-white/90 px-5 py-2 text-sm text-gray-800 shadow-sm backdrop-blur dark:bg-gray-900/80 dark:text-gray-100"
+							>
+								<span class="font-semibold text-gray-900 dark:text-white">{$i18n.t(memoryBanner.strong)}</span>
 							</div>
+							<p class="text-sm text-gray-500 dark:text-gray-400">{$i18n.t(memoryBanner.sub)}</p>
 						</div>
 					</div>
 			</div>
