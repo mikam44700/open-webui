@@ -787,23 +787,9 @@
 {#if view === 'list'}
 	<div class="w-full min-h-full h-full px-3 md:px-[18px]">
 		{#if loaded}
-			<!-- Adam : le gardien de la mémoire — incarne la page (avatar + rôle) + action « Nouvelle note ». -->
-			<div class="mt-3 mb-3 flex items-center gap-3 px-1">
-				<img
-					src="/assets/agents/adam.webp"
-					alt="Adam"
-					on:error={(e) => ((e.currentTarget as HTMLImageElement).src = '/favicon.png')}
-					class="flex-none h-11 w-11 rounded-full object-cover ring-1 ring-inset ring-black/10 dark:ring-white/15 bg-sky-100 dark:bg-sky-900/30"
-				/>
-				<div class="min-w-0 flex-1">
-					<div class="text-sm font-semibold text-gray-900 dark:text-white">
-						Adam
-						<span class="font-normal text-gray-400 dark:text-gray-500">· votre gardien de mémoire</span>
-					</div>
-					<div class="text-[12.5px] leading-snug text-gray-500 dark:text-gray-400">
-						Il range et retrouve tout ce que vous notez, dans votre coffre.
-					</div>
-				</div>
+			<!-- Actions du coffre. Adam, lui, incarne la bannière du haut (cf. memory/+layout.svelte)
+			     — une seule apparition, sinon on le voit deux fois sur le même écran. -->
+			<div class="mt-3 mb-3 flex items-center justify-end gap-3 px-1">
 				<div class="flex-none flex items-center gap-1.5">
 					<Tooltip content={`Créer dans : ${friendlyFolder(noteTarget) || 'Réception'}`}>
 						<button
