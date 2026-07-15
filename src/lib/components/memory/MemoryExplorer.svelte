@@ -20,17 +20,12 @@
 		renameFolder,
 		deleteFolder,
 		restoreFolder,
-		getSyncPack,
-		downloadSyncPack,
 		searchMemory,
 		deleteMemoryNote,
 		restoreMemoryNote,
-		renameMemoryNote,
-		getTrash,
-		purgeTrashItem,
-		emptyTrash
+		renameMemoryNote
 	} from '$lib/apis/memory';
-	import type { MemoryNode, MemoryStatus, SearchResult, TrashItem } from '$lib/apis/memory';
+	import type { MemoryNode, MemoryStatus, SearchResult } from '$lib/apis/memory';
 	import {
 		buildFolderList,
 		buildSuggestPrompt,
@@ -39,18 +34,15 @@
 	} from '$lib/memory/suggestFiling';
 	import { FRIENDLY_FOLDER, FOLDER_SUBTITLE } from '$lib/memory/vaultFolders';
 
-	import type { Editor } from '@tiptap/core';
-
-	import ConfirmDialog from '$lib/components/common/ConfirmDialog.svelte';
-	import RichTextInput from '$lib/components/common/RichTextInput.svelte';
 	import Spinner from '$lib/components/common/Spinner.svelte';
-	import Tooltip from '$lib/components/common/Tooltip.svelte';
 	import MemoryTreeNode from '$lib/components/memory/MemoryTreeNode.svelte';
-
-	import Plus from '$lib/components/icons/Plus.svelte';
-	import Search from '$lib/components/icons/Search.svelte';
-	import XMark from '$lib/components/icons/XMark.svelte';
-	import ChevronLeft from '$lib/components/icons/ChevronLeft.svelte';
+	import MemoryToolbar from '$lib/components/memory/MemoryToolbar.svelte';
+	import MemorySyncPanel from '$lib/components/memory/MemorySyncPanel.svelte';
+	import MemoryNewFolderRow from '$lib/components/memory/MemoryNewFolderRow.svelte';
+	import MemoryTrash from '$lib/components/memory/MemoryTrash.svelte';
+	import MemorySearch from '$lib/components/memory/MemorySearch.svelte';
+	import MemoryMovePicker from '$lib/components/memory/MemoryMovePicker.svelte';
+	import MemoryNoteEditor from '$lib/components/memory/MemoryNoteEditor.svelte';
 
 
 	// ─── State ───────────────────────────────────────────────────────────────
@@ -93,13 +85,13 @@
 				: '';
 
 	// Création de dossier : saisie inline (pas de prompt natif, cohérent avec la refonte).
+	// La saisie elle-même (focus, champ, validation clavier) vit dans MemoryNewFolderRow.
 	let creatingFolder = false;
-	let newFolderName = '';
-	let folderInput: HTMLInputElement | null = null;
 
-	// Éditeur
+	// Éditeur (la vue elle-même vit dans MemoryNoteEditor ; le débounce de sauvegarde reste ici
+	// pour préserver l'ordonnancement exact avec goBack()/onDestroy()).
 	let titleDraft = ''; // titre éditable (renommage)
-	let titleInput: HTMLInputElement | null = null;
+	let noteEditorRef: MemoryNoteEditor | null = null;
 	let selectedNode: MemoryNode | null = null;
 	let currentMd = '';
 	let loadingNote = false;
@@ -108,9 +100,6 @@
 	let saveTimeout: ReturnType<typeof setTimeout>;
 	// Sauvegarde en attente (debounce) : permet de la flusher avant de quitter la note.
 	let pendingSave: { path: string; md: string } | null = null;
-
-	let inputElement: RichTextInput | null = null;
-	let editor: Editor | null = null;
 
 	// Modèle actif (utilisé par le rangement assisté d'Adam, feature 021).
 	let selectedModelId = '';
@@ -148,80 +137,11 @@
 	};
 
 	// ─── Corbeille : notes/dossiers supprimés dans LunarIA, récupérables ────────
+	// Le panneau (liste, restauration, purge confirmée) vit entièrement dans MemoryTrash, qui
+	// se recharge à chaque montage — exactement le comportement précédent (recharge à chaque
+	// ouverture). Ici, seul l'état d'affichage (ouvert/fermé) reste, pour piloter la bascule
+	// avec la recherche/l'arbre dans le template.
 	let showTrash = false;
-	let trashItems: TrashItem[] = [];
-	let trashLoading = false;
-
-	const openTrash = async () => {
-		showTrash = true;
-		trashLoading = true;
-		try {
-			trashItems = (await getTrash(localStorage.token)).items ?? [];
-		} catch (e) {
-			toast.error(typeof e === 'string' ? e : "Impossible d'ouvrir la corbeille");
-		}
-		trashLoading = false;
-	};
-
-	const restoreFromTrash = async (item: TrashItem) => {
-		try {
-			if (item.type === 'folder') await restoreFolder(localStorage.token, item.ref, item.path);
-			else await restoreMemoryNote(localStorage.token, item.ref, item.path);
-			trashItems = trashItems.filter((t) => t.ref !== item.ref);
-			await load(); // recharge l'arbre pour faire réapparaître l'élément restauré
-			toast.success(`« ${item.name} » restauré`);
-		} catch (e) {
-			toast.error(typeof e === 'string' ? e : 'Impossible de restaurer cet élément');
-		}
-	};
-
-	// Suppression DÉFINITIVE : rien ne part sans un « oui » explicite du dirigeant. Le produit, lui,
-	// ne purge jamais tout seul (pas de délai d'expiration) — mais on ne l'enferme pas non plus.
-	let purgeTarget: TrashItem | null = null;
-	let showPurgeConfirm = false;
-	let showEmptyTrashConfirm = false;
-
-	const askPurge = (item: TrashItem) => {
-		purgeTarget = item;
-		showPurgeConfirm = true;
-	};
-
-	const trashTotalSize = (items: TrashItem[]): number =>
-		items.reduce((sum, i) => sum + (i.size ?? 0), 0);
-
-	// Taille lisible (« 4,2 Mo ») — le dirigeant doit voir la place qu'il récupère.
-	const formatSize = (bytes: number): string => {
-		if (!bytes) return '0 o';
-		const units = ['o', 'Ko', 'Mo', 'Go'];
-		const i = Math.min(Math.floor(Math.log(bytes) / Math.log(1024)), units.length - 1);
-		const value = bytes / Math.pow(1024, i);
-		return `${value.toLocaleString('fr-FR', { maximumFractionDigits: i === 0 ? 0 : 1 })} ${units[i]}`;
-	};
-
-	const purgeOne = async () => {
-		const item = purgeTarget;
-		if (!item) return;
-		try {
-			await purgeTrashItem(localStorage.token, item.ref);
-			trashItems = trashItems.filter((t) => t.ref !== item.ref);
-			toast.success(`« ${item.name} » supprimé définitivement`);
-		} catch (e) {
-			toast.error(typeof e === 'string' ? e : 'Impossible de supprimer cet élément');
-		}
-		purgeTarget = null;
-	};
-
-	const purgeAll = async () => {
-		try {
-			const { purged } = await emptyTrash(localStorage.token);
-			trashItems = [];
-			toast.success(
-				purged > 1 ? `${purged} éléments supprimés définitivement` : 'Corbeille vidée'
-			);
-		} catch (e) {
-			toast.error(typeof e === 'string' ? e : 'Impossible de vider la corbeille');
-		}
-	};
 
 	// Dossiers structurels du squelette PARA : protégés (ni renommés, ni supprimés). Le dirigeant
 	// range DEDANS (ses casquettes), mais ne casse pas le squelette clé en main. (Miroir du bridge.)
@@ -350,8 +270,6 @@
 		loadingNote = true;
 		saveState = 'idle';
 		baselineMd = null; // le 1er onChange (écho d'init de l'éditeur) ne doit pas déclencher de sauvegarde
-		editor = null;
-		inputElement = null;
 		try {
 			const res = await getMemoryNote(localStorage.token, node.path);
 			selectedNode = node;
@@ -401,35 +319,26 @@
 			await load();
 			if (folder) openState = { ...openState, [folder]: true }; // rend la note visible
 			await openNote({ path, name, type: 'note', children: [] });
-			// Titre prêt à être renommé tout de suite.
+			// Titre prêt à être renommé tout de suite (le champ vit dans MemoryNoteEditor).
 			await tick();
-			titleInput?.focus();
-			titleInput?.select();
+			noteEditorRef?.focusTitle();
 		} catch (e) {
 			toast.error(typeof e === 'string' ? e : 'Impossible de créer la note');
 		}
 	};
 
 	// ─── Nouveau dossier (saisie inline, sans prompt natif) ────────────────────
+	// Le champ de saisie (focus auto, clavier) vit dans MemoryNewFolderRow.
 
-	const startNewFolder = async () => {
+	const startNewFolder = (): void => {
 		creatingFolder = true;
-		newFolderName = '';
-		await tick();
-		folderInput?.focus();
 	};
 
-	const cancelNewFolder = () => {
+	const cancelNewFolder = (): void => {
 		creatingFolder = false;
-		newFolderName = '';
 	};
 
-	const confirmNewFolder = async () => {
-		const name = newFolderName.trim();
-		if (!name) {
-			cancelNewFolder();
-			return;
-		}
+	const confirmNewFolder = async (name: string): Promise<void> => {
 		const parent = folderTarget; // dossier courant, sinon « 02-Mes responsabilités » par défaut
 		try {
 			const node = await createFolder(localStorage.token, parent, name);
@@ -438,7 +347,6 @@
 			openState = { ...openState, [node.path]: true };
 			activeFolder = node.path; // le nouveau dossier devient la cible
 			creatingFolder = false;
-			newFolderName = '';
 			toast.success(`Dossier « ${node.name} » créé`);
 		} catch (e) {
 			toast.error(typeof e === 'string' ? e : 'Impossible de créer le dossier');
@@ -658,24 +566,8 @@
 		initializing = false;
 	};
 
-	// ─── Connexion du coffre à Obsidian (sync Syncthing pré-appairée) ─────────
-	let connectingSync = false;
-
-	const connectVault = async () => {
-		connectingSync = true;
-		try {
-			const pack = await getSyncPack(localStorage.token);
-			downloadSyncPack(pack);
-			toast.success('Coffre prêt — ouvrez le fichier téléchargé pour le connecter à Obsidian.');
-		} catch (e) {
-			toast.error(
-				typeof e === 'string'
-					? e
-					: "La synchronisation avec Obsidian n'est pas encore disponible sur ce serveur."
-			);
-		}
-		connectingSync = false;
-	};
+	// La connexion du coffre à Obsidian (sync Syncthing pré-appairée) vit entièrement dans
+	// MemorySyncPanel (bandeau autonome, ne dépend d'aucun autre état de ce composant).
 
 	// ─── Sauvegarde débouncée ─────────────────────────────────────────────────
 
@@ -767,336 +659,110 @@
 {#if view === 'list'}
 	<div class="w-full min-h-full h-full px-3 md:px-[18px]">
 		{#if loaded}
-			<!-- Actions du coffre. Adam, lui, incarne la bannière du haut (cf. memory/+layout.svelte)
-			     — une seule apparition, sinon on le voit deux fois sur le même écran. -->
-			<div class="mt-3 mb-3 flex items-center justify-between gap-3 px-1">
-				<!-- Le total vit ici, pas dans la bannière Obsidian : celle-ci disparaît là où la synchro
-				     n'est pas provisionnée, et emportait le seul compteur du coffre avec elle. -->
-				<div class="min-w-0 text-xs text-gray-400 dark:text-gray-500">
-					{#if status?.ok}
-						{status.note_count}
-						{status.note_count > 1 ? 'notes' : 'note'}
-					{/if}
-				</div>
-				<div class="flex-none flex items-center gap-1.5">
-					<Tooltip content={`Créer dans : ${friendlyFolder(noteTarget) || 'Réception'}`}>
-						<button
-							class="px-2.5 py-1.5 rounded-xl btn-premium bg-black text-white dark:bg-white dark:text-black transition font-medium text-sm flex items-center"
-							on:click={newNote}
-						>
-							<Plus className="size-3" strokeWidth="2.5" />
-							<div class="ml-1 text-xs">Nouvelle note</div>
-						</button>
-					</Tooltip>
-					<Tooltip content="Nouveau dossier">
-						<button
-							class="p-2 rounded-xl ring-1 ring-inset ring-black/10 dark:ring-white/15 text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-white/10 transition"
-							on:click={startNewFolder}
-							aria-label="Nouveau dossier"
-						>
-							<svg class="w-4 h-4" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6">
-								<path
-									d="M2.5 6A1.5 1.5 0 0 1 4 4.5h3l1.5 2H16A1.5 1.5 0 0 1 17.5 8v6.5A1.5 1.5 0 0 1 16 16H4a1.5 1.5 0 0 1-1.5-1.5V6Z"
-									stroke-linejoin="round"
-								/>
-								<path d="M10 9.5v4M8 11.5h4" stroke-linecap="round" />
-							</svg>
-						</button>
-					</Tooltip>
-					<Tooltip content={allExpanded ? 'Tout replier' : 'Tout déplier'}>
-						<button
-							class="p-2 rounded-xl ring-1 ring-inset ring-black/10 dark:ring-white/15 text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-white/10 transition"
-							on:click={toggleExpandAll}
-							aria-label={allExpanded ? 'Tout replier' : 'Tout déplier'}
-						>
-							<svg class="w-4 h-4" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
-								{#if allExpanded}
-									<!-- chevrons vers l'intérieur = tout replier -->
-									<path d="M6 5l4 4 4-4M6 15l4-4 4 4" />
-								{:else}
-									<!-- chevrons vers l'extérieur = tout déplier -->
-									<path d="M6 8l4-4 4 4M6 12l4 4 4-4" />
-								{/if}
-							</svg>
-						</button>
-					</Tooltip>
-					<Tooltip content="Corbeille">
-						<button
-							class="p-2 rounded-xl ring-1 ring-inset ring-black/10 dark:ring-white/15 text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-white/10 transition"
-							on:click={openTrash}
-							aria-label="Corbeille"
-						>
-							<svg class="w-4 h-4" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
-								<path d="M4 6h12M8 6V4h4v2m-6 0v10h8V6" />
-							</svg>
-						</button>
-					</Tooltip>
-				</div>
-			</div>
+			<MemoryToolbar
+				{status}
+				{noteTarget}
+				{friendlyFolder}
+				{allExpanded}
+				onNewNote={newNote}
+				onNewFolder={startNewFolder}
+				onToggleExpandAll={toggleExpandAll}
+				onOpenTrash={() => (showTrash = true)}
+			/>
 
 			<!-- Création de dossier : saisie inline (pas de prompt natif). -->
 			{#if creatingFolder}
-				<div
-					class="mb-3 flex items-center gap-2 rounded-2xl bg-gray-50 dark:bg-white/5 ring-1 ring-inset ring-black/5 dark:ring-white/10 px-3 py-2"
-				>
-					<span class="shrink-0 text-amber-500/80">
-						<svg class="w-4 h-4" viewBox="0 0 20 20" fill="currentColor"
-							><path
-								d="M2 5.5A1.5 1.5 0 0 1 3.5 4h4l1.5 2h7A1.5 1.5 0 0 1 17.5 7.5v7A1.5 1.5 0 0 1 16 16H3.5A1.5 1.5 0 0 1 2 14.5v-9Z"
-							/></svg
-						>
-					</span>
-					<input
-						bind:this={folderInput}
-						bind:value={newFolderName}
-						class="flex-1 min-w-0 text-sm bg-transparent outline-hidden"
-						placeholder="Nom du dossier"
-						on:keydown={(e) => {
-							if (e.key === 'Enter') {
-								e.preventDefault();
-								confirmNewFolder();
-							} else if (e.key === 'Escape') {
-								cancelNewFolder();
-							}
-						}}
-					/>
-					<span class="shrink-0 text-[11px] text-gray-400 dark:text-gray-500">
-						dans {folderTarget ? friendlyFolder(folderTarget.split('/').pop() ?? '') : 'la racine'}
-					</span>
-					<button
-						class="shrink-0 px-2.5 py-1 rounded-lg bg-black text-white dark:bg-white dark:text-black text-xs font-medium transition disabled:opacity-40"
-						on:click={confirmNewFolder}
-						disabled={!newFolderName.trim()}
-					>
-						Créer
-					</button>
-					<button
-						class="shrink-0 px-2 py-1 rounded-lg text-gray-500 dark:text-gray-400 hover:bg-gray-200/60 dark:hover:bg-white/10 text-xs transition"
-						on:click={cancelNewFolder}
-					>
-						Annuler
-					</button>
-				</div>
+				<MemoryNewFolderRow
+					{folderTarget}
+					{friendlyFolder}
+					onConfirm={confirmNewFolder}
+					onCancel={cancelNewFolder}
+				/>
 			{/if}
 
 			<!-- Bandeau de synchronisation avec Obsidian — 3 états honnêtes. -->
-			{#if status}
-				{#if !status.ok}
-					<div
-						class="mb-3 flex items-center gap-2 rounded-2xl bg-amber-50 dark:bg-amber-900/15 ring-1 ring-inset ring-amber-500/20 px-3.5 py-2.5"
-					>
-						<span class="flex-none size-2 rounded-full bg-amber-500"></span>
-						<span class="text-[13px] text-amber-700 dark:text-amber-300"
-							>Mémoire momentanément indisponible — réessayez dans un instant.</span
-						>
-					</div>
-				{:else if status.local_copy}
-					<div
-						class="mb-3 flex items-center gap-2 rounded-2xl bg-emerald-50/70 dark:bg-emerald-900/15 ring-1 ring-inset ring-emerald-500/20 px-3.5 py-2.5"
-					>
-						<span class="relative flex size-2 flex-none">
-							<span
-								class="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-60"
-							></span>
-							<span class="relative inline-flex size-2 rounded-full bg-emerald-500"></span>
-						</span>
-						<span class="text-[13px] text-gray-700 dark:text-gray-200"
-							>Coffre synchronisé avec votre Obsidian</span
-						>
-						<span class="text-gray-300 dark:text-gray-600">·</span>
-						<span class="text-[13px] text-gray-500 dark:text-gray-400">{status.note_count} notes</span>
-					</div>
-				{:else if status.sync_available}
-					<!-- Une invitation, pas un défaut : le coffre existe déjà, il ne lui manque qu'une copie
-					     locale. Et ce bloc n'apparaît QUE là où le pack peut vraiment être généré. -->
-					<div
-						class="mb-3 flex flex-wrap items-center gap-3 rounded-2xl bg-sky-50/70 dark:bg-sky-900/15 ring-1 ring-inset ring-sky-500/20 px-3.5 py-3"
-					>
-						<div class="min-w-0 flex-1">
-							<div class="text-[13px] font-medium text-gray-900 dark:text-white">
-								Ouvrir votre coffre dans Obsidian
-							</div>
-							<div class="text-[12px] text-gray-500 dark:text-gray-400">
-								Vos {status.note_count} notes sont enregistrées. Installez la copie sur votre ordinateur
-								pour les ouvrir dans Obsidian.
-							</div>
-						</div>
-						<button
-							class="flex-none px-3 py-1.5 rounded-xl bg-sky-500/15 text-sky-800 dark:text-sky-200 ring-1 ring-inset ring-sky-500/30 hover:bg-sky-500/25 transition font-semibold text-[12.5px] disabled:opacity-60"
-							on:click={connectVault}
-							disabled={connectingSync}
-						>
-							{connectingSync ? 'Préparation…' : 'Connecter mon coffre'}
-						</button>
-					</div>
-				{/if}
-			{/if}
+			<MemorySyncPanel {status} />
 
 			{#if showTrash}
 				<!-- ═══ Corbeille : éléments supprimés, récupérables ═══ -->
-				<div class="mt-2.5">
-					<div class="flex items-center gap-2 px-1 mb-3">
-						<button
-							class="p-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-white/10 transition"
-							on:click={() => (showTrash = false)}
-							aria-label="Retour au coffre"
-						>
-							<ChevronLeft className="size-4" />
-						</button>
-						<div class="text-sm font-semibold text-gray-800 dark:text-gray-100">Corbeille</div>
-						<div class="text-xs text-gray-400 dark:text-gray-600">
-							· rien n'est supprimé tout seul{#if trashItems.length > 0} · {formatSize(trashTotalSize(trashItems))}{/if}
-						</div>
-					</div>
-					{#if trashLoading}
-						<div class="py-16 flex justify-center"><Spinner className="size-4" /></div>
-					{:else if trashItems.length === 0}
-						<div class="py-16 text-center text-sm text-gray-400 dark:text-gray-600">
-							La corbeille est vide.
-						</div>
-					{:else}
-						<div class="flex flex-col gap-1.5">
-							{#each trashItems as item (item.ref)}
-								<div
-									class="flex items-center gap-2.5 px-3 py-2.5 rounded-2xl border border-gray-100 dark:border-gray-850 bg-white dark:bg-gray-900"
-								>
-									<span class="shrink-0 text-base">{item.type === 'folder' ? '📁' : '📄'}</span>
-									<div class="min-w-0 flex-1">
-										<div class="text-sm text-gray-800 dark:text-gray-100 truncate">{item.name}</div>
-										<div class="text-[11px] text-gray-400 dark:text-gray-600 truncate">
-											Supprimé le {formatModified(item.deleted_at)}{#if item.path.includes('/')} · depuis {friendlyFolder(item.path.split('/')[0])}{/if}{#if item.size} · {formatSize(item.size)}{/if}
-										</div>
-									</div>
-									<button
-										class="shrink-0 text-xs px-2.5 py-1.5 rounded-lg text-sky-600 dark:text-sky-400 hover:bg-sky-50 dark:hover:bg-sky-900/20 transition font-medium"
-										on:click={() => restoreFromTrash(item)}
-									>
-										Restaurer
-									</button>
-									<Tooltip content="Supprimer définitivement">
-										<button
-											class="shrink-0 text-xs px-2.5 py-1.5 rounded-lg text-gray-400 dark:text-gray-500 hover:text-red-600 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 transition font-medium"
-											on:click={() => askPurge(item)}
-											aria-label={`Supprimer définitivement ${item.name}`}
-										>
-											Supprimer
-										</button>
-									</Tooltip>
-								</div>
+				<MemoryTrash
+					{friendlyFolder}
+					{formatModified}
+					onReload={load}
+					onClose={() => (showTrash = false)}
+				/>
+			{:else}
+				<!-- Barre de recherche (serveur, FTS5) + résultats OU arbre du coffre. -->
+				<MemorySearch
+					bind:query
+					{searching}
+					{searchResults}
+					onInput={scheduleSearch}
+					onClear={() => {
+						query = '';
+						runSearch('');
+					}}
+					onOpenNote={openNoteByPath}
+				/>
+
+				{#if !query.trim()}
+					{#if tree.length > 0}
+						<div class="mt-2.5 px-1 pb-10">
+							{#each tree as node (node.path)}
+								<MemoryTreeNode
+									{node}
+									depth={0}
+									{openState}
+									{expandedFull}
+									noteCap={NOTE_CAP}
+									{friendlyFolder}
+									{folderSubtitle}
+									{isStructural}
+									suggestions={suggestionsByPath}
+									dismissed={dismissedPaths}
+									onOpen={openNote}
+									onDelete={(n) => deleteNote(n)}
+									onToggle={toggleOpen}
+									onShowAll={showAllIn}
+									onMoveNote={doMove}
+									onMoveFolder={doMoveFolder}
+									onRequestMove={requestMove}
+									onRenameFolder={renameFolderHandler}
+									onDeleteFolder={deleteFolderHandler}
+									onFileHere={fileHere}
+									onDismiss={dismissSuggestion}
+								/>
 							{/each}
 						</div>
-						<button
-							class="mt-4 mb-8 mx-auto flex items-center gap-1.5 text-xs text-gray-400 dark:text-gray-600 hover:text-red-600 dark:hover:text-red-400 transition"
-							on:click={() => (showEmptyTrashConfirm = true)}
-						>
-							Vider la corbeille
-						</button>
+					{:else}
+						<!-- État vide accueillant, incarné par Adam -->
+						<div class="w-full flex flex-col items-center justify-center">
+							<div class="py-16 text-center">
+								<img
+									src="/assets/agents/adam.webp"
+									alt="Adam"
+									on:error={(e) => ((e.currentTarget as HTMLImageElement).src = '/favicon.png')}
+									class="mx-auto h-14 w-14 rounded-full object-cover ring-1 ring-inset ring-black/10 dark:ring-white/15 bg-sky-100 dark:bg-sky-900/30"
+								/>
+								<div class="mt-3 text-sm text-gray-500 dark:text-gray-400">
+									Je n'ai encore rien rangé pour vous.
+								</div>
+								<div class="mt-1 text-xs text-gray-400 dark:text-gray-600">
+									Créez une première note — ou laissez-moi remplir votre coffre au fil de vos échanges.
+								</div>
+								<button
+									class="mt-3 px-3 py-1.5 rounded-xl btn-premium bg-black text-white dark:bg-white dark:text-black transition font-medium text-xs disabled:opacity-50"
+									on:click={initVault}
+									disabled={initializing}
+								>
+									{initializing ? 'Préparation…' : 'Préparer mon coffre'}
+								</button>
+							</div>
+						</div>
 					{/if}
-				</div>
-			{:else}
-			<!-- Barre de recherche (serveur, FTS5 — scalable). -->
-			<div class="py-1.5 bg-white dark:bg-gray-900 rounded-2xl border border-gray-100/60 dark:border-gray-850/40">
-				<div class="px-3.5 flex items-center w-full py-0.5">
-					<div class="self-center ml-1 mr-3"><Search className="size-3.5" /></div>
-					<input
-						class="w-full text-sm py-1.5 outline-hidden bg-transparent"
-						bind:value={query}
-						on:input={scheduleSearch}
-						placeholder="Rechercher dans vos notes"
-					/>
-					{#if searching}
-						<Spinner className="size-3.5" />
-					{:else if query}
-						<button
-							class="p-0.5 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800 transition"
-							on:click={() => {
-								query = '';
-								runSearch('');
-							}}
-						>
-							<XMark className="size-3" strokeWidth="2" />
-						</button>
-					{/if}
-				</div>
-			</div>
-
-			<!-- Résultats de recherche (serveur) OU arbre du coffre. -->
-			{#if query.trim()}
-				{#if searchResults.length > 0}
-					<div class="mt-2.5 flex flex-col gap-1.5">
-						{#each searchResults as r (r.chemin)}
-							<button
-								class="group w-full text-left px-3.5 py-2.5 rounded-2xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 hover:border-gray-300 dark:hover:border-gray-700 transition"
-								on:click={() => openNoteByPath(r.chemin, r.titre)}
-							>
-								<div class="text-sm font-medium text-gray-900 dark:text-white truncate">{r.titre}</div>
-								{#if r.extrait}
-									<div class="mt-0.5 text-[12px] text-gray-500 dark:text-gray-400 line-clamp-2">{r.extrait}</div>
-								{/if}
-							</button>
-						{/each}
-					</div>
-				{:else if !searching}
-					<div class="py-16 text-center text-sm text-gray-400 dark:text-gray-600">
-						Aucune note pour « {query} »
-					</div>
 				{/if}
-			{:else if tree.length > 0}
-				<div class="mt-2.5 px-1 pb-10">
-					{#each tree as node (node.path)}
-						<MemoryTreeNode
-							{node}
-							depth={0}
-							{openState}
-							{expandedFull}
-							noteCap={NOTE_CAP}
-							{friendlyFolder}
-							{folderSubtitle}
-							{isStructural}
-							suggestions={suggestionsByPath}
-							dismissed={dismissedPaths}
-							onOpen={openNote}
-							onDelete={(n) => deleteNote(n)}
-							onToggle={toggleOpen}
-							onShowAll={showAllIn}
-							onMoveNote={doMove}
-							onMoveFolder={doMoveFolder}
-							onRequestMove={requestMove}
-							onRenameFolder={renameFolderHandler}
-							onDeleteFolder={deleteFolderHandler}
-							onFileHere={fileHere}
-							onDismiss={dismissSuggestion}
-						/>
-					{/each}
-				</div>
-			{:else}
-				<!-- État vide accueillant, incarné par Adam -->
-				<div class="w-full flex flex-col items-center justify-center">
-					<div class="py-16 text-center">
-						<img
-							src="/assets/agents/adam.webp"
-							alt="Adam"
-							on:error={(e) => ((e.currentTarget as HTMLImageElement).src = '/favicon.png')}
-							class="mx-auto h-14 w-14 rounded-full object-cover ring-1 ring-inset ring-black/10 dark:ring-white/15 bg-sky-100 dark:bg-sky-900/30"
-						/>
-						<div class="mt-3 text-sm text-gray-500 dark:text-gray-400">
-							Je n'ai encore rien rangé pour vous.
-						</div>
-						<div class="mt-1 text-xs text-gray-400 dark:text-gray-600">
-							Créez une première note — ou laissez-moi remplir votre coffre au fil de vos échanges.
-						</div>
-						<button
-							class="mt-3 px-3 py-1.5 rounded-xl btn-premium bg-black text-white dark:bg-white dark:text-black transition font-medium text-xs disabled:opacity-50"
-							on:click={initVault}
-							disabled={initializing}
-						>
-							{initializing ? 'Préparation…' : 'Préparer mon coffre'}
-						</button>
-					</div>
-				</div>
-			{/if}
 
-			<div class="mb-8"></div>
+				<div class="mb-8"></div>
 			{/if}
 		{:else}
 			<div class="w-full h-full flex justify-center items-center">
@@ -1109,169 +775,32 @@
      VUE ÉDITEUR
      ═══════════════════════════════════════════════════════════════════════════ -->
 {:else if view === 'editor'}
-	<div class="relative flex-1 w-full h-full flex justify-center pt-[11px]" id="memory-editor">
-		{#if loadingNote}
-			<div class="absolute top-0 bottom-0 left-0 right-0 flex">
-				<div class="m-auto"><Spinner className="size-5" /></div>
-			</div>
-		{:else}
-			<div class="w-full flex flex-col">
-				<!-- Barre supérieure : retour + titre + indicateur sauvegarde -->
-				<div class="shrink-0 w-full flex justify-between items-center px-3.5 mb-1.5">
-					<div class="w-full min-w-0 flex items-center gap-2">
-						<!-- Bouton retour -->
-						<Tooltip content="Retour à la liste">
-							<button
-								class="cursor-pointer flex rounded-lg hover:bg-gray-100 dark:hover:bg-gray-850 transition p-1.5 shrink-0"
-								on:click={goBack}
-							>
-								<ChevronLeft className="size-4" />
-							</button>
-						</Tooltip>
-
-						<!-- Titre de la note — éditable (renommage à la validation / perte de focus). -->
-						<input
-							bind:this={titleInput}
-							class="w-full text-2xl font-medium bg-transparent outline-hidden"
-							type="text"
-							bind:value={titleDraft}
-							placeholder="Sans titre"
-							on:blur={commitRename}
-							on:keydown={(e) => {
-								if (e.key === 'Enter') {
-									e.preventDefault();
-									(e.currentTarget as HTMLInputElement).blur();
-								}
-							}}
-						/>
-					</div>
-
-					<div class="shrink-0 flex items-center gap-1.5 pr-1">
-						<!-- Indicateur de sauvegarde / date de dernière modif -->
-						<div class="text-xs text-gray-500 dark:text-gray-500">
-							{#if saveState === 'saving'}
-								Enregistrement…
-							{:else if saveState === 'saved'}
-								Enregistré
-							{:else if noteModified}
-								Modifié le {formatModified(noteModified)}
-							{/if}
-						</div>
-						<!-- Supprimer la note (corbeille récupérable) -->
-						<Tooltip content="Supprimer">
-							<button
-								class="cursor-pointer flex rounded-lg text-gray-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 transition p-1.5"
-								on:click={() => selectedNode && deleteNote(selectedNode, true)}
-							>
-								<svg class="w-4 h-4" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M4 6h12M8 6V4h4v2m-6 0v10h8V6" stroke-linecap="round" stroke-linejoin="round" /></svg>
-							</button>
-						</Tooltip>
-					</div>
-				</div>
-
-				<!-- Zone d'édition principale -->
-				<div
-					class="flex-1 w-full h-full overflow-auto px-3.5 relative"
-					id="memory-content-container"
-				>
-					{#key selectedNode?.path}
-						<RichTextInput
-							bind:this={inputElement}
-							bind:editor
-							id={`memory-${selectedNode?.path ?? 'note'}`}
-							className="input-prose-sm px-0.5 h-[calc(100%-2rem)]"
-							value={currentMd}
-							dragHandle={true}
-							link={true}
-							image={true}
-							placeholder="Écrivez quelque chose…"
-							onChange={(content) => {
-								scheduleSave(content.md ?? '');
-							}}
-						/>
-					{/key}
-				</div>
-			</div>
-		{/if}
-	</div>
+	<MemoryNoteEditor
+		bind:this={noteEditorRef}
+		{loadingNote}
+		{selectedNode}
+		bind:titleDraft
+		{saveState}
+		{noteModified}
+		{currentMd}
+		{formatModified}
+		onBack={goBack}
+		onCommitRename={commitRename}
+		onDelete={() => {
+			if (selectedNode) deleteNote(selectedNode, true);
+		}}
+		onChange={(content) => scheduleSave(content.md ?? '')}
+	/>
 {/if}
 
 <!-- ═══════════════════════════════════════════════════════════════════════════
      Sélecteur « Déplacer vers » (alternative robuste au glisser-déposer)
      ═══════════════════════════════════════════════════════════════════════════ -->
 {#if movingItem}
-	<!-- svelte-ignore a11y_click_events_have_key_events a11y_no_static_element_interactions -->
-	<div
-		class="fixed inset-0 z-60 flex items-center justify-center bg-black/30 backdrop-blur-[2px] p-4"
-		on:click={() => (movingItem = null)}
-	>
-		<!-- svelte-ignore a11y_click_events_have_key_events a11y_no_static_element_interactions -->
-		<div
-			class="w-full max-w-sm max-h-[70vh] flex flex-col rounded-2xl bg-white dark:bg-gray-900 ring-1 ring-black/10 dark:ring-white/10 shadow-2xl overflow-hidden"
-			on:click|stopPropagation
-		>
-			<div class="px-4 py-3 border-b border-gray-100 dark:border-gray-800">
-				<div class="text-sm font-semibold text-gray-900 dark:text-white">Déplacer vers…</div>
-				<div class="mt-0.5 text-[12px] text-gray-500 dark:text-gray-400 truncate">
-					« {movingItem.name} »
-				</div>
-			</div>
-			<div class="flex-1 overflow-y-auto py-1.5">
-				<button
-					class="w-full text-left px-4 py-2 text-[13.5px] text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-white/5 transition flex items-center gap-2"
-					on:click={() => chooseMoveTarget('')}
-				>
-					<span class="text-gray-400">🗂️</span> Racine du coffre
-				</button>
-				{#each pickerOptions as opt (opt.path)}
-					<button
-						class="w-full text-left py-2 text-[13.5px] text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-white/5 transition flex items-center gap-2"
-						style="padding-left: {opt.depth * 14 + 16}px; padding-right: 16px"
-						on:click={() => chooseMoveTarget(opt.path)}
-					>
-						<span class="shrink-0 text-amber-500/80">
-							<svg class="w-3.5 h-3.5" viewBox="0 0 20 20" fill="currentColor"
-								><path
-									d="M2 5.5A1.5 1.5 0 0 1 3.5 4h4l1.5 2h7A1.5 1.5 0 0 1 17.5 7.5v7A1.5 1.5 0 0 1 16 16H3.5A1.5 1.5 0 0 1 2 14.5v-9Z"
-								/></svg
-							>
-						</span>
-						<span class="truncate">{opt.label}</span>
-					</button>
-				{/each}
-			</div>
-			<div class="px-4 py-2.5 border-t border-gray-100 dark:border-gray-800 flex justify-end">
-				<button
-					class="px-3 py-1.5 rounded-lg text-[12.5px] text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-white/5 transition"
-					on:click={() => (movingItem = null)}
-				>
-					Annuler
-				</button>
-			</div>
-		</div>
-	</div>
+	<MemoryMovePicker
+		item={movingItem}
+		options={pickerOptions}
+		onChoose={chooseMoveTarget}
+		onCancel={() => (movingItem = null)}
+	/>
 {/if}
-
-<!-- Suppression définitive : on NOMME ce qui disparaît et on dit que c'est sans retour. -->
-<ConfirmDialog
-	bind:show={showPurgeConfirm}
-	title="Supprimer définitivement ?"
-	message={purgeTarget
-		? `« ${purgeTarget.name} » sera effacé de votre coffre pour de bon. Cette action est irréversible : nous ne pourrons pas le récupérer.`
-		: ''}
-	confirmLabel="Supprimer définitivement"
-	cancelLabel="Annuler"
-	on:confirm={purgeOne}
-	on:cancel={() => (purgeTarget = null)}
-/>
-
-<ConfirmDialog
-	bind:show={showEmptyTrashConfirm}
-	title="Vider la corbeille ?"
-	message={`Les ${trashItems.length} éléments de la corbeille (${formatSize(
-		trashTotalSize(trashItems)
-	)}) seront effacés pour de bon. Cette action est irréversible : nous ne pourrons rien récupérer.`}
-	confirmLabel="Vider la corbeille"
-	cancelLabel="Annuler"
-	on:confirm={purgeAll}
-/>
