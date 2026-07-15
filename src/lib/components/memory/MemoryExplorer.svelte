@@ -37,6 +37,7 @@
 		parseSuggestions,
 		type FilingSuggestion
 	} from '$lib/memory/suggestFiling';
+	import { FRIENDLY_FOLDER, FOLDER_SUBTITLE } from '$lib/memory/vaultFolders';
 
 	import type { Editor } from '@tiptap/core';
 
@@ -129,32 +130,11 @@
 
 	// Noms de dossiers PARA traduits en langage dirigeant (les autres gardent leur nom).
 	// Renommer ICI ne touche que l'affichage : les vrais dossiers du coffre ne bougent pas.
-	const FRIENDLY_FOLDER: Record<string, string> = {
-		'00-Réception': 'Réception',
-		'01-En cours': 'En cours',
-		'02-Mes responsabilités': 'Mes responsabilités',
-		'03-Idées & ressources': 'Idées & ressources',
-		'04-Archivées': 'Archivées',
-		'05-Journal': 'Journal',
-		'06-Contacts': 'Contacts',
-		'07-Mes réflexions': 'Mes réflexions',
-		'08-Modèles de notes': 'Modèles de notes'
-	};
+	// Source unique des 9 dossiers (slug + libellé + sous-titre) : $lib/memory/vaultFolders.ts.
 	const friendlyFolder = (name: string): string => FRIENDLY_FOLDER[name] ?? name;
 
 	// Sous-titre « langage dirigeant » sous chaque dossier racine : explique le classeur d'un coup d'œil.
 	// Volontairement limité aux 9 dossiers du squelette PARA → les sous-dossiers du client restent nus.
-	const FOLDER_SUBTITLE: Record<string, string> = {
-		'00-Réception': "Tout arrive ici avant d'être rangé",
-		'01-En cours': 'Ce sur quoi vous travaillez en ce moment',
-		'02-Mes responsabilités': 'Ce dont vous vous occupez en continu (ventes, équipe, finances…)',
-		'03-Idées & ressources': 'Documents et idées utiles à garder sous la main',
-		'04-Archivées': 'Ce qui est terminé, conservé au cas où',
-		'05-Journal': 'Vos notes datées : réunions, décisions, journées',
-		'06-Contacts': 'Vos clients, prospects et partenaires',
-		'07-Mes réflexions': 'Là où vous posez vos idées et vos notes',
-		'08-Modèles de notes': 'Des exemples prêts à réutiliser (compte-rendu, fiche client…)'
-	};
 	const folderSubtitle = (name: string): string => FOLDER_SUBTITLE[name] ?? '';
 
 	// Date lisible « langage dirigeant » à partir d'un epoch (secondes). Vide si absente.

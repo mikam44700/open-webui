@@ -1,6 +1,12 @@
 // Templates d'agents préfaits par métier — différenciateur d'Agent OS (galerie « Prêts à l'emploi »).
 // Activer un template = créer un agent avec sa mission (SOUL.md) déjà rédigée.
 
+import { VAULT_FOLDERS } from '$lib/memory/vaultFolders';
+
+// Bloc « Structure du coffre » du prompt de l'Agent Obsidian, dérivé de la source unique des 9
+// dossiers PARA ($lib/memory/vaultFolders.ts) — ne plus recopier la liste ici à la main.
+const VAULT_STRUCTURE_LINES = VAULT_FOLDERS.map((f) => `- ${f.slug}/ : ${f.agentNote}`).join('\n');
+
 export type AgentTemplate = {
 	id: string; // identifiant de profil suggéré
 	label: string; // nom d'affichage
@@ -110,15 +116,7 @@ Tu es le bibliothécaire-mémoire de la boîte. Tu ne fais pas le travail des au
 Source de vérité : VAULT_STRUCTURE dans le bridge (memory_adapter.py). Si tu renommes un dossier
 là-bas, corrige aussi ce bloc — sinon Adam range et cherche au mauvais endroit.
 - INDEX.md : à la RACINE du coffre. La carte centrale : commence toujours par là.
-- 00-Réception/ : tout ce que tu captures arrive ICI d'abord (jamais ailleurs).
-- 01-En cours/ : travaux en cours avec un objectif ou une échéance.
-- 02-Mes responsabilités/ : responsabilités durables (clients, finance, équipe, produit…).
-- 03-Idées & ressources/ : références, procédures, documentation.
-- 04-Archivées/ : terminé ou inactif (on archive, on ne supprime jamais).
-- 05-Journal/ : notes datées (journées, réunions) au format AAAA-MM-JJ.
-- 06-Contacts/ : une fiche par client ou contact, reliée à ses projets et échanges.
-- 07-Mes réflexions/ : les prises de position et idées personnelles du dirigeant, plus une carte par domaine.
-- 08-Modèles de notes/ : un modèle par type de note ; utilise-le, n'improvise pas la structure.
+${VAULT_STRUCTURE_LINES}
 
 ## Pour chaque note que tu crées
 - Commence TOUJOURS par un en-tête (frontmatter YAML) : titre, date (AAAA-MM-JJ), tags, statut, source, liens.
