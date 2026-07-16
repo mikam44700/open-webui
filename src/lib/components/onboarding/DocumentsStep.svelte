@@ -87,16 +87,36 @@
 	};
 
 	// Base de connaissances propre à l'agent, créée à la volée au 1er document.
+	// HAUTE (audit 2026-07-15) : deux ajouts rapprochés pour le MÊME agent (ex. le dirigeant
+	// rouvre le sélecteur pendant que le premier lot envoie encore) passaient TOUS les deux le
+	// garde `if (kbByAgent[agentId])` (encore vide le temps du 1er `await createNewKnowledge`) →
+	// deux bases créées, la seconde écrasant `kbByAgent[agentId]` : les fichiers du 1er lot
+	// atterrissaient dans une base devenue fantôme (jamais synchronisée), alors que l'UI affichait
+	// ✓ Ajouté. Fix : on mémoïse la PROMESSE de création par agent — tout appel concurrent
+	// pendant la création reçoit la MÊME promesse (donc le même id), au lieu d'en relancer une.
+	let kbCreatingByAgent: Record<string, Promise<string> | undefined> = {};
 	const ensureKbFor = async (agentId: string, label: string): Promise<string> => {
 		if (kbByAgent[agentId]) return kbByAgent[agentId];
-		const kb = await createNewKnowledge(
-			token(),
-			`Documents ${label}`,
-			`Documents fournis à l’accueil pour l’agent ${label}.`,
-			[] // aucun partage : la base reste privée au dirigeant
-		);
-		kbByAgent = { ...kbByAgent, [agentId]: kb.id };
-		return kb.id;
+		const pending = kbCreatingByAgent[agentId];
+		if (pending) return pending;
+
+		const creation = (async () => {
+			const kb = await createNewKnowledge(
+				token(),
+				`Documents ${label}`,
+				`Documents fournis à l’accueil pour l’agent ${label}.`,
+				[] // aucun partage : la base reste privée au dirigeant
+			);
+			kbByAgent = { ...kbByAgent, [agentId]: kb.id };
+			return kb.id;
+		})();
+		kbCreatingByAgent = { ...kbCreatingByAgent, [agentId]: creation };
+		try {
+			return await creation;
+		} finally {
+			const { [agentId]: _drop, ...rest } = kbCreatingByAgent;
+			kbCreatingByAgent = rest;
+		}
 	};
 
 	const token = (): string => localStorage.token;

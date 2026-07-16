@@ -49,6 +49,11 @@
 	};
 	let poller: ReturnType<typeof setInterval> | null = null;
 	let oauthPoller: ReturnType<typeof setInterval> | null = null;
+	// Délai max de la sonde OAuth Codex (audit 2026-07-15, BASSE) : sans plafond, un flux jamais
+	// autorisé (onglet fermé, code expiré côté ChatGPT…) laissait « En attente de votre
+	// autorisation… » tourner indéfiniment, sans jamais basculer en erreur.
+	const CODEX_OAUTH_TIMEOUT_MS = 5 * 60 * 1000;
+	let oauthDeadline = 0;
 
 	let modelPickerOpen = false;
 	let switching = false;
@@ -126,7 +131,18 @@
 		try {
 			await startProviderOAuth(localStorage.token, CODEX_ID);
 			if (oauthPoller) clearInterval(oauthPoller);
+			oauthDeadline = Date.now() + CODEX_OAUTH_TIMEOUT_MS;
 			oauthPoller = setInterval(async () => {
+				// Plafond de temps : au-delà, on arrête de sonder et on passe en erreur — jamais de
+				// « En attente de votre autorisation… » indéfini.
+				if (Date.now() > oauthDeadline) {
+					clearInterval(oauthPoller!);
+					oauthPoller = null;
+					codexDevice = null;
+					codexState = 'error';
+					toast.error($i18n.t('La connexion a expiré. Réessayez.'));
+					return;
+				}
 				const st = await getProviderOAuthStatus(localStorage.token, CODEX_ID).catch(() => null);
 				if (!st) return;
 				// Tant que le flux tourne : extraire l'URL + le code à recopier (device flow).
@@ -179,6 +195,14 @@
 	const leaveAnyway = () => {
 		showLeaveConfirm = false;
 		dispatch('skip');
+	};
+	// Accessibilité de la modale de confirmation (audit 2026-07-15, BASSE) : focus initial posé sur
+	// l'action recommandée dès l'ouverture, et fermeture au clavier (Échap) comme au clic hors modale.
+	const focusOnMount = (node: HTMLElement) => {
+		node.focus();
+	};
+	const onWindowKeydown = (e: KeyboardEvent) => {
+		if (showLeaveConfirm && e.key === 'Escape') showLeaveConfirm = false;
 	};
 </script>
 
@@ -443,13 +467,16 @@
 			></button>
 			<div
 				class="relative z-10 w-full max-w-md rounded-2xl bg-white dark:bg-gray-900 ring-1 ring-inset ring-black/10 dark:ring-white/10 shadow-xl p-6 text-center"
+				role="dialog"
+				aria-modal="true"
+				aria-labelledby="leave-confirm-title"
 			>
 				<div
 					class="mx-auto h-11 w-11 rounded-full bg-amber-100 dark:bg-amber-900/30 text-amber-600 dark:text-amber-300 flex items-center justify-center text-xl"
 				>
 					⚠️
 				</div>
-				<h2 class="mt-4 text-lg font-semibold text-gray-900 dark:text-white">
+				<h2 id="leave-confirm-title" class="mt-4 text-lg font-semibold text-gray-900 dark:text-white">
 					{$i18n.t('Continuer sans modèle IA ?')}
 				</h2>
 				<p class="mt-2 text-sm leading-relaxed text-gray-600 dark:text-gray-300">
@@ -459,6 +486,7 @@
 				</p>
 				<div class="mt-6 flex flex-col gap-2.5">
 					<button
+						use:focusOnMount
 						class="w-full text-sm font-semibold px-5 py-3 rounded-xl btn-premium bg-gradient-to-br from-amber-400 to-amber-600 text-amber-950"
 						on:click={() => (showLeaveConfirm = false)}
 					>
@@ -475,3 +503,5 @@
 		</div>
 	{/if}
 </div>
+
+<svelte:window on:keydown={onWindowKeydown} />

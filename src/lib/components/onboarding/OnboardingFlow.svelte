@@ -280,7 +280,11 @@
 	};
 
 	// Fiche validée (avec site) → interview de compléments (profil dirigeant).
-	const onReviewDone = () => {
+	// CRITIQUE (audit 2026-07-15) : le handler ignorait `e.detail.context` → les corrections du
+	// dirigeant à l'étape de relecture (ContextReviewStep) étaient perdues en silence, et
+	// `onInterviewDone` réécrivait USER.md + la note du coffre avec la version BRUTE du crawl.
+	const onReviewDone = (e: CustomEvent<{ context: CompanyContext }>) => {
+		context = e.detail.context;
 		interviewMode = 'complement';
 		go('interview');
 	};

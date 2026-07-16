@@ -165,6 +165,7 @@
 										<button
 											type="button"
 											on:click={() => pickChip(q.key, opt)}
+											aria-pressed={valOf(answers, q.key) === opt}
 											class="text-left px-4 py-3 rounded-xl ring-1 ring-inset transition {valOf(answers, q.key) === opt
 												? 'bg-amber-500/10 ring-amber-500'
 												: 'bg-white/70 dark:bg-white/5 ring-gray-900/10 dark:ring-white/15 hover:ring-amber-400/60'}"
@@ -189,6 +190,7 @@
 										<button
 											type="button"
 											on:click={() => pickChip(q.key, opt)}
+											aria-pressed={valOf(answers, q.key) === opt}
 											class="text-sm px-4 py-2 rounded-full ring-1 ring-inset transition {valOf(answers, q.key) === opt
 												? 'bg-amber-500 text-amber-950 ring-amber-500 font-semibold'
 												: 'bg-white/70 dark:bg-white/5 text-gray-700 dark:text-gray-200 ring-gray-900/10 dark:ring-white/15 hover:ring-amber-400/60'}"
@@ -203,6 +205,7 @@
 										<button
 											type="button"
 											on:click={() => toggleChip(q.key, opt)}
+											aria-pressed={multiOf(answers, q.key).includes(opt)}
 											class="text-sm px-4 py-2 rounded-full ring-1 ring-inset transition {multiOf(answers, q.key).includes(opt)
 												? 'bg-amber-500 text-amber-950 ring-amber-500 font-semibold'
 												: 'bg-white/70 dark:bg-white/5 text-gray-700 dark:text-gray-200 ring-gray-900/10 dark:ring-white/15 hover:ring-amber-400/60'}"
