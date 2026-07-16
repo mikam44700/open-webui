@@ -15,7 +15,7 @@ from urllib.parse import urlencode
 
 from fastapi import APIRouter, Depends
 
-from open_webui.routers.providers import _bridge
+from open_webui.routers.providers import _bridge, _bridge_segment
 from open_webui.utils.auth import get_admin_user
 
 log = logging.getLogger(__name__)
@@ -57,5 +57,6 @@ async def create_event(body: dict, user=Depends(get_admin_user)):
 @router.delete("/events/{event_id}")
 async def delete_event(event_id: str, source: str | None = None, user=Depends(get_admin_user)):
     """Supprime un événement (confirmation côté UI)."""
+    event_id = _bridge_segment(event_id)
     query = f"?{urlencode({'source': source})}" if source else ""
     return await _bridge("DELETE", f"/calendar/events/{event_id}{query}")

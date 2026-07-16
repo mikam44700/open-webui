@@ -17,7 +17,7 @@ import logging
 from fastapi import APIRouter, Depends
 from pydantic import BaseModel
 
-from open_webui.routers.providers import _bridge
+from open_webui.routers.providers import _bridge, _bridge_segment
 from open_webui.utils.auth import get_admin_user
 
 log = logging.getLogger(__name__)
@@ -69,40 +69,47 @@ async def activate_agent(body: ActiveBody, user=Depends(get_admin_user)):
 @router.delete("/{name}")
 async def delete_agent(name: str, user=Depends(get_admin_user)):
     """Supprime un agent (l'agent par défaut est protégé)."""
+    name = _bridge_segment(name)
     return await _bridge("DELETE", f"/agents/{name}")
 
 
 @router.get("/{name}/soul")
 async def get_agent_soul(name: str, user=Depends(get_admin_user)):
     """Lit la mission (SOUL.md) d'un agent."""
+    name = _bridge_segment(name)
     return await _bridge("GET", f"/agents/{name}/soul")
 
 
 @router.put("/{name}/soul")
 async def set_agent_soul(name: str, body: SoulBody, user=Depends(get_admin_user)):
     """Écrit la mission (SOUL.md) d'un agent."""
+    name = _bridge_segment(name)
     return await _bridge("PUT", f"/agents/{name}/soul", json=body.model_dump())
 
 
 @router.put("/{name}/description")
 async def set_agent_description(name: str, body: DescriptionBody, user=Depends(get_admin_user)):
     """Met à jour la description d'un agent."""
+    name = _bridge_segment(name)
     return await _bridge("PUT", f"/agents/{name}/description", json=body.model_dump())
 
 
 @router.get("/{name}/tools")
 async def get_agent_tools(name: str, user=Depends(get_admin_user)):
     """Périmètre d'outils d'un agent : compétences + MCP avec leur état pour cet agent."""
+    name = _bridge_segment(name)
     return await _bridge("GET", f"/agents/{name}/tools")
 
 
 @router.post("/{name}/tools/skill")
 async def set_agent_skill(name: str, body: ToggleToolBody, user=Depends(get_admin_user)):
     """Active/désactive une compétence pour cet agent."""
+    name = _bridge_segment(name)
     return await _bridge("POST", f"/agents/{name}/tools/skill", json=body.model_dump())
 
 
 @router.post("/{name}/tools/mcp")
 async def set_agent_mcp(name: str, body: ToggleToolBody, user=Depends(get_admin_user)):
     """Active/désactive un connecteur MCP pour cet agent."""
+    name = _bridge_segment(name)
     return await _bridge("POST", f"/agents/{name}/tools/mcp", json=body.model_dump())

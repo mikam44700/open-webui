@@ -12,7 +12,7 @@ import logging
 from fastapi import APIRouter, Depends
 from pydantic import BaseModel
 
-from open_webui.routers.providers import _bridge
+from open_webui.routers.providers import _bridge, _bridge_segment
 from open_webui.utils.auth import get_admin_user
 
 log = logging.getLogger(__name__)
@@ -56,12 +56,14 @@ async def list_integrations(user=Depends(get_admin_user)):
 @router.put("/{integration_id}/key")
 async def set_key(integration_id: str, body: KeyBody, user=Depends(get_admin_user)):
     """Enregistre la clé/chemin d'une intégration (valeur jamais renvoyée)."""
+    integration_id = _bridge_segment(integration_id)
     return await _bridge("PUT", f"/integrations/{integration_id}/key", json=body.model_dump())
 
 
 @router.post("/{integration_id}/test")
 async def test_integration(integration_id: str, user=Depends(get_admin_user)):
     """Teste l'accès réel d'une intégration."""
+    integration_id = _bridge_segment(integration_id)
     return await _bridge("POST", f"/integrations/{integration_id}/test")
 
 
@@ -114,6 +116,7 @@ async def google_status(user=Depends(get_admin_user)):
 @router.delete("/{integration_id}/disconnect")
 async def disconnect_integration(integration_id: str, user=Depends(get_admin_user)):
     """Déconnecte une intégration (après confirmation côté UI)."""
+    integration_id = _bridge_segment(integration_id)
     return await _bridge("DELETE", f"/integrations/{integration_id}/disconnect")
 
 
@@ -128,6 +131,7 @@ class OAuthExchangeBody(BaseModel):
 @router.get("/oauth/{provider_id}/auth-url")
 async def oauth_auth_url(provider_id: str, user=Depends(get_admin_user)):
     """Récupère l'URL d'autorisation OAuth du fournisseur (redirige l'utilisateur)."""
+    provider_id = _bridge_segment(provider_id)
     return await _bridge("GET", f"/integrations/oauth/{provider_id}/auth-url")
 
 
@@ -136,6 +140,7 @@ async def oauth_exchange(
     provider_id: str, body: OAuthExchangeBody, user=Depends(get_admin_user)
 ):
     """Échange le code OAuth de retour contre un token stocké par le bridge."""
+    provider_id = _bridge_segment(provider_id)
     return await _bridge(
         "POST", f"/integrations/oauth/{provider_id}/exchange", json=body.model_dump()
     )
@@ -144,10 +149,12 @@ async def oauth_exchange(
 @router.get("/oauth/{provider_id}/status")
 async def oauth_status(provider_id: str, user=Depends(get_admin_user)):
     """Retourne l'état de connexion OAuth d'un fournisseur (connected | not_connected)."""
+    provider_id = _bridge_segment(provider_id)
     return await _bridge("GET", f"/integrations/oauth/{provider_id}/status")
 
 
 @router.delete("/oauth/{provider_id}")
 async def oauth_disconnect(provider_id: str, user=Depends(get_admin_user)):
     """Révoque et supprime les tokens OAuth d'un fournisseur."""
+    provider_id = _bridge_segment(provider_id)
     return await _bridge("DELETE", f"/integrations/oauth/{provider_id}")

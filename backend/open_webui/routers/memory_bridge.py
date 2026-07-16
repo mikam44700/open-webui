@@ -10,7 +10,7 @@ from __future__ import annotations
 import logging
 from urllib.parse import quote
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
 
 from open_webui.routers.providers import _bridge
@@ -20,9 +20,28 @@ log = logging.getLogger(__name__)
 router = APIRouter()
 
 
+def _reject_path_traversal(value: str) -> str:
+    """Garde-fou LOCAL avant de transmettre un chemin de coffre au bridge (défense en profondeur).
+
+    Le bridge confine déjà chaque chemin AU coffre (``memory_adapter._safe_note_path``/
+    ``_safe_dir_path`` : résolution puis vérification que le résultat reste sous la racine) — ce
+    garde-fou est redondant par construction. Mais rejeter tôt, avant même de quitter CE process,
+    ne coûte rien et évite de reposer sur un seul étage de défense contre le path traversal.
+    ``""`` reste valable (désigne la racine du coffre pour ``parent``/``dest``).
+    """
+    normalized = value.replace("\\", "/")
+    if value.startswith(("/", "~")) or any(seg == ".." for seg in normalized.split("/")):
+        raise HTTPException(
+            status_code=400,
+            detail={"error": {"code": "bad_path", "message": "chemin invalide"}},
+        )
+    return value
+
+
 class NoteWriteBody(BaseModel):
     path: str
     content: str
+    expected_modified: float | None = None
 
 
 class InboxNoteBody(BaseModel):
@@ -109,12 +128,18 @@ async def memory_status(user=Depends(get_admin_user)):
 @router.get("/note")
 async def memory_note(path: str, user=Depends(get_admin_user)):
     """Contenu d'une note (``path`` relatif au coffre)."""
+    _reject_path_traversal(path)
     return await _bridge("GET", f"/memory/note?path={quote(path)}")
 
 
 @router.post("/note")
 async def write_memory_note(body: NoteWriteBody, user=Depends(get_admin_user)):
-    """Crée/corrige une note (relecture/correction humaine)."""
+    """Crée/corrige une note (relecture/correction humaine).
+
+    409 (``note_conflict``) si ``expected_modified`` est fourni et ne correspond plus à l'état
+    actuel du fichier — voir ``NoteWriteBody.expected_modified``. Propagé tel quel par le bridge.
+    """
+    _reject_path_traversal(body.path)
     return await _bridge("POST", "/memory/note", json=body.model_dump())
 
 
@@ -127,18 +152,21 @@ async def search_memory(body: SearchBody, user=Depends(get_admin_user)):
 @router.delete("/note")
 async def delete_memory_note(path: str, user=Depends(get_admin_user)):
     """Suppression douce d'une note (déplacée en corbeille, récupérable)."""
+    _reject_path_traversal(path)
     return await _bridge("DELETE", f"/memory/note?path={quote(path)}")
 
 
 @router.post("/note/rename")
 async def rename_memory_note(body: NoteRenameBody, user=Depends(get_admin_user)):
     """Renomme une note (titre lisible, même dossier)."""
+    _reject_path_traversal(body.path)
     return await _bridge("POST", "/memory/note/rename", json=body.model_dump())
 
 
 @router.post("/note/restore")
 async def restore_memory_note(body: NoteRestoreBody, user=Depends(get_admin_user)):
     """Restaure une note supprimée (annulation)."""
+    _reject_path_traversal(body.path)
     return await _bridge("POST", "/memory/note/restore", json=body.model_dump())
 
 
@@ -151,36 +179,47 @@ async def init_memory_vault(user=Depends(get_admin_user)):
 @router.post("/folder")
 async def create_memory_folder(body: FolderCreateBody, user=Depends(get_admin_user)):
     """Crée un dossier dans le coffre (rangement manuel du dirigeant, sans collision)."""
+    if body.parent:
+        _reject_path_traversal(body.parent)
     return await _bridge("POST", "/memory/folder", json=body.model_dump())
 
 
 @router.post("/note/move")
 async def move_memory_note(body: NoteMoveBody, user=Depends(get_admin_user)):
     """Déplace une note vers un autre dossier du coffre (rangement)."""
+    _reject_path_traversal(body.path)
+    if body.dest:
+        _reject_path_traversal(body.dest)
     return await _bridge("POST", "/memory/note/move", json=body.model_dump())
 
 
 @router.post("/folder/rename")
 async def rename_memory_folder(body: FolderRenameBody, user=Depends(get_admin_user)):
     """Renomme un dossier (non structurel — les dossiers PARA du squelette sont protégés)."""
+    _reject_path_traversal(body.path)
     return await _bridge("POST", "/memory/folder/rename", json=body.model_dump())
 
 
 @router.post("/folder/move")
 async def move_memory_folder(body: FolderMoveBody, user=Depends(get_admin_user)):
     """Déplace un dossier vers un autre parent (« » = racine). PARA/Réception protégés."""
+    _reject_path_traversal(body.path)
+    if body.dest:
+        _reject_path_traversal(body.dest)
     return await _bridge("POST", "/memory/folder/move", json=body.model_dump())
 
 
 @router.delete("/folder")
 async def delete_memory_folder(path: str, user=Depends(get_admin_user)):
     """Suppression douce d'un dossier (corbeille, récupérable). Dossiers PARA protégés."""
+    _reject_path_traversal(path)
     return await _bridge("DELETE", f"/memory/folder?path={quote(path)}")
 
 
 @router.post("/folder/restore")
 async def restore_memory_folder(body: FolderRestoreBody, user=Depends(get_admin_user)):
     """Restaure un dossier supprimé (annulation)."""
+    _reject_path_traversal(body.path)
     return await _bridge("POST", "/memory/folder/restore", json=body.model_dump())
 
 
