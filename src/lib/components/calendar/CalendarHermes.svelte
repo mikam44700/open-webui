@@ -208,7 +208,7 @@
 			await loadEvents();
 			await loadGrid();
 		} catch (err: any) {
-			if (typeof err?.code === 'string' && err.code.endsWith('_not_connected')) {
+			if (typeof err?.error?.code === 'string' && err.error.code.endsWith('_not_connected')) {
 				// La source a été déconnectée entre-temps : on recharge la liste des sources.
 				events = [];
 			} else {

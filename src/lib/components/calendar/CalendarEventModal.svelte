@@ -38,8 +38,18 @@
 
 	const NS = 1_000_000;
 
+	// Un seul référentiel (local) pour décomposer ET recombiner une date/heure d'événement.
+	// `toISOString()` (UTC) mélangé à `toTimeString()` (local) déplaçait silencieusement un
+	// événement proche de minuit d'un jour à l'enregistrement, même sans modification.
+	function toLocalDateStr(d: Date): string {
+		const y = d.getFullYear();
+		const m = String(d.getMonth() + 1).padStart(2, '0');
+		const day = String(d.getDate()).padStart(2, '0');
+		return `${y}-${m}-${day}`;
+	}
+
 	function nsToDateStr(ns: number): string {
-		return new Date(ns / NS).toISOString().slice(0, 10);
+		return toLocalDateStr(new Date(ns / NS));
 	}
 
 	function nsToTimeStr(ns: number): string {
@@ -74,10 +84,10 @@
 				endTime = nsToTimeStr(endNs);
 			} else {
 				const now = new Date();
-				startDate = now.toISOString().slice(0, 10);
+				startDate = toLocalDateStr(now);
 				startTime = now.toTimeString().slice(0, 5);
 				const later = new Date(now.getTime() + 60 * 60 * 1000);
-				endDate = later.toISOString().slice(0, 10);
+				endDate = toLocalDateStr(later);
 				endTime = later.toTimeString().slice(0, 5);
 			}
 			allDay = false;

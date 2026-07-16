@@ -102,7 +102,7 @@
 				toast.success($i18n.t('Automation updated'));
 			}
 		} catch (e: any) {
-			toast.error(e?.detail ?? `${e}` ?? 'Failed to save');
+			toast.error(typeof e === 'string' ? e : (e?.error?.message ?? $i18n.t('Failed to save')));
 		} finally {
 			saving = false;
 		}
@@ -193,6 +193,12 @@
 
 		if (scheduleDropdown) {
 			scheduleDropdown.parseRrule(automation.data.rrule);
+		} else {
+			// Ne devrait pas arriver (ScheduleDropdown n'est pas derrière un {#if}, seulement
+			// masqué en CSS sur mobile) — mais si ça arrivait, ne pas échouer en silence :
+			// le planning affiché resterait la valeur par défaut du dropdown, pas la vraie
+			// récurrence enregistrée.
+			console.warn('AutomationEditor: scheduleDropdown non monté, planning non affiché');
 		}
 
 		await loadRuns();

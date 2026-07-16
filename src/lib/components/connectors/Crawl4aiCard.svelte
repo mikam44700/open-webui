@@ -67,7 +67,11 @@
 				toast.error($i18n.t('Crawl4AI a démarré mais n’est pas encore actif.'));
 			}
 		} catch (err: any) {
-			toast.error(err?.detail ?? $i18n.t('Impossible d’installer Crawl4AI.'));
+			toast.error(
+				typeof err === 'string'
+					? err
+					: (err?.error?.message ?? $i18n.t('Impossible d’installer Crawl4AI.'))
+			);
 		} finally {
 			busy = false;
 		}
@@ -80,7 +84,11 @@
 			toast.success($i18n.t('Crawl4AI a été désinstallé (espace disque libéré).'));
 			dispatch('changed');
 		} catch (err: any) {
-			toast.error(err?.detail ?? $i18n.t('Impossible de désinstaller Crawl4AI.'));
+			toast.error(
+				typeof err === 'string'
+					? err
+					: (err?.error?.message ?? $i18n.t('Impossible de désinstaller Crawl4AI.'))
+			);
 		} finally {
 			busy = false;
 		}

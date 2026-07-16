@@ -82,7 +82,11 @@
 			poller = setInterval(tick, 1500);
 		} catch (err: any) {
 			state = 'error';
-			toast.error(err?.detail ?? $i18n.t('Impossible de lancer la mise à jour.'));
+			toast.error(
+				typeof err === 'string'
+					? err
+					: (err?.error?.message ?? $i18n.t('Impossible de lancer la mise à jour.'))
+			);
 		}
 	};
 </script>
