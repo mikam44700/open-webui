@@ -37,8 +37,22 @@ export const getMemoryStatus = (token: string): Promise<MemoryStatus> => call(to
 export const getMemoryNote = (token: string, path: string): Promise<NoteContent> =>
 	call(token, 'GET', `/note?path=${encodeURIComponent(path)}`);
 
-export const saveMemoryNote = (token: string, path: string, content: string): Promise<NoteContent> =>
-	call(token, 'POST', '/note', { path, content });
+// ``expectedModified`` = le ``modified`` (mtime epoch) vu au dernier ``getMemoryNote`` pour ce
+// chemin (concurrence optimiste, même principe que ``updateEntry``/``removeEntry`` des souvenirs).
+// Si la note a changé depuis (autre éditeur ouvert, l'agent via la skill obsidian, une synchro
+// Syncthing…), le serveur répond 409 (``note_conflict``) plutôt que d'écraser silencieusement.
+// Omis = comportement rétro-compatible (nouvelle note, jamais lue au préalable).
+export const saveMemoryNote = (
+	token: string,
+	path: string,
+	content: string,
+	expectedModified?: number | null
+): Promise<NoteContent> =>
+	call(token, 'POST', '/note', {
+		path,
+		content,
+		expected_modified: expectedModified ?? null
+	});
 
 // Crée la structure PARA du coffre (00-Réception, 01-En cours, … + INDEX). Idempotent.
 export const initMemoryVault = (token: string): Promise<{ created: string[] }> =>

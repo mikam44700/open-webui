@@ -29,6 +29,28 @@
 	let trashItems: TrashItem[] = [];
 	let trashLoading = false;
 
+	// Recharge la corbeille elle-même (pas seulement l'arbre du parent) : nécessaire quand un
+	// élément listé ici n'existe déjà plus côté serveur (404) ou a changé (409 — restauré ailleurs,
+	// conflit de nom), pour ne pas laisser une liste périmée où « Restaurer »/« Supprimer »
+	// échoueraient à nouveau sans que le dirigeant comprenne pourquoi.
+	const reloadTrash = async (): Promise<void> => {
+		try {
+			trashItems = (await getTrash(localStorage.token)).items ?? [];
+		} catch {
+			/* affichage best-effort : la corbeille garde sa dernière liste connue */
+		}
+	};
+
+	// Erreurs CRUD : distingue le code renvoyé par le bridge (même principe que
+	// BrainMemoryPane.isConflict / MemoryExplorer.reportCrudError) plutôt qu'un message générique
+	// unique — un 404/409 signifie que la liste affichée est FAUSSE, pas juste qu'une action a
+	// échoué : on la recharge plutôt que de laisser le dirigeant réessayer sur des données périmées.
+	const STALE_CRUD_CODES = new Set(['not_found', 'destination_exists', 'already_exists']);
+	const reportCrudError = async (e: any, fallback: string): Promise<void> => {
+		toast.error(e?.error?.message ?? (typeof e === 'string' ? e : fallback));
+		if (STALE_CRUD_CODES.has(e?.error?.code)) await reloadTrash();
+	};
+
 	onMount(async () => {
 		trashLoading = true;
 		try {
@@ -47,7 +69,7 @@
 			await onReload(); // recharge l'arbre pour faire réapparaître l'élément restauré
 			toast.success(`« ${item.name} » restauré`);
 		} catch (e) {
-			toast.error(typeof e === 'string' ? e : 'Impossible de restaurer cet élément');
+			await reportCrudError(e, 'Impossible de restaurer cet élément');
 		}
 	};
 
@@ -82,7 +104,7 @@
 			trashItems = trashItems.filter((t) => t.ref !== item.ref);
 			toast.success(`« ${item.name} » supprimé définitivement`);
 		} catch (e) {
-			toast.error(typeof e === 'string' ? e : 'Impossible de supprimer cet élément');
+			await reportCrudError(e, 'Impossible de supprimer cet élément');
 		}
 		purgeTarget = null;
 	};
@@ -93,7 +115,7 @@
 			trashItems = [];
 			toast.success(purged > 1 ? `${purged} éléments supprimés définitivement` : 'Corbeille vidée');
 		} catch (e) {
-			toast.error(typeof e === 'string' ? e : 'Impossible de vider la corbeille');
+			await reportCrudError(e, 'Impossible de vider la corbeille');
 		}
 	};
 </script>

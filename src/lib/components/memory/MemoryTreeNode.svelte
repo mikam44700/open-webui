@@ -69,6 +69,16 @@
 		renaming = false;
 		if (v && v !== node.name) onRenameFolder(node, v);
 	};
+
+	// Accessibilité (finding audit) : une fois la note/le dossier supprimé, l'arbre recharge et le
+	// bouton qui avait le focus disparaît — le focus clavier revient alors silencieusement à
+	// <body>, perdant le contexte de navigation. On le redirige vers la ligne VOISINE (suivante,
+	// sinon précédente) avant même de déclencher la suppression, pour ne jamais le perdre.
+	const focusNeighbourBeforeDelete = (e: MouseEvent): void => {
+		const row = (e.currentTarget as HTMLElement)?.closest('[draggable]');
+		const neighbour = (row?.nextElementSibling ?? row?.previousElementSibling) as HTMLElement | null;
+		neighbour?.querySelector<HTMLElement>('button')?.focus();
+	};
 </script>
 
 {#if node.type === 'note'}
@@ -108,7 +118,10 @@
 			class="shrink-0 mr-1 p-1 rounded-md text-gray-300 dark:text-gray-600 opacity-0 group-hover:opacity-100 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 transition"
 			title="Supprimer"
 			aria-label="Supprimer la note"
-			on:click={() => onDelete(node)}
+			on:click={(e) => {
+				focusNeighbourBeforeDelete(e);
+				onDelete(node);
+			}}
 		>
 			<svg class="w-3.5 h-3.5" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6"
 				><path d="M4 6h12M8 6V4h4v2m-6 0v10h8V6" stroke-linecap="round" stroke-linejoin="round" /></svg
@@ -272,7 +285,10 @@
 					class="shrink-0 mr-1 p-1 rounded-md text-gray-300 dark:text-gray-600 opacity-0 group-hover:opacity-100 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 transition"
 					title="Supprimer le dossier"
 					aria-label="Supprimer le dossier"
-					on:click|stopPropagation={() => onDeleteFolder(node)}
+					on:click|stopPropagation={(e) => {
+						focusNeighbourBeforeDelete(e);
+						onDeleteFolder(node);
+					}}
 				>
 					<svg class="w-3.5 h-3.5" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6"
 						><path d="M4 6h12M8 6V4h4v2m-6 0v10h8V6" stroke-linecap="round" stroke-linejoin="round" /></svg

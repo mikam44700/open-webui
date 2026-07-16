@@ -263,6 +263,22 @@
 		loaded = true;
 	};
 
+	// ─── Erreurs CRUD : distinguer le code plutôt qu'un message générique unique ───────────────
+	// Même principe que ``BrainMemoryPane.isConflict`` : un 404 (l'élément n'existe déjà plus) ou
+	// un 409 (a changé sous nos pieds — renommé/restauré ailleurs, conflit de dossier) laissent
+	// l'arbre affiché FAUX si on se contente d'un toast générique. On recharge dans ces cas pour
+	// repartir d'un état sûr, plutôt que de laisser le dirigeant agir sur des données périmées.
+	const STALE_CRUD_CODES = new Set([
+		'not_found',
+		'note_conflict',
+		'destination_exists',
+		'already_exists'
+	]);
+	const reportCrudError = async (e: any, fallback: string): Promise<void> => {
+		toast.error(e?.error?.message ?? (typeof e === 'string' ? e : fallback));
+		if (STALE_CRUD_CODES.has(e?.error?.code)) await load();
+	};
+
 	// ─── Navigation ───────────────────────────────────────────────────────────
 
 	const openNote = async (node: MemoryNode) => {
@@ -362,7 +378,7 @@
 			if (destFolder) openState = { ...openState, [destFolder]: true };
 			toast.success('Note déplacée');
 		} catch (e) {
-			toast.error(typeof e === 'string' ? e : 'Impossible de déplacer la note');
+			await reportCrudError(e, 'Impossible de déplacer la note');
 		}
 	};
 	const doMoveFolder = async (folderPath: string, destParent: string) => {
@@ -372,7 +388,7 @@
 			if (destParent) openState = { ...openState, [destParent]: true };
 			toast.success('Dossier déplacé');
 		} catch (e) {
-			toast.error(typeof e === 'string' ? e : 'Impossible de déplacer le dossier');
+			await reportCrudError(e, 'Impossible de déplacer le dossier');
 		}
 	};
 	const requestMove = (node: MemoryNode) => {
@@ -394,7 +410,7 @@
 			await load();
 			toast.success('Dossier renommé');
 		} catch (e) {
-			toast.error(typeof e === 'string' ? e : 'Impossible de renommer le dossier');
+			await reportCrudError(e, 'Impossible de renommer le dossier');
 		}
 	};
 	const deleteFolderHandler = async (node: MemoryNode) => {
@@ -410,19 +426,26 @@
 							await load();
 							toast.success('Dossier restauré');
 						} catch (e) {
-							toast.error(typeof e === 'string' ? e : 'Impossible de restaurer le dossier');
+							await reportCrudError(e, 'Impossible de restaurer le dossier');
 						}
 					}
 				}
 			});
 		} catch (e) {
-			toast.error(typeof e === 'string' ? e : 'Impossible de supprimer le dossier');
+			await reportCrudError(e, 'Impossible de supprimer le dossier');
 		}
 	};
 
 	// ─── Renommage (titre éditable) ────────────────────────────────────────────
 
-	const commitRename = async () => {
+	// Renommage en vol (déclenché au blur du champ titre) : gardé en attente pour que la
+	// suppression puisse l'attendre avant d'agir (voir ``requestDeleteNote`` ci-dessous). Sans
+	// ça, un blur (renommage) suivi d'un clic sur « Supprimer » sur le MÊME geste souris déclenche
+	// deux requêtes concurrentes sur le même chemin d'origine : l'une renomme la note pendant que
+	// l'autre tente de la supprimer à son ancien chemin, l'une des deux échoue alors en silence.
+	let renamePromise: Promise<void> | null = null;
+
+	const commitRenameNow = async (): Promise<void> => {
 		if (!selectedNode) return;
 		const t = titleDraft.trim();
 		if (!t || t === selectedNode.name) {
@@ -435,9 +458,17 @@
 			titleDraft = t;
 			await load();
 		} catch (e) {
-			toast.error(typeof e === 'string' ? e : 'Impossible de renommer la note');
-			titleDraft = selectedNode.name;
+			await reportCrudError(e, 'Impossible de renommer la note');
+			if (selectedNode) titleDraft = selectedNode.name;
 		}
+	};
+
+	const commitRename = (): void => {
+		const p = commitRenameNow();
+		renamePromise = p;
+		p.finally(() => {
+			if (renamePromise === p) renamePromise = null;
+		});
 	};
 
 	// ─── Suppression douce (corbeille) + annulation ────────────────────────────
@@ -460,14 +491,21 @@
 							await load();
 							toast.success('Note restaurée');
 						} catch (e) {
-							toast.error(typeof e === 'string' ? e : 'Impossible de restaurer la note');
+							await reportCrudError(e, 'Impossible de restaurer la note');
 						}
 					}
 				}
 			});
 		} catch (e) {
-			toast.error(typeof e === 'string' ? e : 'Impossible de supprimer la note');
+			await reportCrudError(e, 'Impossible de supprimer la note');
 		}
+	};
+
+	// Suppression depuis l'éditeur : attend d'abord la fin d'un renommage en vol (voir
+	// ``renamePromise`` ci-dessus) pour ne jamais viser un chemin déjà déplacé par le renommage.
+	const requestDeleteNote = async (node: MemoryNode, fromEditor = false): Promise<void> => {
+		if (renamePromise) await renamePromise;
+		await deleteNote(selectedNode ?? node, fromEditor);
 	};
 
 	// ─── Rangement assisté : génération des suggestions (à la demande, 1 appel groupé) ──
@@ -479,7 +517,6 @@
 			.filter((c) => c.type === 'note' && !isGuideNote(c.name))
 			.slice(0, 15); // borne le coût : au plus 15 notes par génération
 		if (notes.length === 0) return;
-		suggestComputed = true;
 		const folders = buildFolderList(tree, friendlyFolder);
 		if (folders.length === 0) return;
 		const model = $models
@@ -487,6 +524,10 @@
 			.filter((m) => !((m?.info?.meta as any)?.hidden ?? false))
 			.find((m) => m.id === selectedModelId);
 		if (!model) return;
+		// Verrou posé ICI seulement, APRÈS tous les early-return : le poser plus tôt (avant que
+		// les dossiers existent, par ex.) le figeait pour toujours — le coffre tout juste créé
+		// n'avait alors JAMAIS de rangement assisté, même après la création des 9 dossiers PARA.
+		suggestComputed = true;
 		try {
 			const withContent = await Promise.all(
 				notes.map(async (n) => {
@@ -534,13 +575,13 @@
 							await load();
 							toast.success('Rangement annulé');
 						} catch (e) {
-							toast.error(typeof e === 'string' ? e : "Impossible d'annuler le rangement");
+							await reportCrudError(e, "Impossible d'annuler le rangement");
 						}
 					}
 				}
 			});
 		} catch (e) {
-			toast.error(typeof e === 'string' ? e : 'Impossible de ranger la note');
+			await reportCrudError(e, 'Impossible de ranger la note');
 		}
 	};
 
@@ -571,19 +612,36 @@
 
 	// ─── Sauvegarde débouncée ─────────────────────────────────────────────────
 
+	// Un éditeur ouvert peut écraser silencieusement le travail d'Adam (skill obsidian, écrit
+	// directement sur le fichier) ou d'une autre fenêtre : on envoie ``noteModified`` (le
+	// ``modified`` vu au dernier chargement de CETTE note) et le bridge refuse (409) si le
+	// fichier a changé depuis — même principe que ``updateEntry``/``removeEntry`` des souvenirs.
+	const isNoteConflict = (e: any): boolean => e?.error?.code === 'note_conflict';
+
 	// Écrit immédiatement la sauvegarde en attente (s'il y en a une), en annulant le timer.
 	const flushSave = async () => {
 		if (!pendingSave) return;
 		clearTimeout(saveTimeout);
 		const { path, md } = pendingSave;
+		const conflictNode = selectedNode; // capturé AVANT tout `await` : sûr même si on navigue entre-temps
 		pendingSave = null;
 		saveState = 'saving';
 		try {
-			await saveMemoryNote(localStorage.token, path, md);
+			const res = await saveMemoryNote(localStorage.token, path, md, noteModified);
+			noteModified = res.modified ?? null;
 			saveState = 'saved';
-		} catch (e) {
+		} catch (e: any) {
 			saveState = 'idle';
-			toast.error(typeof e === 'string' ? e : "Échec de l'enregistrement");
+			if (isNoteConflict(e) && conflictNode) {
+				toast.error(e?.error?.message ?? 'Cette note a changé, rechargez avant de continuer.', {
+					action: {
+						label: 'Recharger',
+						onClick: () => openNote(conflictNode)
+					}
+				});
+			} else {
+				toast.error(typeof e === 'string' ? e : "Échec de l'enregistrement");
+			}
 		}
 	};
 
@@ -787,7 +845,7 @@
 		onBack={goBack}
 		onCommitRename={commitRename}
 		onDelete={() => {
-			if (selectedNode) deleteNote(selectedNode, true);
+			if (selectedNode) requestDeleteNote(selectedNode, true);
 		}}
 		onChange={(content) => scheduleSave(content.md ?? '')}
 	/>
