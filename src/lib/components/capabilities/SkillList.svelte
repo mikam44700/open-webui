@@ -3,6 +3,7 @@
 	import { toast } from 'svelte-sonner';
 
 	import { getSkills, setSkillEnabled } from '$lib/apis/capabilities';
+	import { isBridgeDown } from '$lib/apis/isBridgeDown';
 	import { expertMode } from '$lib/stores';
 	import { skillsFr, skillCategoriesFr, skillCategoryOrder } from '$lib/capabilities/skills-fr';
 
@@ -70,9 +71,6 @@
 			items: map.get(k)!.slice().sort((a, b) => a.title.localeCompare(b.title))
 		}));
 	})();
-
-	const isBridgeDown = (err: any) =>
-		err?.error?.code === 'bridge_unreachable' || err?.error?.code === 'hermes_unavailable';
 
 	const load = async () => {
 		loading = true;

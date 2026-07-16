@@ -15,6 +15,7 @@
 	import { getConnectors } from '$lib/apis/connectors';
 	import { generateSkill, transformSkill, toRawSkillUrl } from '$lib/skills/skill-generator';
 	import { expertMode } from '$lib/stores';
+	import { isBridgeDown } from '$lib/apis/isBridgeDown';
 
 	import Spinner from '$lib/components/common/Spinner.svelte';
 	import Modal from '$lib/components/common/Modal.svelte';
@@ -161,9 +162,6 @@
 			detailLoading = false;
 		}
 	};
-
-	const isBridgeDown = (err: any) =>
-		err?.error?.code === 'bridge_unreachable' || err?.error?.code === 'hermes_unavailable';
 
 	const load = async () => {
 		loading = true;

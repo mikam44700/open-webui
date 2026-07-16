@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { createEventDispatcher, getContext, onMount, tick } from 'svelte';
+	import { createEventDispatcher, getContext, onDestroy, onMount, tick } from 'svelte';
 	import { fade, fly } from 'svelte/transition';
 	import { toast } from 'svelte-sonner';
 
@@ -105,6 +105,7 @@
 	};
 
 	onMount(loadModels);
+	onDestroy(stopGenMessages);
 
 	// Focus auto du champ quand on ouvre / revient à l'écran de saisie.
 	$: if (show && phase === 'brief') {

@@ -16,6 +16,7 @@
 		type KanbanTaskDetail
 	} from '$lib/apis/kanban';
 	import { getAgents } from '$lib/apis/agents';
+	import { isBridgeDown } from '$lib/apis/isBridgeDown';
 	import Spinner from '$lib/components/common/Spinner.svelte';
 	import ConfirmDialog from '$lib/components/common/ConfirmDialog.svelte';
 
@@ -75,9 +76,10 @@
 	let draggedId: string | null = null;
 	let dragOverCol: string | null = null;
 	let refreshTimer: ReturnType<typeof setInterval> | null = null;
-
-	const isBridgeDown = (err: any) =>
-		err?.error?.code === 'bridge_unreachable' || err?.error?.code === 'hermes_unavailable';
+	// Un seul échec de poll de fond ne doit pas effacer un tableau déjà chargé : on n'affiche
+	// « service injoignable » qu'après plusieurs échecs consécutifs (silencieux ou non).
+	let bridgeDownStreak = 0;
+	const BRIDGE_DOWN_THRESHOLD = 3;
 
 	$: columns = showArchived ? [...COLUMNS, { key: 'archived', label: 'Archivé' }] : COLUMNS;
 	$: tasksByStatus = (() => {
@@ -92,7 +94,6 @@
 
 	const load = async (silent = false) => {
 		if (!silent) loading = true;
-		bridgeDown = false;
 		try {
 			const token = localStorage.token;
 			// Board pour lequel on demande les tâches (peut différer du board courant côté serveur).
@@ -112,9 +113,17 @@
 			} else {
 				tasks = t?.tasks ?? [];
 			}
+			bridgeDownStreak = 0;
+			bridgeDown = false;
 		} catch (err) {
-			if (isBridgeDown(err)) bridgeDown = true;
-			else if (!silent) toast.error($i18n.t('Échec du chargement'));
+			if (isBridgeDown(err)) {
+				bridgeDownStreak++;
+				// Un poll de fond isolé qui échoue ne doit pas effacer le tableau déjà affiché ;
+				// un appel explicite (montage, action utilisateur) réagit lui tout de suite.
+				if (!silent || bridgeDownStreak >= BRIDGE_DOWN_THRESHOLD) bridgeDown = true;
+			} else if (!silent) {
+				toast.error($i18n.t('Échec du chargement'));
+			}
 		} finally {
 			loading = false;
 		}

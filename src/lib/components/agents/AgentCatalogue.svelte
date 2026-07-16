@@ -8,6 +8,7 @@
 	import { toast } from 'svelte-sonner';
 
 	import { getAgents, createAgent } from '$lib/apis/agents';
+	import { isBridgeDown } from '$lib/apis/isBridgeDown';
 	import Spinner from '$lib/components/common/Spinner.svelte';
 	import AgentGradientCard from './AgentGradientCard.svelte';
 	import AgentSkillsModal from './AgentSkillsModal.svelte';
@@ -37,9 +38,6 @@
 	let agents: { name: string; avatar?: string | null }[] = [];
 	let search = '';
 	let previewTemplate: AgentTemplate | null = null;
-
-	const isBridgeDown = (err: any) =>
-		err?.error?.code === 'bridge_unreachable' || err?.error?.code === 'hermes_unavailable';
 
 	const load = async () => {
 		loading = true;

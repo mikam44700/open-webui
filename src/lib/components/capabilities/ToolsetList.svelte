@@ -3,6 +3,7 @@
 	import { toast } from 'svelte-sonner';
 
 	import { getToolsCached, setToolEnabled, invalidateToolsCache } from '$lib/apis/capabilities';
+	import { isBridgeDown } from '$lib/apis/isBridgeDown';
 	import { expertMode } from '$lib/stores';
 
 	import Spinner from '$lib/components/common/Spinner.svelte';
@@ -73,9 +74,6 @@
 	$: visibleTabs = $expertMode ? groups : groups.filter((g) => !EXPERT_LABELS.has(g.label));
 	// Catégorie affichée : celle sélectionnée si encore visible, sinon la première.
 	$: activeGroup = visibleTabs.find((g) => g.label === selectedLabel) ?? visibleTabs[0] ?? null;
-
-	const isBridgeDown = (err: any) =>
-		err?.error?.code === 'bridge_unreachable' || err?.error?.code === 'hermes_unavailable';
 
 	const load = async () => {
 		loading = true;

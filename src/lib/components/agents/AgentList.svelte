@@ -5,6 +5,7 @@
 	import { toast } from 'svelte-sonner';
 
 	import { getAgents, setActiveAgent, createAgent, deleteAgent } from '$lib/apis/agents';
+	import { isBridgeDown } from '$lib/apis/isBridgeDown';
 	import Spinner from '$lib/components/common/Spinner.svelte';
 	import AgentCreate from './AgentCreate.svelte';
 	import AgentEditor from './AgentEditor.svelte';
@@ -73,9 +74,6 @@
 	$: myAgents = agents.filter((a) => a !== mikeAgent);
 	// Nombre d'agents optionnels (hors socle) présentés dans le catalogue — pour le badge du bloc.
 	const catalogueCount = AGENT_TEMPLATES.filter((t) => !SOCLE_IDS.has(t.id)).length;
-
-	const isBridgeDown = (err: any) =>
-		err?.error?.code === 'bridge_unreachable' || err?.error?.code === 'hermes_unavailable';
 
 	const load = async () => {
 		loading = true;

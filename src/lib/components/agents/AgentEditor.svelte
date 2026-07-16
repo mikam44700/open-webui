@@ -107,13 +107,12 @@
 	const toggleSkill = async (s: Tool) => {
 		if (!agent) return;
 		const next = !s.enabled;
-		s.enabled = next;
-		skills = skills; // maj optimiste
+		// Optimiste : on bascule tout de suite, rollback en cas d'échec.
+		skills = skills.map((x) => (x.name === s.name ? { ...x, enabled: next } : x));
 		try {
 			await setAgentSkill(localStorage.token, agent.name, s.name, next);
 		} catch {
-			s.enabled = !next;
-			skills = skills;
+			skills = skills.map((x) => (x.name === s.name ? { ...x, enabled: !next } : x));
 			toast.error($i18n.t('Échec de la mise à jour'));
 		}
 	};
@@ -121,13 +120,11 @@
 	const toggleMcp = async (m: Tool) => {
 		if (!agent) return;
 		const next = !m.enabled;
-		m.enabled = next;
-		mcps = mcps;
+		mcps = mcps.map((x) => (x.name === m.name ? { ...x, enabled: next } : x));
 		try {
 			await setAgentMcp(localStorage.token, agent.name, m.name, next);
 		} catch {
-			m.enabled = !next;
-			mcps = mcps;
+			mcps = mcps.map((x) => (x.name === m.name ? { ...x, enabled: !next } : x));
 			toast.error($i18n.t('Échec de la mise à jour'));
 		}
 	};

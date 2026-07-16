@@ -36,6 +36,7 @@
 	import ConfirmDialog from '$lib/components/common/ConfirmDialog.svelte';
 	import { expertMode } from '$lib/stores';
 	import { CHANNEL_FR, CHANNEL_TAGS } from '$lib/utils/channelLabels';
+	import { isBridgeDown } from '$lib/apis/isBridgeDown';
 
 	// Déroulant « Voir ce que ça fait » ouvert, par canal (id → booléen).
 	let aboutOpen: Record<string, boolean> = {};
@@ -164,9 +165,13 @@
 	let disconnecting = false;
 
 	let refreshTimer: ReturnType<typeof setInterval> | null = null;
-
-	const isBridgeDown = (err: any) =>
-		err?.error?.code === 'bridge_unreachable' || err?.error?.code === 'hermes_unavailable';
+	// Un seul échec de poll de fond ne doit pas effacer la liste déjà chargée : on n'affiche
+	// « service injoignable » qu'après plusieurs échecs consécutifs (silencieux ou non).
+	let bridgeDownStreak = 0;
+	const BRIDGE_DOWN_THRESHOLD = 3;
+	// Levé quand la modale se ferme (ou le composant est démonté) pour annuler les boucles
+	// d'attente « connecté » (Telegram/Discord/Slack/Email) encore en cours.
+	let cancelWait = false;
 
 	// Canaux masqués au client, visibles seulement en mode expert :
 	//  • available === false  → grisé « Bientôt » (ex. WhatsApp, attente config Meta)
@@ -185,7 +190,6 @@
 
 	const load = async (silent = false) => {
 		if (!silent) loading = true;
-		bridgeDown = false;
 		try {
 			const token = localStorage.token;
 			const [st, pl] = await Promise.all([
@@ -195,9 +199,14 @@
 			status = st;
 			platforms = pl?.platforms ?? [];
 			gatewayRunning = pl?.gateway_running ?? false;
+			bridgeDownStreak = 0;
+			bridgeDown = false;
 		} catch (err) {
 			if (isBridgeDown(err)) {
-				bridgeDown = true;
+				bridgeDownStreak++;
+				// Un poll de fond isolé qui échoue ne doit pas effacer la liste déjà affichée ;
+				// un appel explicite (montage, action utilisateur) réagit lui tout de suite.
+				if (!silent || bridgeDownStreak >= BRIDGE_DOWN_THRESHOLD) bridgeDown = true;
 			} else if (!silent) {
 				toast.error($i18n.t('Échec du chargement'));
 			}
@@ -440,13 +449,9 @@
 				emailInfo = { address: res.address ?? address, count: res.mailbox_count ?? null };
 				toast.success($i18n.t('Email connecté !'));
 				// Le gateway redémarre (quelques secondes) : on rafraîchit jusqu'à « connecté ».
-				for (let i = 0; i < 8; i++) {
-					await load(true);
-					const fresh = platforms.find((x) => x.id === modalPlatform?.id);
-					if (fresh) modalPlatform = fresh;
-					if (fresh?.state === 'connected') break;
-					await new Promise((r) => setTimeout(r, 2000));
-				}
+				cancelWait = false;
+				await waitUntilConnected(p.id);
+				if (cancelWait) return;
 				emailStatus = 'idle';
 			} else {
 				emailStatus = 'error';
@@ -460,6 +465,25 @@
 
 	// Canal affiché mais pas encore branchable (ex. WhatsApp en attente de config Meta).
 	const isUnavailable = (p: MessagingPlatform | null) => p?.available === false;
+
+	// Après une connexion réussie (Telegram/Discord/Slack/Email), le gateway redémarre
+	// (quelques secondes) : on rafraîchit jusqu'à l'état « connecté ». Annulable via
+	// `cancelWait` (levé par closeModal / onDestroy) pour ne pas continuer à tourner et
+	// toucher l'état d'un composant que le dirigeant a quitté.
+	const waitUntilConnected = async (
+		platformId: string,
+		{ tries = 8, delayMs = 2000 }: { tries?: number; delayMs?: number } = {}
+	) => {
+		for (let i = 0; i < tries; i++) {
+			if (cancelWait) return;
+			await load(true);
+			if (cancelWait) return;
+			const fresh = platforms.find((x) => x.id === platformId);
+			if (fresh && modalPlatform?.id === platformId) modalPlatform = fresh;
+			if (fresh?.state === 'connected') return;
+			await new Promise((r) => setTimeout(r, delayMs));
+		}
+	};
 
 	const stopPairPolling = () => {
 		if (pairTimer) {
@@ -521,13 +545,9 @@
 					pairing = null;
 					// Le gateway redémarre (quelques secondes) : on reste en « applying »
 					// (« Connexion en cours… ») et on rafraîchit jusqu'à l'état « connecté ».
-					for (let i = 0; i < 8; i++) {
-						await load(true);
-						const fresh = platforms.find((x) => x.id === modalPlatform?.id);
-						if (fresh) modalPlatform = fresh;
-						if (fresh?.state === 'connected') break;
-						await new Promise((r) => setTimeout(r, 2000));
-					}
+					cancelWait = false;
+					await waitUntilConnected('telegram');
+					if (cancelWait) return;
 					pairStatus = 'idle';
 					if (modalPlatform) loadUsers(modalPlatform);
 				} else {
@@ -637,13 +657,9 @@
 				discordToken = '';
 				toast.success($i18n.t('Discord connecté !'));
 				// Le gateway redémarre (quelques secondes) : on rafraîchit jusqu'à « connecté ».
-				for (let i = 0; i < 8; i++) {
-					await load(true);
-					const fresh = platforms.find((x) => x.id === modalPlatform?.id);
-					if (fresh) modalPlatform = fresh;
-					if (fresh?.state === 'connected') break;
-					await new Promise((r) => setTimeout(r, 2000));
-				}
+				cancelWait = false;
+				await waitUntilConnected('discord');
+				if (cancelWait) return;
 				discordStatus = 'idle';
 				if (modalPlatform) loadDiscordInfo(modalPlatform);
 			} else {
@@ -702,13 +718,9 @@
 				slackAppToken = '';
 				toast.success($i18n.t('Slack connecté !'));
 				// Le gateway redémarre (quelques secondes) : on rafraîchit jusqu'à « connecté ».
-				for (let i = 0; i < 8; i++) {
-					await load(true);
-					const fresh = platforms.find((x) => x.id === modalPlatform?.id);
-					if (fresh) modalPlatform = fresh;
-					if (fresh?.state === 'connected') break;
-					await new Promise((r) => setTimeout(r, 2000));
-				}
+				cancelWait = false;
+				await waitUntilConnected('slack');
+				if (cancelWait) return;
 				slackStatus = 'idle';
 				if (modalPlatform) loadSlackInfo(modalPlatform);
 			} else {
@@ -775,6 +787,10 @@
 		}
 	};
 	const closeModal = () => {
+		// Annule les boucles d'attente « connecté » (Telegram/Discord/Slack/Email) encore en
+		// cours : sinon elles continuent de tourner en arrière-plan et de toucher l'état d'une
+		// modale que le dirigeant vient de fermer.
+		cancelWait = true;
 		resetPairing();
 		resetDiscord();
 		resetSlack();
@@ -786,6 +802,7 @@
 		refreshTimer = setInterval(() => load(true), 10000);
 	});
 	onDestroy(() => {
+		cancelWait = true;
 		if (refreshTimer) clearInterval(refreshTimer);
 		stopPairPolling();
 	});
