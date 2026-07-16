@@ -311,3 +311,8 @@ dist
 cypress/videos
 cypress/screenshots
 .vscode/settings.json
+
+# playwright e2e artifacts
+/test-results/
+/playwright-report/
+/playwright/.cache/
