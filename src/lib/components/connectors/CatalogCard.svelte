@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { getContext, createEventDispatcher, tick } from 'svelte';
+	import { getContext, createEventDispatcher, tick, onDestroy } from 'svelte';
 	import type { Writable } from 'svelte/store';
 	import type { i18n as i18nType } from 'i18next';
 	import { toast } from 'svelte-sonner';
@@ -108,10 +108,19 @@
 	};
 
 	// Attend la fin de l'installation asynchrone (git clone + bootstrap côté Hermes).
+	// Annulable : si le composant est démonté pendant le polling (fermeture de modale,
+	// navigation), on arrête net au lieu de continuer 90s en arrière-plan sur un composant
+	// disparu (issue #4 de l'audit — même défaut que GatewayList, corrigé ici).
+	let cancelled = false;
+	onDestroy(() => {
+		cancelled = true;
+	});
 	const waitInstall = async () => {
 		for (let i = 0; i < 60; i++) {
 			await new Promise((r) => setTimeout(r, 1500));
+			if (cancelled) return false;
 			const s = await getInstallStatus(localStorage.token, entry.name).catch(() => null);
+			if (cancelled) return false;
 			if (s && s.started && !s.running) return s.success ?? false;
 		}
 		return false;
@@ -204,6 +213,7 @@
 			// 2) installation
 			await installConnector(localStorage.token, entry.name);
 			const ok = await waitInstall();
+			if (cancelled) return;
 			if (!ok) {
 				toast.error($i18n.t('L’installation a échoué.'));
 				return;

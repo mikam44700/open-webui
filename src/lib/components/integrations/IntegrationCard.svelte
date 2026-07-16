@@ -168,7 +168,20 @@
 				toast.error($i18n.t('Impossible de démarrer la connexion.'));
 				return;
 			}
+			// Défense en profondeur CSRF (côté navigateur — le bridge valide déjà le state
+			// côté serveur) : on mémorise le state anti-CSRF réellement émis par le bridge,
+			// embarqué dans l'URL d'autorisation. Le callback comparera STRICTEMENT le state
+			// reçu du fournisseur à cette valeur avant d'échanger le code. Un lien de callback
+			// forgé ou rejoué (ex. onglet resté ouvert depuis une tentative abandonnée) ne
+			// pourra jamais porter ce state précis.
+			let oauthNonce = '';
+			try {
+				oauthNonce = new URL(res.auth_url).searchParams.get('state') ?? '';
+			} catch {
+				oauthNonce = '';
+			}
 			sessionStorage.setItem('oauth_provider', oauthProviderId);
+			sessionStorage.setItem('oauth_nonce', oauthNonce);
 			window.location.href = res.auth_url;
 		} catch {
 			toast.error($i18n.t('Impossible de démarrer la connexion.'));

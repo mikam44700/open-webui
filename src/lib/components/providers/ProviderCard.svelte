@@ -111,9 +111,14 @@
 	let show = false;
 	let saving = false;
 	let testing = false;
+	// Verrou partagé Tester/Enregistrer : les deux actions touchent le même champ (la clé
+	// saisie) — sans lui, un double-clic ou un clic croisé pendant l'autre requête lance des
+	// appels réseau concurrents sur la même clé (issue #3 de l'audit).
+	let busy = false;
 
 	const saveKey = async () => {
-		if (!value) return;
+		if (!value || busy) return;
+		busy = true;
 		saving = true;
 		try {
 			// Le bridge auto-active ce fournisseur si aucun cerveau n'était encore actif
@@ -135,6 +140,7 @@
 			toast.error($i18n.t('Impossible d’enregistrer la clé'));
 		} finally {
 			saving = false;
+			busy = false;
 		}
 	};
 
@@ -166,7 +172,8 @@
 	};
 
 	const testKey = async () => {
-		if (!value) return;
+		if (!value || busy) return;
+		busy = true;
 		testing = true;
 		try {
 			const r = await validateProviderKey(localStorage.token, provider.id, value);
@@ -181,6 +188,7 @@
 			toast.error($i18n.t('Impossible de tester la clé'));
 		} finally {
 			testing = false;
+			busy = false;
 		}
 	};
 
@@ -504,7 +512,7 @@
 					<button
 						type="button"
 						class="text-xs px-2 py-1 rounded-lg text-gray-500 hover:text-gray-800 dark:hover:text-gray-200 transition disabled:opacity-40"
-						disabled={!value || testing}
+						disabled={!value || busy}
 						on:click={testKey}
 					>
 						{#if testing}<Spinner className="size-3.5" />{:else}{$i18n.t('Tester')}{/if}
@@ -512,7 +520,7 @@
 					<button
 						type="button"
 						class="text-xs px-3 py-1.5 rounded-lg btn-premium bg-black text-white dark:bg-white dark:text-black transition disabled:opacity-40"
-						disabled={!value || saving}
+						disabled={!value || busy}
 						on:click={saveKey}
 					>
 						{#if saving}<Spinner className="size-3.5" />{:else}{$i18n.t('Enregistrer')}{/if}

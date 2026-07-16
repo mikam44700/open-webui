@@ -19,11 +19,15 @@
 	let show = false;
 	let saving = false;
 	let testing = false;
+	// Verrou partagé Tester/Enregistrer : même champ (la clé saisie) touché par les deux
+	// actions — sans lui, des requêtes se chevauchent sur la même clé (issue #3 de l'audit).
+	let busy = false;
 
 	$: configured = provider.state !== 'not_configured';
 
 	const test = async () => {
-		if (!value) return;
+		if (!value || busy) return;
+		busy = true;
 		testing = true;
 		try {
 			const res = await validateProviderKey(localStorage.token, provider.id, value);
@@ -36,11 +40,13 @@
 			toast.error($i18n.t('Impossible de tester la clé'));
 		} finally {
 			testing = false;
+			busy = false;
 		}
 	};
 
 	const save = async () => {
-		if (!value) return;
+		if (!value || busy) return;
+		busy = true;
 		saving = true;
 		try {
 			await setProviderKey(localStorage.token, provider.id, value);
@@ -51,6 +57,7 @@
 			toast.error($i18n.t('Impossible d’enregistrer la clé'));
 		} finally {
 			saving = false;
+			busy = false;
 		}
 	};
 </script>
@@ -88,7 +95,7 @@
 		<button
 			type="button"
 			class="text-sm px-3 py-1.5 rounded-xl hover:bg-gray-100 dark:hover:bg-gray-850 transition disabled:opacity-50"
-			disabled={!value || testing}
+			disabled={!value || busy}
 			on:click={test}
 		>
 			{#if testing}
@@ -100,7 +107,7 @@
 		<button
 			type="button"
 			class="text-sm px-3 py-1.5 rounded-xl btn-premium bg-black text-white dark:bg-white dark:text-black transition disabled:opacity-50"
-			disabled={!value || saving}
+			disabled={!value || busy}
 			on:click={save}
 		>
 			{#if saving}

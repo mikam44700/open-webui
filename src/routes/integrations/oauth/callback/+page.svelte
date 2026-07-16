@@ -13,6 +13,19 @@
 	let providerName = '';
 	let errorMessage = '';
 
+	// Messages connus renvoyés par les fournisseurs OAuth (RFC 6749 §4.1.2.1 + variantes
+	// courantes). Tout code hors de cette liste passe par un message générique préfixé
+	// (jamais affiché comme une déclaration de l'application — cf. issue #2 de l'audit).
+	const OAUTH_ERROR_LABELS: Record<string, string> = {
+		access_denied: "Vous avez refusé l'autorisation d'accès.",
+		invalid_request: 'Requête invalide envoyée au fournisseur.',
+		invalid_scope: 'Permissions demandées invalides ou non reconnues.',
+		unauthorized_client: "Cette application n'est pas autorisée pour ce fournisseur.",
+		unsupported_response_type: 'Configuration invalide côté fournisseur.',
+		server_error: 'Le fournisseur a rencontré une erreur interne.',
+		temporarily_unavailable: 'Le fournisseur est temporairement indisponible. Réessayez plus tard.'
+	};
+
 	// Redirige vers la page Capacités (onglet Intégrations) après un court délai.
 	const redirectToIntegrations = () => {
 		setTimeout(() => {
@@ -23,11 +36,18 @@
 	onMount(async () => {
 		const params = $page.url.searchParams;
 
-		// Cas d'erreur renvoyée directement par le fournisseur OAuth.
+		// Cas d'erreur renvoyée directement par le fournisseur OAuth. `error`/`error_description`
+		// sont des paramètres de query string contrôlés par un tiers (potentiellement un lien
+		// forgé) : jamais affichés tels quels comme un message de l'application.
 		const oauthError = params.get('error');
 		if (oauthError) {
-			const desc = params.get('error_description') ?? oauthError;
-			errorMessage = desc;
+			const known = OAUTH_ERROR_LABELS[oauthError];
+			if (known) {
+				errorMessage = known;
+			} else {
+				const raw = (params.get('error_description') ?? oauthError).slice(0, 200);
+				errorMessage = `Le fournisseur a renvoyé : ${raw}`;
+			}
 			state = 'error';
 			return;
 		}
@@ -35,6 +55,7 @@
 		const code = params.get('code');
 		const oauthState = params.get('state') ?? '';
 		const providerId = sessionStorage.getItem('oauth_provider');
+		const expectedNonce = sessionStorage.getItem('oauth_nonce');
 
 		// Récupérer le nom affiché du provider pour les messages utilisateur.
 		providerName = (providerId && INTEGRATION_FR[providerId]?.name) || providerId || 'ce service';
@@ -42,6 +63,19 @@
 		if (!code || !providerId) {
 			errorMessage = 'Paramètres manquants dans la réponse du fournisseur.';
 			state = 'error';
+			return;
+		}
+
+		// Défense en profondeur CSRF (côté navigateur) : le state reçu doit correspondre
+		// STRICTEMENT au state mémorisé au moment du clic « Se connecter » (cf.
+		// IntegrationCard.onConnectOAuth). Absent ou différent = lien de callback forgé ou
+		// rejoué → on refuse avant tout appel réseau. Le bridge valide aussi le state côté
+		// serveur ; ceci s'ajoute, ça ne le remplace pas.
+		if (!expectedNonce || oauthState !== expectedNonce) {
+			errorMessage = 'Lien de connexion invalide ou expiré. Relancez la connexion depuis les intégrations.';
+			state = 'error';
+			sessionStorage.removeItem('oauth_provider');
+			sessionStorage.removeItem('oauth_nonce');
 			return;
 		}
 
@@ -56,8 +90,9 @@
 			const res = await exchangeOAuth(token, providerId, code, oauthState);
 
 			if (res?.state === 'connected') {
-				// Nettoyer la clé temporaire du sessionStorage.
+				// Nettoyer les clés temporaires du sessionStorage.
 				sessionStorage.removeItem('oauth_provider');
+				sessionStorage.removeItem('oauth_nonce');
 				state = 'success';
 				redirectToIntegrations();
 			} else {

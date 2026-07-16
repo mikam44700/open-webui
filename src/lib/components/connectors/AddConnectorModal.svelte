@@ -31,6 +31,17 @@
 		authType = 'none';
 	};
 
+	// Validation basique côté front (format + schéma http/https) : retour immédiat pour
+	// l'utilisateur ; le bridge reste l'autorité finale (issue #5 de l'audit).
+	const isValidHttpUrl = (value: string): boolean => {
+		try {
+			const u = new URL(value.trim());
+			return u.protocol === 'http:' || u.protocol === 'https:';
+		} catch {
+			return false;
+		}
+	};
+
 	const parseArgs = (value: string): string[] =>
 		value
 			.split(/\r?\n/)
@@ -57,6 +68,10 @@
 		}
 		if (transport === 'http' && !url.trim()) {
 			toast.error($i18n.t('L’URL est requise'));
+			return;
+		}
+		if (transport === 'http' && !isValidHttpUrl(url)) {
+			toast.error($i18n.t('URL invalide (http:// ou https:// attendu)'));
 			return;
 		}
 		if (transport === 'stdio' && !command.trim()) {
