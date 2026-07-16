@@ -48,6 +48,7 @@ async def _reject_unsafe_url(url: str) -> None:
             detail={"error": {"code": "invalid_url", "message": "URL sans hôte valide."}},
         )
     if hostname.lower() in _METADATA_HOSTS:
+        log.warning("URL d'onboarding rejetée (hôte metadata cloud) : %r", hostname)
         raise HTTPException(
             status_code=400,
             detail={"error": {"code": "unsafe_url", "message": "Hôte non autorisé."}},
@@ -55,12 +56,19 @@ async def _reject_unsafe_url(url: str) -> None:
     try:
         # Résolution DNS hors event loop (socket.getaddrinfo est bloquant).
         addr_infos = await asyncio.to_thread(socket.getaddrinfo, hostname, None)
-    except OSError:
+    except OSError as exc:
         # Résolution DNS impossible ici : on laisse passer, le bridge (net_guard) tranchera.
+        # Tracé en DEBUG (cas courant : site injoignable, faute de frappe) plutôt qu'avalé —
+        # utile pour distinguer après coup "notre garde locale n'a rien vu" de "elle a bien
+        # tourné mais n'a rien trouvé à bloquer".
+        log.debug("résolution DNS de %r échouée en garde anti-SSRF locale (%s) — repli sur net_guard", hostname, exc)
         return
     for info in addr_infos:
         ip = ipaddress.ip_address(info[4][0])
         if ip.is_private or ip.is_loopback or ip.is_link_local or ip.is_reserved or ip.is_multicast:
+            log.warning(
+                "URL d'onboarding rejetée (résolution %r -> %s, réseau privé/local)", hostname, ip
+            )
             raise HTTPException(
                 status_code=400,
                 detail={

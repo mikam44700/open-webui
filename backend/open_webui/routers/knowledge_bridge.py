@@ -55,7 +55,10 @@ async def sync_to_agent(
     for fid in file_ids:
         try:
             f = await Files.get_file_by_id(fid, db=db)
-        except Exception:
+        except Exception:  # noqa: BLE001 — un fichier illisible ne doit pas bloquer les autres
+            # Avant ce lot, une vraie panne DB était indiscernable d'un fichier simplement
+            # absent (les deux aboutissaient à `f = None`, silencieusement compté "ignoré").
+            log.warning("lecture du fichier %s (base %s) échouée — ignoré (pas de contenu)", fid, knowledge_id, exc_info=True)
             f = None
         content = ((f.data or {}).get("content") if f and f.data else None) or ""
         if not content.strip():

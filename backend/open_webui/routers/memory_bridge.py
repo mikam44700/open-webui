@@ -31,6 +31,11 @@ def _reject_path_traversal(value: str) -> str:
     """
     normalized = value.replace("\\", "/")
     if value.startswith(("/", "~")) or any(seg == ".." for seg in normalized.split("/")):
+        # Garde-fou de sécurité déclenché (path traversal potentiel) : jamais journalisé
+        # jusqu'ici (logger déclaré mais inutilisé, cf. audit observabilité). Le chemin n'est
+        # pas un secret (juste une position dans le coffre) — utile pour distinguer un vrai
+        # essai malveillant d'un bug client qui construit un chemin invalide par accident.
+        log.warning("chemin de coffre rejeté (traversal potentiel) : %r", value)
         raise HTTPException(
             status_code=400,
             detail={"error": {"code": "bad_path", "message": "chemin invalide"}},
