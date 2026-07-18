@@ -111,10 +111,14 @@ def _wait_ready(attempts: int = 120) -> bool:
 
 
 def status() -> dict:
-    """État de Crawl4AI : conteneur en marche + connecteur MCP enregistré dans Hermes."""
+    """État de Crawl4AI : conteneur en marche + connecteur MCP enregistré dans Hermes.
+
+    ``managed`` dit au front qu'on est en déploiement pré-connecté : la carte n'affiche
+    alors AUCUN bouton de gestion (installer/désinstaller/MAJ) — rien à faire côté client.
+    """
     running = _container_running()
     active = running and _mcp_registered()
-    return {"installed": running, "running": running, "active": active}
+    return {"installed": running, "running": running, "active": active, "managed": MANAGED}
 
 
 def _read_token() -> str:

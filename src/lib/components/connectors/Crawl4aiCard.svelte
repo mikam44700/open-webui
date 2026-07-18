@@ -38,19 +38,39 @@
 	$: logoSrc = CONNECTOR_LOGO[NAME] ?? '';
 	$: fullBleed = CONNECTOR_LOGO_FULL_BLEED.has(NAME);
 
-	// État renvoyé par le bridge : { installed, running, active }.
+	// État renvoyé par le bridge : { installed, running, active, managed }.
 	// `active` = conteneur en marche ET connecteur MCP enregistré dans Hermes.
-	let status: { installed: boolean; running: boolean; active: boolean } | null = null;
+	// `managed` = déploiement pré-connecté (Docker client) : rien à gérer côté client,
+	// la carte n'affiche aucun bouton (ni installer, ni désinstaller, ni MAJ).
+	let status: {
+		installed: boolean;
+		running: boolean;
+		active: boolean;
+		managed?: boolean;
+	} | null = null;
 	let busy = false;
 	let expanded = false;
+	let pollTimer: ReturnType<typeof setTimeout> | null = null;
 
 	$: installed = status?.active ?? false;
+	$: managed = status?.managed ?? false;
 
 	const refresh = async () => {
 		status = await getCrawl4aiStatus(localStorage.token).catch(() => null);
+		// Mode géré : le connecteur se branche tout seul au démarrage — tant qu'il n'est
+		// pas actif (ex. redémarrage en cours), on re-vérifie au lieu de proposer quoi
+		// que ce soit au client.
+		if (status?.managed && !status?.active) {
+			pollTimer = setTimeout(refresh, 5000);
+		}
 	};
 
-	onMount(refresh);
+	onMount(() => {
+		refresh();
+		return () => {
+			if (pollTimer) clearTimeout(pollTimer);
+		};
+	});
 
 	const install = async () => {
 		busy = true;
@@ -189,12 +209,23 @@
 		<span class="text-[11px] text-gray-500 dark:text-gray-400 truncate">
 			{#if installed}
 				{$i18n.t('Souverain · actif')}
+			{:else if managed}
+				{$i18n.t('Souverain · démarrage…')}
 			{:else}
 				{$i18n.t('Souverain · gratuit')}
 			{/if}
 		</span>
 		<div class="flex items-center gap-2 flex-none">
-			{#if installed}
+			{#if managed}
+				{#if !installed}
+					<span
+						class="text-xs px-3 py-1.5 text-gray-500 dark:text-gray-400 flex items-center gap-1.5"
+					>
+						<Spinner className="size-3.5" />
+						{$i18n.t('Démarrage…')}
+					</span>
+				{/if}
+			{:else if installed}
 				<UpdateButton
 					enabled={installed}
 					toolLabel={displayName}

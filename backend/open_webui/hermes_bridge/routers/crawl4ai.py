@@ -1,6 +1,6 @@
 """Endpoints d'installation à la demande de Crawl4AI (lecture web approfondie).
 
-  GET  /crawl4ai/status     → { installed, running, active }
+  GET  /crawl4ai/status     → { installed, running, active, managed }
   POST /crawl4ai/install    → démarre le conteneur + enregistre le connecteur MCP
   POST /crawl4ai/uninstall  → retire le connecteur MCP + arrête/supprime le conteneur et l'image
 
