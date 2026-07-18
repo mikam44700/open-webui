@@ -311,3 +311,6 @@ cypress/videos
 cypress/screenshots
 .vscode/settings.json
 .cptr
+
+# Seed de config Hermes copie depuis ~/.hermes par deploy/up.sh (contient des cles) — jamais versionne
+deploy/.hermes-seed/

@@ -23,8 +23,19 @@ RUN git clone --filter=blob:none ${HERMES_REPO} /opt/hermes-agent \
     && /opt/hermes-agent/venv/bin/pip install --no-cache-dir --upgrade pip \
     && /opt/hermes-agent/venv/bin/pip install --no-cache-dir -e /opt/hermes-agent
 
+# uv/uvx dans le venv Hermes : les serveurs MCP (dont data.gouv.fr) se lancent via uvx.
+RUN /opt/hermes-agent/venv/bin/pip install --no-cache-dir uv
+
 # HERMES_HOME vit DANS le volume de données open-webui (/app/backend/data) :
 # config.yaml, .env (tokens) et mémoires survivent aux redémarrages et aux MAJ d'image.
 ENV HERMES_HOME=/app/backend/data/hermes \
     HERMES_PYTHON=/opt/hermes-agent/venv/bin/python \
     HERMES_BIN=/opt/hermes-agent/venv/bin/hermes
+
+# Le venv Hermes en FIN de PATH : hermes/uv/uvx trouvables partout, sans jamais masquer
+# le python/uvicorn de l'app (qui restent prioritaires en tête de PATH).
+ENV PATH="${PATH}:/opt/hermes-agent/venv/bin"
+
+# Entrypoint : seed de la config Hermes (1er démarrage) + seed de l'équipe, puis start.sh.
+COPY --chmod=0755 entrypoint.sh /lunaria-entrypoint.sh
+CMD ["bash", "/lunaria-entrypoint.sh"]

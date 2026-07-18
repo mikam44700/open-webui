@@ -46,6 +46,20 @@ if [[ "$MODE" == "local" ]]; then
   fi
 fi
 
+# Reprise de la config Hermes du poste (SPEC-stack-complete, critère 5) : COPIE de
+# fichiers choisis de ~/.hermes vers deploy/.hermes-seed (gitignoré) — l'original du Mac
+# n'est JAMAIS déplacé ni modifié. On ne copie que la config utile (jamais le code, les
+# caches ni les binaires macOS). Un fichier déjà présent dans le seed n'est pas réécrasé.
+mkdir -p .hermes-seed
+if [[ -f "$HOME/.hermes/config.yaml" ]]; then
+  for item in config.yaml .env SOUL.md skills plugins cron hooks memories; do
+    if [[ -e "$HOME/.hermes/$item" && ! -e ".hermes-seed/$item" ]]; then
+      cp -a "$HOME/.hermes/$item" ".hermes-seed/$item"
+    fi
+  done
+  chmod -R go-rwx .hermes-seed
+fi
+
 if ! docker image inspect lunaria-app >/dev/null 2>&1; then
   ./build.sh
 fi
