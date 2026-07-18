@@ -19,6 +19,7 @@ La plomberie Docker commune (chemin absolu, AGENTOS_COMPOSE_FILE) vit dans ``doc
 from __future__ import annotations
 
 import logging
+import os
 import re
 import secrets
 import threading
@@ -46,8 +47,18 @@ IMAGE = "unclecode/crawl4ai:0.9.0"
 MCP_NAME = "crawl4ai"
 PORT = 11235
 UPDATE_KEY = "crawl4ai"
-HEALTH_URL = f"http://localhost:{PORT}/health"
-MCP_URL = f"http://localhost:{PORT}/mcp/sse"
+# Deux modes de déploiement (SPEC-deploiement-docker-local-vps) :
+#  - autonome (défaut, dev hors Docker) : le bridge gère lui-même le conteneur via
+#    docker compose (bouton « Installer »), joignable sur localhost ;
+#  - géré (CRAWL4AI_MANAGED=1, stack deploy/) : crawl4ai est un service PERMANENT du
+#    compose, joignable par son nom de service Docker (CRAWL4AI_BASE_URL) ; le bridge
+#    ne touche jamais à Docker (pas de socket dans le conteneur) et se contente de
+#    brancher/débrancher le connecteur MCP. Le token est fourni par le compose
+#    (CRAWL4AI_API_TOKEN, même valeur injectée dans les deux conteneurs).
+MANAGED = os.environ.get("CRAWL4AI_MANAGED", "").strip().lower() in ("1", "true", "yes")
+BASE_URL = os.environ.get("CRAWL4AI_BASE_URL", f"http://localhost:{PORT}").rstrip("/")
+HEALTH_URL = f"{BASE_URL}/health"
+MCP_URL = f"{BASE_URL}/mcp/sse"
 # Variable où Hermes lit le token du connecteur (en-tête Authorization: Bearer ${...}).
 # Convention de mcp_adapter._env_key_for("crawl4ai").
 _TOKEN_ENV_KEY = "MCP_CRAWL4AI_API_KEY"
@@ -64,6 +75,13 @@ _LOCK = threading.Lock()
 
 
 def _container_running() -> bool:
+    # Mode géré : pas de docker dans le conteneur — la sonde /health fait foi
+    # (elle est publique, cf. _wait_ready).
+    if MANAGED:
+        try:
+            return httpx.get(HEALTH_URL, timeout=2).status_code < 500
+        except Exception:
+            return False
     return docker_util.container_running(CONTAINER)
 
 
@@ -105,14 +123,17 @@ def _read_token() -> str:
     Jamais journalisé. Retourne une chaîne vide si absent (l'appel échouera proprement).
     """
     env = hermes_adapter.HERMES_HOME / ".env"
-    if not env.exists():
-        return ""
-    for line in env.read_text(encoding="utf-8", errors="ignore").splitlines():
-        if line.startswith(f"{_TOKEN_ENV_KEY}="):
-            v = line.split("=", 1)[1].strip()
-            if len(v) >= 2 and v[0] == '"' and v[-1] == '"':
-                v = v[1:-1]
-            return v
+    if env.exists():
+        for line in env.read_text(encoding="utf-8", errors="ignore").splitlines():
+            if line.startswith(f"{_TOKEN_ENV_KEY}="):
+                v = line.split("=", 1)[1].strip()
+                if len(v) >= 2 and v[0] == '"' and v[-1] == '"':
+                    v = v[1:-1]
+                return v
+    # Mode géré : le token vit dans l'environnement du conteneur (injecté par le
+    # compose) — filet si la pré-connexion n'a pas encore écrit ~/.hermes/.env.
+    if MANAGED:
+        return os.environ.get("CRAWL4AI_API_TOKEN", "")
     return ""
 
 
@@ -133,7 +154,7 @@ def crawl_markdown(url: str) -> dict:
     token = _read_token()
     try:
         r = httpx.post(
-            f"http://localhost:{PORT}/md",
+            f"{BASE_URL}/md",
             headers={"Authorization": f"Bearer {token}"},
             json={"url": url},
             timeout=90,
@@ -251,7 +272,7 @@ def _fetch_md(url: str, token: str, timeout: float = 40.0, filter_: str = "fit")
         return ""
     try:
         r = httpx.post(
-            f"http://localhost:{PORT}/md",
+            f"{BASE_URL}/md",
             headers={"Authorization": f"Bearer {token}"},
             json={"url": url, "f": filter_},
             timeout=timeout,
@@ -374,7 +395,7 @@ def _fetch_internal_links(url: str, token: str, timeout: float = 40.0) -> list[s
         return []
     try:
         r = httpx.post(
-            f"http://localhost:{PORT}/crawl",
+            f"{BASE_URL}/crawl",
             headers={"Authorization": f"Bearer {token}"},
             json={"urls": [url]},
             timeout=timeout,
@@ -710,7 +731,7 @@ def _fetch_quality_links(url: str, token: str, timeout: float = 40.0) -> list[di
         return []
     try:
         response = httpx.post(
-            f"http://localhost:{PORT}/crawl",
+            f"{BASE_URL}/crawl",
             headers={"Authorization": f"Bearer {token}"},
             json={"urls": [url]},
             timeout=timeout,
@@ -845,6 +866,20 @@ def install() -> dict:
         if status()["active"]:
             return status()  # déjà installé et branché : rien à refaire
 
+        # Mode géré : le conteneur est un service permanent du compose — on ne démarre
+        # rien, on branche seulement le connecteur MCP avec le token du déploiement.
+        if MANAGED:
+            token = os.environ.get("CRAWL4AI_API_TOKEN", "")
+            if not token:
+                raise RuntimeError(
+                    "CRAWL4AI_API_TOKEN absent de l'environnement — vérifier le fichier "
+                    ".env du déploiement (deploy/)."
+                )
+            if not _wait_ready():
+                raise RuntimeError("Le service Crawl4AI du déploiement ne répond pas.")
+            _register(token)
+            return status()
+
         token = secrets.token_hex(32)
 
         # Le compose interpole ${CRAWL4AI_API_TOKEN} dans le service (jamais écrit sur disque).
@@ -865,10 +900,15 @@ def install() -> dict:
 
         # Côté Hermes : le même token (lu par le connecteur via Authorization: Bearer ${VAR}),
         # puis enregistrement du connecteur MCP SSE authentifié — auto-reload, pas de redémarrage.
-        mcp_adapter.set_key(MCP_NAME, token)
-        if not _mcp_registered():
-            mcp_adapter.add_custom(MCP_NAME, "sse", url=MCP_URL, auth_type="key")
+        _register(token)
         return status()
+
+
+def _register(token: str) -> None:
+    """Donne le token à Hermes puis enregistre le connecteur MCP s'il manque."""
+    mcp_adapter.set_key(MCP_NAME, token)
+    if not _mcp_registered():
+        mcp_adapter.add_custom(MCP_NAME, "sse", url=MCP_URL, auth_type="key")
 
 
 def uninstall() -> dict:
@@ -896,6 +936,10 @@ def uninstall() -> dict:
             logger.warning(
                 "suppression du token crawl4ai échouée (désinstallation continue)", exc_info=True
             )
+        # Mode géré : le conteneur appartient au compose (service permanent), on ne touche
+        # ni au conteneur ni à l'image — « Installer » le rebranche à l'identique.
+        if MANAGED:
+            return status()
         # 2. Arrêt + suppression du conteneur crawl4ai seul (jamais `down`, tout le stack).
         docker_util.compose("rm", "-s", "-f", SERVICE, timeout=90)
         # 3. Suppression de l'image pour libérer l'espace disque (best-effort).
@@ -906,6 +950,8 @@ def uninstall() -> dict:
 def update_available() -> bool:
     """Une MAJ est-elle disponible ? Vrai si le conteneur tourne sur une image différente de
     la version cible épinglée (typiquement après que tu aies bumpé le tag dans le code)."""
+    if MANAGED:
+        return False  # version épinglée dans le compose du déploiement, MAJ hors app
     if not _container_running():
         return False
     return docker_util.container_image(CONTAINER) not in ("", IMAGE)
@@ -973,9 +1019,58 @@ def _perform_update(log) -> None:
 
 def start_update() -> dict:
     """Lance la MAJ en arrière-plan (suivie via update_status). Idempotent."""
+    if MANAGED:
+        raise RuntimeError(
+            "Mise à jour gérée par le déploiement (version épinglée dans deploy/), pas par l'app."
+        )
     return docker_update.start(UPDATE_KEY, _perform_update)
 
 
 def update_status() -> dict:
     """Progression de la MAJ en cours : {running, started, success, log}."""
     return docker_update.status(UPDATE_KEY)
+
+
+# --- Pré-connexion au démarrage (mode géré) ----------------------------------
+
+
+def start_preconnect_if_managed() -> None:
+    """Branche Crawl4AI tout seul au démarrage de l'app (mode géré uniquement).
+
+    C'est la promesse produit du déploiement Docker : le client arrive et le connecteur
+    est déjà actif, sans cliquer sur « Installer ». Thread daemon : ne bloque jamais le
+    démarrage de l'app (Chromium met parfois >1 min à répondre au premier lancement).
+    """
+    if not MANAGED:
+        return
+    threading.Thread(target=_preconnect, name="crawl4ai-preconnect", daemon=True).start()
+
+
+def _preconnect(attempts: int = 3) -> None:
+    """Quelques tentatives espacées : install() est idempotent et attend déjà /health."""
+    try:
+        hermes_adapter.HERMES_HOME.mkdir(parents=True, exist_ok=True)
+        # L'image installe Hermes hors du volume de données (/opt/hermes-agent) ; on
+        # expose le dépôt là où le reste de l'app l'attend (HERMES_HOME/hermes-agent).
+        from pathlib import Path
+
+        repo = Path(hermes_adapter.HERMES_PYTHON).parents[2]
+        link = hermes_adapter.HERMES_HOME / "hermes-agent"
+        if repo.exists() and not link.exists():
+            link.symlink_to(repo)
+    except Exception:  # noqa: BLE001 — le point dur sera loggé par install()
+        logger.warning("préparation de HERMES_HOME impossible", exc_info=True)
+    for i in range(attempts):
+        try:
+            install()
+            logger.info("Crawl4AI pré-connecté (mode géré).")
+            return
+        except Exception:  # noqa: BLE001 — on retente, puis on laisse la main au bouton UI
+            logger.warning(
+                "pré-connexion Crawl4AI échouée (tentative %d/%d)", i + 1, attempts, exc_info=True
+            )
+            time.sleep(30)
+    logger.error(
+        "Crawl4AI n'a pas pu être pré-connecté — le bouton « Installer » de l'onglet "
+        "Capacités permet de retenter sans redémarrer."
+    )

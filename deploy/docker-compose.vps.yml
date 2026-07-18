@@ -1,0 +1,25 @@
+# Override VPS (production client) : HTTPS automatique via Caddy (Let's Encrypt).
+# Seul Caddy est exposé à Internet (80/443) ; lunaria et crawl4ai restent sur le
+# réseau Docker interne. Prérequis : LUNARIA_DOMAIN renseigné dans .env et un
+# enregistrement DNS A du domaine pointant vers le VPS.
+services:
+  caddy:
+    image: caddy:2-alpine
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    environment:
+      - LUNARIA_DOMAIN=${LUNARIA_DOMAIN:?renseigner LUNARIA_DOMAIN dans .env}
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy-data:/data # certificats Let's Encrypt (persistés)
+      - caddy-config:/config
+    networks:
+      - internal
+    depends_on:
+      - lunaria
+
+volumes:
+  caddy-data:
+  caddy-config:

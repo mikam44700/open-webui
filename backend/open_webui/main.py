@@ -788,6 +788,12 @@ app.include_router(hermes_mcp.router, prefix='/api/v1', tags=['mcp'])
 app.include_router(hermes_capabilities.router, prefix='/api/v1/capabilities', tags=['capabilities'])
 app.include_router(hermes_crawl4ai.router, prefix='/api/v1/capabilities', tags=['crawl4ai'])
 app.dependency_overrides[_hermes_bridge_key] = get_admin_user
+
+# Déploiement Docker (deploy/) : Crawl4AI est pré-connecté au démarrage, le client n'a
+# rien à installer. No-op hors mode géré (dev local inchangé). Thread daemon, non bloquant.
+from open_webui.hermes_bridge import crawl4ai_adapter as _hermes_crawl4ai_adapter
+
+_hermes_crawl4ai_adapter.start_preconnect_if_managed()
 app.include_router(automations.router, prefix='/api/v1/automations', tags=['automations'])
 app.include_router(calendar.router, prefix='/api/v1/calendars', tags=['calendars'])
 

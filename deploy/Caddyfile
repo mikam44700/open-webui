@@ -1,0 +1,5 @@
+# Reverse proxy HTTPS de LunarIA (mode VPS uniquement).
+# Le domaine vient de LUNARIA_DOMAIN (.env) ; certificat Let's Encrypt automatique.
+{$LUNARIA_DOMAIN} {
+	reverse_proxy lunaria:8080
+}

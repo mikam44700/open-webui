@@ -1,0 +1,68 @@
+# Stack LunarIA — base commune local / VPS (SPEC-deploiement-docker-local-vps).
+#
+# Ne se lance JAMAIS seule : toujours via ./up.sh (local|vps), qui ajoute l'override
+# du mode choisi et génère les secrets du .env au premier lancement.
+#
+# Principe : la MÊME stack partout, seul le .env change. Crawl4AI est un service
+# permanent, pré-connecté par l'app au démarrage (CRAWL4AI_MANAGED=1) — le client
+# n'installe rien. Aucun port de crawl4ai n'est publié : il n'est joignable que
+# depuis le réseau Docker interne (anti-exposition, critère 4 de la spec).
+name: lunaria
+
+services:
+  lunaria:
+    image: lunaria-app
+    restart: unless-stopped
+    depends_on:
+      - crawl4ai
+    environment:
+      - WEBUI_SECRET_KEY=${WEBUI_SECRET_KEY:?lancer ./up.sh qui genere le .env}
+      - CRAWL4AI_MANAGED=1
+      - CRAWL4AI_BASE_URL=http://crawl4ai:11235
+      - CRAWL4AI_API_TOKEN=${CRAWL4AI_API_TOKEN:?lancer ./up.sh qui genere le .env}
+    volumes:
+      - lunaria-data:/app/backend/data
+    networks:
+      - internal
+
+  crawl4ai:
+    image: unclecode/crawl4ai:0.9.0 # version épinglée — DOIT rester = crawl4ai_adapter.IMAGE
+    restart: unless-stopped
+    environment:
+      # Sans token l'image bind en loopback (injoignable) ; avec token elle sert le
+      # réseau interne et exige Authorization: Bearer. Même valeur côté lunaria.
+      - CRAWL4AI_API_TOKEN=${CRAWL4AI_API_TOKEN:?lancer ./up.sh qui genere le .env}
+    networks:
+      - internal
+    # Durcissement repris du docker-compose officiel Crawl4AI (moindre privilège).
+    shm_size: "1gb" # Chromium a besoin de mémoire partagée
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    read_only: true
+    tmpfs:
+      - /tmp
+      - /var/lib/redis:uid=999,gid=999,mode=0700
+      - /var/lib/crawl4ai/outputs:uid=999,gid=999,mode=0700
+      - /home/appuser/.crawl4ai:uid=999,gid=999,mode=0700
+      - /home/appuser/.cache/url_seeder:uid=999,gid=999,mode=0700
+      - /home/appuser/.gunicorn:uid=999,gid=999,mode=0700
+    user: "appuser"
+    deploy:
+      resources:
+        limits:
+          memory: 4G
+          pids: 512
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:11235/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+volumes:
+  lunaria-data:
+
+networks:
+  internal:

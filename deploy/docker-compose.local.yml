@@ -1,0 +1,6 @@
+# Override LOCAL (dev / démo sur le poste) : publie l'app sur http://localhost:3000.
+# Bind sur 127.0.0.1 uniquement — pas d'exposition sur le réseau local.
+services:
+  lunaria:
+    ports:
+      - "127.0.0.1:${LUNARIA_PORT:-3000}:8080"
