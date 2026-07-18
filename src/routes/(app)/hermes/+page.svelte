@@ -1,6 +1,8 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
-	import { showSidebar, expertMode } from '$lib/stores';
+	import { goto } from '$app/navigation';
+	import { page } from '$app/stores';
+	import { showSidebar, expertMode, user } from '$lib/stores';
 	import Sidebar from '$lib/components/icons/Sidebar.svelte';
 	import Switch from '$lib/components/common/Switch.svelte';
 	import Tooltip from '$lib/components/common/Tooltip.svelte';
@@ -10,19 +12,46 @@
 	import McpList from '$lib/components/connectors/McpList.svelte';
 	import WebSearchList from '$lib/components/capabilities/WebSearchList.svelte';
 	import ToolsetList from '$lib/components/capabilities/ToolsetList.svelte';
+	import SkillList from '$lib/components/capabilities/SkillList.svelte';
 	import { prefetchTools } from '$lib/apis/capabilities';
 	import mcpLogo from '$lib/assets/connectors/mcp.svg';
 
 	// --- Onglets de l'espace de travail ---
+	// « Compétences » (panneau technique des skills natives Hermes, porté de la v1)
+	// n'apparaît qu'en Réglages avancés : côté client non-tech, les compétences sont
+	// activées par défaut — rien à gérer (zéro charge mentale).
 	const ONGLETS = [
 		'Modèles IA',
 		'Messagerie',
 		'Intégrations',
 		'MCP',
 		'Recherche & web',
-		'Outils'
+		'Outils',
+		'Compétences'
 	] as const;
-	let ongletActif: (typeof ONGLETS)[number] = 'Modèles IA';
+	type Onglet = (typeof ONGLETS)[number];
+	let ongletActif: Onglet = 'Modèles IA';
+
+	const ONGLETS_EXPERTS: Onglet[] = ['Compétences'];
+	$: ongletsVisibles = $expertMode
+		? [...ONGLETS]
+		: ONGLETS.filter((o) => !ONGLETS_EXPERTS.includes(o));
+	// Réglages avancés désactivés pendant qu'on est sur un onglet expert → retour Modèles IA.
+	$: if (!$expertMode && ONGLETS_EXPERTS.includes(ongletActif)) ongletActif = 'Modèles IA';
+
+	// Lien profond (porté de la v1) : ?tab=providers|messaging|integrations|connectors|
+	// web-search|tools|skills ouvre directement le bon onglet (clés v1 conservées pour ne
+	// casser aucun lien existant).
+	const TAB_PAR_CLE: Record<string, Onglet> = {
+		providers: 'Modèles IA',
+		messaging: 'Messagerie',
+		integrations: 'Intégrations',
+		connectors: 'MCP',
+		mcp: 'MCP',
+		'web-search': 'Recherche & web',
+		tools: 'Outils',
+		skills: 'Compétences'
+	};
 
 	// Bannières premium par onglet (portées de la v1) : accroche + palette dégradée.
 	// Classes Tailwind en toutes lettres (littéraux) pour être compilées.
@@ -101,11 +130,30 @@
 				halo1: 'bg-violet-300/40 dark:bg-violet-500/20',
 				halo2: 'bg-indigo-300/30 dark:bg-indigo-500/10'
 			}
+		},
+		Compétences: {
+			desc: 'Le détail des compétences de votre assistant. Réservé aux réglages avancés.',
+			banner: {
+				lead: 'Le détail des',
+				strong: 'compétences de votre assistant',
+				sub: 'Réservé aux réglages avancés.',
+				wrap: 'from-teal-200/70 via-cyan-100/50 to-emerald-100/60 dark:from-teal-900/30 dark:via-cyan-900/20 dark:to-emerald-900/20',
+				halo1: 'bg-teal-300/40 dark:bg-teal-500/20',
+				halo2: 'bg-cyan-300/30 dark:bg-cyan-500/10'
+			}
 		}
 	};
 	$: sectionActive = SECTIONS[ongletActif];
 
 	onMount(() => {
+		// Page admin-only (FR-002, porté de la v1) : un compte « user » n'a rien à faire ici.
+		if ($user?.role !== 'admin') {
+			goto('/');
+			return;
+		}
+		// Lien profond ?tab=… (porté de la v1).
+		const demande = $page.url.searchParams.get('tab');
+		if (demande && TAB_PAR_CLE[demande]) ongletActif = TAB_PAR_CLE[demande];
 		// L'onglet Outils charge /tools (~2,5 s côté bridge) : préchargé en fond dès
 		// l'ouverture de la page pour un affichage instantané (recette v1).
 		prefetchTools(localStorage.token);
@@ -169,7 +217,7 @@
 			class="flex flex-wrap items-center gap-1 mb-5 p-1 rounded-full bg-gray-50 dark:bg-gray-850 w-fit"
 			role="tablist"
 		>
-			{#each ONGLETS as onglet}
+			{#each ongletsVisibles as onglet}
 				<button
 					role="tab"
 					aria-selected={ongletActif === onglet}
@@ -256,6 +304,11 @@
 			<!-- Capacités de l'assistant : toolsets Hermes (porté de la v1) -->
 			<div class="-mx-3">
 				<ToolsetList />
+			</div>
+		{:else if ongletActif === 'Compétences'}
+			<!-- Skills natives Hermes, panneau expert (porté de la v1) -->
+			<div class="-mx-3">
+				<SkillList />
 			</div>
 		{:else if ongletActif !== 'Modèles IA'}
 			<!-- Onglets à venir -->
