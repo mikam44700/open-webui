@@ -20,6 +20,7 @@
 		{
 			name: 'Max',
 			avatar: `${WEBUI_BASE_URL}/static/agents/max.png`,
+			tagline: 'Tes devis en minutes.',
 			description: 'Tes devis rédigés en minutes, sur la base de ta grille tarifaire et de ton historique.',
 			mission: [
 				'Rédaction en minutes — à partir de ta grille tarifaire et de ton historique de devis.',
@@ -30,6 +31,7 @@
 		{
 			name: 'Sam',
 			avatar: `${WEBUI_BASE_URL}/static/agents/sam.png`,
+			tagline: 'Tes réunions mémorisées.',
 			description: 'Tes réunions transcrites et mémorisées — concentre-toi sur la conversation, pas sur les notes.',
 			mission: [
 				'Transcription automatique — concentre-toi sur la conversation, pas sur les notes.',
@@ -133,7 +135,7 @@
 								{/if}
 							</div>
 							<div class="text-sm text-gray-500 dark:text-gray-400 line-clamp-2 mt-0.5">
-								{agent?.meta?.description ?? 'Aucune description pour le moment.'}
+								{agent?.meta?.tagline || agent?.meta?.description || 'Aucune description pour le moment.'}
 							</div>
 							{#if (agent?.meta?.mission ?? []).length}
 								<button
@@ -217,7 +219,7 @@
 								</span>
 							</div>
 							<div class="text-sm text-gray-500 dark:text-gray-400 line-clamp-2 mt-0.5">
-								{soon.description}
+								{soon.tagline}
 							</div>
 							<button
 								class="mt-1 text-xs font-medium text-sky-600 dark:text-sky-400 hover:underline"

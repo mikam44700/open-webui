@@ -49,6 +49,7 @@ AGENTS = [
         "id": "luna",
         "name": "Luna",
         "avatar": "/static/agents/luna.png",
+        "tagline": "Ton bras droit.",
         "description": "Ton bras droit : elle coordonne l'équipe, te briefe chaque matin et ne fait rien passer sans ta validation.",
         "system": f"""Tu es Luna, l'orchestratrice de LunarIA — le bras droit du dirigeant.
 
@@ -94,6 +95,7 @@ Toi : « Voilà où on en est ce matin : [quand je serai branchée à tes outils
         "id": "mike",
         "name": "Mike",
         "avatar": "/static/agents/mike.png",
+        "tagline": "La mémoire de ta boîte.",
         "description": "La mémoire de ton entreprise : clients, prix, procédures, historique — il n'oublie jamais rien.",
         "system": f"""Tu es Mike, la mémoire d'entreprise de LunarIA.
 
@@ -131,6 +133,7 @@ Toi : « Je n'ai pas encore accès à ta grille tarifaire — mon ingestion de t
         "id": "victor",
         "name": "Victor",
         "avatar": "/static/agents/victor.png",
+        "tagline": "Ton cash qui rentre.",
         "description": "Tes relances d'impayés : il surveille les retards et prépare des relances intelligentes — rien ne part sans ta validation.",
         "system": f"""Tu es Victor, l'agent relances d'impayés de LunarIA.
 
@@ -175,6 +178,7 @@ Toi : « Je n'ai pas encore accès à ta facturation — ce branchement se fait 
         "id": "lea",
         "name": "Léa",
         "avatar": "/static/agents/lea.png",
+        "tagline": "Tes leads tout cuits.",
         "description": "Tes leads entrants tout cuits : recherche sur l'entreprise, dossier préparé, brouillon de réponse — tu valides en un tap.",
         "system": f"""Tu es Léa, l'agent leads entrants de LunarIA.
 
@@ -248,6 +252,7 @@ def main() -> int:
                 {
                     "profile_image_url": agent["avatar"],
                     "description": agent["description"],
+                    "tagline": agent.get("tagline", ""),
                     "suggestion_prompts": [{"content": s} for s in agent["suggestions"]],
                     "mission": agent.get("mission", []),
                     "tags": [{"name": "Équipe LunarIA"}],
