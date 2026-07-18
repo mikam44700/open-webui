@@ -183,8 +183,17 @@
 			sessionStorage.setItem('oauth_provider', oauthProviderId);
 			sessionStorage.setItem('oauth_nonce', oauthNonce);
 			window.location.href = res.auth_url;
-		} catch {
-			toast.error($i18n.t('Impossible de démarrer la connexion.'));
+		} catch (err) {
+			// Repli sans credentials OAuth centralisés (installation locale) : on propose le
+			// flow manuel v1 — modal Google pour google-workspace, champ clé pour les
+			// intégrations à clé (Notion, GitHub, Airtable...).
+			if (err?.error?.code === 'hermes_unavailable' && isGoogle) {
+				googleOpen = true;
+			} else if (err?.error?.code === 'hermes_unavailable' && isKeyLike) {
+				openField();
+			} else {
+				toast.error($i18n.t('Impossible de démarrer la connexion.'));
+			}
 			busy = false;
 		}
 		// Ne pas remettre busy = false : la page va se rediriger.
@@ -263,7 +272,7 @@
 	{/if}
 
 	<div class="mt-auto flex flex-col gap-2 pt-1">
-		{#if isKeyLike && !isCentralOAuth && showField}
+		{#if isKeyLike && showField}
 			<input
 				bind:this={fieldEl}
 				type={isPath ? 'text' : 'password'}
@@ -279,7 +288,7 @@
 			<span class="text-[11px] text-gray-500 dark:text-gray-400">{$i18n.t(access)}</span>
 
 			<div class="flex items-center gap-1.5">
-				{#if isKeyLike && !isCentralOAuth && showField}
+				{#if isKeyLike && showField}
 					<button
 						type="button"
 						class="text-xs px-3 py-2 rounded-lg bg-black text-white dark:bg-white dark:text-black btn-premium disabled:opacity-40"
@@ -303,7 +312,7 @@
 						type="button"
 						class="text-xs px-2.5 py-1 rounded-lg text-red-600 dark:text-red-400 hover:bg-red-500/10 transition disabled:opacity-40"
 						disabled={busy}
-						on:click={isCentralOAuth ? onDisconnectOAuth : onDisconnect}
+						on:click={isCentralOAuth && !keyPresent ? onDisconnectOAuth : onDisconnect}
 					>
 						{#if busy}<Spinner className="size-3.5" />{:else}{$i18n.t('Confirmer')}{/if}
 					</button>

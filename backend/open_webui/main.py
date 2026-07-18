@@ -779,9 +779,11 @@ from open_webui.hermes_bridge.routers import crawl4ai as hermes_crawl4ai
 from open_webui.hermes_bridge.routers import gateway as hermes_gateway
 from open_webui.hermes_bridge.routers import integrations as hermes_integrations
 from open_webui.hermes_bridge.routers import mcp as hermes_mcp
+from open_webui.hermes_bridge.routers import oauth as hermes_oauth
 
 app.include_router(hermes_gateway.router, prefix='/api/v1', tags=['gateway'])
 app.include_router(hermes_integrations.router, prefix='/api/v1', tags=['integrations'])
+app.include_router(hermes_oauth.router, prefix='/api/v1', tags=['integrations'])
 app.include_router(hermes_mcp.router, prefix='/api/v1', tags=['mcp'])
 app.include_router(hermes_capabilities.router, prefix='/api/v1/capabilities', tags=['capabilities'])
 app.include_router(hermes_crawl4ai.router, prefix='/api/v1/capabilities', tags=['crawl4ai'])
