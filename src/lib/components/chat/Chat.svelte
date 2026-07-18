@@ -619,11 +619,16 @@
 				const data = event?.data?.data ?? null;
 
 				if (type === 'status') {
-					if (message?.statusHistory) {
-						message.statusHistory.push(data);
+					// Fusion par id (étapes d'outils Hermes) : le `completed` remplace le
+					// `running` de la même étape au lieu d'empiler deux lignes (recette v1).
+					const statusHistory = message?.statusHistory ?? [];
+					const statusIdx = data?.id ? statusHistory.findIndex((s) => s?.id === data.id) : -1;
+					if (statusIdx >= 0) {
+						statusHistory[statusIdx] = data;
 					} else {
-						message.statusHistory = [data];
+						statusHistory.push(data);
 					}
+					message.statusHistory = statusHistory;
 				} else if (type === 'context_compaction') {
 					handleContextCompactionStatus(data);
 				} else if (type === 'chat:active') {

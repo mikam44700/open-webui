@@ -1331,7 +1331,7 @@ async def generate_chat_completion(
                     upstream_error=response,
                 )
                 if isinstance(response, (dict, list)):
-                    return JSONResponse(status_code=r.status, content=response)
+                    return JSONResponse(status_code=r.status, content=_humanize_hermes_error(response))
                 else:
                     return PlainTextResponse(status_code=r.status, content=response)
 
@@ -1350,6 +1350,25 @@ async def generate_chat_completion(
     finally:
         if not streaming:
             await cleanup_response(r)
+
+
+def _humanize_hermes_error(response):
+    """Erreur connue du moteur Hermes → message français clair (SPEC-chat-agentique).
+
+    Un dirigeant ne doit jamais lire une erreur technique anglaise dans le chat : le cas
+    « pas de fournisseur configuré » (aucune clé API posée) est traduit en consigne simple.
+    """
+    try:
+        message = response.get('error', {}).get('message', '') if isinstance(response, dict) else ''
+    except AttributeError:
+        return response
+    if 'No inference provider configured' in message:
+        response['error']['message'] = (
+            'Votre équipe est prête, mais le moteur n’a pas encore de fournisseur de modèle. '
+            'Rendez-vous dans Capacités → Modèles IA pour ajouter une clé (OpenRouter par exemple), '
+            'puis relancez la conversation.'
+        )
+    return response
 
 
 async def embeddings(request: Request, form_data: dict, user):

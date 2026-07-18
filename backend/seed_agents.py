@@ -225,7 +225,9 @@ Toi : « Je n'ai pas encore mes accès de recherche — ils arrivent à l'instal
 # La liste de la page Agents ne montre que les presets lies a un modele de base
 # (search_models filtre base_model_id != None). « openrouter/auto » devient un
 # modele reel des que la connexion OpenRouter est configuree dans l'app.
-DEFAULT_BASE_MODEL = "openrouter/auto"
+# Les agents répondent via le serveur API Hermes embarqué (connexion OpenAI-compatible
+# branchée par hermes_boot.py) : Hermes applique lui-même outils, mémoire et provider.
+DEFAULT_BASE_MODEL = "hermes-agent"
 
 
 def main() -> int:

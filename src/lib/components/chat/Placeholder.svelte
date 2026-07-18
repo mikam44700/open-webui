@@ -21,6 +21,7 @@
 		currentChatPage
 	} from '$lib/stores';
 	import { sanitizeResponseContent, extractCurlyBraceWords } from '$lib/utils';
+	import { isTeamAgent, agentView, teamAgents, avatarImgFallback } from '$lib/utils/team';
 	import { WEBUI_API_BASE_URL, WEBUI_BASE_URL } from '$lib/constants';
 
 	import Suggestions from './Suggestions.svelte';
@@ -75,6 +76,17 @@
 
 	$: models = selectedModels.map((id) => $_models.find((m) => m.id === id));
 
+	// Accueil incarné (SPEC-chat-agentique, critère 1) : si l'interlocuteur est un agent
+	// de l'équipe, il se présente (visage + mission) et « Votre équipe » montre les autres.
+	$: activeAgentView = isTeamAgent(models[selectedModelIdx]) ? agentView(models[selectedModelIdx]) : null;
+	$: teammates = teamAgents($_models).filter((a) => a.id !== activeAgentView?.id);
+	let showTeam = false;
+
+	const chooseTeamAgent = (id: string) => {
+		selectedModels = [id];
+		showTeam = false;
+	};
+
 	// True when viewing a shared folder the current user doesn't own AND lacks write access
 	$: folderReadOnly =
 		$selectedFolder != null &&
@@ -117,6 +129,44 @@
 						selectedFolder.set(null);
 					}}
 				/>
+			{:else if activeAgentView}
+				<!-- L'agent se présente, comme dans la V1 : visage + accroche + prénom + mission. -->
+				<div
+					class="flex flex-row justify-center items-center gap-3 w-fit px-5 max-w-xl"
+					in:fade={{ duration: 100 }}
+				>
+					<img
+						src={activeAgentView.avatarUrl}
+						alt={activeAgentView.firstName}
+						class="size-14 rounded-full object-cover ring-2 ring-white/30 shadow-sm shrink-0 bg-gray-100 dark:bg-gray-800"
+						draggable="false"
+						on:error={avatarImgFallback}
+					/>
+					<div class="text-left min-w-0">
+						{#if activeAgentView.tagline}
+							<div
+								class="text-[11px] font-semibold uppercase tracking-[0.12em] text-gray-400 dark:text-gray-500"
+							>
+								{activeAgentView.tagline}
+							</div>
+						{/if}
+						<div
+							class="text-2xl @sm:text-3xl font-medium tracking-tight text-gray-800 dark:text-gray-100 line-clamp-1"
+						>
+							{$i18n.t('Bonjour, je suis {{name}}', { name: activeAgentView.firstName })}
+						</div>
+					</div>
+				</div>
+
+				{#if activeAgentView.description}
+					<div class="flex mt-1.5 mb-2" in:fade={{ duration: 100, delay: 50 }}>
+						<p
+							class="px-2 text-sm font-normal text-gray-500 dark:text-gray-400 line-clamp-2 max-w-xl text-center"
+						>
+							{activeAgentView.description}
+						</p>
+					</div>
+				{/if}
 			{:else}
 				<div class="flex flex-row justify-center gap-2.5 @sm:gap-3 w-fit px-5 max-w-xl">
 					<div class="flex shrink-0 justify-center">
@@ -254,6 +304,50 @@
 			</div>
 		</div>
 	</div>
+
+	{#if teammates.length > 0}
+		<!-- « Votre équipe » (critère 1) : les autres agents, à un clic — recette v1. -->
+		<div
+			class="mx-auto w-fit font-primary mt-3 flex flex-col items-center"
+			in:fade={{ duration: 200, delay: 200 }}
+		>
+			<button
+				type="button"
+				class="flex items-center gap-1.5 rounded-full border border-gray-100 dark:border-gray-800 px-3 py-1.5 text-sm text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-850 transition"
+				on:click={() => (showTeam = !showTeam)}
+				aria-expanded={showTeam}
+			>
+				<svg class="size-4" viewBox="0 0 20 20" fill="currentColor">
+					<path
+						d="M7 8a3 3 0 100-6 3 3 0 000 6zM14.5 9a2.5 2.5 0 100-5 2.5 2.5 0 000 5zM1.615 16.428a1.224 1.224 0 01-.569-1.175 6.002 6.002 0 0111.908 0c.058.467-.172.92-.57 1.174A9.953 9.953 0 017 18a9.953 9.953 0 01-5.385-1.572zM14.5 16h-.106c.07-.297.088-.611.048-.933a7.47 7.47 0 00-1.588-3.755 4.502 4.502 0 015.874 2.636.818.818 0 01-.36.98A7.465 7.465 0 0114.5 16z"
+					/>
+				</svg>
+				{$i18n.t('Votre équipe')}
+			</button>
+
+			{#if showTeam}
+				<div class="mt-2 flex flex-wrap justify-center gap-2" in:fade={{ duration: 150 }}>
+					{#each teammates as mate (mate.id)}
+						<button
+							type="button"
+							class="flex items-center gap-2 rounded-full border border-gray-100 dark:border-gray-800 pl-1 pr-3 py-1 hover:bg-gray-50 dark:hover:bg-gray-850 transition"
+							on:click={() => chooseTeamAgent(mate.id)}
+							title={mate.tagline}
+						>
+							<img
+								src={mate.avatarUrl}
+								alt={mate.firstName}
+								class="size-7 rounded-full object-cover bg-gray-100 dark:bg-gray-800"
+								draggable="false"
+								on:error={avatarImgFallback}
+							/>
+							<span class="text-sm text-gray-700 dark:text-gray-200">{mate.firstName}</span>
+						</button>
+					{/each}
+				</div>
+			{/if}
+		</div>
+	{/if}
 
 	{#if $selectedFolder}
 		<div

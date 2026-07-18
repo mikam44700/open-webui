@@ -73,6 +73,7 @@ from open_webui.socket.main import (
     get_event_emitter,
 )
 from open_webui.utils.access_control import has_connection_access, has_permission
+from open_webui.utils.hermes_tool_labels import humanize_tool_progress
 from open_webui.utils.access_control.files import get_accessible_folder_files
 from open_webui.utils.chat import generate_chat_completion
 from open_webui.utils.code_interpreter import execute_code_jupyter
@@ -3994,12 +3995,24 @@ async def streaming_chat_response_handler(response, ctx):
                         if delta_count >= delta_chunk_size:
                             await flush_pending_delta_data(delta_chunk_size)
 
+                    # Étapes d'outils du moteur Hermes (SPEC-chat-agentique, critère 5) :
+                    # le serveur API Hermes émet des événements SSE nommés
+                    # `event: hermes.tool.progress` suivis de leur ligne `data: {...}`.
+                    # On les traduit en événements `status` humanisés (recette v1).
+                    pending_sse_event = None
+                    tool_progress_labels: dict[str, str] = {}
+
                     async for line in response.body_iterator:
                         line = line.decode('utf-8', 'replace') if isinstance(line, bytes) else line
                         data = line
 
                         # Skip empty lines
                         if not data.strip():
+                            continue
+
+                        if data.startswith('event:'):
+                            ev_name = data[len('event:') :].strip()
+                            pending_sse_event = ev_name if ev_name == 'hermes.tool.progress' else None
                             continue
 
                         # "data:" is the prefix for each event
@@ -4031,6 +4044,34 @@ async def streaming_chat_response_handler(response, ctx):
 
                         try:
                             data = json.loads(data)
+
+                            # Ligne `data:` d'un événement hermes.tool.progress : consommée ici,
+                            # jamais traitée comme un chunk de réponse.
+                            if pending_sse_event == 'hermes.tool.progress':
+                                pending_sse_event = None
+                                if isinstance(data, dict) and not getattr(request.state, 'direct', False):
+                                    tool = (data.get('tool') or '').strip()
+                                    call_id = data.get('toolCallId') or tool
+                                    done = data.get('status') == 'completed'
+                                    if done:
+                                        # `completed` ne porte pas de label : on réutilise la phrase du `running`.
+                                        description = tool_progress_labels.get(call_id) or humanize_tool_progress(tool)
+                                    else:
+                                        description = humanize_tool_progress(tool, data.get('label') or '')
+                                        tool_progress_labels[call_id] = description
+                                    if description:
+                                        await event_emitter(
+                                            {
+                                                'type': 'status',
+                                                'data': {
+                                                    'action': 'hermes_tool',
+                                                    'description': description,
+                                                    'done': done,
+                                                    'id': call_id,
+                                                },
+                                            }
+                                        )
+                                continue
 
                             data, _ = await process_filter_functions(
                                 request=request,

@@ -177,6 +177,12 @@
 	$: model = $models.find((m) => m.id === message.model);
 
 	$: statusEntries = message?.statusHistory ?? [...(message?.status ? [message?.status] : [])];
+
+	// Étapes d'outils Hermes : visibles pendant que l'agent travaille, retirées une fois
+	// la réponse terminée (pas de « Je consulte… » figé sous une réponse finie) — recette v1.
+	$: visibleStatusHistory = (message?.statusHistory ?? []).filter(
+		(s) => !(message?.done && s?.action === 'hermes_tool')
+	);
 	$: hasVisibleStatus =
 		(model?.info?.meta?.capabilities?.status_updates ?? true) &&
 		statusEntries.length > 0 &&
@@ -692,7 +698,7 @@
 				<div class="chat-{message.role} w-full min-w-full markdown-prose">
 					<div>
 						{#if model?.info?.meta?.capabilities?.status_updates ?? true}
-							<StatusHistory statusHistory={message?.statusHistory} />
+							<StatusHistory statusHistory={visibleStatusHistory} />
 						{/if}
 
 						{#if message?.files && message.files?.filter( (f) => ['image', 'file'].includes(f.type) ).length > 0}

@@ -957,6 +957,22 @@
 	};
 
 	onMount(async () => {
+		// Anti-clignotement après un rebuild de l'image : un onglet resté ouvert tourne
+		// avec l'ancienne version du front (ses fichiers n'existent plus côté serveur).
+		// SvelteKit poll la version toutes les 60 s (svelte.config.js) mais ne recharge
+		// que sur navigation — ici, on recharge automatiquement, UNE seule fois (garde
+		// sessionStorage contre toute boucle de rechargement).
+		if (!updated.current) {
+			sessionStorage.removeItem('lunaria-updated-reload');
+		}
+		const updateWatch = setInterval(() => {
+			if (updated.current && !sessionStorage.getItem('lunaria-updated-reload')) {
+				sessionStorage.setItem('lunaria-updated-reload', '1');
+				clearInterval(updateWatch);
+				unregisterServiceWorkers().finally(() => location.reload());
+			}
+		}, 10000);
+
 		const originalFetch = window.fetch.bind(window);
 		window.fetch = async (input, init) => {
 			const response = await originalFetch(input, init);

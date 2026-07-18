@@ -38,7 +38,9 @@ fi
 if [[ "$MODE" == "local" ]]; then
   PORT="$(grep -E '^LUNARIA_PORT=' .env | cut -d= -f2)"
   PORT="${PORT:-3000}"
-  if lsof -nP -iTCP:"$PORT" -sTCP:LISTEN | grep -qv "com.docke"; then
+  # tail -n +2 : saute la ligne d'en-tête de lsof (sinon la garde se déclenche à tort
+  # quand SEULE la stack Docker écoute déjà — cas du redéploiement d'une nouvelle image).
+  if lsof -nP -iTCP:"$PORT" -sTCP:LISTEN 2>/dev/null | tail -n +2 | grep -qv "com.docke"; then
     echo "Le port $PORT est déjà utilisé (probablement ton serveur de dev)." >&2
     echo "Règle projet : une seule app à la fois sur http://localhost:$PORT." >&2
     echo "→ Arrête le dev (Ctrl+C dans les terminaux vite / dev.sh), puis relance ./up.sh" >&2

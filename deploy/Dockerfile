@@ -24,7 +24,9 @@ RUN git clone --filter=blob:none ${HERMES_REPO} /opt/hermes-agent \
     && /opt/hermes-agent/venv/bin/pip install --no-cache-dir -e /opt/hermes-agent
 
 # uv/uvx dans le venv Hermes : les serveurs MCP (dont data.gouv.fr) se lancent via uvx.
-RUN /opt/hermes-agent/venv/bin/pip install --no-cache-dir uv
+# aiohttp : requis par la plateforme api_server du gateway (le serveur de chat
+# OpenAI-compatible sur 8642) — version épinglée sur celle du pyproject Hermes (CVE fixes).
+RUN /opt/hermes-agent/venv/bin/pip install --no-cache-dir uv "aiohttp==3.14.1"
 
 # HERMES_HOME vit DANS le volume de données open-webui (/app/backend/data) :
 # config.yaml, .env (tokens) et mémoires survivent aux redémarrages et aux MAJ d'image.

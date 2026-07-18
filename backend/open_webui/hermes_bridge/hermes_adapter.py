@@ -1697,7 +1697,11 @@ def _hermes_version() -> str | None:
 
 
 def _api_server_port() -> int:
-    """Port de l'API server Hermes (chat) — lu dans ~/.hermes/.env, défaut 8645."""
+    """Port de l'API server Hermes (chat) — lu dans ~/.hermes/.env, défaut 8642.
+
+    8642 est le défaut du moteur (gateway/platforms/api_server.py DEFAULT_PORT) ;
+    l'ancien repli 8645 venait de la v1 et ne correspondait à rien côté moteur.
+    """
     env_path = HERMES_HOME / ".env"
     if env_path.exists():
         for line in env_path.read_text().splitlines():
@@ -1706,8 +1710,8 @@ def _api_server_port() -> int:
                 try:
                     return int(line.split("=", 1)[1].strip())
                 except ValueError:
-                    logger.debug("API_SERVER_PORT invalide dans .env (%r) — repli sur 8645", line)
-    return 8645
+                    logger.debug("API_SERVER_PORT invalide dans .env (%r) — repli sur 8642", line)
+    return 8642
 
 
 def _api_server_key() -> str | None:

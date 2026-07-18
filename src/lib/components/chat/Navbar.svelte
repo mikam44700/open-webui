@@ -22,6 +22,8 @@
 
 	import ShareChatModal from '../chat/ShareChatModal.svelte';
 	import ModelSelector from '../chat/ModelSelector.svelte';
+	import AgentSelector from '../chat/AgentSelector.svelte';
+	import IntelligenceSelector from '../chat/IntelligenceSelector.svelte';
 	import Tooltip from '../common/Tooltip.svelte';
 	import Menu from '$lib/components/layout/Navbar/Menu.svelte';
 	import UserMenu from '$lib/components/layout/Sidebar/UserMenu.svelte';
@@ -123,11 +125,17 @@
 			"
 				>
 					{#if showModelSelector}
-						<ModelSelector
-							bind:selectedModels
-							showSetDefault={!shareEnabled && !readOnly}
-							disabled={readOnly}
-						/>
+						<div class="flex items-center gap-1">
+							<!-- L'équipe d'abord (SPEC-chat-agentique) : agent actif + niveau d'intelligence
+							     en français ; le sélecteur de modèle standard reste pour le reste. -->
+							<AgentSelector bind:selectedModels />
+							<IntelligenceSelector />
+							<ModelSelector
+								bind:selectedModels
+								showSetDefault={!shareEnabled && !readOnly}
+								disabled={readOnly}
+							/>
+						</div>
 					{/if}
 				</div>
 
