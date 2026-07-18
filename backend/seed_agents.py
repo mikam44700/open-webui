@@ -189,9 +189,16 @@ Toi : « Je n'ai pas encore mes accès de recherche — ils arrivent à l'instal
 ]
 
 
+# La liste de la page Agents ne montre que les presets lies a un modele de base
+# (search_models filtre base_model_id != None). « openrouter/auto » devient un
+# modele reel des que la connexion OpenRouter est configuree dans l'app.
+DEFAULT_BASE_MODEL = "openrouter/auto"
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description="Seed de l'équipe d'agents LunarIA")
-    parser.add_argument("--base", default=None, help="ID du modèle de base à lier (ex. un modèle OpenRouter)")
+    parser.add_argument("--base", default=DEFAULT_BASE_MODEL,
+                        help=f"ID du modèle de base à lier (défaut : {DEFAULT_BASE_MODEL})")
     args = parser.parse_args()
 
     if not DB_PATH.exists():
@@ -235,8 +242,9 @@ def main() -> int:
     finally:
         con.close()
 
-    print(f"\nÉquipe prête ({len(AGENTS)} agents actifs)."
-          + ("" if args.base else " Moteur de chat : à lier avec --base <id> quand la clé API sera configurée."))
+    print(f"\nÉquipe prête ({len(AGENTS)} agents actifs, base : {args.base}).")
+    if args.base == DEFAULT_BASE_MODEL:
+        print("Les agents répondront dès que la connexion OpenRouter (clé API) sera configurée dans l'app.")
     return 0
 
 
