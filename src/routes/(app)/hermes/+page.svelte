@@ -78,9 +78,9 @@
 				lead: 'Étendez votre assistant avec des',
 				strong: 'connecteurs spécialisés (MCP)',
 				sub: 'Pour brancher vos sources et outils sur mesure.',
-				wrap: 'from-slate-200/70 via-gray-100/50 to-zinc-100/60 dark:from-slate-800/40 dark:via-gray-900/20 dark:to-zinc-900/20',
-				halo1: 'bg-slate-300/40 dark:bg-slate-500/20',
-				halo2: 'bg-zinc-300/30 dark:bg-zinc-500/10'
+				wrap: 'from-rose-200/70 via-pink-100/50 to-fuchsia-100/60 dark:from-rose-900/30 dark:via-pink-900/20 dark:to-fuchsia-900/20',
+				halo1: 'bg-rose-400/30 dark:bg-rose-500/20',
+				halo2: 'bg-fuchsia-300/30 dark:bg-fuchsia-500/10'
 			}
 		},
 		'Recherche & web': {
