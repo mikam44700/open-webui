@@ -77,6 +77,13 @@ Une demande floue ? Tu poses 2-3 questions courtes AVANT de commencer, jamais ap
 
 Patron : « fais le point »
 Toi : « Voilà où on en est ce matin : [quand je serai branchée à tes outils, tu verras ici : trésorerie attendue, relances de Victor en attente de ta validation, leads préparés par Léa]. En attendant le branchement, dis-moi ta priorité du jour et je structure le travail de l'équipe dessus. »""",
+        "mission": [
+            "Brief du matin — chaque jour : ton cash, tes relances en attente, tes leads, tes priorités.",
+            "Coordination — elle route chaque demande vers le bon collègue (Mike, Victor, Léa) et suit l'avancement.",
+            "La boucle — objectif écrit, exécution, vérification, TA validation : rien d'important sans ton accord.",
+            "Proactivité — elle propose de surveiller ce qui compte et te relance au bon moment, sans te noyer.",
+            "Validation en un clic — tout ce qui part de ta boîte passe d'abord par toi."
+        ],
         "suggestions": [
             "Présente-toi et explique comment tu travailles",
             "À quoi ressemblera mon brief du matin ?",
@@ -107,6 +114,13 @@ Tu es le cerveau qui n'oublie rien : clients, prix, procédures, historique, dé
 
 Patron : « combien on facture la maintenance annuelle ? »
 Toi : « Je n'ai pas encore accès à ta grille tarifaire — mon ingestion de tes documents se fera à l'installation. Une fois branché, je te répondrai comme ceci : "Maintenance annuelle : X € HT — source : grille tarifaire 2026, mise à jour le [date]." Et chaque fois que tu changeras un prix, je retiendrai la nouvelle version et j'archiverai l'ancienne. »""",
+        "mission": [
+            "Mémoire totale — clients, prix, procédures, historique, décisions : il n'oublie rien.",
+            "Ingestion à l'installation — tes documents deviennent sa connaissance de départ.",
+            "Apprentissage continu — une note vocale devient une connaissance structurée et datée.",
+            "Réponses sourcées — chaque fait avec sa source ; s'il ne sait pas, il le dit et propose de mémoriser.",
+            "Gestion du changement — un prix évolue ? Il retient le nouveau et archive l'ancien."
+        ],
         "suggestions": [
             "Présente-toi : c'est quoi la mémoire d'entreprise ?",
             "Comment tu apprendras ma boîte à l'installation ?",
@@ -144,6 +158,13 @@ Chaque relance est un BROUILLON : rien, absolument rien, ne part sans la validat
 
 Patron : « combien me doit le client Dupont ? »
 Toi : « Je n'ai pas encore accès à ta facturation — ce branchement se fait à l'installation. Une fois connecté, je te répondrai : "Dupont : 4 200 € en retard — facture F-2026-118 échue depuis 12 jours. Brouillon de relance palier J+7 prêt, tu valides ?" Et tu recevras ça chaque matin dans ton brief, sans avoir à demander. »""",
+        "mission": [
+            "Surveillance des factures — détection automatique des retards de paiement.",
+            "Relances à 4 paliers — J+1 confirmation, J+7 amical, J+14 ferme, J+30 escalade + alerte.",
+            "Relances intelligentes — adaptées à chaque client grâce à la mémoire de l'entreprise (Mike).",
+            "Brouillons seulement — chaque relance attend ta validation avant de partir.",
+            "Chiffres sourcés — chaque montant et chaque date référencés à la facture précise."
+        ],
         "suggestions": [
             "Présente-toi : comment tu récupères mon cash ?",
             "C'est quoi ta méthode de relance à 4 paliers ?",
@@ -180,6 +201,13 @@ Qu'aucun prospect ne parte chez un concurrent parce que la réponse a traîné. 
 
 Patron : « un certain Martin de la société BatiPro m'a laissé un message »
 Toi : « Je n'ai pas encore mes accès de recherche — ils arrivent à l'installation. Une fois branchée, voici ce que je te livrerai en quelques minutes : fiche BatiPro (activité, taille, chiffres publics, sources), lecture de leur besoin probable, et un brouillon de réponse personnalisé prêt à partir dès ton OK. »""",
+        "mission": [
+            "Réaction immédiate — un prospect te contacte, elle prépare tout en quelques minutes.",
+            "Recherche complète — site web, données publiques officielles, actualité de l'entreprise.",
+            "Dossier synthétique — qui ils sont, ce qu'ils veulent, ce qu'on peut leur proposer.",
+            "Brouillon de réponse — personnalisé, prêt à partir dès ta validation.",
+            "Faits sourcés — elle distingue toujours ce qui est vérifié de ce qui est supposé."
+        ],
         "suggestions": [
             "Présente-toi : que fais-tu quand un prospect me contacte ?",
             "Montre-moi à quoi ressemble un dossier de lead préparé",
@@ -221,6 +249,7 @@ def main() -> int:
                     "profile_image_url": agent["avatar"],
                     "description": agent["description"],
                     "suggestion_prompts": [{"content": s} for s in agent["suggestions"]],
+                    "mission": agent.get("mission", []),
                     "tags": [{"name": "Équipe LunarIA"}],
                 }
             )
