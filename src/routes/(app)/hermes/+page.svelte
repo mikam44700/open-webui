@@ -10,6 +10,7 @@
 	} from '$lib/apis/hermes';
 	import { getProviders } from '$lib/apis/providers';
 	import ProviderList from '$lib/components/providers/ProviderList.svelte';
+	import GatewayList from '$lib/components/gateway/GatewayList.svelte';
 
 	// --- Onglets de l'espace de travail ---
 	const ONGLETS = [
@@ -196,7 +197,12 @@
 			{/each}
 		</div>
 
-		{#if ongletActif !== 'Modèles IA'}
+		{#if ongletActif === 'Messagerie'}
+			<!-- Canaux de messagerie (porté de la v1) -->
+			<div class="-mx-3">
+				<GatewayList />
+			</div>
+		{:else if ongletActif !== 'Modèles IA'}
 			<!-- Onglets à venir -->
 			<div
 				class="rounded-2xl border border-dashed border-gray-300 dark:border-gray-700 px-5 py-16 text-center"
