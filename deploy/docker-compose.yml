@@ -16,6 +16,9 @@ services:
     depends_on:
       - crawl4ai
     environment:
+      # Nom affiché (onglet + interface) : distingue la version client du dev au
+      # premier coup d'œil — le dev garde « Open WebUI ».
+      - WEBUI_NAME=LunarIA
       - WEBUI_SECRET_KEY=${WEBUI_SECRET_KEY:?lancer ./up.sh qui genere le .env}
       - CRAWL4AI_MANAGED=1
       - CRAWL4AI_BASE_URL=http://crawl4ai:11235
