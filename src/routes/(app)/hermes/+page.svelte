@@ -11,6 +11,7 @@
 	import { getProviders } from '$lib/apis/providers';
 	import ProviderList from '$lib/components/providers/ProviderList.svelte';
 	import GatewayList from '$lib/components/gateway/GatewayList.svelte';
+	import IntegrationsList from '$lib/components/integrations/IntegrationsList.svelte';
 
 	// --- Onglets de l'espace de travail ---
 	const ONGLETS = [
@@ -201,6 +202,11 @@
 			<!-- Canaux de messagerie (porté de la v1) -->
 			<div class="-mx-3">
 				<GatewayList />
+			</div>
+		{:else if ongletActif === 'Intégrations'}
+			<!-- Applications connectées (porté de la v1) -->
+			<div class="-mx-3">
+				<IntegrationsList />
 			</div>
 		{:else if ongletActif !== 'Modèles IA'}
 			<!-- Onglets à venir -->

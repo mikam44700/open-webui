@@ -774,9 +774,13 @@ app.include_router(providers.router, prefix='/api/v1/providers', tags=['provider
 # Routers du bridge Hermes v1 montés en direct (pas de service intermédiaire) :
 # leur auth par clé partagée (X-Bridge-Key) est remplacée par l'auth admin du fork.
 from open_webui.hermes_bridge.deps import require_bridge_key as _hermes_bridge_key
+from open_webui.hermes_bridge.routers import capabilities as hermes_capabilities
 from open_webui.hermes_bridge.routers import gateway as hermes_gateway
+from open_webui.hermes_bridge.routers import integrations as hermes_integrations
 
 app.include_router(hermes_gateway.router, prefix='/api/v1', tags=['gateway'])
+app.include_router(hermes_integrations.router, prefix='/api/v1', tags=['integrations'])
+app.include_router(hermes_capabilities.router, prefix='/api/v1/capabilities', tags=['capabilities'])
 app.dependency_overrides[_hermes_bridge_key] = get_admin_user
 app.include_router(automations.router, prefix='/api/v1/automations', tags=['automations'])
 app.include_router(calendar.router, prefix='/api/v1/calendars', tags=['calendars'])
