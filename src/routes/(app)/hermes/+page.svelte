@@ -12,6 +12,9 @@
 	import ProviderList from '$lib/components/providers/ProviderList.svelte';
 	import GatewayList from '$lib/components/gateway/GatewayList.svelte';
 	import IntegrationsList from '$lib/components/integrations/IntegrationsList.svelte';
+	import McpList from '$lib/components/connectors/McpList.svelte';
+	import WebSearchList from '$lib/components/capabilities/WebSearchList.svelte';
+	import mcpLogo from '$lib/assets/connectors/mcp.svg';
 
 	// --- Onglets de l'espace de travail ---
 	const ONGLETS = [
@@ -23,6 +26,87 @@
 		'Outils'
 	] as const;
 	let ongletActif: (typeof ONGLETS)[number] = 'Modèles IA';
+
+	// Bannières premium par onglet (portées de la v1) : accroche + palette dégradée.
+	// Classes Tailwind en toutes lettres (littéraux) pour être compilées.
+	type Banniere = {
+		lead: string;
+		strong: string;
+		sub: string;
+		wrap: string;
+		halo1: string;
+		halo2: string;
+	};
+	const SECTIONS: Record<string, { desc: string; logo?: string; banner: Banniere }> = {
+		'Modèles IA': {
+			desc: "Choisissez les modèles d'intelligence artificielle qui font tourner votre assistant.",
+			banner: {
+				lead: 'Choisissez le',
+				strong: 'modèle IA de votre assistant',
+				sub: "Les modèles d'IA qui le font réfléchir.",
+				wrap: 'from-emerald-200/70 via-green-100/50 to-lime-100/60 dark:from-emerald-900/30 dark:via-green-900/20 dark:to-lime-900/20',
+				halo1: 'bg-emerald-400/30 dark:bg-emerald-500/20',
+				halo2: 'bg-lime-300/30 dark:bg-lime-500/10'
+			}
+		},
+		Messagerie: {
+			desc: 'Reliez vos canaux (WhatsApp, Telegram, e-mail…) pour échanger avec votre assistant là où vous êtes déjà.',
+			banner: {
+				lead: 'Parlez à votre assistant depuis',
+				strong: 'WhatsApp, Telegram, e-mail et plus',
+				sub: 'Retrouvez-le là où vous échangez déjà.',
+				wrap: 'from-amber-200/70 via-orange-100/50 to-yellow-100/60 dark:from-amber-900/30 dark:via-orange-900/20 dark:to-yellow-900/20',
+				halo1: 'bg-orange-300/40 dark:bg-orange-500/20',
+				halo2: 'bg-amber-300/30 dark:bg-amber-500/10'
+			}
+		},
+		Intégrations: {
+			desc: 'Connectez vos applications (Google, Notion, GitHub…) pour que votre assistant agisse directement à l’intérieur.',
+			banner: {
+				lead: 'Connectez votre agent à vos',
+				strong: 'e-mails, agendas, fichiers et bien plus',
+				sub: 'Il agit directement dans vos applications, à votre place.',
+				wrap: 'from-sky-200/70 via-sky-100/50 to-emerald-100/60 dark:from-sky-900/30 dark:via-slate-900/20 dark:to-emerald-900/20',
+				halo1: 'bg-indigo-300/40 dark:bg-indigo-500/20',
+				halo2: 'bg-sky-300/30 dark:bg-sky-500/10'
+			}
+		},
+		MCP: {
+			desc: 'Branchez des serveurs spécialisés (MCP) pour étendre votre assistant à de nouvelles sources et de nouveaux outils.',
+			logo: mcpLogo,
+			banner: {
+				lead: 'Étendez votre assistant avec des',
+				strong: 'connecteurs spécialisés (MCP)',
+				sub: 'Pour brancher vos sources et outils sur mesure.',
+				wrap: 'from-slate-200/70 via-gray-100/50 to-zinc-100/60 dark:from-slate-800/40 dark:via-gray-900/20 dark:to-zinc-900/20',
+				halo1: 'bg-slate-300/40 dark:bg-slate-500/20',
+				halo2: 'bg-zinc-300/30 dark:bg-zinc-500/10'
+			}
+		},
+		'Recherche & web': {
+			desc: 'Tous les services de recherche et de navigation web, visibles d’un coup d’œil. Activez et connectez ceux que vous voulez.',
+			banner: {
+				lead: 'Donnez à votre assistant la',
+				strong: 'recherche et la lecture du web',
+				sub: 'Tous les fournisseurs réunis, sans rien chercher.',
+				wrap: 'from-sky-200/70 via-cyan-100/50 to-blue-100/60 dark:from-sky-900/30 dark:via-cyan-900/20 dark:to-blue-900/20',
+				halo1: 'bg-sky-400/30 dark:bg-sky-500/20',
+				halo2: 'bg-cyan-300/30 dark:bg-cyan-500/10'
+			}
+		},
+		Outils: {
+			desc: 'Les capacités natives de votre assistant : recherche web, navigateur, génération d’images, mémoire… Activez ce dont vous avez besoin.',
+			banner: {
+				lead: 'Donnez des super-pouvoirs à votre assistant :',
+				strong: 'recherche web, images, mémoire et plus',
+				sub: 'Activez seulement ce dont vous avez besoin.',
+				wrap: 'from-violet-200/70 via-indigo-100/50 to-purple-100/60 dark:from-violet-900/30 dark:via-indigo-900/20 dark:to-purple-900/20',
+				halo1: 'bg-violet-300/40 dark:bg-violet-500/20',
+				halo2: 'bg-indigo-300/30 dark:bg-indigo-500/10'
+			}
+		}
+	};
+	$: sectionActive = SECTIONS[ongletActif];
 
 	// --- Sous-onglets : Moteur (vue locale) + catégories de ProviderList (portées de la v1) ---
 	const SOUS_ONGLETS = [
@@ -175,7 +259,7 @@
 			</div>
 			<h1 class="text-2xl font-semibold text-gray-900 dark:text-gray-50 mt-1">Hermes Agent</h1>
 			<p class="text-sm text-gray-500 dark:text-gray-400 mt-1">
-				Choisissez les modèles d'intelligence artificielle qui font tourner votre assistant.
+				{sectionActive?.desc}
 			</p>
 		</div>
 
@@ -198,6 +282,52 @@
 			{/each}
 		</div>
 
+		<!-- Bannière premium : couleur + texte selon l'onglet actif (portée de la v1) -->
+		{#if sectionActive?.banner}
+			<div
+				class="relative mb-5 overflow-hidden rounded-3xl bg-linear-to-br hero-modern ring-1 ring-inset ring-white/50 dark:ring-white/10 {sectionActive
+					.banner.wrap}"
+			>
+				<div
+					class="pointer-events-none absolute -right-12 top-1/2 h-44 w-44 -translate-y-1/2 rounded-full blur-3xl {sectionActive
+						.banner.halo1}"
+				></div>
+				<div
+					class="pointer-events-none absolute -left-16 -top-10 h-40 w-40 rounded-full blur-3xl {sectionActive
+						.banner.halo2}"
+				></div>
+				<div class="hero-mesh pointer-events-none absolute inset-0"></div>
+				<div class="hero-grain pointer-events-none absolute inset-0"></div>
+				{#if sectionActive?.logo}
+					<div
+						class="pointer-events-none absolute left-6 top-1/2 hidden -translate-y-1/2 sm:left-10 sm:flex"
+					>
+						<div
+							class="flex size-16 items-center justify-center rounded-2xl bg-white/90 p-3 shadow-sm backdrop-blur dark:bg-gray-900/80"
+						>
+							<img
+								src={sectionActive.logo}
+								alt={ongletActif}
+								class="max-h-full max-w-full object-contain dark:invert"
+								draggable="false"
+							/>
+						</div>
+					</div>
+				{/if}
+				<div class="relative flex flex-col items-center justify-center gap-2 px-6 py-8 text-center">
+					<div
+						class="rounded-full bg-white/90 px-5 py-2 text-sm text-gray-800 shadow-sm backdrop-blur dark:bg-gray-900/80 dark:text-gray-100"
+					>
+						{sectionActive.banner.lead}
+						<span class="font-semibold text-gray-900 dark:text-white"
+							>{sectionActive.banner.strong}</span
+						>
+					</div>
+					<p class="text-sm text-gray-500 dark:text-gray-400">{sectionActive.banner.sub}</p>
+				</div>
+			</div>
+		{/if}
+
 		{#if ongletActif === 'Messagerie'}
 			<!-- Canaux de messagerie (porté de la v1) -->
 			<div class="-mx-3">
@@ -207,6 +337,16 @@
 			<!-- Applications connectées (porté de la v1) -->
 			<div class="-mx-3">
 				<IntegrationsList />
+			</div>
+		{:else if ongletActif === 'MCP'}
+			<!-- Connecteurs MCP (porté de la v1) -->
+			<div class="-mx-3">
+				<McpList />
+			</div>
+		{:else if ongletActif === 'Recherche & web'}
+			<!-- Recherche web, navigateur, X, extraction (porté de la v1) -->
+			<div class="-mx-3">
+				<WebSearchList />
 			</div>
 		{:else if ongletActif !== 'Modèles IA'}
 			<!-- Onglets à venir -->
@@ -219,20 +359,6 @@
 				</div>
 			</div>
 		{:else}
-			<!-- Carte verte -->
-			<div
-				class="rounded-2xl mb-4 px-6 py-10 text-center bg-linear-to-br from-green-100 via-green-50 to-emerald-100 dark:from-green-950 dark:via-gray-900 dark:to-emerald-950 border border-green-200 dark:border-green-900"
-			>
-				<div
-					class="inline-block px-5 py-2.5 rounded-full bg-white/80 dark:bg-gray-900/80 font-semibold text-gray-900 dark:text-gray-50 shadow-sm"
-				>
-					Choisissez le <span class="font-bold">modèle IA de votre assistant</span>
-				</div>
-				<p class="text-sm text-gray-600 dark:text-gray-300 mt-3">
-					Les modèles d'IA qui le font réfléchir.
-				</p>
-			</div>
-
 			<div class="flex flex-wrap items-center justify-between gap-3 mb-4">
 				<div class="text-sm text-gray-900 dark:text-gray-50">
 					Modèle IA actif : <span class="font-semibold">{nomModele(statut)}</span>
