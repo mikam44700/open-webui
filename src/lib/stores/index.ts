@@ -28,6 +28,22 @@ export const MODEL_DOWNLOAD_POOL = writable({});
 
 export const mobile = writable(false);
 
+// Mode Expert (porté de la v1 Agent OS) : bascule simple/expert persistée.
+// Défaut = simple (false). Ne change que la visibilité, jamais les fonctions.
+const EXPERT_MODE_KEY = 'lunaria-expert-mode';
+export const expertMode = writable(
+	typeof localStorage !== 'undefined' && localStorage.getItem(EXPERT_MODE_KEY) === 'true'
+);
+if (typeof localStorage !== 'undefined') {
+	expertMode.subscribe((v) => {
+		try {
+			localStorage.setItem(EXPERT_MODE_KEY, v ? 'true' : 'false');
+		} catch {
+			// localStorage indisponible : on garde l'état en mémoire seulement.
+		}
+	});
+}
+
 export const socket: Writable<null | Socket> = writable(null);
 export const socketConnected: Writable<boolean> = writable(true);
 export const activeUserIds: Writable<null | string[]> = writable(null);

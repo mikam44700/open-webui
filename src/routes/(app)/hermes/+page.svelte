@@ -8,6 +8,8 @@
 		type HermesStatus,
 		type HermesUpdateCheck
 	} from '$lib/apis/hermes';
+	import { getProviders } from '$lib/apis/providers';
+	import ProviderList from '$lib/components/providers/ProviderList.svelte';
 
 	// --- Onglets de l'espace de travail ---
 	const ONGLETS = [
@@ -20,8 +22,40 @@
 	] as const;
 	let ongletActif: (typeof ONGLETS)[number] = 'Modèles IA';
 
-	// --- Sous-onglets (seul « Moteur » est livré dans ce chantier) ---
-	const SOUS_ONGLETS = ['Moteur', 'Comptes', 'Clés API', 'Local'] as const;
+	// --- Sous-onglets : Moteur (vue locale) + catégories de ProviderList (portées de la v1) ---
+	const SOUS_ONGLETS = [
+		{ key: 'moteur', label: 'Moteur' },
+		{ key: 'oauth', label: 'Comptes' },
+		{ key: 'api', label: 'Clés API' },
+		{ key: 'local', label: 'Local' }
+	] as const;
+	let sousOngletActif: (typeof SOUS_ONGLETS)[number]['key'] = 'moteur';
+
+	// Compteurs des puces (mêmes règles que ProviderList : masqués/expert/multi-agents exclus)
+	let compteurs: Record<string, number> = { oauth: 0, api: 0, local: 0 };
+	const chargerCompteurs = async () => {
+		try {
+			const res = await getProviders(localStorage.token);
+			const providers: { id: string; category: string }[] = res?.providers ?? [];
+			const { MULTIAGENT_IDS, isExpertProvider, isHiddenProvider } = await import(
+				'$lib/catalog/provider-taxonomy'
+			);
+			const visible = providers.filter((p) => !isHiddenProvider(p.id) && !isExpertProvider(p.id));
+			compteurs = {
+				oauth: visible.filter((p) => p.category === 'oauth').length,
+				api: visible.filter((p) => p.category === 'api' && !MULTIAGENT_IDS.has(p.id)).length,
+				local: visible.filter((p) => p.category === 'local').length
+			};
+		} catch {
+			// backend indisponible : les puces restent sans compteur
+		}
+	};
+
+	// Un changement dans ProviderList (clé, OAuth, modèle actif) → on resynchronise tout.
+	const surChangementProviders = () => {
+		chargerCompteurs();
+		rafraichir();
+	};
 
 	// --- État du moteur ---
 	let statut: HermesStatus | null = null;
@@ -101,6 +135,7 @@
 
 	onMount(() => {
 		rafraichir();
+		chargerCompteurs();
 		interval = setInterval(rafraichir, 30000);
 	});
 
@@ -191,21 +226,35 @@
 					Modèle IA actif : <span class="font-semibold">{nomModele(statut)}</span>
 				</div>
 
-				<!-- Sous-onglets : seul « Moteur » est livré dans ce chantier -->
+				<!-- Sous-onglets : Moteur / Comptes / Clés API / Local -->
 				<div class="flex items-center gap-1.5">
-					{#each SOUS_ONGLETS as sousOnglet, i}
+					{#each SOUS_ONGLETS as sousOnglet (sousOnglet.key)}
 						<button
-							class="px-3.5 py-1.5 rounded-full text-sm border transition {i === 0
+							class="px-3.5 py-1.5 rounded-full text-sm border transition {sousOngletActif ===
+							sousOnglet.key
 								? 'bg-gray-900 text-gray-50 dark:bg-gray-50 dark:text-gray-900 border-transparent font-medium'
-								: 'border-gray-200 dark:border-gray-800 text-gray-400 dark:text-gray-600 cursor-not-allowed'}"
-							disabled={i !== 0}
-							title={i === 0 ? undefined : 'Bientôt disponible'}
+								: 'border-gray-200 dark:border-gray-800 text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-850'}"
+							on:click={() => (sousOngletActif = sousOnglet.key)}
 						>
-							{sousOnglet}
+							{sousOnglet.label}
+							{#if sousOnglet.key !== 'moteur' && compteurs[sousOnglet.key]}
+								<span class="opacity-60">({compteurs[sousOnglet.key]})</span>
+							{/if}
 						</button>
 					{/each}
 				</div>
 			</div>
+
+			{#if sousOngletActif !== 'moteur'}
+				<!-- Comptes / Clés API / Local : catalogue providers porté de la v1 -->
+				<div class="-mx-3">
+					<ProviderList
+						embedded
+						allowedTabs={[sousOngletActif]}
+						on:changed={surChangementProviders}
+					/>
+				</div>
+			{:else}
 
 			<!-- Bandeau d'état -->
 			<div
@@ -368,6 +417,7 @@
 					</div>
 				{/if}
 			</div>
+			{/if}
 		{/if}
 	</div>
 </div>
