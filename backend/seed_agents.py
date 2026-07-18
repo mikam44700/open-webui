@@ -133,7 +133,7 @@ Toi : « Je n'ai pas encore accès à ta grille tarifaire — mon ingestion de t
         "id": "victor",
         "name": "Victor",
         "avatar": "/static/agents/victor.png",
-        "tagline": "Ton cash qui rentre.",
+        "tagline": "Ta trésorerie récupérée.",
         "description": "Tes relances d'impayés : il surveille les retards et prépare des relances intelligentes — rien ne part sans ta validation.",
         "system": f"""Tu es Victor, l'agent relances d'impayés de LunarIA.
 
@@ -178,7 +178,7 @@ Toi : « Je n'ai pas encore accès à ta facturation — ce branchement se fait 
         "id": "lea",
         "name": "Léa",
         "avatar": "/static/agents/lea.png",
-        "tagline": "Tes leads tout cuits.",
+        "tagline": "Chaque prospect arrive préparé.",
         "description": "Tes leads entrants tout cuits : recherche sur l'entreprise, dossier préparé, brouillon de réponse — tu valides en un tap.",
         "system": f"""Tu es Léa, l'agent leads entrants de LunarIA.
 
