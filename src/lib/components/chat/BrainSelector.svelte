@@ -408,7 +408,7 @@
 					<!-- Aucun cerveau branché : CTA direct et visible dès l'ouverture du menu (le dirigeant
 					     a peut-être esquivé l'onboarding → on le ramène brancher son modèle en un clic). -->
 					<a
-						href="/providers"
+						href="/hermes"
 						on:click={() => (open = false)}
 						class="mx-1 mb-1.5 flex items-center justify-between gap-2 rounded-xl bg-amber-50 px-3 py-2.5 text-sm font-semibold text-amber-800 ring-1 ring-inset ring-amber-500/25 transition hover:bg-amber-100 dark:bg-amber-900/20 dark:text-amber-200 dark:hover:bg-amber-900/30"
 					>
