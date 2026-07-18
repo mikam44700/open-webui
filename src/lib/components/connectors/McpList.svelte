@@ -104,8 +104,10 @@
 				getCatalog(localStorage.token),
 				getConnectors(localStorage.token)
 			]);
-			entries = cat?.entries ?? [];
-			connectors = conn?.connectors ?? [];
+			// Crawl4AI a sa carte dédiée dans « Recherche & web » — on ne l'affiche pas une
+			// deuxième fois ici (décision Michael 2026-07-18 : un seul endroit par outil).
+			entries = (cat?.entries ?? []).filter((e) => e.name !== 'crawl4ai');
+			connectors = (conn?.connectors ?? []).filter((c) => c.id !== 'crawl4ai');
 		} catch (err) {
 			if (isBridgeDown(err)) bridgeDown = true;
 			else toast.error($i18n.t('Échec du chargement des connecteurs'));
