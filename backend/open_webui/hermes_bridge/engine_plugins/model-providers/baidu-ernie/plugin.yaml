@@ -1,0 +1,5 @@
+name: baidu-ernie-provider
+kind: model-provider
+version: 1.0.0
+description: Baidu ERNIE — modèles ERNIE via Qianfan (compatible OpenAI)
+author: LunarIA (restauration V1)

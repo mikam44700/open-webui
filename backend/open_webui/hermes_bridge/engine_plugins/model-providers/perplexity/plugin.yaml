@@ -1,0 +1,5 @@
+name: perplexity-provider
+kind: model-provider
+version: 1.0.0
+description: Perplexity Sonar — answer engine (masqué en interface, parité V1)
+author: LunarIA (restauration V1)

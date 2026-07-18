@@ -797,6 +797,12 @@ app.dependency_overrides[_hermes_bridge_key] = get_admin_user
 from open_webui.hermes_bridge import crawl4ai_adapter as _hermes_crawl4ai_adapter
 
 _hermes_crawl4ai_adapter.start_preconnect_if_managed()
+
+# Plugins moteur « maison » (providers V1 : Mistral, Groq, Sakana…) : réinstallés à
+# chaque démarrage dans ~/.hermes/plugins/ (emplacement préservé par `hermes update`).
+from open_webui.hermes_bridge import engine_plugins as _hermes_engine_plugins
+
+_hermes_engine_plugins.install_engine_plugins()
 app.include_router(automations.router, prefix='/api/v1/automations', tags=['automations'])
 app.include_router(calendar.router, prefix='/api/v1/calendars', tags=['calendars'])
 

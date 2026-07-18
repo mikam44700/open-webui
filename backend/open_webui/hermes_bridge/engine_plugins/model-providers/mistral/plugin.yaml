@@ -1,0 +1,5 @@
+name: mistral-provider
+kind: model-provider
+version: 1.0.0
+description: Mistral AI — modèles français via La Plateforme (compatible OpenAI)
+author: LunarIA (restauration V1)

@@ -1,0 +1,5 @@
+name: sakana-provider
+kind: model-provider
+version: 1.0.0
+description: Sakana Fugu — système multi-agents livré comme un seul modèle
+author: LunarIA (restauration V1)

@@ -1,0 +1,5 @@
+name: groq-provider
+kind: model-provider
+version: 1.0.0
+description: Groq — inférence ultra-rapide (LPU), tier gratuit généreux
+author: LunarIA (restauration V1)

@@ -106,7 +106,14 @@ export const HIDDEN_PROVIDER_IDS = new Set<string>([
 	// Redondants et sans intérêt pour la cible → masqués (2026-07-08). Plugins conservés,
 	// réversible. Les cartes internationales `kimi-coding` et `minimax`/`minimax-oauth` restent.
 	'kimi-coding-cn',
-	'minimax-cn'
+	'minimax-cn',
+	// Nouveaux venus du moteur v0.18.2 (jamais présents en V1) : sans fiche curée ils
+	// tombaient dans la section fourre-tout « AUTRES » avec une carte brouillonne
+	// (« 0 modèles », logo générique). Aucun intérêt pour la cible dirigeant non-tech.
+	// Masqués (2026-07-18, chantier restauration providers V1), pas supprimés : retirer
+	// l'id d'ici + ajouter une fiche PROVIDER_INFO suffit pour les réactiver.
+	'deepinfra', // hébergeur US de modèles open-source, paiement à l'usage
+	'upstage' // Upstage Solar — boîte d'IA coréenne
 ]);
 
 /** Vrai si le fournisseur est masqué partout, y compris en mode Expert. */
