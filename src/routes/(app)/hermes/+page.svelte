@@ -1,14 +1,9 @@
 <script lang="ts">
-	import { onMount, onDestroy } from 'svelte';
-	import { showSidebar } from '$lib/stores';
+	import { onMount } from 'svelte';
+	import { showSidebar, expertMode } from '$lib/stores';
 	import Sidebar from '$lib/components/icons/Sidebar.svelte';
-	import {
-		getHermesStatus,
-		checkHermesUpdate,
-		type HermesStatus,
-		type HermesUpdateCheck
-	} from '$lib/apis/hermes';
-	import { getProviders } from '$lib/apis/providers';
+	import Switch from '$lib/components/common/Switch.svelte';
+	import Tooltip from '$lib/components/common/Tooltip.svelte';
 	import ProviderList from '$lib/components/providers/ProviderList.svelte';
 	import GatewayList from '$lib/components/gateway/GatewayList.svelte';
 	import IntegrationsList from '$lib/components/integrations/IntegrationsList.svelte';
@@ -110,128 +105,10 @@
 	};
 	$: sectionActive = SECTIONS[ongletActif];
 
-	// --- Sous-onglets : Moteur (vue locale) + catégories de ProviderList (portées de la v1) ---
-	const SOUS_ONGLETS = [
-		{ key: 'moteur', label: 'Moteur' },
-		{ key: 'oauth', label: 'Comptes' },
-		{ key: 'api', label: 'Clés API' },
-		{ key: 'local', label: 'Local' }
-	] as const;
-	let sousOngletActif: (typeof SOUS_ONGLETS)[number]['key'] = 'moteur';
-
-	// Compteurs des puces (mêmes règles que ProviderList : masqués/expert/multi-agents exclus)
-	let compteurs: Record<string, number> = { oauth: 0, api: 0, local: 0 };
-	const chargerCompteurs = async () => {
-		try {
-			const res = await getProviders(localStorage.token);
-			const providers: { id: string; category: string }[] = res?.providers ?? [];
-			const { MULTIAGENT_IDS, isExpertProvider, isHiddenProvider } = await import(
-				'$lib/catalog/provider-taxonomy'
-			);
-			const visible = providers.filter((p) => !isHiddenProvider(p.id) && !isExpertProvider(p.id));
-			compteurs = {
-				oauth: visible.filter((p) => p.category === 'oauth').length,
-				api: visible.filter((p) => p.category === 'api' && !MULTIAGENT_IDS.has(p.id)).length,
-				local: visible.filter((p) => p.category === 'local').length
-			};
-		} catch {
-			// backend indisponible : les puces restent sans compteur
-		}
-	};
-
-	// Un changement dans ProviderList (clé, OAuth, modèle actif) → on resynchronise tout.
-	const surChangementProviders = () => {
-		chargerCompteurs();
-		rafraichir();
-	};
-
-	// --- État du moteur ---
-	let statut: HermesStatus | null = null;
-	let chargement = true;
-	let erreur: string | null = null;
-	let dernierControle = '-';
-	let interval: ReturnType<typeof setInterval> | null = null;
-
-	// --- Vérification des mises à jour ---
-	let verifMajEnCours = false;
-	let resultatMaj: HermesUpdateCheck | null = null;
-	let erreurMaj: string | null = null;
-
-	const PROVIDER_LABELS: Record<string, string> = {
-		anthropic: 'Anthropic',
-		openai: 'OpenAI',
-		'openai-api': 'OpenAI',
-		google: 'Google',
-		gemini: 'Google',
-		xai: 'xAI',
-		openrouter: 'OpenRouter',
-		deepseek: 'DeepSeek',
-		nous: 'Nous Research',
-		ollama: 'Ollama',
-		lmstudio: 'LM Studio',
-		huggingface: 'Hugging Face',
-		groq: 'Groq'
-	};
-
-	// « anthropic/claude-opus-4.6 » → « Claude Opus 4.6 (Anthropic) »
-	const nomModele = (s: HermesStatus | null): string => {
-		const brut = s?.active?.model;
-		if (!brut) return 'Non configuré';
-		const [prefixe, ...reste] = brut.split('/');
-		const id = reste.length > 0 ? reste.join('/') : brut;
-		const nom = id
-			.split('-')
-			.map((mot) => (/\d/.test(mot) ? mot : mot.charAt(0).toUpperCase() + mot.slice(1)))
-			.join(' ');
-		const fournisseur = reste.length > 0 ? PROVIDER_LABELS[prefixe.toLowerCase()] : null;
-		return fournisseur ? `${nom} (${fournisseur})` : nom;
-	};
-
-	// « 2026-07-07 » → « 7 juillet 2026 »
-	const dateFr = (iso: string | null): string => {
-		if (!iso) return '-';
-		const d = new Date(`${iso}T00:00:00`);
-		if (isNaN(d.getTime())) return iso;
-		return d.toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' });
-	};
-
-	$: enLigne = statut?.api_server?.reachable ?? false;
-
-	const rafraichir = async () => {
-		erreur = null;
-		try {
-			statut = await getHermesStatus(localStorage.token);
-		} catch (e) {
-			erreur = typeof e === 'string' ? e : 'Impossible de contacter le backend.';
-			statut = null;
-		}
-		chargement = false;
-		dernierControle = new Date().toLocaleTimeString('fr-FR');
-	};
-
-	const verifierMaj = async () => {
-		verifMajEnCours = true;
-		resultatMaj = null;
-		erreurMaj = null;
-		try {
-			resultatMaj = await checkHermesUpdate(localStorage.token);
-		} catch (e) {
-			erreurMaj = typeof e === 'string' ? e : 'La vérification a échoué.';
-		}
-		verifMajEnCours = false;
-	};
-
 	onMount(() => {
-		rafraichir();
-		chargerCompteurs();
 		// L'onglet Outils charge /tools (~2,5 s côté bridge) : préchargé en fond dès
 		// l'ouverture de la page pour un affichage instantané (recette v1).
 		prefetchTools(localStorage.token);
-		interval = setInterval(rafraichir, 30000);
-	});
-
-	onDestroy(() => {
-		if (interval) clearInterval(interval);
 	});
 </script>
 
@@ -258,14 +135,33 @@
 	</nav>
 
 	<div class="flex flex-col w-full px-6 md:px-10 py-4 overflow-y-auto">
-		<div class="mb-5">
-			<div class="text-xs font-semibold tracking-widest text-gray-500 dark:text-gray-400 uppercase">
-				Espace de travail
+		<div class="mb-5 flex items-start justify-between gap-4">
+			<div>
+				<div
+					class="text-xs font-semibold tracking-widest text-gray-500 dark:text-gray-400 uppercase"
+				>
+					Espace de travail
+				</div>
+				<h1 class="text-2xl font-semibold text-gray-900 dark:text-gray-50 mt-1">Hermes Agent</h1>
+				<p class="text-sm text-gray-500 dark:text-gray-400 mt-1">
+					{sectionActive?.desc}
+				</p>
 			</div>
-			<h1 class="text-2xl font-semibold text-gray-900 dark:text-gray-50 mt-1">Hermes Agent</h1>
-			<p class="text-sm text-gray-500 dark:text-gray-400 mt-1">
-				{sectionActive?.desc}
-			</p>
+
+			<!-- Interrupteur global « Réglages avancés » (ex-Mode Expert, porté de la v1) :
+			     dévoile le technique sur toute la page. Discret + infobulle pour ne pas
+			     perdre le dirigeant non-technique. -->
+			<Tooltip
+				content="Affiche les options techniques (serveurs, clés API, compétences détaillées). Inutile au quotidien — réservé aux réglages avancés."
+				interactive={true}
+			>
+				<label
+					class="flex-none flex items-center gap-2 pt-1 text-xs text-gray-400 dark:text-gray-500 cursor-pointer select-none"
+				>
+					Réglages avancés
+					<Switch state={$expertMode} on:change={() => expertMode.set(!$expertMode)} />
+				</label>
+			</Tooltip>
 		</div>
 
 		<!-- Barre d'onglets -->
@@ -372,203 +268,13 @@
 				</div>
 			</div>
 		{:else}
-			<div class="flex flex-wrap items-center justify-between gap-3 mb-4">
-				<div class="text-sm text-gray-900 dark:text-gray-50">
-					Modèle IA actif : <span class="font-semibold">{nomModele(statut)}</span>
-				</div>
-
-				<!-- Sous-onglets : Moteur / Comptes / Clés API / Local -->
-				<div class="flex items-center gap-1.5">
-					{#each SOUS_ONGLETS as sousOnglet (sousOnglet.key)}
-						<button
-							class="px-3.5 py-1.5 rounded-full text-sm border transition {sousOngletActif ===
-							sousOnglet.key
-								? 'bg-gray-900 text-gray-50 dark:bg-gray-50 dark:text-gray-900 border-transparent font-medium'
-								: 'border-gray-200 dark:border-gray-800 text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-850'}"
-							on:click={() => (sousOngletActif = sousOnglet.key)}
-						>
-							{sousOnglet.label}
-							{#if sousOnglet.key !== 'moteur' && compteurs[sousOnglet.key]}
-								<span class="opacity-60">({compteurs[sousOnglet.key]})</span>
-							{/if}
-						</button>
-					{/each}
-				</div>
+			<!-- Modèles IA : ProviderList v1 entier, non bridé (conformité v1) — il porte
+			     lui-même la ligne « Modèle IA actif », les puces Moteur/Comptes/Clés API/Local
+			     (+ « Modèles IA combinés » et « Autres » en Réglages avancés), les compteurs
+			     et l'onglet Moteur complet (HermesStatus : état fin + mise à jour du moteur). -->
+			<div class="-mx-3">
+				<ProviderList />
 			</div>
-
-			{#if sousOngletActif !== 'moteur'}
-				<!-- Comptes / Clés API / Local : catalogue providers porté de la v1 -->
-				<div class="-mx-3">
-					<ProviderList
-						embedded
-						allowedTabs={[sousOngletActif]}
-						on:changed={surChangementProviders}
-					/>
-				</div>
-			{:else}
-
-			<!-- Bandeau d'état -->
-			<div
-				class="rounded-2xl px-5 py-4 mb-4 border {enLigne
-					? 'bg-green-50 dark:bg-green-950/30 border-green-200 dark:border-green-900'
-					: 'bg-gray-50 dark:bg-gray-850 border-gray-200 dark:border-gray-800'}"
-			>
-				<div class="flex items-center gap-3">
-					<span class="relative flex size-3 shrink-0" aria-hidden="true">
-						{#if chargement}
-							<span class="relative inline-flex rounded-full size-3 bg-yellow-400 animate-pulse" />
-						{:else if enLigne}
-							<span
-								class="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"
-							/>
-							<span class="relative inline-flex rounded-full size-3 bg-green-500" />
-						{:else}
-							<span class="relative inline-flex rounded-full size-3 bg-gray-400" />
-						{/if}
-					</span>
-					<div>
-						<div class="font-medium text-gray-900 dark:text-gray-50">
-							{#if chargement}
-								Vérification en cours...
-							{:else if enLigne}
-								Votre assistant est opérationnel
-							{:else}
-								Moteur hors ligne
-							{/if}
-						</div>
-						<div class="text-sm text-gray-500 dark:text-gray-400">
-							{#if chargement}
-								Contact du moteur...
-							{:else if enLigne}
-								Le moteur tourne et répond normalement.
-							{:else if erreur}
-								{erreur}
-							{:else}
-								Hermes est installé mais son serveur n'est pas démarré (commande
-								<span class="font-mono">hermes gateway</span> dans le terminal).
-							{/if}
-						</div>
-					</div>
-				</div>
-			</div>
-
-			<!-- Carte état du moteur -->
-			<div class="rounded-2xl border border-gray-200 dark:border-gray-800 px-5 py-4 mb-4">
-				<div class="flex items-center justify-between mb-3">
-					<div class="font-medium text-gray-900 dark:text-gray-50">État du moteur</div>
-					<button
-						class="p-1.5 rounded-lg text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-850 transition"
-						on:click={rafraichir}
-						title="Rafraîchir (dernier contrôle : {dernierControle})"
-						aria-label="Rafraîchir l'état du moteur"
-					>
-						<svg
-							xmlns="http://www.w3.org/2000/svg"
-							fill="none"
-							viewBox="0 0 24 24"
-							stroke-width="2"
-							stroke="currentColor"
-							class="size-4"
-						>
-							<path
-								stroke-linecap="round"
-								stroke-linejoin="round"
-								d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0 3.181 3.183a8.25 8.25 0 0 0 13.803-3.7M4.031 9.865a8.25 8.25 0 0 1 13.803-3.7l3.181 3.182m0-4.991v4.99"
-							/>
-						</svg>
-					</button>
-				</div>
-				<div class="flex flex-col gap-2.5 text-sm">
-					<div class="flex justify-between">
-						<span class="text-gray-500 dark:text-gray-400">Modèle IA</span>
-						<span class="text-gray-900 dark:text-gray-50 font-medium">{nomModele(statut)}</span>
-					</div>
-					<div class="flex justify-between">
-						<span class="text-gray-500 dark:text-gray-400">Moteur de LunarIA</span>
-						<span
-							class="font-medium {enLigne
-								? 'text-green-600 dark:text-green-400'
-								: 'text-gray-500 dark:text-gray-400'}"
-						>
-							● {enLigne ? 'En ligne' : 'Hors ligne'}
-						</span>
-					</div>
-					<div class="flex justify-between">
-						<span class="text-gray-500 dark:text-gray-400">Réponses dans le chat</span>
-						<span
-							class="font-medium {enLigne
-								? 'text-green-600 dark:text-green-400'
-								: 'text-gray-500 dark:text-gray-400'}"
-						>
-							● {enLigne ? 'Actives' : 'Inactives'}
-						</span>
-					</div>
-					<div class="flex justify-between">
-						<span class="text-gray-500 dark:text-gray-400">Version du moteur</span>
-						<span class="text-gray-900 dark:text-gray-50 font-medium">
-							{statut?.version ?? '-'}
-						</span>
-					</div>
-					<div class="flex justify-between">
-						<span class="text-gray-500 dark:text-gray-400">Dernière mise à jour</span>
-						<span class="text-gray-900 dark:text-gray-50 font-medium">
-							{dateFr(statut?.last_update ?? null)}
-						</span>
-					</div>
-				</div>
-			</div>
-
-			<!-- Carte mise à jour du moteur -->
-			<div class="rounded-2xl border border-gray-200 dark:border-gray-800 px-5 py-4">
-				<div class="font-medium text-gray-900 dark:text-gray-50">Mise à jour du moteur</div>
-				<p class="text-sm text-gray-500 dark:text-gray-400 mt-1 mb-3">
-					Récupère la dernière version du moteur (et ses derniers modèles). Une sauvegarde est faite
-					automatiquement avant.
-				</p>
-				<div class="flex flex-wrap gap-2">
-					<button
-						class="px-4 py-2 rounded-xl text-sm font-medium border border-gray-200 dark:border-gray-800 text-gray-900 dark:text-gray-50 hover:bg-gray-50 dark:hover:bg-gray-850 transition disabled:opacity-50"
-						on:click={verifierMaj}
-						disabled={verifMajEnCours}
-					>
-						{verifMajEnCours ? 'Vérification...' : 'Vérifier les mises à jour'}
-					</button>
-					<button
-						class="px-4 py-2 rounded-xl text-sm font-medium bg-gray-900 text-gray-50 dark:bg-gray-50 dark:text-gray-900 opacity-50 cursor-not-allowed"
-						disabled
-						title="Bientôt disponible — sera câblé dans un prochain chantier"
-					>
-						Mettre à jour le moteur
-					</button>
-				</div>
-
-				{#if resultatMaj}
-					<div
-						class="mt-3 rounded-xl px-4 py-3 text-sm {resultatMaj.up_to_date === false
-							? 'bg-amber-50 dark:bg-amber-950/30 text-amber-800 dark:text-amber-300'
-							: 'bg-green-50 dark:bg-green-950/30 text-green-700 dark:text-green-400'}"
-					>
-						{#if resultatMaj.up_to_date === true}
-							Votre moteur est à jour.
-						{:else if resultatMaj.up_to_date === false}
-							Une mise à jour est disponible.
-						{:else}
-							Résultat de la vérification :
-						{/if}
-						{#if resultatMaj.output}
-							<pre
-								class="mt-2 text-xs whitespace-pre-wrap font-mono text-gray-600 dark:text-gray-400 max-h-40 overflow-y-auto">{resultatMaj.output}</pre>
-						{/if}
-					</div>
-				{:else if erreurMaj}
-					<div
-						class="mt-3 rounded-xl px-4 py-3 text-sm bg-red-50 dark:bg-red-950/30 text-red-700 dark:text-red-400"
-					>
-						{erreurMaj}
-					</div>
-				{/if}
-			</div>
-			{/if}
 		{/if}
 	</div>
 </div>
