@@ -4,22 +4,14 @@
 	import { onMount } from 'svelte';
 
 	onMount(() => {
-		if ($user?.role !== 'admin') {
-			if ($user?.permissions?.workspace?.models) {
-				goto('/workspace/models');
-			} else if ($user?.permissions?.workspace?.knowledge) {
-				goto('/workspace/knowledge');
-			} else if ($user?.permissions?.workspace?.prompts) {
-				goto('/workspace/prompts');
-			} else if ($user?.permissions?.workspace?.tools) {
-				goto('/workspace/tools');
-			} else if ($user?.permissions?.workspace?.skills) {
-				goto('/workspace/skills');
-			} else {
-				goto('/');
-			}
+		const perms = $user?.permissions?.workspace ?? {};
+
+		if ($user?.role === 'admin' || perms.models) {
+			goto('/workspace/agents');
+		} else if (perms.knowledge || perms.prompts || perms.skills || perms.tools) {
+			goto('/workspace/library');
 		} else {
-			goto('/workspace/models');
+			goto('/');
 		}
 	});
 </script>

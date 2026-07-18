@@ -1,15 +1,6 @@
 <script lang="ts">
 	import { onMount, getContext } from 'svelte';
-	import {
-		WEBUI_NAME,
-		showSidebar,
-		functions,
-		user,
-		mobile,
-		models,
-		knowledge,
-		tools
-	} from '$lib/stores';
+	import { WEBUI_NAME, showSidebar, user, mobile } from '$lib/stores';
 	import { page } from '$app/stores';
 	import { goto } from '$app/navigation';
 	import Tooltip from '$lib/components/common/Tooltip.svelte';
@@ -19,23 +10,62 @@
 
 	let loaded = false;
 
+	// Permissions des 5 sections open-webui d'origine (regroupées dans la Bibliothèque).
+	$: perms = $user?.permissions?.workspace ?? {};
+	$: isAdmin = $user?.role === 'admin';
+	$: canAgents = isAdmin || !!perms.models;
+	$: canLibrary =
+		isAdmin || !!(perms.models || perms.knowledge || perms.prompts || perms.skills || perms.tools);
+
+	// Onglets V1 « Vos collègues numériques ». La Bibliothèque reste active quand on
+	// navigue dans une de ses 5 sections (routes historiques conservées).
+	const LIBRARY_PATHS = [
+		'/workspace/library',
+		'/workspace/models',
+		'/workspace/knowledge',
+		'/workspace/prompts',
+		'/workspace/skills',
+		'/workspace/tools',
+		'/workspace/functions'
+	];
+	$: onglets = [
+		...(canAgents ? [{ label: 'Agents', href: '/workspace/agents', paths: ['/workspace/agents'] }] : []),
+		{ label: 'Tâches', href: '/workspace/tasks', paths: ['/workspace/tasks'] },
+		{
+			label: 'Automatisations',
+			href: '/workspace/automations',
+			paths: ['/workspace/automations']
+		},
+		...(canLibrary ? [{ label: 'Bibliothèque', href: '/workspace/library', paths: LIBRARY_PATHS }] : [])
+	];
+	$: estActif = (paths: string[]) => paths.some((p) => $page.url.pathname.startsWith(p));
+
 	onMount(async () => {
 		if ($user?.role !== 'admin') {
-			if ($page.url.pathname.includes('/models') && !$user?.permissions?.workspace?.models) {
-				goto('/');
-			} else if (
-				$page.url.pathname.includes('/knowledge') &&
-				!$user?.permissions?.workspace?.knowledge
+			const pathname = $page.url.pathname;
+			const workspacePerms = $user?.permissions?.workspace ?? {};
+			const anyPerm = !!(
+				workspacePerms.models ||
+				workspacePerms.knowledge ||
+				workspacePerms.prompts ||
+				workspacePerms.skills ||
+				workspacePerms.tools
+			);
+
+			if (
+				(pathname.includes('/models') || pathname.includes('/agents')) &&
+				!workspacePerms.models
 			) {
 				goto('/');
-			} else if (
-				$page.url.pathname.includes('/prompts') &&
-				!$user?.permissions?.workspace?.prompts
-			) {
+			} else if (pathname.includes('/knowledge') && !workspacePerms.knowledge) {
 				goto('/');
-			} else if ($page.url.pathname.includes('/tools') && !$user?.permissions?.workspace?.tools) {
+			} else if (pathname.includes('/prompts') && !workspacePerms.prompts) {
 				goto('/');
-			} else if ($page.url.pathname.includes('/skills') && !$user?.permissions?.workspace?.skills) {
+			} else if (pathname.includes('/tools') && !workspacePerms.tools) {
+				goto('/');
+			} else if (pathname.includes('/skills') && !workspacePerms.skills) {
+				goto('/');
+			} else if (pathname.includes('/library') && !anyPerm) {
 				goto('/');
 			}
 		}
@@ -56,103 +86,67 @@
 			? 'md:max-w-[calc(100%-var(--sidebar-width))]'
 			: ''} max-w-full"
 	>
-		<nav class="   px-2.5 pt-1.5 backdrop-blur-xl drag-region select-none">
-			<div class=" flex items-center gap-1">
-				{#if $mobile}
-					<div class="{$showSidebar ? 'md:hidden' : ''} self-center flex flex-none items-center">
-						<Tooltip
-							content={$showSidebar ? $i18n.t('Close Sidebar') : $i18n.t('Open Sidebar')}
-							interactive={true}
-						>
-							<button
-								id="sidebar-toggle-button"
-								class=" cursor-pointer flex rounded-lg hover:bg-gray-100 dark:hover:bg-gray-850 transition cursor-"
-								aria-label={$showSidebar ? $i18n.t('Close Sidebar') : $i18n.t('Open Sidebar')}
-								on:click={() => {
-									showSidebar.set(!$showSidebar);
-								}}
-							>
-								<div class=" self-center p-1.5">
-									<Sidebar />
-								</div>
-							</button>
-						</Tooltip>
-					</div>
-				{/if}
-
-				<div class="">
-					<div
-						class="flex gap-1 scrollbar-none overflow-x-auto w-fit text-center text-sm font-medium rounded-full bg-transparent py-1 touch-auto pointer-events-auto"
+		<!-- En-tête V1 : « Vos collègues numériques » + onglets pilule (même recette que Capacités) -->
+		<div class="px-6 md:px-10 pt-4 shrink-0 drag-region select-none">
+			<div class="flex items-start gap-1">
+				<div class="{$showSidebar ? 'md:hidden' : ''} flex flex-none items-center pt-1">
+					<Tooltip
+						content={$showSidebar ? $i18n.t('Close Sidebar') : $i18n.t('Open Sidebar')}
+						interactive={true}
 					>
-						{#if $user?.role === 'admin' || $user?.permissions?.workspace?.models}
-							<a
-								draggable="false"
-								aria-current={$page.url.pathname.includes('/workspace/models') ? 'page' : null}
-								class="min-w-fit p-1.5 {$page.url.pathname.includes('/workspace/models')
-									? ''
-									: 'text-gray-300 dark:text-gray-600 hover:text-gray-700 dark:hover:text-white'} transition select-none"
-								href="/workspace/models">{$i18n.t('Models')}</a
-							>
-						{/if}
-
-						{#if $user?.role === 'admin' || $user?.permissions?.workspace?.knowledge}
-							<a
-								draggable="false"
-								aria-current={$page.url.pathname.includes('/workspace/knowledge') ? 'page' : null}
-								class="min-w-fit p-1.5 {$page.url.pathname.includes('/workspace/knowledge')
-									? ''
-									: 'text-gray-300 dark:text-gray-600 hover:text-gray-700 dark:hover:text-white'} transition select-none"
-								href="/workspace/knowledge"
-							>
-								{$i18n.t('Knowledge')}
-							</a>
-						{/if}
-
-						{#if $user?.role === 'admin' || $user?.permissions?.workspace?.prompts}
-							<a
-								draggable="false"
-								aria-current={$page.url.pathname.includes('/workspace/prompts') ? 'page' : null}
-								class="min-w-fit p-1.5 {$page.url.pathname.includes('/workspace/prompts')
-									? ''
-									: 'text-gray-300 dark:text-gray-600 hover:text-gray-700 dark:hover:text-white'} transition select-none"
-								href="/workspace/prompts">{$i18n.t('Prompts')}</a
-							>
-						{/if}
-
-						{#if $user?.role === 'admin' || $user?.permissions?.workspace?.skills}
-							<a
-								draggable="false"
-								aria-current={$page.url.pathname.includes('/workspace/skills') ? 'page' : null}
-								class="min-w-fit p-1.5 {$page.url.pathname.includes('/workspace/skills')
-									? ''
-									: 'text-gray-300 dark:text-gray-600 hover:text-gray-700 dark:hover:text-white'} transition select-none"
-								href="/workspace/skills"
-							>
-								{$i18n.t('Skills')}
-							</a>
-						{/if}
-
-						{#if $user?.role === 'admin' || $user?.permissions?.workspace?.tools}
-							<a
-								draggable="false"
-								aria-current={$page.url.pathname.includes('/workspace/tools') ? 'page' : null}
-								class="min-w-fit p-1.5 {$page.url.pathname.includes('/workspace/tools')
-									? ''
-									: 'text-gray-300 dark:text-gray-600 hover:text-gray-700 dark:hover:text-white'} transition select-none"
-								href="/workspace/tools"
-							>
-								{$i18n.t('Tools')}
-							</a>
-						{/if}
-					</div>
+						<button
+							id="sidebar-toggle-button"
+							class="cursor-pointer p-1.5 flex rounded-lg hover:bg-gray-100 dark:hover:bg-gray-850 transition"
+							aria-label={$showSidebar ? $i18n.t('Close Sidebar') : $i18n.t('Open Sidebar')}
+							on:click={() => {
+								showSidebar.set(!$showSidebar);
+							}}
+						>
+							<Sidebar />
+						</button>
+					</Tooltip>
 				</div>
 
-				<!-- <div class="flex items-center text-xl font-medium">{$i18n.t('Workspace')}</div> -->
+				<div>
+					<div
+						class="text-xs font-semibold tracking-widest text-gray-500 dark:text-gray-400 uppercase"
+					>
+						Espace de travail
+					</div>
+					<h1 class="text-2xl font-semibold text-gray-900 dark:text-gray-50 mt-1">
+						Vos collègues numériques
+					</h1>
+					<p class="text-sm text-gray-500 dark:text-gray-400 mt-1">
+						Créez et pilotez des agents IA spécialisés — chacun avec sa mission, ses outils et sa
+						personnalité.
+					</p>
+				</div>
 			</div>
-		</nav>
+
+			<!-- Barre d'onglets -->
+			<div
+				class="flex flex-wrap items-center gap-1 mt-4 mb-2 p-1 rounded-full bg-gray-50 dark:bg-gray-850 w-fit"
+				role="tablist"
+			>
+				{#each onglets as onglet}
+					<a
+						draggable="false"
+						role="tab"
+						aria-selected={estActif(onglet.paths)}
+						aria-current={estActif(onglet.paths) ? 'page' : null}
+						class="px-4 py-1.5 rounded-full text-sm transition select-none {estActif(onglet.paths)
+							? 'bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-50 shadow-sm font-medium'
+							: 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-white'}"
+						href={onglet.href}
+					>
+						{onglet.label}
+					</a>
+				{/each}
+			</div>
+		</div>
 
 		<div
-			class="  pb-1 px-3 md:px-[18px] flex-1 max-h-full overflow-y-auto"
+			class="  pb-1 px-6 md:px-10 pt-2 flex-1 max-h-full overflow-y-auto"
 			id="workspace-container"
 		>
 			<slot />
