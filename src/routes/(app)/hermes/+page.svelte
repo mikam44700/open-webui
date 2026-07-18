@@ -1,5 +1,7 @@
 <script lang="ts">
 	import { onMount, onDestroy } from 'svelte';
+	import { showSidebar, mobile } from '$lib/stores';
+	import Sidebar from '$lib/components/icons/Sidebar.svelte';
 
 	// Adresse locale de l'API Hermes Agent (port par defaut du serveur API Hermes)
 	const HERMES_API_URL = 'http://localhost:8642';
@@ -41,7 +43,25 @@
 	<title>Hermes Agent</title>
 </svelte:head>
 
-<div class="flex flex-col w-full h-full px-5 py-6 max-w-3xl mx-auto overflow-y-auto">
+<div
+	class="flex flex-col w-full h-screen max-h-[100dvh] transition-width duration-200 ease-in-out {$showSidebar
+		? 'md:max-w-[calc(100%-var(--sidebar-width))]'
+		: ''} max-w-full"
+>
+	<nav class="px-3 pt-2 pb-1 shrink-0 flex items-center">
+		<div class="{$showSidebar ? 'md:hidden' : ''} flex flex-none items-center">
+			<button
+				id="sidebar-toggle-button"
+				class="cursor-pointer p-1.5 flex rounded-lg hover:bg-gray-100 dark:hover:bg-gray-850 transition"
+				on:click={() => showSidebar.set(!$showSidebar)}
+				aria-label="Basculer la barre laterale"
+			>
+				<Sidebar />
+			</button>
+		</div>
+	</nav>
+
+	<div class="flex flex-col w-full px-5 py-4 max-w-3xl mx-auto overflow-y-auto">
 	<div class="mb-6">
 		<div class="text-xs font-semibold tracking-widest text-gray-500 dark:text-gray-400 uppercase">
 			Le moteur
@@ -150,4 +170,5 @@
 			> (configuration en cours - etape suivante du projet).
 		</div>
 	{/if}
+	</div>
 </div>
