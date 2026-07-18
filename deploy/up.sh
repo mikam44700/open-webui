@@ -32,6 +32,20 @@ if [[ "$MODE" == "vps" ]] && ! grep -Eq '^LUNARIA_DOMAIN=.+$' .env; then
   exit 1
 fi
 
+# Règle projet : UNE SEULE adresse (http://localhost:3000) et une seule app à la fois.
+# Si le port est occupé (serveur de dev vite/uvicorn), on explique au lieu d'empiler
+# une deuxième app — et on ne tue JAMAIS un processus existant nous-mêmes.
+if [[ "$MODE" == "local" ]]; then
+  PORT="$(grep -E '^LUNARIA_PORT=' .env | cut -d= -f2)"
+  PORT="${PORT:-3000}"
+  if lsof -nP -iTCP:"$PORT" -sTCP:LISTEN | grep -qv "com.docke"; then
+    echo "Le port $PORT est déjà utilisé (probablement ton serveur de dev)." >&2
+    echo "Règle projet : une seule app à la fois sur http://localhost:$PORT." >&2
+    echo "→ Arrête le dev (Ctrl+C dans les terminaux vite / dev.sh), puis relance ./up.sh" >&2
+    exit 1
+  fi
+fi
+
 if ! docker image inspect lunaria-app >/dev/null 2>&1; then
   ./build.sh
 fi

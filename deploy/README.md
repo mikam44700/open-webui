@@ -4,6 +4,17 @@ Une seule stack, deux modes : `local` (ton poste) et `vps` (le client). Seul le
 fichier `.env` change. Crawl4AI est pré-connecté au démarrage — le client n'installe
 rien (SPEC-deploiement-docker-local-vps).
 
+## Règle projet : UNE SEULE adresse
+
+Tout vit sur **`http://localhost:3000`** — jamais deux apps en même temps (règle actée
+dans EtapeParEtape.md après le bug du conteneur fantôme). Donc :
+
+- **Développer** : serveurs dev (dev.sh + vite) sur 3000. La stack Docker est arrêtée.
+- **Tester la version client** : arrêter le dev (Ctrl+C), puis `./up.sh` — la même
+  adresse sert maintenant la version client. `down` pour revenir au dev.
+
+`up.sh` refuse de démarrer si le port est occupé (et n'arrête jamais le dev lui-même).
+
 ## Local (démo / test)
 
 ```bash
@@ -11,7 +22,7 @@ cd app/deploy
 ./up.sh            # génère .env, build les images (long la 1re fois), lance tout
 ```
 
-Puis ouvrir http://localhost:3000 — créer le compte admin, renseigner une clé API
+Puis ouvrir `http://localhost:3000` — créer le compte admin, renseigner une clé API
 de modèle, discuter. La lecture web approfondie marche sans rien installer.
 
 ## VPS client
@@ -27,7 +38,7 @@ cd lunaria/deploy
 ./up.sh vps        # build + lancement, HTTPS automatique (Let's Encrypt)
 ```
 
-Le client ouvre https://lunaria.monclient.fr, crée son compte : tout est déjà branché.
+Le client ouvre `https://lunaria.monclient.fr`, crée son compte : tout est déjà branché.
 
 ## Commandes utiles
 
