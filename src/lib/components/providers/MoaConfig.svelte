@@ -1,14 +1,13 @@
 <script lang="ts">
 	import { getContext, onMount, createEventDispatcher } from 'svelte';
 	import { toast } from 'svelte-sonner';
-	import { WEBUI_BASE_URL } from '$lib/constants';
 
 	import Spinner from '$lib/components/common/Spinner.svelte';
 	import Badge from '$lib/components/common/Badge.svelte';
 	import Switch from '$lib/components/common/Switch.svelte';
 	import { getModelPresentation } from '$lib/catalog/model-badges';
 	import { PROVIDER_INFO } from '$lib/catalog/provider-info';
-	import { PROVIDER_LOGO_FULL_BLEED } from '$lib/utils/providerLogos';
+	import { PROVIDER_LOGO_FULL_BLEED, providerLogoUrl } from '$lib/utils/providerLogos';
 	import { isHiddenProvider } from '$lib/catalog/provider-taxonomy';
 	import { getMoaConfig, setMoaConfig, activateMoa, deactivateMoa } from '$lib/apis/moa-hermes';
 
@@ -51,7 +50,7 @@
 	$: presentation = getModelPresentation(provider.id);
 	$: info = PROVIDER_INFO[provider.id] ?? {};
 	$: logoFull = PROVIDER_LOGO_FULL_BLEED.has(provider.logo);
-	$: logoUrl = `${WEBUI_BASE_URL}/assets/providers/${provider.logo}.png`;
+	$: logoUrl = providerLogoUrl(provider);
 
 	$: proposers = options.filter((o) => selected.has(o.provider));
 	$: canSave = proposers.length >= 2 && !!aggregator;

@@ -12,7 +12,6 @@
 	} from '$lib/apis/providers';
 	import Spinner from '$lib/components/common/Spinner.svelte';
 	import ConfirmDialog from '$lib/components/common/ConfirmDialog.svelte';
-	import { WEBUI_BASE_URL } from '$lib/constants';
 	import { getProviderName } from '$lib/catalog/provider-info';
 	import { expertMode } from '$lib/stores';
 
@@ -218,7 +217,7 @@
 		<div class="flex items-center justify-between">
 			<div class="flex items-center gap-2.5">
 				<img
-					src="{WEBUI_BASE_URL}/assets/providers/nousresearch.png"
+					src="/assets/providers/nousresearch.png"
 					alt="Agent Hermes"
 					class="size-11 rounded-xl object-cover shrink-0"
 					draggable="false"
