@@ -94,8 +94,11 @@ async def import_legacy_config_json():
 
 STATIC_DIR = Path(os.getenv('STATIC_DIR', OPEN_WEBUI_DIR / 'static')).resolve()
 
+# LunarIA : on ne vide static/ que si un build frontend existe pour le repeupler.
+# En dev (pas de build/), le comportement d'origine supprimait favicons et css a
+# chaque redemarrage du backend (--reload) et ne remettait rien a la place.
 try:
-    if STATIC_DIR.exists():
+    if STATIC_DIR.exists() and (FRONTEND_BUILD_DIR / 'static').exists():
         for item in STATIC_DIR.iterdir():
             if item.is_file() or item.is_symlink():
                 try:
