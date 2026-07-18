@@ -432,7 +432,7 @@
 			keywords: [
 				'about app',
 				'about me',
-				'about open webui',
+				'a propos lunaria',
 				'about page',
 				'about us',
 				'aboutapp',
