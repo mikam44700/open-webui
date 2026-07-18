@@ -14,6 +14,8 @@
 	import IntegrationsList from '$lib/components/integrations/IntegrationsList.svelte';
 	import McpList from '$lib/components/connectors/McpList.svelte';
 	import WebSearchList from '$lib/components/capabilities/WebSearchList.svelte';
+	import ToolsetList from '$lib/components/capabilities/ToolsetList.svelte';
+	import { prefetchTools } from '$lib/apis/capabilities';
 	import mcpLogo from '$lib/assets/connectors/mcp.svg';
 
 	// --- Onglets de l'espace de travail ---
@@ -222,6 +224,9 @@
 	onMount(() => {
 		rafraichir();
 		chargerCompteurs();
+		// L'onglet Outils charge /tools (~2,5 s côté bridge) : préchargé en fond dès
+		// l'ouverture de la page pour un affichage instantané (recette v1).
+		prefetchTools(localStorage.token);
 		interval = setInterval(rafraichir, 30000);
 	});
 
@@ -347,6 +352,11 @@
 			<!-- Recherche web, navigateur, X, extraction (porté de la v1) -->
 			<div class="-mx-3">
 				<WebSearchList />
+			</div>
+		{:else if ongletActif === 'Outils'}
+			<!-- Capacités de l'assistant : toolsets Hermes (porté de la v1) -->
+			<div class="-mx-3">
+				<ToolsetList />
 			</div>
 		{:else if ongletActif !== 'Modèles IA'}
 			<!-- Onglets à venir -->
