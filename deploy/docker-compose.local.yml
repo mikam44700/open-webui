@@ -1,6 +1,15 @@
 # Override LOCAL (dev / démo sur le poste) : publie l'app sur http://localhost:3000.
 # Bind sur 127.0.0.1 uniquement — pas d'exposition sur le réseau local.
+#
+# restart: always (et pas unless-stopped comme la base) : sur Docker Desktop macOS,
+# l'extinction du Mac marque les conteneurs « arrêtés », donc unless-stopped ne les
+# relance pas au démarrage suivant (panne du 2026-07-19 au réveil). always les fait
+# repartir dès que Docker s'ouvre, quoi qu'il se soit passé. Le VPS (Linux) garde
+# unless-stopped, comportement standard fiable là-bas.
 services:
   lunaria:
+    restart: always
     ports:
       - "127.0.0.1:${LUNARIA_PORT:-3000}:8080"
+  crawl4ai:
+    restart: always
