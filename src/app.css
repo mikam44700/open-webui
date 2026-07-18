@@ -940,3 +940,16 @@ body {
 }
 
 /* Respect des preferences systeme : pas de mouvement pour qui l'a desactive. */
+@media (prefers-reduced-motion: reduce) {
+	.card-lift,
+	.card-lift:hover {
+		transform: none;
+	}
+	.btn-premium::after {
+		display: none;
+	}
+	.btn-premium:hover,
+	.btn-premium:active {
+		transform: none;
+	}
+}

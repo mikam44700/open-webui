@@ -289,8 +289,11 @@
 
 		<!-- Bannière premium : couleur + texte selon l'onglet actif (portée de la v1) -->
 		{#if sectionActive?.banner}
+			<!-- shrink-0 : enfant d'un flex-col a hauteur d'ecran, l'overflow-hidden ramene sa
+			     taille minimale de flex item a 0 - sans lui le bandeau est ecrase a 0px des que
+			     le contenu de l'onglet depasse l'ecran. -->
 			<div
-				class="relative mb-5 overflow-hidden rounded-3xl bg-linear-to-br hero-modern ring-1 ring-inset ring-white/50 dark:ring-white/10 {sectionActive
+				class="relative mb-5 shrink-0 overflow-hidden rounded-3xl bg-linear-to-br hero-modern ring-1 ring-inset ring-white/50 dark:ring-white/10 {sectionActive
 					.banner.wrap}"
 			>
 				<div
