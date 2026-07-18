@@ -808,9 +808,13 @@
 		}
 
 		isAuthRedirectInProgress = true;
+		// Message seulement si une session était réellement ouverte (expiration en
+		// pleine utilisation). Un vieux jeton détecté au chargement → silence total.
+		if ($user) {
+			toast.error($i18n.t('Session expired. Please sign in again.'));
+		}
 		user.set(null);
 		localStorage.removeItem('token');
-		toast.error($i18n.t('Session expired. Please sign in again.'));
 
 		const currentPath = `${window.location.pathname}${window.location.search}`;
 		goto(`/auth?redirect=${encodeURIComponent(currentPath)}`).finally(() => {
@@ -1133,8 +1137,11 @@
 
 				if (localStorage.token) {
 					// Get Session User Info
+					// Jeton absent/expiré/venant d'une autre instance sur la même adresse :
+					// cas NORMAL à l'arrivée — nettoyage silencieux + page de connexion,
+					// jamais de popup « 401 Unauthorized » au chargement.
 					const sessionUser = await getSessionUser(localStorage.token).catch((error) => {
-						toast.error(`${error}`);
+						console.warn('session invalide au démarrage (nettoyée):', error);
 						return null;
 					});
 
