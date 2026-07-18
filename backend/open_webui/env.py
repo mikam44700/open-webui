@@ -840,8 +840,10 @@ if LICENSE_PUBLIC_KEY:
 ####################################
 
 WEBUI_NAME = os.getenv('WEBUI_NAME', 'Open WebUI')
-if WEBUI_NAME != 'Open WebUI':
-    WEBUI_NAME += ' (Open WebUI)'
+# Rebranding LunarIA : pas de suffixe « (Open WebUI) » — couvert par la licence
+# open-webui, exception (i) : deploiements de 50 utilisateurs ou moins (30 jours
+# glissants). Notre modele (1 client = 1 VPS de PME) reste sous ce seuil ; si un
+# deploiement devait le depasser, une licence entreprise serait requise.
 
 WEBUI_FAVICON_URL = 'https://openwebui.com/favicon.png'
 WEBUI_BUILD_HASH = os.getenv('WEBUI_BUILD_HASH', 'dev-build')
