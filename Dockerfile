@@ -28,7 +28,8 @@ FROM --platform=$BUILDPLATFORM node:22-alpine3.20 AS build
 ARG BUILD_HASH
 
 # Set Node.js options (heap limit Allocation failed - JavaScript heap out of memory)
-# ENV NODE_OPTIONS="--max-old-space-size=4096"
+# Décommenté (upstream le prévoit) : vite build OOM sinon (heap Node ~2 Go par défaut).
+ENV NODE_OPTIONS="--max-old-space-size=4096"
 
 WORKDIR /app
 
