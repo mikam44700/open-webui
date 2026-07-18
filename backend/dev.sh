@@ -5,6 +5,15 @@
 # - `python -m uvicorn` : insensible au déplacement du venv (shebangs cassés sinon)
 cd "$(dirname "$0")"
 
+# Règle projet « une seule URL » (localhost:3000 = stack Docker LunarIA) :
+# les serveurs dev ne démarrent JAMAIS pendant que la stack tourne.
+if docker ps --format '{{.Names}}' 2>/dev/null | grep -q '^lunaria-'; then
+  echo "STOP : la stack Docker LunarIA tourne déjà sur localhost:3000." >&2
+  echo "Une seule app à la fois. L'arrêter d'abord :" >&2
+  echo "  cd ../deploy && docker compose -f docker-compose.yml -f docker-compose.local.yml stop" >&2
+  exit 1
+fi
+
 if [ ! -f .webui_secret_key ]; then
   head -c 12 /dev/random | base64 > .webui_secret_key
 fi

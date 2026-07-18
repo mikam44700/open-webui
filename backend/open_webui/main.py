@@ -263,16 +263,25 @@ log = logging.getLogger(__name__)
 class SPAStaticFiles(StaticFiles):
     async def get_response(self, path: str, scope):
         try:
-            return await super().get_response(path, scope)
+            response = await super().get_response(path, scope)
         except (HTTPException, StarletteHTTPException) as ex:
             if ex.status_code == 404:
                 if path.endswith('.js'):
                     # Return 404 for javascript files
                     raise ex
                 else:
-                    return await super().get_response('index.html', scope)
+                    response = await super().get_response('index.html', scope)
             else:
                 raise ex
+        # Sans Cache-Control, le navigateur cache le HTML a l'aveugle et peut servir
+        # une vieille page apres une mise a jour (clignotements, assets introuvables).
+        # Regle : assets haches (_app/immutable/*) = immuables, cache long ; tout le
+        # reste (index.html, routes SPA) = revalidation systematique (no-cache + etag).
+        if path.startswith('_app/immutable/'):
+            response.headers['Cache-Control'] = 'public, max-age=31536000, immutable'
+        else:
+            response.headers['Cache-Control'] = 'no-cache'
+        return response
 
 
 class CORSStaticFiles(StaticFiles):
