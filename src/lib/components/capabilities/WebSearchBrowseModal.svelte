@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { getContext, createEventDispatcher } from 'svelte';
 
-	import { type Provider } from '$lib/utils/toolConnect';
+	import { type Provider, providerStatus } from '$lib/utils/toolConnect';
 	import ToolProviderCatalogCard from '$lib/components/integrations/ToolProviderCatalogCard.svelte';
 
 	const i18n = getContext('i18n');
@@ -28,6 +28,14 @@
 	};
 	const TOOLSET_ORDER = ['web', 'browser', 'x_search'];
 
+	// Dans chaque catégorie, les fournisseurs ACTIFS remontent en premier
+	// (distinction actifs / inactifs demandée par Michael 2026-07-18).
+	const ACTIVE_STATES = ['saved', 'detected', 'active', 'key-active'];
+	const isActive = (it: { provider: Provider }) =>
+		ACTIVE_STATES.includes(providerStatus(it.provider));
+	const activesFirst = (list: { toolsetName: string; provider: Provider }[]) =>
+		[...list].sort((a, b) => Number(isActive(b)) - Number(isActive(a)));
+
 	// Regroupe les fournisseurs filtrés par type d'outil, dans l'ordre voulu (inconnus à la fin).
 	$: groups = (() => {
 		const byToolset = new Map<string, { toolsetName: string; provider: Provider }[]>();
@@ -38,12 +46,16 @@
 		const ordered: { key: string; label: string; items: typeof filtered }[] = [];
 		for (const ts of TOOLSET_ORDER) {
 			if (byToolset.has(ts)) {
-				ordered.push({ key: ts, label: TOOLSET_LABEL[ts] ?? ts, items: byToolset.get(ts)! });
+				ordered.push({
+					key: ts,
+					label: TOOLSET_LABEL[ts] ?? ts,
+					items: activesFirst(byToolset.get(ts)!)
+				});
 				byToolset.delete(ts);
 			}
 		}
 		for (const [ts, list] of byToolset) {
-			ordered.push({ key: ts, label: TOOLSET_LABEL[ts] ?? ts, items: list });
+			ordered.push({ key: ts, label: TOOLSET_LABEL[ts] ?? ts, items: activesFirst(list) });
 		}
 		return ordered;
 	})();
