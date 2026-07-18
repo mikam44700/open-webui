@@ -85,7 +85,9 @@
 	import HotkeyHint from '../common/HotkeyHint.svelte';
 
 	const BREAKPOINT = 768;
-	const DEFAULT_PINNED_ITEMS = ['hermes', 'notes', 'workspace'];
+	// Ordre demandé par Michael (2026-07-18) : Espace de travail, Hermes, Recherche, Notes
+	// (sous « Nouvelle conversation »). « search » vit dans la liste réordonnable.
+	const DEFAULT_PINNED_ITEMS = ['workspace', 'hermes', 'search', 'notes'];
 
 	let scrollTop = 0;
 
@@ -116,7 +118,11 @@
 
 	let sharedFolders: any[] = [];
 
-	$: pinnedItems = $settings?.pinnedMenuItems ?? DEFAULT_PINNED_ITEMS;
+	// Un réglage sauvegardé AVANT l'ajout de « search » ne le contient pas :
+	// on repart alors de l'ordre par défaut (sinon Recherche disparaîtrait du menu).
+	$: pinnedItems = $settings?.pinnedMenuItems?.includes('search')
+		? $settings.pinnedMenuItems
+		: DEFAULT_PINNED_ITEMS;
 
 	const isMenuItemVisible = (id) => {
 		switch (id) {
@@ -146,6 +152,8 @@
 				);
 			case 'hermes':
 				return true;
+			case 'search':
+				return true;
 			case 'playground':
 				return $user?.role === 'admin';
 			default:
@@ -156,6 +164,7 @@
 	const getMenuItemMeta = (id) => {
 		const items = {
 			notes: { label: 'Notes', href: '/notes', iconType: 'note' },
+			search: { label: 'Search', href: null, iconType: 'search' },
 			workspace: { label: 'Workspace', href: '/workspace', iconType: 'workspace' },
 			automations: { label: 'Automations', href: '/automations', iconType: 'automations' },
 			calendar: { label: 'Calendar', href: '/calendar', iconType: 'calendar' },
@@ -1147,27 +1156,6 @@
 						</a>
 					</div>
 
-					<div class="px-[0.4375rem] flex justify-center text-gray-800 dark:text-gray-200">
-						<button
-							id="sidebar-search-button"
-							class="group grow flex items-center space-x-3 rounded-2xl px-2.5 py-2 hover:bg-gray-100 dark:hover:bg-gray-900 transition outline-none"
-							on:click={() => {
-								showSearch.set(true);
-							}}
-							draggable="false"
-							aria-label={$i18n.t('Search')}
-						>
-							<div class="self-center">
-								<Search strokeWidth="2" className="size-4.5" />
-							</div>
-
-							<div class="flex flex-1 self-center translate-y-[0.5px]">
-								<div class=" self-center text-sm font-primary">{$i18n.t('Search')}</div>
-							</div>
-							<HotkeyHint name="search" className=" group-hover:visible invisible" />
-						</button>
-					</div>
-
 					<div id="pinned-menu-items-list">
 						{#each pinnedItems as itemId (itemId)}
 							{@const meta = getMenuItemMeta(itemId)}
@@ -1176,8 +1164,30 @@
 									class="px-[0.4375rem] flex justify-center text-gray-800 dark:text-gray-200"
 									data-id={itemId}
 								>
-									<a
-										id="sidebar-{itemId}-button"
+									{#if itemId === 'search'}
+										<button
+											id="sidebar-search-button"
+											class="group grow flex items-center space-x-3 rounded-2xl px-2.5 py-2 hover:bg-gray-100 dark:hover:bg-gray-900 transition outline-none"
+											on:click={() => {
+												showSearch.set(true);
+											}}
+											draggable="false"
+											aria-label={$i18n.t('Search')}
+										>
+											<div class="self-center">
+												<Search strokeWidth="2" className="size-4.5" />
+											</div>
+
+											<div class="flex flex-1 self-center translate-y-[0.5px]">
+												<div class=" self-center text-sm font-primary text-left">
+													{$i18n.t('Search')}
+												</div>
+											</div>
+											<HotkeyHint name="search" className=" group-hover:visible invisible" />
+										</button>
+									{:else}
+										<a
+											id="sidebar-{itemId}-button"
 										class="grow flex items-center space-x-3 rounded-2xl px-2.5 py-2 hover:bg-gray-100 dark:hover:bg-gray-900 transition"
 										href={meta.href}
 										on:click={itemClickHandler}
@@ -1255,7 +1265,8 @@
 										<div class="flex self-center translate-y-[0.5px]">
 											<div class=" self-center text-sm font-primary">{$i18n.t(meta.label)}</div>
 										</div>
-									</a>
+										</a>
+									{/if}
 								</div>
 							{/if}
 						{/each}
