@@ -24,6 +24,8 @@
 		TTSWorker,
 		user
 	} from '$lib/stores';
+	import { activeAgent } from '$lib/stores/agent';
+	import { agentIdentity } from '$lib/utils/agentIdentity';
 	import { synthesizeOpenAISpeech } from '$lib/apis/audio';
 	import { imageGenerations } from '$lib/apis/images';
 	import {
@@ -175,6 +177,9 @@
 
 	let model = null;
 	$: model = $models.find((m) => m.id === message.model);
+
+	// Incarnation v1 : identité (visage + prénom) de l'agent actif pour les bulles de réponse.
+	$: agentUi = agentIdentity($activeAgent);
 
 	$: statusEntries = message?.statusHistory ?? [...(message?.status ? [message?.status] : [])];
 
@@ -661,17 +666,21 @@
 		style="scroll-margin-top: 3rem;"
 	>
 		<div class={`shrink-0 ltr:mr-3 rtl:ml-3 hidden @lg:flex mt-1 `}>
+			<!-- Incarnation v1 : le visage de l'agent actif remplace l'icône du modèle,
+			     repli en cascade sur l'image du modèle natif. -->
 			<ProfileImage
-				src={`${WEBUI_API_BASE_URL}/models/model/profile/image?id=${model?.id}&lang=${$i18n.language}`}
+				src={agentUi?.faceUrl ??
+					agentUi?.avatarUrl ??
+					`${WEBUI_API_BASE_URL}/models/model/profile/image?id=${model?.id}&lang=${$i18n.language}`}
 				className={'size-8 assistant-message-profile-image'}
 			/>
 		</div>
 
 		<div class="flex-auto w-0 pl-1 relative">
 			<Name>
-				<Tooltip content={model?.name ?? message.model} placement="top-start">
+				<Tooltip content={agentUi?.firstName ?? model?.name ?? message.model} placement="top-start">
 					<span id="response-message-model-name" class="line-clamp-1 text-black dark:text-white">
-						{model?.name ?? message.model}
+						{agentUi?.firstName ?? model?.name ?? message.model}
 					</span>
 				</Tooltip>
 

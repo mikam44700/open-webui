@@ -94,6 +94,8 @@
 	import Component from '../icons/Component.svelte';
 	import PlusAlt from '../icons/PlusAlt.svelte';
 	import Dropdown from '../common/Dropdown.svelte';
+	import HermesSlashMenu from './MessageInput/HermesSlashMenu.svelte';
+	import { enhancePrompt } from '$lib/chat/enhance';
 
 	import CommandSuggestionList from './MessageInput/CommandSuggestionList.svelte';
 	import Knobs from '../icons/Knobs.svelte';
@@ -133,6 +135,43 @@
 		generating;
 
 	export let prompt = '';
+
+	// ——— Recette v1 : « Clarifier ma demande » + menu « / » d'actions rapides ———
+	let enhancing = false;
+	const enhanceMyPrompt = async () => {
+		const text = prompt.trim();
+		if (!text || enhancing) return;
+		const model = (atSelectedModel?.id ? [atSelectedModel.id] : selectedModels)?.[0];
+		enhancing = true;
+		try {
+			const improved = await enhancePrompt(localStorage.token, model, text);
+			if (improved && improved !== text) {
+				prompt = improved;
+				// L'éditeur riche ne réagit pas à prompt = … ; on pousse le texte via sa méthode.
+				chatInputElement?.setText?.(improved);
+			}
+		} catch (e) {
+			toast.error($i18n.t('Amélioration indisponible pour le moment'));
+		} finally {
+			enhancing = false;
+		}
+	};
+
+	let showSlashMenu = false;
+
+	// Action choisie dans le menu « / » : insère l'instruction française dans le champ,
+	// prête à compléter puis envoyer (l'agent l'exécute via ses outils).
+	const onSlashSelect = async (e) => {
+		const { insert } = e.detail;
+		showSlashMenu = false;
+		if (!chatInputElement || !insert) return;
+		if (!(prompt ?? '').trim()) {
+			chatInputElement.setText(insert);
+		} else {
+			chatInputElement.insertContent(` ${insert}`);
+		}
+		await tick();
+	};
 	export let files = [];
 
 	export let selectedToolIds = [];
@@ -1746,6 +1785,68 @@
 											<PlusAlt className="size-5.5" />
 										</button>
 									</InputMenu>
+
+									<!-- Recette v1 : « / » = actions rapides en français ; étincelles = clarifier la demande. -->
+									<Dropdown bind:show={showSlashMenu} side="bottom" align="start">
+										<Tooltip content={$i18n.t('Commandes')} placement="top">
+											<button
+												type="button"
+												class="bg-transparent hover:bg-gray-100 text-gray-700 dark:text-white dark:hover:bg-gray-800 rounded-full size-8 flex justify-center items-center outline-hidden focus:outline-hidden transition {showSlashMenu
+													? 'bg-gray-100 dark:bg-gray-800'
+													: ''}"
+												aria-label={$i18n.t('Commandes')}
+											>
+												<span class="text-xl font-medium leading-none">/</span>
+											</button>
+										</Tooltip>
+										<div slot="content">
+											<HermesSlashMenu on:select={onSlashSelect} />
+										</div>
+									</Dropdown>
+
+									<Tooltip content={$i18n.t('Clarifier ma demande')} placement="top">
+										<button
+											type="button"
+											class="bg-transparent hover:bg-gray-100 text-gray-700 dark:text-white dark:hover:bg-gray-800 rounded-full size-8 flex justify-center items-center outline-hidden transition disabled:opacity-30 disabled:cursor-not-allowed"
+											aria-label={$i18n.t('Clarifier ma demande')}
+											disabled={enhancing}
+											on:click={enhanceMyPrompt}
+										>
+											{#if enhancing}
+												<svg
+													class="size-4 animate-spin"
+													viewBox="0 0 24 24"
+													fill="none"
+													xmlns="http://www.w3.org/2000/svg"
+												>
+													<circle
+														class="opacity-25"
+														cx="12"
+														cy="12"
+														r="10"
+														stroke="currentColor"
+														stroke-width="4"
+													/>
+													<path
+														class="opacity-75"
+														fill="currentColor"
+														d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"
+													/>
+												</svg>
+											{:else}
+												<svg
+													xmlns="http://www.w3.org/2000/svg"
+													viewBox="0 0 24 24"
+													fill="currentColor"
+													class="size-5"
+												>
+													<path
+														d="M9 4.5a.75.75 0 0 1 .721.544l.813 2.846a3.75 3.75 0 0 0 2.576 2.576l2.846.813a.75.75 0 0 1 0 1.442l-2.846.813a3.75 3.75 0 0 0-2.576 2.576l-.813 2.846a.75.75 0 0 1-1.442 0l-.813-2.846a3.75 3.75 0 0 0-2.576-2.576l-2.846-.813a.75.75 0 0 1 0-1.442l2.846-.813A3.75 3.75 0 0 0 8.187 7.89l.813-2.846A.75.75 0 0 1 9 4.5ZM18 1.5a.75.75 0 0 1 .728.568l.258 1.036c.236.94.97 1.674 1.91 1.91l1.036.258a.75.75 0 0 1 0 1.456l-1.036.258c-.94.236-1.674.97-1.91 1.91l-.258 1.036a.75.75 0 0 1-1.456 0l-.258-1.036a2.625 2.625 0 0 0-1.91-1.91l-1.036-.258a.75.75 0 0 1 0-1.456l1.036-.258a2.625 2.625 0 0 0 1.91-1.91l.258-1.036A.75.75 0 0 1 18 1.5ZM16.5 15a.75.75 0 0 1 .712.513l.394 1.183c.15.447.5.799.948.948l1.183.395a.75.75 0 0 1 0 1.422l-1.183.395c-.447.15-.799.5-.948.948l-.395 1.183a.75.75 0 0 1-1.422 0l-.395-1.183a1.5 1.5 0 0 0-.948-.948l-1.183-.395a.75.75 0 0 1 0-1.422l1.183-.395c.447-.15.799-.5.948-.948l.395-1.183A.75.75 0 0 1 16.5 15Z"
+													/>
+												</svg>
+											{/if}
+										</button>
+									</Tooltip>
 
 									{#if showWebSearchButton || showImageGenerationButton || showCodeInterpreterButton || showToolsButton || showSkillsButton || (toggleFilters && toggleFilters.length > 0)}
 										<div

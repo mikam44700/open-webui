@@ -21,7 +21,11 @@
 		currentChatPage
 	} from '$lib/stores';
 	import { sanitizeResponseContent, extractCurlyBraceWords } from '$lib/utils';
-	import { isTeamAgent, agentView, teamAgents, avatarImgFallback } from '$lib/utils/team';
+	import { resolveAgentView, type AgentView, type ActionCard } from '$lib/catalog/agentActions';
+	import { getAgents } from '$lib/apis/agents';
+	import { activeAgent as activeAgentStore } from '$lib/stores/agent';
+	import { avatarColor } from '$lib/components/agents/avatar-colors';
+	import { avatarImgFallback } from '$lib/utils/agentIdentity';
 	import { WEBUI_API_BASE_URL, WEBUI_BASE_URL } from '$lib/constants';
 
 	import Suggestions from './Suggestions.svelte';
@@ -76,16 +80,93 @@
 
 	$: models = selectedModels.map((id) => $_models.find((m) => m.id === id));
 
-	// Accueil incarné (SPEC-chat-agentique, critère 1) : si l'interlocuteur est un agent
-	// de l'équipe, il se présente (visage + mission) et « Votre équipe » montre les autres.
-	$: activeAgentView = isTeamAgent(models[selectedModelIdx]) ? agentView(models[selectedModelIdx]) : null;
-	$: teammates = teamAgents($_models).filter((a) => a.id !== activeAgentView?.id);
-	let showTeam = false;
+	// ——— Accueil incarné, recette v1 portée fidèlement (SPEC-chat-agentique) ———
 
-	const chooseTeamAgent = (id: string) => {
-		selectedModels = [id];
-		showTeam = false;
+	// Pré-remplit le champ SANS envoyer (honnêteté v1) : setText = même chemin qu'une frappe.
+	const selectWorkflow = (p: string) => {
+		if (messageInput?.setText) {
+			messageInput.setText(p);
+		} else {
+			prompt = p; // repli : au moins le brouillon est posé
+		}
 	};
+
+	// « Votre équipe » : le client peut masquer la section (choix mémorisé), et la rappeler
+	// via une petite puce « + Votre équipe ».
+	const TEAM_HIDDEN_KEY = 'lunaria-team-hidden';
+	let teamHidden = false;
+	onMount(() => {
+		teamHidden = localStorage.getItem(TEAM_HIDDEN_KEY) === 'true';
+	});
+	const hideTeam = () => {
+		teamHidden = true;
+		localStorage.setItem(TEAM_HIDDEN_KEY, 'true');
+	};
+	const showTeam = () => {
+		teamHidden = false;
+		localStorage.removeItem(TEAM_HIDDEN_KEY);
+	};
+
+	// Agent actif : son accueil (visage + prénom + rôle) remplace l'accueil générique.
+	let activeAgent: AgentView | null = null;
+
+	type TeamCard = {
+		name: string;
+		firstName: string;
+		role: string;
+		avatar: string;
+		face: string;
+		gradient: string;
+		active: boolean;
+		actions: ActionCard[];
+	};
+	let teamCards: TeamCard[] = [];
+
+	// (Re)charge l'accueil incarné : agent actif + « Votre équipe ». Appelé au montage ET à
+	// chaque changement d'agent actif (via le sélecteur de la barre) pour rester synchrone.
+	const loadTeam = async () => {
+		try {
+			const res = await getAgents(localStorage.token);
+			const list = (res?.agents ?? []) as any[];
+			activeAgent = resolveAgentView(list.find((x) => x?.active));
+			teamCards = list
+				.map((ag): TeamCard | null => {
+					const v = resolveAgentView(ag);
+					if (!v) return null;
+					return {
+						name: v.name,
+						firstName: v.firstName,
+						role: v.role,
+						avatar: v.avatar,
+						face: v.face,
+						gradient: avatarColor(v.avatar || v.name).gradient,
+						active: !!ag?.active,
+						actions: v.actions
+					};
+				})
+				.filter((c): c is TeamCard => c !== null)
+				.filter((c) => c.actions.length > 0)
+				.sort((a, b) => Number(b.active) - Number(a.active));
+		} catch {
+			activeAgent = null;
+			teamCards = [];
+		}
+	};
+
+	onMount(loadTeam);
+
+	// Réagit au changement d'agent actif (sélecteur de la barre) : recharge l'accueil pour que
+	// « Bonjour, je suis … » et l'ordre de « Votre équipe » suivent le nouvel interlocuteur.
+	let lastActiveName: string | null | undefined = undefined;
+	$: {
+		const n = $activeAgentStore?.name ?? null;
+		if (lastActiveName !== undefined && n !== lastActiveName) {
+			void loadTeam();
+		}
+		lastActiveName = n;
+	}
+
+	$: activeGradient = activeAgent ? avatarColor(activeAgent.avatar || activeAgent.name).gradient : '';
 
 	// True when viewing a shared folder the current user doesn't own AND lacks write access
 	$: folderReadOnly =
@@ -129,41 +210,42 @@
 						selectedFolder.set(null);
 					}}
 				/>
-			{:else if activeAgentView}
-				<!-- L'agent se présente, comme dans la V1 : visage + accroche + prénom + mission. -->
+			{:else if activeAgent}
+				<!-- Accueil personnalisé par l'agent actif (recette v1) : visage + rôle + prénom. -->
 				<div
 					class="flex flex-row justify-center items-center gap-3 w-fit px-5 max-w-xl"
 					in:fade={{ duration: 100 }}
 				>
 					<img
-						src={activeAgentView.avatarUrl}
-						alt={activeAgentView.firstName}
-						class="size-14 rounded-full object-cover ring-2 ring-white/30 shadow-sm shrink-0 bg-gray-100 dark:bg-gray-800"
+						src={activeAgent.face}
+						alt={activeAgent.firstName}
+						style="background-image: {activeGradient}"
+						class="size-14 rounded-full object-cover ring-2 ring-white/30 shadow-sm shrink-0"
 						draggable="false"
-						on:error={avatarImgFallback}
+						on:error={(e) => avatarImgFallback(e, activeAgent?.avatar)}
 					/>
 					<div class="text-left min-w-0">
-						{#if activeAgentView.tagline}
+						{#if activeAgent.role}
 							<div
 								class="text-[11px] font-semibold uppercase tracking-[0.12em] text-gray-400 dark:text-gray-500"
 							>
-								{activeAgentView.tagline}
+								{activeAgent.role}
 							</div>
 						{/if}
 						<div
 							class="text-2xl @sm:text-3xl font-medium tracking-tight text-gray-800 dark:text-gray-100 line-clamp-1"
 						>
-							{$i18n.t('Bonjour, je suis {{name}}', { name: activeAgentView.firstName })}
+							{$i18n.t('Bonjour, je suis {{name}}', { name: activeAgent.firstName })}
 						</div>
 					</div>
 				</div>
 
-				{#if activeAgentView.description}
+				{#if activeAgent.description}
 					<div class="flex mt-1.5 mb-2" in:fade={{ duration: 100, delay: 50 }}>
 						<p
 							class="px-2 text-sm font-normal text-gray-500 dark:text-gray-400 line-clamp-2 max-w-xl text-center"
 						>
-							{activeAgentView.description}
+							{activeAgent.description}
 						</p>
 					</div>
 				{/if}
@@ -305,56 +387,106 @@
 		</div>
 	</div>
 
-	{#if teammates.length > 0}
-		<!-- « Votre équipe » (critère 1) : les autres agents, à un clic — recette v1. -->
-		<div
-			class="mx-auto w-fit font-primary mt-3 flex flex-col items-center"
-			in:fade={{ duration: 200, delay: 200 }}
-		>
-			<button
-				type="button"
-				class="flex items-center gap-1.5 rounded-full border border-gray-100 dark:border-gray-800 px-3 py-1.5 text-sm text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-850 transition"
-				on:click={() => (showTeam = !showTeam)}
-				aria-expanded={showTeam}
-			>
-				<svg class="size-4" viewBox="0 0 20 20" fill="currentColor">
-					<path
-						d="M7 8a3 3 0 100-6 3 3 0 000 6zM14.5 9a2.5 2.5 0 100-5 2.5 2.5 0 000 5zM1.615 16.428a1.224 1.224 0 01-.569-1.175 6.002 6.002 0 0111.908 0c.058.467-.172.92-.57 1.174A9.953 9.953 0 017 18a9.953 9.953 0 01-5.385-1.572zM14.5 16h-.106c.07-.297.088-.611.048-.933a7.47 7.47 0 00-1.588-3.755 4.502 4.502 0 015.874 2.636.818.818 0 01-.36.98A7.465 7.465 0 0114.5 16z"
-					/>
-				</svg>
-				{$i18n.t('Votre équipe')}
-			</button>
-
-			{#if showTeam}
-				<div class="mt-2 flex flex-wrap justify-center gap-2" in:fade={{ duration: 150 }}>
-					{#each teammates as mate (mate.id)}
-						<button
-							type="button"
-							class="flex items-center gap-2 rounded-full border border-gray-100 dark:border-gray-800 pl-1 pr-3 py-1 hover:bg-gray-50 dark:hover:bg-gray-850 transition"
-							on:click={() => chooseTeamAgent(mate.id)}
-							title={mate.tagline}
-						>
-							<img
-								src={mate.avatarUrl}
-								alt={mate.firstName}
-								class="size-7 rounded-full object-cover bg-gray-100 dark:bg-gray-800"
-								draggable="false"
-								on:error={avatarImgFallback}
-							/>
-							<span class="text-sm text-gray-700 dark:text-gray-200">{mate.firstName}</span>
-						</button>
-					{/each}
-				</div>
-			{/if}
-		</div>
-	{/if}
-
 	{#if $selectedFolder}
 		<div
 			class="mx-auto px-4 md:max-w-3xl md:px-6 font-primary min-h-62"
 			in:fade={{ duration: 200, delay: 200 }}
 		>
 			<FolderPlaceholder folder={$selectedFolder} />
+		</div>
+	{:else if teamCards.length}
+		<!-- « Votre équipe » (recette v1) : les agents incarnés avec leurs suggestions.
+		     Remplace les suggestions natives. Masquable (choix mémorisé) → puce de rappel. -->
+		<div class="mx-auto max-w-3xl font-primary mt-3 px-5" in:fade={{ duration: 200, delay: 200 }}>
+			{#if teamHidden}
+				<div class="flex justify-center">
+					<button
+						type="button"
+						class="flex items-center gap-1.5 text-xs font-medium text-gray-400 dark:text-gray-500 px-3 py-1.5 rounded-full border border-gray-200 dark:border-gray-800 hover:bg-gray-100 dark:hover:bg-gray-850 transition"
+						on:click={showTeam}
+					>
+						<svg class="w-3.5 h-3.5" viewBox="0 0 20 20" fill="currentColor"
+							><path
+								d="M7 9a3 3 0 1 0 0-6 3 3 0 0 0 0 6Zm7-1.5a2.5 2.5 0 1 0 0-5 2.5 2.5 0 0 0 0 5ZM1.5 16.2C1.5 13.4 4 12 7 12s5.5 1.4 5.5 4.2c0 .4-.3.8-.8.8H2.3c-.5 0-.8-.4-.8-.8Zm12.2.8c.2-.5.3-1 .3-1.8 0-1.3-.5-2.4-1.2-3.2.3-.1.6-.1 1-.1 2.3 0 4.2 1.1 4.2 3.3 0 .5-.3.9-.8.9h-2.9c-.1 0-.2 0-.3-.1l-.3-.6Z"
+							/></svg
+						>
+						{$i18n.t('Votre équipe')}
+					</button>
+				</div>
+			{:else}
+				<div class="mb-4">
+					<div
+						class="flex items-center justify-between gap-1.5 text-xs font-medium text-gray-400 dark:text-gray-500 mb-2.5"
+					>
+						<span class="flex items-center gap-1.5">
+							<svg class="w-3.5 h-3.5" viewBox="0 0 20 20" fill="currentColor"
+								><path
+									d="M7 9a3 3 0 1 0 0-6 3 3 0 0 0 0 6Zm7-1.5a2.5 2.5 0 1 0 0-5 2.5 2.5 0 0 0 0 5ZM1.5 16.2C1.5 13.4 4 12 7 12s5.5 1.4 5.5 4.2c0 .4-.3.8-.8.8H2.3c-.5 0-.8-.4-.8-.8Zm12.2.8c.2-.5.3-1 .3-1.8 0-1.3-.5-2.4-1.2-3.2.3-.1.6-.1 1-.1 2.3 0 4.2 1.1 4.2 3.3 0 .5-.3.9-.8.9h-2.9c-.1 0-.2 0-.3-.1l-.3-.6Z"
+								/></svg
+							>
+							{$i18n.t('Votre équipe')}
+						</span>
+						<button
+							type="button"
+							class="flex-none p-1 -mr-1 rounded-lg text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-850 transition"
+							on:click={hideTeam}
+							title={$i18n.t('Masquer votre équipe')}
+							aria-label={$i18n.t('Masquer votre équipe')}
+						>
+							<svg
+								xmlns="http://www.w3.org/2000/svg"
+								viewBox="0 0 20 20"
+								fill="currentColor"
+								class="size-3.5"
+							>
+								<path
+									d="M6.28 5.22a.75.75 0 0 0-1.06 1.06L8.94 10l-3.72 3.72a.75.75 0 1 0 1.06 1.06L10 11.06l3.72 3.72a.75.75 0 1 0 1.06-1.06L11.06 10l3.72-3.72a.75.75 0 0 0-1.06-1.06L10 8.94 6.28 5.22Z"
+								/>
+							</svg>
+						</button>
+					</div>
+					<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 text-left">
+						{#each teamCards as c (c.name)}
+							<div
+								class="rounded-2xl overflow-hidden border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 shadow-sm"
+							>
+								<div
+									class="flex items-center gap-2.5 px-3 py-2.5 border-b border-gray-100 dark:border-gray-800"
+								>
+									<img
+										src={c.face}
+										alt={c.firstName}
+										style="background-image: {c.gradient}"
+										class="size-9 rounded-full object-cover ring-1 ring-black/5 dark:ring-white/10 shrink-0"
+										draggable="false"
+										on:error={(e) => avatarImgFallback(e, c.avatar)}
+									/>
+									<span class="flex flex-col min-w-0">
+										<span class="text-sm font-semibold text-gray-800 dark:text-gray-100 truncate"
+											>{c.firstName}</span
+										>
+										{#if c.role}<span class="text-[11px] text-gray-500 dark:text-gray-400 truncate"
+												>{c.role}</span
+											>{/if}
+									</span>
+								</div>
+								<div class="p-1.5 flex flex-col">
+									{#each c.actions as a (a.id)}
+										<button
+											type="button"
+											class="flex items-center gap-1.5 text-left text-sm px-2.5 py-1.5 rounded-lg text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800 focus:outline-none focus-visible:ring-2 focus-visible:ring-gray-300 dark:focus-visible:ring-gray-700 transition"
+											on:click={() => selectWorkflow(a.prompt)}
+										>
+											<span class="text-gray-300 dark:text-gray-600">›</span>
+											<span class="truncate">{$i18n.t(a.label)}</span>
+										</button>
+									{/each}
+								</div>
+							</div>
+						{/each}
+					</div>
+				</div>
+			{/if}
 		</div>
 	{:else}
 		<div class="mx-auto max-w-2xl font-primary mt-2" in:fade={{ duration: 200, delay: 200 }}>

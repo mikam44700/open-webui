@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { getContext } from 'svelte';
+	import { getContext, onMount } from 'svelte';
 	import { toast } from 'svelte-sonner';
 
 	import {
@@ -23,7 +23,8 @@
 	import ShareChatModal from '../chat/ShareChatModal.svelte';
 	import ModelSelector from '../chat/ModelSelector.svelte';
 	import AgentSelector from '../chat/AgentSelector.svelte';
-	import IntelligenceSelector from '../chat/IntelligenceSelector.svelte';
+	import BrainSelector from '../chat/BrainSelector.svelte';
+	import { activeAgent, ensureActiveAgent } from '$lib/stores/agent';
 	import Tooltip from '../common/Tooltip.svelte';
 	import Menu from '$lib/components/layout/Navbar/Menu.svelte';
 	import UserMenu from '$lib/components/layout/Sidebar/UserMenu.svelte';
@@ -53,6 +54,13 @@
 	export let chat;
 	export let history;
 	export let selectedModels;
+
+	// L'agent actif EST le modèle du chat (un seul système) : changer d'interlocuteur
+	// via AgentSelector bascule le modèle sélectionné. Chargé au montage (recette v1).
+	onMount(() => ensureActiveAgent(localStorage.token));
+	$: if ($activeAgent?.name && selectedModels?.[0] !== $activeAgent.name) {
+		selectedModels = [$activeAgent.name];
+	}
 	export let showModelSelector = true;
 
 	export let onSaveTempChat: () => {};
@@ -125,21 +133,17 @@
 			"
 				>
 					{#if showModelSelector}
-						<div class="flex items-center gap-1">
-							<!-- L'équipe d'abord (SPEC-chat-agentique) : agent actif + niveau d'intelligence
-							     en français ; le sélecteur de modèle standard reste pour le reste. -->
-							<AgentSelector bind:selectedModels />
-							<IntelligenceSelector />
-							<ModelSelector
-								bind:selectedModels
-								showSetDefault={!shareEnabled && !readOnly}
-								disabled={readOnly}
-							/>
-						</div>
+						<!-- Recette v1 : BrainSelector REMPLACE le sélecteur de modèle natif
+						     (le moteur Hermes choisit le vrai modèle ; l'app affiche fournisseur,
+						     intelligence et modèle en français). -->
+						<BrainSelector />
 					{/if}
 				</div>
 
 				<div class="self-start flex flex-none items-center text-gray-600 dark:text-gray-400">
+					{#if showModelSelector}
+						<AgentSelector />
+					{/if}
 					<!-- <div class="md:hidden flex self-center w-[1px] h-5 mx-2 bg-gray-300 dark:bg-stone-700" /> -->
 
 					{#if $user?.role === 'user' ? ($user?.permissions?.chat?.temporary ?? true) && !($user?.permissions?.chat?.temporary_enforced ?? false) : true}
