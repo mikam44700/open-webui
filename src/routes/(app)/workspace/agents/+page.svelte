@@ -86,9 +86,9 @@
 	lead="Ton équipe est"
 	strong="déjà prête"
 	sub="Chaque agent connaît sa mission. Parle-leur directement — et rien ne part jamais sans ta validation."
-	wrap="from-violet-200/70 via-indigo-100/50 to-purple-100/60 dark:from-violet-900/30 dark:via-indigo-900/20 dark:to-purple-900/20"
-	halo1="bg-violet-300/40 dark:bg-violet-500/20"
-	halo2="bg-indigo-300/30 dark:bg-indigo-500/10"
+	wrap="from-violet-200/60 via-slate-100/60 to-violet-100/40 dark:from-[#6b62f2]/25 dark:via-[#161616]/80 dark:to-[#0a0a0a]/90"
+	halo1="bg-violet-300/40 dark:bg-[#6b62f2]/25"
+	halo2="bg-indigo-200/30 dark:bg-[#6b62f2]/10"
 />
 
 {#if agents === null}
@@ -122,10 +122,10 @@
 			</button>
 		</div>
 
-		<div class="grid grid-cols-1 md:grid-cols-2 gap-5">
+		<div class="grid grid-cols-1 md:grid-cols-2 gap-6">
 			{#each agents as agent (agent.id)}
 				<div
-					class="flex flex-col rounded-2xl border border-gray-100 dark:border-gray-850 bg-white dark:bg-gray-900 p-5 transition hover:shadow-md {agent.is_active
+					class="flex flex-col rounded-3xl border border-gray-200/80 dark:border-white/6 bg-white dark:bg-[#161616] p-6 transition-colors hover:border-gray-300 dark:hover:border-white/15 {agent.is_active
 						? ''
 						: 'opacity-60'}"
 				>
@@ -144,7 +144,9 @@
 						</div>
 						<div class="min-w-0 flex-1">
 							<div class="flex items-center gap-2">
-								<div class="font-medium text-gray-900 dark:text-gray-50 capitalize line-clamp-1">
+								<div
+									class="text-lg font-medium tracking-tight text-gray-900 dark:text-gray-50 capitalize line-clamp-1"
+								>
 									{agent.name}
 								</div>
 								{#if !agent.is_active}
@@ -161,7 +163,7 @@
 							<div class="flex items-center gap-3">
 								{#if (agent?.meta?.mission ?? []).length}
 									<button
-										class="mt-1 text-xs font-medium text-sky-600 dark:text-sky-400 hover:underline"
+										class="mt-1 text-xs font-medium text-violet-600 dark:text-[#a5a0f7] hover:underline"
 										on:click={() =>
 											openMission(
 												agent.name,
@@ -175,7 +177,7 @@
 								{/if}
 								{#if (agent?.meta?.reglement ?? []).length}
 									<button
-										class="mt-1 text-xs font-medium text-emerald-600 dark:text-emerald-400 hover:underline"
+										class="mt-1 text-xs font-medium text-violet-600 dark:text-[#a5a0f7] hover:underline"
 										on:click={() =>
 											(reglementAgent = {
 												name: agent.name,
@@ -224,14 +226,16 @@
 	{/if}
 
 	<!-- L'équipe grandit : agents à venir, activés à la demande -->
-	<div class="mt-8 pb-6">
-		<div class="text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">
+	<div class="mt-14 pb-8">
+		<div
+			class="text-xs font-medium uppercase tracking-[0.14em] text-gray-500 dark:text-[#c2c2c2] mb-4"
+		>
 			Bientôt dans ton équipe
 		</div>
-		<div class="grid grid-cols-1 md:grid-cols-2 gap-5">
+		<div class="grid grid-cols-1 md:grid-cols-2 gap-6">
 			{#each comingSoon as soon (soon.name)}
 				<div
-					class="flex flex-col rounded-2xl border border-dashed border-gray-200 dark:border-gray-800 bg-gray-50/60 dark:bg-gray-900/40 p-5 opacity-75"
+					class="flex flex-col rounded-3xl border border-dashed border-gray-200 dark:border-white/8 bg-gray-50/60 dark:bg-[#111111]/70 p-6 opacity-75"
 				>
 					<div class="flex items-center gap-5">
 						<div class="flex bg-white rounded-2xl shrink-0">
@@ -260,14 +264,14 @@
 							</div>
 							<div class="flex items-center gap-3">
 								<button
-									class="mt-1 text-xs font-medium text-sky-600 dark:text-sky-400 hover:underline"
+									class="mt-1 text-xs font-medium text-violet-600 dark:text-[#a5a0f7] hover:underline"
 									on:click={() => openMission(soon.name, soon.avatar, soon.description, soon.mission)}
 								>
 									Voir sa mission ›
 								</button>
 								{#if (soon.reglement ?? []).length}
 									<button
-										class="mt-1 text-xs font-medium text-emerald-600 dark:text-emerald-400 hover:underline"
+										class="mt-1 text-xs font-medium text-violet-600 dark:text-[#a5a0f7] hover:underline"
 										on:click={() =>
 											(reglementAgent = {
 												name: soon.name,
