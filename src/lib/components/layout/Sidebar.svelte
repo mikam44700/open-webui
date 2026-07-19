@@ -87,7 +87,7 @@
 	const BREAKPOINT = 768;
 	// Ordre demandé par Michael (2026-07-18) : Espace de travail, Hermes, Recherche, Notes
 	// (sous « Nouvelle conversation »). « search » vit dans la liste réordonnable.
-	const DEFAULT_PINNED_ITEMS = ['workspace', 'hermes', 'search', 'notes'];
+	const DEFAULT_PINNED_ITEMS = ['workspace', 'hermes', 'search', 'notes', 'memoire'];
 
 	let scrollTop = 0;
 
@@ -152,6 +152,8 @@
 				);
 			case 'hermes':
 				return true;
+			case 'memoire':
+				return true;
 			case 'search':
 				return true;
 			case 'playground':
@@ -164,6 +166,7 @@
 	const getMenuItemMeta = (id) => {
 		const items = {
 			notes: { label: 'Notes', href: '/notes', iconType: 'note' },
+			memoire: { label: 'Mémoire', href: '/memoire', iconType: 'memoire' },
 			search: { label: 'Search', href: null, iconType: 'search' },
 			workspace: { label: 'Workspace', href: '/workspace', iconType: 'workspace' },
 			automations: { label: 'Automations', href: '/automations', iconType: 'automations' },
@@ -932,6 +935,21 @@
 									<div class=" self-center flex items-center justify-center size-9">
 										{#if itemId === 'notes'}
 											<Note className="size-4.5" />
+										{:else if itemId === 'memoire'}
+											<svg
+												xmlns="http://www.w3.org/2000/svg"
+												fill="none"
+												viewBox="0 0 24 24"
+												stroke-width="1.5"
+												stroke="currentColor"
+												class="size-4.5"
+											>
+												<path
+													stroke-linecap="round"
+													stroke-linejoin="round"
+													d="M12 6.042A8.967 8.967 0 0 0 6 3.75c-1.052 0-2.062.18-3 .512v14.25A8.987 8.987 0 0 1 6 18c2.305 0 4.408.867 6 2.292m0-14.25a8.966 8.966 0 0 1 6-2.292c1.052 0 2.062.18 3 .512v14.25A8.987 8.987 0 0 0 18 18a8.967 8.967 0 0 0-6 2.292m0-14.25v14.25"
+												/>
+											</svg>
 										{:else if itemId === 'hermes'}
 											<svg
 												xmlns="http://www.w3.org/2000/svg"
@@ -1197,6 +1215,21 @@
 										<div class="self-center">
 											{#if itemId === 'notes'}
 												<Note className="size-4.5" strokeWidth="2" />
+											{:else if itemId === 'memoire'}
+												<svg
+													xmlns="http://www.w3.org/2000/svg"
+													fill="none"
+													viewBox="0 0 24 24"
+													stroke-width="2"
+													stroke="currentColor"
+													class="size-4.5"
+												>
+													<path
+														stroke-linecap="round"
+														stroke-linejoin="round"
+														d="M12 6.042A8.967 8.967 0 0 0 6 3.75c-1.052 0-2.062.18-3 .512v14.25A8.987 8.987 0 0 1 6 18c2.305 0 4.408.867 6 2.292m0-14.25a8.966 8.966 0 0 1 6-2.292c1.052 0 2.062.18 3 .512v14.25A8.987 8.987 0 0 0 18 18a8.967 8.967 0 0 0-6 2.292m0-14.25v14.25"
+													/>
+												</svg>
 											{:else if itemId === 'hermes'}
 												<svg
 													xmlns="http://www.w3.org/2000/svg"
