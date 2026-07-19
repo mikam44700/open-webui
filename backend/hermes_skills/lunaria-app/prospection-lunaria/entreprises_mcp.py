@@ -127,7 +127,10 @@ def fiche_entreprise(siren: str) -> str:
     """Fiche détaillée d'UNE entreprise du registre officiel, à partir de son SIREN (9 chiffres).
 
     Renvoie du JSON : identité, adresse complète du siège, activité, effectifs,
-    dirigeants, nombre d'établissements. Données absentes = null (« à vérifier »).
+    dirigeants, nombre d'établissements, et `finances` (chiffre d'affaires `ca` et
+    `resultat_net` par année, source INPI) quand l'entreprise a déposé ses comptes —
+    sinon `finances` vaut null : dire « comptes non publiés », JAMAIS inventer un chiffre.
+    Données absentes = null (« à vérifier »).
     """
     siren = "".join(c for c in str(siren) if c.isdigit())
     if len(siren) != 9:
@@ -153,6 +156,7 @@ def fiche_entreprise(siren: str) -> str:
             "nature_juridique": match.get("nature_juridique"),
             "etat_administratif": match.get("etat_administratif"),
             "categorie_entreprise": match.get("categorie_entreprise"),
+            "finances": match.get("finances"),
         }
     )
     return json.dumps(fiche, ensure_ascii=False)

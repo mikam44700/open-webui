@@ -33,10 +33,13 @@ logger = logging.getLogger(__name__)
 MANAGED = os.environ.get("CRAWL4AI_MANAGED", "").strip().lower() in ("1", "true", "yes")
 
 MCP_NAME = "recherche-entreprises"
+BODACC_NAME = "bodacc"
 DATAGOUV_NAME = "data-gouv-fr"
 DATAGOUV_URL = "https://mcp.data.gouv.fr/mcp"
-# Chemin IMAGE (lecture seule, versionné) — pas la copie du volume, modifiable par l'utilisateur.
-SERVER_PATH = Path("/app/backend/hermes_skills/lunaria-app/prospection-lunaria/entreprises_mcp.py")
+# Chemins IMAGE (lecture seule, versionnés) — pas la copie du volume, modifiable par l'utilisateur.
+_SKILL_DIR = Path("/app/backend/hermes_skills/lunaria-app/prospection-lunaria")
+SERVER_PATH = _SKILL_DIR / "entreprises_mcp.py"
+BODACC_PATH = _SKILL_DIR / "bodacc_mcp.py"
 
 
 def _ensure(name: str, **kwargs) -> None:
@@ -60,6 +63,12 @@ def _preconnect(attempts: int = 3) -> None:
                 command=hermes_adapter.HERMES_PYTHON,
                 args=[str(SERVER_PATH)],
             )
+            _ensure(
+                BODACC_NAME,
+                transport="stdio",
+                command=hermes_adapter.HERMES_PYTHON,
+                args=[str(BODACC_PATH)],
+            )
             _ensure(DATAGOUV_NAME, transport="http", url=DATAGOUV_URL)
             logger.info("MCP entreprises pré-connectés (mode géré).")
             return
@@ -77,7 +86,8 @@ def start_preconnect_if_managed() -> None:
     """No-op hors mode géré (dev local : on ne touche jamais au ~/.hermes du poste)."""
     if not MANAGED:
         return
-    if not SERVER_PATH.exists():
-        logger.error("serveur MCP entreprises introuvable dans l'image : %s", SERVER_PATH)
-        return
+    for path in (SERVER_PATH, BODACC_PATH):
+        if not path.exists():
+            logger.error("serveur MCP introuvable dans l'image : %s", path)
+            return
     threading.Thread(target=_preconnect, name="entreprises-preconnect", daemon=True).start()

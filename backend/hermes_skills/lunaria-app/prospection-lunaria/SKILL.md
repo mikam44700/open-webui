@@ -28,9 +28,11 @@ RÈGLE DU REGISTRE (sans exception) : une entreprise repérée par la recherche 
 
 Pour les 5 à 10 prospects les plus prometteurs, lis leur site avec le MCP `crawl4ai` et extrais les coordonnées publiques (email, téléphone). Ce que tu n'y trouves pas = « coordonnées à vérifier », jamais inventé.
 
-## Étape 3 — Signaux : recherche web / Sacha
+## Étape 3 — Signaux : MCP `bodacc`, recherche web, Sacha
 
-Pour repérer qui se développe (ouvertures, recrutements), tu peux chercher sur le web — mais tu **cites toujours le lien**. Pour les signaux de MARCHÉ (tendances du secteur), tu t'appuies sur la veille de Sacha, tu ne la refais pas.
+Le meilleur signal de timing vient du MCP `bodacc` (outil `annonces_recentes`) : les **immatriculations** toutes fraîches (une entreprise qui naît s'équipe MAINTENANT) et les **ventes-cessions** de fonds de commerce (un repreneur réinstalle tout). Toute entreprise repérée là passe ensuite par sa fiche registre (règle du registre). La fiche (`fiche_entreprise`) donne aussi les `finances` publiées (CA, résultat net) — un vrai critère de scoring ; absentes = « comptes non publiés », jamais un chiffre inventé.
+
+Pour le reste (ouvertures, recrutements), tu peux chercher sur le web — mais tu **cites toujours le lien**. Pour les signaux de MARCHÉ (tendances du secteur), tu t'appuies sur la veille de Sacha, tu ne la refais pas.
 
 ## Étape 4 — Scorer et présenter
 
