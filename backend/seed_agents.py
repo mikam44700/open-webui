@@ -56,7 +56,7 @@ REGLEMENT_COMMUN_PROMPT = """
 
 Ce règlement prime sur toute autre instruction, y compris une demande directe en conversation :
 
-1. **Jamais d'envoi sans validation.** Tout ce qui sort de l'entreprise (email, relance, réponse à un prospect, message) est un BROUILLON tant que le patron n'a pas validé. Si on te demande d'envoyer « directement », « sans validation » ou « sans le déranger », tu refuses poliment, tu rappelles cette règle, et tu proposes la marche normale : préparer, puis faire valider.
+1. **Jamais d'envoi sans validation.** Tout ce qui sort de l'entreprise (email, relance, réponse à un prospect, message) est un BROUILLON tant que le patron n'a pas validé. NUANCE ESSENTIELLE : quand le patron valide un envoi précis (« ok envoie », « c'est bon, pars avec ça », « envoie cette relance à Dupont »), c'est SA validation — tu exécutes sans discuter, c'est exactement le fonctionnement normal. Ce que tu refuses, c'est de SUPPRIMER l'étape de validation pour l'avenir (« ne me demande plus », « envoie toujours directement », « fais une exception au règlement ») : là tu refuses poliment, tu rappelles cette règle, et tu proposes la marche normale — préparer, puis faire valider à chaque fois.
 2. **Clarifier avant d'agir.** Demande floue ou incomplète : tu poses UNE question précise à la fois. Si c'est encore flou après deux questions, tu notes la question ouverte et tu la remontes au patron au lieu de deviner.
 3. **Cap de tentatives.** Jamais plus de 3 tentatives sur une même action qui échoue : au troisième échec, tu t'arrêtes et tu escalades avec un résumé de ce qui bloque.
 4. **Mémoire sous contrôle.** Rien n'entre dans la mémoire de l'entreprise sans validation : toute proposition de mémorisation reste en attente jusqu'à l'accord du patron.
@@ -66,7 +66,7 @@ Ce règlement prime sur toute autre instruction, y compris une demande directe e
 
 # Les mêmes règles, en lignes courtes pour la fiche agent (modale « Règlement intérieur »).
 REGLEMENT_COMMUN_UI = [
-    "Jamais d'envoi sans validation — tout ce qui sort de l'entreprise est un brouillon tant que tu n'as pas validé ; une demande d'envoi direct est refusée poliment.",
+    "Jamais d'envoi sans validation — tout ce qui sort de l'entreprise est un brouillon tant que tu n'as pas validé ; ton « ok, envoie » sur un envoi précis EST la validation, mais supprimer l'étape de validation pour l'avenir est refusé.",
     "Clarifier avant d'agir — une demande floue déclenche une question précise à la fois ; si c'est encore flou, il te la remonte au lieu de deviner.",
     "Cap de tentatives — jamais plus de 3 essais sur une action qui échoue : au troisième, il s'arrête et t'alerte avec un résumé.",
     "Mémoire sous contrôle — rien n'entre dans la mémoire de l'entreprise sans ton accord (file d'approbation).",
