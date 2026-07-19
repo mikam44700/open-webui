@@ -15,6 +15,10 @@
 	// Modale « Voir sa mission » (même recette visuelle que la modale des Intégrations)
 	let missionAgent = null;
 
+	// Modale « Règlement intérieur » (chantier Guardrails) : les garde-fous de l'agent,
+	// lus depuis meta.reglement (seed) — même recette visuelle que la modale mission.
+	let reglementAgent = null;
+
 	// Agents à venir (règle anti-catalogue : montrés, pas construits — activés à la demande client)
 	const comingSoon = [
 		{
@@ -137,20 +141,35 @@
 							<div class="text-sm text-gray-500 dark:text-gray-400 line-clamp-2 mt-0.5">
 								{agent?.meta?.tagline || agent?.meta?.description || 'Aucune description pour le moment.'}
 							</div>
-							{#if (agent?.meta?.mission ?? []).length}
-								<button
-									class="mt-1 text-xs font-medium text-sky-600 dark:text-sky-400 hover:underline"
-									on:click={() =>
-										openMission(
-											agent.name,
-											`${WEBUI_API_BASE_URL}/models/model/profile/image?id=${agent.id}&lang=${$i18n.language}`,
-											agent?.meta?.description,
-											agent?.meta?.mission
-										)}
-								>
-									Voir sa mission ›
-								</button>
-							{/if}
+							<div class="flex items-center gap-3">
+								{#if (agent?.meta?.mission ?? []).length}
+									<button
+										class="mt-1 text-xs font-medium text-sky-600 dark:text-sky-400 hover:underline"
+										on:click={() =>
+											openMission(
+												agent.name,
+												`${WEBUI_API_BASE_URL}/models/model/profile/image?id=${agent.id}&lang=${$i18n.language}`,
+												agent?.meta?.description,
+												agent?.meta?.mission
+											)}
+									>
+										Voir sa mission ›
+									</button>
+								{/if}
+								{#if (agent?.meta?.reglement ?? []).length}
+									<button
+										class="mt-1 text-xs font-medium text-emerald-600 dark:text-emerald-400 hover:underline"
+										on:click={() =>
+											(reglementAgent = {
+												name: agent.name,
+												avatar: `${WEBUI_API_BASE_URL}/models/model/profile/image?id=${agent.id}&lang=${$i18n.language}`,
+												reglement: agent?.meta?.reglement ?? []
+											})}
+									>
+										🛡 Règlement intérieur ›
+									</button>
+								{/if}
+							</div>
 						</div>
 					</div>
 
@@ -231,6 +250,84 @@
 					</div>
 				</div>
 			{/each}
+		</div>
+	</div>
+{/if}
+
+{#if reglementAgent}
+	<!-- Modale « Règlement intérieur » : les garde-fous de l'agent, même recette que la
+	     modale mission (chantier Guardrails — la Boucle de confiance rendue visible) -->
+	<div
+		class="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4"
+		on:click={() => (reglementAgent = null)}
+		role="presentation"
+	>
+		<div
+			class="w-full max-w-md max-h-[85vh] overflow-y-auto rounded-2xl bg-white dark:bg-gray-900 shadow-xl p-5"
+			on:click|stopPropagation
+			role="dialog"
+			aria-modal="true"
+		>
+			<div class="flex items-center justify-between mb-1">
+				<div class="flex items-center gap-2.5">
+					<img
+						src={reglementAgent.avatar}
+						alt={reglementAgent.name}
+						class="size-9 rounded-xl object-cover"
+						on:error={(e) => {
+							e.target.src = '/favicon.png';
+						}}
+					/>
+					<span class="text-base font-medium">{reglementAgent.name}</span>
+				</div>
+				<button
+					class="p-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition text-gray-500"
+					on:click={() => (reglementAgent = null)}
+					aria-label="Fermer"
+				>
+					✕
+				</button>
+			</div>
+			<div class="text-xs text-gray-500 mb-4">
+				Les règles gravées dans ses instructions — ce qu'il n'a jamais le droit de faire.
+			</div>
+
+			<div
+				class="text-[11px] font-semibold uppercase tracking-wide text-emerald-600 dark:text-emerald-400 mb-2.5"
+			>
+				🛡 Son règlement intérieur
+			</div>
+			<ul class="flex flex-col gap-3">
+				{#each reglementAgent.reglement as item}
+					{@const parts = item.split(' — ')}
+					{@const title = parts.length > 1 ? parts[0] : null}
+					{@const desc = parts.length > 1 ? parts.slice(1).join(' — ') : item}
+					<li class="flex items-start gap-2.5 text-xs text-gray-600 dark:text-gray-300">
+						<span
+							class="flex-none mt-1.5 size-1.5 rounded-full bg-emerald-500 dark:bg-emerald-400"
+						></span>
+						<span>
+							{#if title}<span class="font-semibold text-gray-800 dark:text-gray-100">{title}</span> —
+							{/if}{desc}
+						</span>
+					</li>
+				{/each}
+			</ul>
+
+			<div class="mt-4 text-[11px] text-gray-400 dark:text-gray-500">
+				Ce règlement fait partie de la Boucle de confiance LunarIA : il n'est modifiable qu'à
+				l'installation, jamais en conversation — même si on le lui demande.
+			</div>
+
+			<div class="mt-4 flex justify-end">
+				<button
+					type="button"
+					class="text-xs px-3 py-1.5 rounded-lg border border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-850 transition"
+					on:click={() => (reglementAgent = null)}
+				>
+					Fermer
+				</button>
+			</div>
 		</div>
 	</div>
 {/if}

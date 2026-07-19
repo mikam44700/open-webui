@@ -13,6 +13,7 @@
 	import WebSearchList from '$lib/components/capabilities/WebSearchList.svelte';
 	import ToolsetList from '$lib/components/capabilities/ToolsetList.svelte';
 	import SkillList from '$lib/components/capabilities/SkillList.svelte';
+	import GuardrailsPanel from '$lib/components/capabilities/GuardrailsPanel.svelte';
 	import { prefetchTools } from '$lib/apis/capabilities';
 	import mcpLogo from '$lib/assets/connectors/mcp.svg';
 
@@ -27,6 +28,7 @@
 		'MCP',
 		'Recherche & web',
 		'Outils',
+		'Garde-fous',
 		'Compétences'
 	] as const;
 	type Onglet = (typeof ONGLETS)[number];
@@ -50,6 +52,7 @@
 		mcp: 'MCP',
 		'web-search': 'Recherche & web',
 		tools: 'Outils',
+		guardrails: 'Garde-fous',
 		skills: 'Compétences'
 	};
 
@@ -129,6 +132,17 @@
 				wrap: 'from-violet-200/70 via-indigo-100/50 to-purple-100/60 dark:from-violet-900/30 dark:via-indigo-900/20 dark:to-purple-900/20',
 				halo1: 'bg-violet-300/40 dark:bg-violet-500/20',
 				halo2: 'bg-indigo-300/30 dark:bg-indigo-500/10'
+			}
+		},
+		'Garde-fous': {
+			desc: 'Les protections de la Boucle de confiance : disjoncteur anti-dérapage et mémoire sous votre approbation.',
+			banner: {
+				lead: 'Vos agents sont',
+				strong: 'encadrés, vérifiés, sous votre contrôle',
+				sub: 'Rien d’important ne se fait sans votre feu vert — c’est la Boucle de confiance.',
+				wrap: 'from-emerald-200/70 via-teal-100/50 to-amber-100/60 dark:from-emerald-900/30 dark:via-teal-900/20 dark:to-amber-900/20',
+				halo1: 'bg-emerald-400/30 dark:bg-emerald-500/20',
+				halo2: 'bg-amber-300/30 dark:bg-amber-500/10'
 			}
 		},
 		Compétences: {
@@ -304,6 +318,11 @@
 			<!-- Capacités de l'assistant : toolsets Hermes (porté de la v1) -->
 			<div class="-mx-3">
 				<ToolsetList />
+			</div>
+		{:else if ongletActif === 'Garde-fous'}
+			<!-- Protections de la Boucle de confiance (chantier Guardrails) -->
+			<div class="-mx-3">
+				<GuardrailsPanel />
 			</div>
 		{:else if ongletActif === 'Compétences'}
 			<!-- Skills natives Hermes, panneau expert (porté de la v1) -->

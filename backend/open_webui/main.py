@@ -6,6 +6,7 @@ import logging
 import mimetypes
 import os
 import sys
+import threading
 import time
 from contextlib import asynccontextmanager
 from uuid import uuid4
@@ -786,6 +787,7 @@ from open_webui.hermes_bridge.deps import require_bridge_key as _hermes_bridge_k
 from open_webui.hermes_bridge.routers import capabilities as hermes_capabilities
 from open_webui.hermes_bridge.routers import crawl4ai as hermes_crawl4ai
 from open_webui.hermes_bridge.routers import gateway as hermes_gateway
+from open_webui.hermes_bridge.routers import guardrails as hermes_guardrails
 from open_webui.hermes_bridge.routers import hermes as hermes_engine
 from open_webui.hermes_bridge.routers import integrations as hermes_integrations
 from open_webui.hermes_bridge.routers import mcp as hermes_mcp
@@ -797,6 +799,7 @@ app.include_router(hermes_engine.router, prefix='/api/v1/providers', tags=['herm
 app.include_router(hermes_integrations.router, prefix='/api/v1', tags=['integrations'])
 app.include_router(hermes_oauth.router, prefix='/api/v1', tags=['integrations'])
 app.include_router(hermes_mcp.router, prefix='/api/v1', tags=['mcp'])
+app.include_router(hermes_guardrails.router, prefix='/api/v1', tags=['guardrails'])
 app.include_router(hermes_capabilities.router, prefix='/api/v1/capabilities', tags=['capabilities'])
 app.include_router(hermes_crawl4ai.router, prefix='/api/v1/capabilities', tags=['crawl4ai'])
 app.dependency_overrides[_hermes_bridge_key] = get_admin_user
@@ -812,6 +815,13 @@ _hermes_crawl4ai_adapter.start_preconnect_if_managed()
 from open_webui.hermes_bridge import engine_plugins as _hermes_engine_plugins
 
 _hermes_engine_plugins.install_engine_plugins()
+
+# Garde-fous (chantier Guardrails) : armés à chaque démarrage, idempotent — disjoncteur
+# de boucle (hard stop) + approbation des écritures mémoire. En thread pour ne pas
+# retarder le démarrage (l'armement passe par l'interpréteur Hermes, ~1-2 s).
+from open_webui.hermes_bridge import guardrails_adapter as _hermes_guardrails_adapter
+
+threading.Thread(target=_hermes_guardrails_adapter.arm_on_startup, daemon=True).start()
 app.include_router(automations.router, prefix='/api/v1/automations', tags=['automations'])
 app.include_router(calendar.router, prefix='/api/v1/calendars', tags=['calendars'])
 
