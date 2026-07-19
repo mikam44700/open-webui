@@ -20,6 +20,8 @@ Interroge le MCP `recherche-entreprises` (registre officiel SIRENE/INSEE) : son 
 
 Codes NAF utiles : restauration rapide `56.10C`, traditionnelle `56.10A`, boulangerie-pâtisserie `10.71C`, coiffure `96.02A`, hôtels `55.10Z`. Sinon, recherche texte libre via `quoi`.
 
+RÈGLE DU REGISTRE (sans exception) : une entreprise repérée par la recherche web (article, site, réseau social) n'entre dans ta liste QU'APRÈS vérification au registre via `rechercher_entreprises` (par son nom) ou `fiche_entreprise` (par son SIREN). Si tu ne la retrouves pas au registre, tu la présentes à part, marquée « non vérifiée au registre » — jamais mélangée aux prospects vérifiés.
+
 (Le MCP `data-gouv-fr`, lui, sert le CATALOGUE de jeux de données publics — utile pour des données sectorielles, pas pour lister des entreprises.)
 
 ## Étape 2 — Enrichir les meilleurs : MCP `crawl4ai`
