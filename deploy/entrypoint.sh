@@ -43,6 +43,7 @@ mkdir -p "${HERMES_HOME}/logs"
 (
   agents_ok=""
   connection_ok=""
+  apikey_ok=""
   for _ in $(seq 1 60); do
     if [ -z "${agents_ok}" ] && python /app/backend/seed_agents.py >>/tmp/seed_agents.log 2>&1; then
       agents_ok=1
@@ -52,7 +53,14 @@ mkdir -p "${HERMES_HOME}/logs"
       connection_ok=1
       echo "entrypoint: connexion chat → moteur Hermes branchée (hermes_boot OK)."
     fi
-    [ -n "${agents_ok}" ] && [ -n "${connection_ok}" ] && exit 0
+    # Pont Notes (SPEC-agents-mains-sur-app) : seed de la clé interne dès que le compte
+    # admin du patron existe. Sans clé (LUNARIA_INTERNAL_API_KEY absent), le script sort
+    # en échec et on continue — le pont Notes est simplement inactif sur cet environnement.
+    if [ -z "${apikey_ok}" ] && python /app/backend/seed_api_key.py >>/tmp/seed_agents.log 2>&1; then
+      apikey_ok=1
+      echo "entrypoint: pont Notes branché (clé interne seedée)."
+    fi
+    [ -n "${agents_ok}" ] && [ -n "${connection_ok}" ] && [ -n "${apikey_ok}" ] && exit 0
     sleep 5
   done
   echo "entrypoint: seed incomplet après 5 min — voir /tmp/seed_agents.log" >&2

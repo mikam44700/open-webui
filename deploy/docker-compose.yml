@@ -23,6 +23,9 @@ services:
       - CRAWL4AI_MANAGED=1
       - CRAWL4AI_BASE_URL=http://crawl4ai:11235
       - CRAWL4AI_API_TOKEN=${CRAWL4AI_API_TOKEN:?lancer ./up.sh qui genere le .env}
+      # Pont Notes (SPEC-agents-mains-sur-app) : clé interne lue par les agents pour
+      # écrire dans les Notes via l'API officielle. Absente = pont simplement inactif.
+      - LUNARIA_INTERNAL_API_KEY=${LUNARIA_INTERNAL_API_KEY:-}
     volumes:
       - lunaria-data:/app/backend/data
       # Seed de config Hermes (rempli par up.sh, gitignoré) : lu une seule fois au premier

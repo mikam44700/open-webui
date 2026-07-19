@@ -19,6 +19,8 @@ if [[ ! -f .env ]]; then
     echo "# Généré par up.sh — NE PAS committer (couvert par .gitignore)."
     echo "WEBUI_SECRET_KEY=$(openssl rand -hex 32)"
     echo "CRAWL4AI_API_TOKEN=$(openssl rand -hex 32)"
+    echo "# Clé interne du pont Notes (agents → API de l'app), format sk-*"
+    echo "LUNARIA_INTERNAL_API_KEY=sk-$(openssl rand -hex 32)"
     echo "# Port local (mode local uniquement)"
     echo "LUNARIA_PORT=3000"
     echo "# Domaine du client (mode vps uniquement), ex. lunaria.monclient.fr"
