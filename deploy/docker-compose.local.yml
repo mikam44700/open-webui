@@ -11,5 +11,10 @@ services:
     restart: always
     ports:
       - "127.0.0.1:${LUNARIA_PORT:-3000}:8080"
+    volumes:
+      # Le cerveau (page Mémoire) vit dans un vrai dossier du Mac : ouvrable comme
+      # coffre Obsidian (critère 3 SPEC-memoire-mike). Local uniquement — le VPS
+      # garde tout dans le volume lunaria-data.
+      - ~/LunarIA-Memoire:/app/backend/data/vault
   crawl4ai:
     restart: always
