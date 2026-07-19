@@ -23,10 +23,14 @@ RUN git clone --filter=blob:none ${HERMES_REPO} /opt/hermes-agent \
     && /opt/hermes-agent/venv/bin/pip install --no-cache-dir --upgrade pip \
     && /opt/hermes-agent/venv/bin/pip install --no-cache-dir -e /opt/hermes-agent
 
-# uv/uvx dans le venv Hermes : les serveurs MCP (dont data.gouv.fr) se lancent via uvx.
+# uv/uvx dans le venv Hermes : les serveurs MCP en stdio se lancent via uvx.
 # aiohttp : requis par la plateforme api_server du gateway (le serveur de chat
 # OpenAI-compatible sur 8642) — version épinglée sur celle du pyproject Hermes (CVE fixes).
-RUN /opt/hermes-agent/venv/bin/pip install --no-cache-dir uv "aiohttp==3.14.1"
+# mcp : le SDK client MCP (avec transport HTTP/SSE streamable_http). ABSENT du package
+# hermes-agent alors que nos MCP (data.gouv.fr, crawl4ai) sont en HTTP/SSE — sans lui,
+# AUCUN MCP ne se connecte ("streamable_http not available"). Les agents n'ont alors pas
+# accès à leurs intégrations. Version alignée sur l'API non dépréciée (mcp >= 1.24).
+RUN /opt/hermes-agent/venv/bin/pip install --no-cache-dir uv "aiohttp==3.14.1" "mcp==1.27.2"
 
 # Moteur de recherche sociale last30days (MIT, mvanhorn) pour la skill veille-lunaria
 # (agent Sacha, SPEC-agent-veille) : sources libres uniquement (Reddit, HN, YouTube,
