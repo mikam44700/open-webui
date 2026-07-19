@@ -34,7 +34,7 @@
 				desc: 'Vos assistants personnalisés : leur caractère, leurs instructions, leur modèle IA.',
 				href: '/workspace/models',
 				icon: Cube,
-				iconWrap: 'bg-violet-100 text-violet-600 dark:bg-violet-900/40 dark:text-violet-300',
+				iconWrap: 'bg-violet-100 text-violet-600 dark:bg-[#6b62f2]/15 dark:text-[#a5a0f7]',
 				visible: isAdmin || !!perms.models
 			},
 			{
@@ -43,7 +43,7 @@
 				desc: 'Les documents et dossiers que vos agents connaissent par cœur.',
 				href: '/workspace/knowledge',
 				icon: BookOpen,
-				iconWrap: 'bg-emerald-100 text-emerald-600 dark:bg-emerald-900/40 dark:text-emerald-300',
+				iconWrap: 'bg-violet-100 text-violet-600 dark:bg-[#6b62f2]/15 dark:text-[#a5a0f7]',
 				visible: isAdmin || !!perms.knowledge
 			},
 			{
@@ -52,7 +52,7 @@
 				desc: "Vos instructions prêtes à l'emploi, accessibles avec « / » dans le chat.",
 				href: '/workspace/prompts',
 				icon: ChatBubble,
-				iconWrap: 'bg-sky-100 text-sky-600 dark:bg-sky-900/40 dark:text-sky-300',
+				iconWrap: 'bg-violet-100 text-violet-600 dark:bg-[#6b62f2]/15 dark:text-[#a5a0f7]',
 				visible: isAdmin || !!perms.prompts
 			},
 			{
@@ -61,7 +61,7 @@
 				desc: 'Les compétences réutilisables que vos agents savent exécuter.',
 				href: '/workspace/skills',
 				icon: Sparkles,
-				iconWrap: 'bg-amber-100 text-amber-600 dark:bg-amber-900/40 dark:text-amber-300',
+				iconWrap: 'bg-violet-100 text-violet-600 dark:bg-[#6b62f2]/15 dark:text-[#a5a0f7]',
 				visible: isAdmin || !!perms.skills
 			},
 			{
@@ -70,7 +70,7 @@
 				desc: 'Les outils sur mesure que vos agents peuvent utiliser.',
 				href: '/workspace/tools',
 				icon: Wrench,
-				iconWrap: 'bg-rose-100 text-rose-600 dark:bg-rose-900/40 dark:text-rose-300',
+				iconWrap: 'bg-violet-100 text-violet-600 dark:bg-[#6b62f2]/15 dark:text-[#a5a0f7]',
 				visible: isAdmin || !!perms.tools
 			}
 		].filter((s) => s.visible);
@@ -100,15 +100,15 @@
 	lead="Toute la"
 	strong="boîte à outils de vos agents"
 	sub="Modèles, connaissances, prompts, skills et outils — réunis au même endroit."
-	wrap="from-emerald-200/70 via-teal-100/50 to-cyan-100/60 dark:from-emerald-900/30 dark:via-teal-900/20 dark:to-cyan-900/20"
-	halo1="bg-emerald-400/30 dark:bg-emerald-500/20"
-	halo2="bg-teal-300/30 dark:bg-teal-500/10"
+	wrap="from-violet-200/60 via-slate-100/60 to-violet-100/40 dark:from-[#6b62f2]/25 dark:via-[#161616]/80 dark:to-[#0a0a0a]/90"
+	halo1="bg-violet-300/40 dark:bg-[#6b62f2]/25"
+	halo2="bg-indigo-200/30 dark:bg-[#6b62f2]/10"
 />
 
-<div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 pb-6">
+<div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6 pb-8">
 	{#each sections as section (section.id)}
 		<button
-			class="group flex items-start gap-4 rounded-2xl border border-gray-100 dark:border-gray-850 bg-white dark:bg-gray-900 p-5 text-left transition hover:shadow-md cursor-pointer"
+			class="group flex items-start gap-4 rounded-3xl border border-gray-200/80 dark:border-white/6 bg-white dark:bg-[#161616] p-6 text-left transition-colors hover:border-gray-300 dark:hover:border-white/15 cursor-pointer"
 			on:click={() => goto(section.href)}
 		>
 			<div
@@ -118,7 +118,9 @@
 			</div>
 			<div class="min-w-0 flex-1">
 				<div class="flex items-center gap-2">
-					<div class="font-medium text-gray-900 dark:text-gray-50">{section.titre}</div>
+					<div class="font-medium tracking-tight text-gray-900 dark:text-gray-50">
+						{section.titre}
+					</div>
 					{#if counts[section.id] != null}
 						<span
 							class="rounded-full bg-gray-100 dark:bg-gray-850 px-2 py-0.5 text-xs text-gray-500 dark:text-gray-400"

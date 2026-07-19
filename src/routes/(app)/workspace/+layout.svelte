@@ -113,7 +113,7 @@
 					>
 						Espace de travail
 					</div>
-					<h1 class="text-2xl font-semibold text-gray-900 dark:text-gray-50 mt-1">
+					<h1 class="text-2xl font-medium tracking-tight text-gray-900 dark:text-gray-50 mt-1">
 						Vos collègues numériques
 					</h1>
 					<p class="text-sm text-gray-500 dark:text-gray-400 mt-1">
@@ -125,7 +125,7 @@
 
 			<!-- Barre d'onglets -->
 			<div
-				class="flex flex-wrap items-center gap-1 mt-4 mb-2 p-1 rounded-full bg-gray-50 dark:bg-gray-850 w-fit"
+				class="flex flex-wrap items-center gap-1 mt-4 mb-2 p-1 rounded-full border border-gray-200/60 dark:border-white/6 bg-gray-50 dark:bg-[#161616] w-fit"
 				role="tablist"
 			>
 				{#each onglets as onglet}
@@ -135,8 +135,8 @@
 						aria-selected={estActif(onglet.paths)}
 						aria-current={estActif(onglet.paths) ? 'page' : null}
 						class="px-4 py-1.5 rounded-full text-sm transition select-none {estActif(onglet.paths)
-							? 'bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-50 shadow-sm font-medium'
-							: 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-white'}"
+							? 'bg-white dark:bg-[#0a0a0a] text-gray-900 dark:text-gray-50 ring-1 ring-gray-200/80 dark:ring-white/10 font-medium'
+							: 'text-gray-500 dark:text-[#c2c2c2] hover:text-gray-700 dark:hover:text-white'}"
 						href={onglet.href}
 					>
 						{onglet.label}
