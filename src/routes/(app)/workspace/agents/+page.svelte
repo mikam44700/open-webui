@@ -30,6 +30,11 @@
 				'Rédaction en minutes — à partir de ta grille tarifaire et de ton historique de devis.',
 				'Personnalisation client — le bon prix, les bonnes mentions, le bon ton.',
 				'Validation avant envoi — comme toujours, rien ne part sans toi.'
+			],
+			reglement: [
+				"Aucun devis envoyé sans validation — chaque devis est un brouillon jusqu'à ton OK.",
+				'Prix uniquement depuis ta grille — jamais un tarif ou une remise inventés.',
+				'Remises encadrées — toute remise hors grille remonte vers toi avant d’apparaître sur un devis.'
 			]
 		},
 		{
@@ -41,6 +46,11 @@
 				'Transcription automatique — concentre-toi sur la conversation, pas sur les notes.',
 				'Tout reste chez toi — l’audio est traité sur TON serveur, jamais envoyé à un tiers.',
 				'Mémorisation — décisions et actions rangées dans la mémoire de l’entreprise (Mike).'
+			],
+			reglement: [
+				'Jamais d’enregistrement sans ton accord — chaque réunion enregistrée est une décision explicite de ta part.',
+				'Audio traité sur TON serveur — jamais envoyé à un service tiers, jamais conservé au-delà de la transcription.',
+				'Mémorisation sous approbation — les décisions extraites passent par la file de validation avant d’entrer dans la mémoire (Mike).'
 			]
 		}
 	];
@@ -240,12 +250,27 @@
 							<div class="text-sm text-gray-500 dark:text-gray-400 line-clamp-2 mt-0.5">
 								{soon.tagline}
 							</div>
-							<button
-								class="mt-1 text-xs font-medium text-sky-600 dark:text-sky-400 hover:underline"
-								on:click={() => openMission(soon.name, soon.avatar, soon.description, soon.mission)}
-							>
-								Voir sa mission ›
-							</button>
+							<div class="flex items-center gap-3">
+								<button
+									class="mt-1 text-xs font-medium text-sky-600 dark:text-sky-400 hover:underline"
+									on:click={() => openMission(soon.name, soon.avatar, soon.description, soon.mission)}
+								>
+									Voir sa mission ›
+								</button>
+								{#if (soon.reglement ?? []).length}
+									<button
+										class="mt-1 text-xs font-medium text-emerald-600 dark:text-emerald-400 hover:underline"
+										on:click={() =>
+											(reglementAgent = {
+												name: soon.name,
+												avatar: soon.avatar,
+												reglement: soon.reglement
+											})}
+									>
+										🛡 Règlement intérieur ›
+									</button>
+								{/if}
+							</div>
 						</div>
 					</div>
 				</div>
