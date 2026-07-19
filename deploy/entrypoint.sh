@@ -23,7 +23,12 @@ fi
 if [ -n "${HERMES_HOME:-}" ] && [ -d /app/backend/hermes_skills ]; then
   mkdir -p "${HERMES_HOME}/skills"
   cp -a /app/backend/hermes_skills/. "${HERMES_HOME}/skills/"
-  echo "entrypoint: skills LunarIA installées (hermes_skills → skills/)."
+  # Le moteur met en cache la liste des skills dans .skills_prompt_snapshot.json.
+  # Comme on (ré)installe nos skills à chaque démarrage, on invalide ce cache pour
+  # forcer un re-scan complet : sinon les agents ne « voient » pas nos skills
+  # (moteur de Léa, veille de Sacha, GPS/actions de Luna, pont Notes) et improvisent.
+  rm -f "${HERMES_HOME}/.skills_prompt_snapshot.json"
+  echo "entrypoint: skills LunarIA installées + cache skills invalidé (re-scan forcé)."
 fi
 
 # Moteur Hermes : garantit API_SERVER_* dans le .env, puis lance le gateway (qui porte
