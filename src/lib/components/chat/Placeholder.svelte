@@ -1,3 +1,13 @@
+<script lang="ts" context="module">
+	// Cache module : l'accueil incarné survit aux remontages du composant (« Nouvelle
+	// conversation » recrée Placeholder). Sans lui, chaque remontage repart de zéro et
+	// l'accueil open-webui d'origine (« Suggéré ») flashe le temps du fetch des agents.
+	import type { AgentView as CachedAgentView } from '$lib/catalog/agentActions';
+	let cachedActiveAgent: CachedAgentView | null = null;
+	let cachedTeamCards: unknown[] = [];
+	let cachedTeamLoaded = false;
+</script>
+
 <script lang="ts">
 	import { toast } from 'svelte-sonner';
 	import { marked } from 'marked';
@@ -108,7 +118,8 @@
 	};
 
 	// Agent actif : son accueil (visage + prénom + rôle) remplace l'accueil générique.
-	let activeAgent: AgentView | null = null;
+	// Initialisé depuis le cache module pour afficher l'accueil connu dès le remontage.
+	let activeAgent: AgentView | null = cachedActiveAgent;
 
 	type TeamCard = {
 		name: string;
@@ -120,7 +131,11 @@
 		active: boolean;
 		actions: ActionCard[];
 	};
-	let teamCards: TeamCard[] = [];
+	let teamCards: TeamCard[] = cachedTeamCards as TeamCard[];
+
+	// Tant que le premier chargement n'est pas terminé, on n'affiche PAS l'accueil
+	// open-webui d'origine (« Suggéré ») : c'est lui que le client prenait pour un bug.
+	let teamLoaded = cachedTeamLoaded;
 
 	// (Re)charge l'accueil incarné : agent actif + « Votre équipe ». Appelé au montage ET à
 	// chaque changement d'agent actif (via le sélecteur de la barre) pour rester synchrone.
@@ -151,6 +166,10 @@
 			activeAgent = null;
 			teamCards = [];
 		}
+		teamLoaded = true;
+		cachedActiveAgent = activeAgent;
+		cachedTeamCards = teamCards;
+		cachedTeamLoaded = true;
 	};
 
 	onMount(loadTeam);
@@ -249,7 +268,7 @@
 						</p>
 					</div>
 				{/if}
-			{:else}
+			{:else if teamLoaded}
 				<div class="flex flex-row justify-center gap-2.5 @sm:gap-3 w-fit px-5 max-w-xl">
 					<div class="flex shrink-0 justify-center">
 						<div class="flex -space-x-4 mb-0.5" in:fade={{ duration: 100 }}>
@@ -488,7 +507,7 @@
 				</div>
 			{/if}
 		</div>
-	{:else}
+	{:else if teamLoaded}
 		<div class="mx-auto max-w-2xl font-primary mt-2" in:fade={{ duration: 200, delay: 200 }}>
 			<div class="mx-5">
 				<Suggestions
