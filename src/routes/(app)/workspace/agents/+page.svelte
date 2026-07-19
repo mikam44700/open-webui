@@ -70,7 +70,14 @@
 			null
 		).catch(() => null);
 
-		agents = res?.items ?? [];
+		// Ordre d'équipe voulu par Michael (2026-07-19) : Luna et Mike d'abord (le cœur),
+		// puis les spécialistes ; les agents personnalisés arrivent après l'équipe.
+		const TEAM_ORDER = ['luna', 'mike', 'victor', 'lea', 'sacha'];
+		const rank = (a) => {
+			const i = TEAM_ORDER.indexOf(a.id);
+			return i === -1 ? TEAM_ORDER.length : i;
+		};
+		agents = (res?.items ?? []).slice().sort((a, b) => rank(a) - rank(b));
 		total = res?.total ?? agents.length;
 	});
 </script>
@@ -115,19 +122,19 @@
 			</button>
 		</div>
 
-		<div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+		<div class="grid grid-cols-1 md:grid-cols-2 gap-5">
 			{#each agents as agent (agent.id)}
 				<div
 					class="flex flex-col rounded-2xl border border-gray-100 dark:border-gray-850 bg-white dark:bg-gray-900 p-5 transition hover:shadow-md {agent.is_active
 						? ''
 						: 'opacity-60'}"
 				>
-					<div class="flex items-start gap-4">
+					<div class="flex items-center gap-5">
 						<div class="flex bg-white rounded-2xl shrink-0">
 							<img
 								src={`${WEBUI_API_BASE_URL}/models/model/profile/image?id=${agent.id}&lang=${$i18n.language}`}
 								alt={agent.name}
-								class="rounded-2xl size-14 object-cover"
+								class="rounded-2xl w-40 h-auto"
 								loading="lazy"
 								decoding="async"
 								on:error={(e) => {
@@ -181,25 +188,26 @@
 								{/if}
 							</div>
 						</div>
-					</div>
 
-					<div class="mt-4 flex items-center gap-2">
-						<a
-							draggable="false"
-							class="inline-flex items-center rounded-full bg-gray-900 px-4 py-1.5 text-sm font-medium text-white transition hover:bg-gray-700 dark:bg-white dark:text-gray-900 dark:hover:bg-gray-200"
-							href={`/?models=${encodeURIComponent(agent.id)}`}
-						>
-							Parler à {agent.name}
-						</a>
-						{#if agent.write_access ?? true}
+						<!-- Boutons en colonne à droite (demande Michael 2026-07-19) : l'image reste pleine -->
+						<div class="flex flex-col items-stretch gap-2 shrink-0">
 							<a
 								draggable="false"
-								class="inline-flex items-center rounded-full border border-gray-200 dark:border-gray-800 px-4 py-1.5 text-sm text-gray-700 dark:text-gray-300 transition hover:bg-gray-50 dark:hover:bg-gray-850"
-								href={`/workspace/models/edit?id=${encodeURIComponent(agent.id)}`}
+								class="inline-flex items-center justify-center rounded-full bg-gray-900 px-4 py-1.5 text-sm font-medium text-white transition hover:bg-gray-700 dark:bg-white dark:text-gray-900 dark:hover:bg-gray-200"
+								href={`/?models=${encodeURIComponent(agent.id)}`}
 							>
-								Modifier
+								Parler à {agent.name}
 							</a>
-						{/if}
+							{#if agent.write_access ?? true}
+								<a
+									draggable="false"
+									class="inline-flex items-center justify-center rounded-full border border-gray-200 dark:border-gray-800 px-4 py-1.5 text-sm text-gray-700 dark:text-gray-300 transition hover:bg-gray-50 dark:hover:bg-gray-850"
+									href={`/workspace/models/edit?id=${encodeURIComponent(agent.id)}`}
+								>
+									Modifier
+								</a>
+							{/if}
+						</div>
 					</div>
 				</div>
 			{/each}
@@ -220,17 +228,17 @@
 		<div class="text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">
 			Bientôt dans ton équipe
 		</div>
-		<div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+		<div class="grid grid-cols-1 md:grid-cols-2 gap-5">
 			{#each comingSoon as soon (soon.name)}
 				<div
 					class="flex flex-col rounded-2xl border border-dashed border-gray-200 dark:border-gray-800 bg-gray-50/60 dark:bg-gray-900/40 p-5 opacity-75"
 				>
-					<div class="flex items-start gap-4">
+					<div class="flex items-center gap-5">
 						<div class="flex bg-white rounded-2xl shrink-0">
 							<img
 								src={soon.avatar}
 								alt={soon.name}
-								class="rounded-2xl size-14 object-cover grayscale"
+								class="rounded-2xl w-40 h-auto grayscale"
 								loading="lazy"
 								decoding="async"
 								on:error={(e) => {

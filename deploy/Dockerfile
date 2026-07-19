@@ -28,6 +28,21 @@ RUN git clone --filter=blob:none ${HERMES_REPO} /opt/hermes-agent \
 # OpenAI-compatible sur 8642) — version épinglée sur celle du pyproject Hermes (CVE fixes).
 RUN /opt/hermes-agent/venv/bin/pip install --no-cache-dir uv "aiohttp==3.14.1"
 
+# Moteur de recherche sociale last30days (MIT, mvanhorn) pour la skill veille-lunaria
+# (agent Sacha, SPEC-agent-veille) : sources libres uniquement (Reddit, HN, YouTube,
+# arXiv...), AUCUNE clé embarquée — l'image reste le template neutre des VPS clients.
+# Le moteur exige Python 3.12+ (l'app reste en 3.11) : CPython géré par uv, hors PATH.
+# yt-dlp : transcriptions YouTube du moteur. SETUP_COMPLETE court-circuite son wizard.
+ARG LAST30DAYS_REPO=https://github.com/mvanhorn/last30days-skill.git
+ARG LAST30DAYS_COMMIT=249c7a4c040558a903d6838dee31012980d4946d
+RUN git clone --filter=blob:none ${LAST30DAYS_REPO} /opt/last30days \
+    && git -C /opt/last30days checkout ${LAST30DAYS_COMMIT} \
+    && uv python install 3.12 \
+    && /opt/hermes-agent/venv/bin/pip install --no-cache-dir yt-dlp \
+    && mkdir -p /root/.config/last30days \
+    && printf 'SETUP_COMPLETE=true\n' > /root/.config/last30days/.env \
+    && chmod 600 /root/.config/last30days/.env
+
 # HERMES_HOME vit DANS le volume de données open-webui (/app/backend/data) :
 # config.yaml, .env (tokens) et mémoires survivent aux redémarrages et aux MAJ d'image.
 ENV HERMES_HOME=/app/backend/data/hermes \

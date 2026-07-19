@@ -17,6 +17,15 @@ if [ -n "${HERMES_HOME:-}" ] && [ ! -f "${HERMES_HOME}/config.yaml" ] && [ -f /h
   cp -a /hermes-seed/. "${HERMES_HOME}/"
 fi
 
+# Skills LunarIA (SPEC-agent-veille) : réinstallées à CHAQUE démarrage depuis l'image
+# (versionnées dans le repo, comme le règlement des agents) — les nôtres seulement,
+# jamais les skills ajoutées par l'utilisateur dans le volume.
+if [ -n "${HERMES_HOME:-}" ] && [ -d /app/backend/hermes_skills ]; then
+  mkdir -p "${HERMES_HOME}/skills"
+  cp -a /app/backend/hermes_skills/. "${HERMES_HOME}/skills/"
+  echo "entrypoint: skills LunarIA installées (hermes_skills → skills/)."
+fi
+
 # Moteur Hermes : garantit API_SERVER_* dans le .env, puis lance le gateway (qui porte
 # le serveur de chat OpenAI-compatible sur 127.0.0.1:8642) en arrière-plan, supervisé
 # par une boucle de relance simple. Le chat open-webui s'y branche via hermes_boot
