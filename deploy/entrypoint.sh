@@ -31,6 +31,16 @@ if [ -n "${HERMES_HOME:-}" ] && [ -d /app/backend/hermes_skills ]; then
   echo "entrypoint: skills LunarIA installées + cache skills invalidé (re-scan forcé)."
 fi
 
+# Connecteurs MCP LunarIA (recherche-entreprises + data-gouv-fr) : déclarés AVANT le
+# lancement du moteur. Hermes fige sa liste de connecteurs au démarrage (aucun rechargement
+# à chaud) : une déclaration tardive (ex. pré-connexion in-app, partie 4 s trop tard le
+# 2026-07-19) n'est visible qu'au démarrage SUIVANT — les agents ne voient alors pas leurs
+# outils au premier boot d'une installation neuve. Idempotent, échec non bloquant (la
+# pré-connexion in-app reste en filet pour le boot suivant).
+python -c "from open_webui.hermes_bridge import entreprises_adapter as a; a._preconnect(attempts=1)" \
+  && echo "entrypoint: connecteurs MCP LunarIA déclarés avant le moteur." \
+  || echo "entrypoint: déclaration MCP avant moteur échouée (filet in-app au prochain boot)." >&2
+
 # Moteur Hermes : garantit API_SERVER_* dans le .env, puis lance le gateway (qui porte
 # le serveur de chat OpenAI-compatible sur 127.0.0.1:8642) en arrière-plan, supervisé
 # par une boucle de relance simple. Le chat open-webui s'y branche via hermes_boot

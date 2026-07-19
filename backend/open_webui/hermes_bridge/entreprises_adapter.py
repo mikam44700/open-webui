@@ -68,7 +68,8 @@ def _preconnect(attempts: int = 3) -> None:
                 "pré-connexion MCP entreprises échouée (tentative %d/%d)",
                 i + 1, attempts, exc_info=True,
             )
-            time.sleep(30)
+            if i + 1 < attempts:  # pas d'attente inutile après le dernier essai
+                time.sleep(30)
     logger.error("MCP « recherche-entreprises » n'a pas pu être déclaré au démarrage.")
 
 
