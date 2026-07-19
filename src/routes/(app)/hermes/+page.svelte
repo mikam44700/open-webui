@@ -73,9 +73,9 @@
 				lead: 'Choisissez le',
 				strong: 'modèle IA de votre assistant',
 				sub: "Les modèles d'IA qui le font réfléchir.",
-				wrap: 'from-emerald-200/70 via-green-100/50 to-lime-100/60 dark:from-emerald-900/30 dark:via-green-900/20 dark:to-lime-900/20',
-				halo1: 'bg-emerald-400/30 dark:bg-emerald-500/20',
-				halo2: 'bg-lime-300/30 dark:bg-lime-500/10'
+				wrap: 'from-violet-200/60 via-slate-100/60 to-violet-100/40 dark:from-[#6b62f2]/25 dark:via-[#161616]/80 dark:to-[#0a0a0a]/90',
+				halo1: 'bg-violet-300/40 dark:bg-[#6b62f2]/25',
+				halo2: 'bg-indigo-200/30 dark:bg-[#6b62f2]/10'
 			}
 		},
 		Messagerie: {
@@ -84,9 +84,9 @@
 				lead: 'Parlez à votre assistant depuis',
 				strong: 'WhatsApp, Telegram, e-mail et plus',
 				sub: 'Retrouvez-le là où vous échangez déjà.',
-				wrap: 'from-amber-200/70 via-orange-100/50 to-yellow-100/60 dark:from-amber-900/30 dark:via-orange-900/20 dark:to-yellow-900/20',
-				halo1: 'bg-orange-300/40 dark:bg-orange-500/20',
-				halo2: 'bg-amber-300/30 dark:bg-amber-500/10'
+				wrap: 'from-violet-200/60 via-slate-100/60 to-violet-100/40 dark:from-[#6b62f2]/25 dark:via-[#161616]/80 dark:to-[#0a0a0a]/90',
+				halo1: 'bg-violet-300/40 dark:bg-[#6b62f2]/25',
+				halo2: 'bg-indigo-200/30 dark:bg-[#6b62f2]/10'
 			}
 		},
 		Intégrations: {
@@ -95,9 +95,9 @@
 				lead: 'Connectez votre agent à vos',
 				strong: 'e-mails, agendas, fichiers et bien plus',
 				sub: 'Il agit directement dans vos applications, à votre place.',
-				wrap: 'from-sky-200/70 via-sky-100/50 to-emerald-100/60 dark:from-sky-900/30 dark:via-slate-900/20 dark:to-emerald-900/20',
-				halo1: 'bg-indigo-300/40 dark:bg-indigo-500/20',
-				halo2: 'bg-sky-300/30 dark:bg-sky-500/10'
+				wrap: 'from-violet-200/60 via-slate-100/60 to-violet-100/40 dark:from-[#6b62f2]/25 dark:via-[#161616]/80 dark:to-[#0a0a0a]/90',
+				halo1: 'bg-violet-300/40 dark:bg-[#6b62f2]/25',
+				halo2: 'bg-indigo-200/30 dark:bg-[#6b62f2]/10'
 			}
 		},
 		MCP: {
@@ -107,9 +107,9 @@
 				lead: 'Étendez votre assistant avec des',
 				strong: 'connecteurs spécialisés (MCP)',
 				sub: 'Pour brancher vos sources et outils sur mesure.',
-				wrap: 'from-rose-200/70 via-pink-100/50 to-fuchsia-100/60 dark:from-rose-900/30 dark:via-pink-900/20 dark:to-fuchsia-900/20',
-				halo1: 'bg-rose-400/30 dark:bg-rose-500/20',
-				halo2: 'bg-fuchsia-300/30 dark:bg-fuchsia-500/10'
+				wrap: 'from-violet-200/60 via-slate-100/60 to-violet-100/40 dark:from-[#6b62f2]/25 dark:via-[#161616]/80 dark:to-[#0a0a0a]/90',
+				halo1: 'bg-violet-300/40 dark:bg-[#6b62f2]/25',
+				halo2: 'bg-indigo-200/30 dark:bg-[#6b62f2]/10'
 			}
 		},
 		'Recherche & web': {
@@ -118,9 +118,9 @@
 				lead: 'Donnez à votre assistant la',
 				strong: 'recherche et la lecture du web',
 				sub: 'Tous les fournisseurs réunis, sans rien chercher.',
-				wrap: 'from-sky-200/70 via-cyan-100/50 to-blue-100/60 dark:from-sky-900/30 dark:via-cyan-900/20 dark:to-blue-900/20',
-				halo1: 'bg-sky-400/30 dark:bg-sky-500/20',
-				halo2: 'bg-cyan-300/30 dark:bg-cyan-500/10'
+				wrap: 'from-violet-200/60 via-slate-100/60 to-violet-100/40 dark:from-[#6b62f2]/25 dark:via-[#161616]/80 dark:to-[#0a0a0a]/90',
+				halo1: 'bg-violet-300/40 dark:bg-[#6b62f2]/25',
+				halo2: 'bg-indigo-200/30 dark:bg-[#6b62f2]/10'
 			}
 		},
 		Outils: {
@@ -129,9 +129,9 @@
 				lead: 'Donnez des super-pouvoirs à votre assistant :',
 				strong: 'recherche web, images, mémoire et plus',
 				sub: 'Activez seulement ce dont vous avez besoin.',
-				wrap: 'from-violet-200/70 via-indigo-100/50 to-purple-100/60 dark:from-violet-900/30 dark:via-indigo-900/20 dark:to-purple-900/20',
-				halo1: 'bg-violet-300/40 dark:bg-violet-500/20',
-				halo2: 'bg-indigo-300/30 dark:bg-indigo-500/10'
+				wrap: 'from-violet-200/60 via-slate-100/60 to-violet-100/40 dark:from-[#6b62f2]/25 dark:via-[#161616]/80 dark:to-[#0a0a0a]/90',
+				halo1: 'bg-violet-300/40 dark:bg-[#6b62f2]/25',
+				halo2: 'bg-indigo-200/30 dark:bg-[#6b62f2]/10'
 			}
 		},
 		'Garde-fous': {
@@ -140,9 +140,9 @@
 				lead: 'Vos agents sont',
 				strong: 'encadrés, vérifiés, sous votre contrôle',
 				sub: 'Rien d’important ne se fait sans votre feu vert — c’est la Boucle de confiance.',
-				wrap: 'from-emerald-200/70 via-teal-100/50 to-amber-100/60 dark:from-emerald-900/30 dark:via-teal-900/20 dark:to-amber-900/20',
-				halo1: 'bg-emerald-400/30 dark:bg-emerald-500/20',
-				halo2: 'bg-amber-300/30 dark:bg-amber-500/10'
+				wrap: 'from-violet-200/60 via-slate-100/60 to-violet-100/40 dark:from-[#6b62f2]/25 dark:via-[#161616]/80 dark:to-[#0a0a0a]/90',
+				halo1: 'bg-violet-300/40 dark:bg-[#6b62f2]/25',
+				halo2: 'bg-indigo-200/30 dark:bg-[#6b62f2]/10'
 			}
 		},
 		Compétences: {
@@ -151,9 +151,9 @@
 				lead: 'Le détail des',
 				strong: 'compétences de votre assistant',
 				sub: 'Réservé aux réglages avancés.',
-				wrap: 'from-teal-200/70 via-cyan-100/50 to-emerald-100/60 dark:from-teal-900/30 dark:via-cyan-900/20 dark:to-emerald-900/20',
-				halo1: 'bg-teal-300/40 dark:bg-teal-500/20',
-				halo2: 'bg-cyan-300/30 dark:bg-cyan-500/10'
+				wrap: 'from-violet-200/60 via-slate-100/60 to-violet-100/40 dark:from-[#6b62f2]/25 dark:via-[#161616]/80 dark:to-[#0a0a0a]/90',
+				halo1: 'bg-violet-300/40 dark:bg-[#6b62f2]/25',
+				halo2: 'bg-indigo-200/30 dark:bg-[#6b62f2]/10'
 			}
 		}
 	};

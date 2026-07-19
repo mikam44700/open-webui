@@ -157,7 +157,7 @@
 			{/if}
 
 			{#if canExpand && !expanded}
-				<div class="text-xs font-medium text-sky-600 dark:text-sky-400 mt-2.5">
+				<div class="text-xs font-medium text-violet-600 dark:text-[#a5a0f7] mt-2.5">
 					{$i18n.t('Voir les services')} ›
 				</div>
 			{/if}

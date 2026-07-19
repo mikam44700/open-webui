@@ -1,5 +1,13 @@
 @reference "./tailwind.css";
 
+/* Charte Dimension (validée Michael 2026-07-19) : DM Sans = police primaire, embarquée
+   en local (VPS clients autonomes, pas de CDN). Licence OFL. */
+@font-face {
+	font-family: 'DM Sans';
+	src: url('/assets/fonts/DMSans-Variable.ttf');
+	font-display: swap;
+}
+
 @font-face {
 	font-family: 'Inter';
 	src: url('/assets/fonts/Inter-Variable.ttf');
@@ -119,7 +127,7 @@ textarea::placeholder {
 }
 
 .font-primary {
-	font-family: 'Archivo', 'Vazirmatn', sans-serif;
+	font-family: 'DM Sans', 'Archivo', 'Vazirmatn', sans-serif;
 }
 
 .drag-region {

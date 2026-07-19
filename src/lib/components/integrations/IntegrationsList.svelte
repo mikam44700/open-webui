@@ -40,21 +40,29 @@
 	const isBridgeDown = (err: any) =>
 		err?.error?.code === 'bridge_unreachable' || err?.error?.code === 'hermes_unavailable';
 
-	const load = async () => {
+	// Un echec transitoire (stack qui vient de redemarrer, moteur pas encore chaud) se
+	// retente UNE fois en silence avant d'alerter — jamais d'erreur rouge au demarrage.
+	const load = async (attempt = 0) => {
 		loading = true;
 		bridgeDown = false;
 		try {
 			const res = await getIntegrations(localStorage.token);
 			integrations = res?.integrations ?? [];
-		} catch (err) {
-			if (isBridgeDown(err)) bridgeDown = true;
-			else toast.error($i18n.t('Échec du chargement des intégrations'));
-		} finally {
 			loading = false;
+		} catch (err) {
+			if (isBridgeDown(err)) {
+				bridgeDown = true;
+				loading = false;
+			} else if (attempt < 1) {
+				setTimeout(() => load(attempt + 1), 2500);
+			} else {
+				toast.error($i18n.t('Échec du chargement des intégrations'));
+				loading = false;
+			}
 		}
 	};
 
-	onMount(load);
+	onMount(() => load());
 </script>
 
 <div class="w-full max-w-7xl mx-auto px-3 py-3">

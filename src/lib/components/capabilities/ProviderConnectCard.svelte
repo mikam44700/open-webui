@@ -189,7 +189,7 @@
 			{/if}
 			{#if providerStatus(provider) === 'saved'}
 				<span
-					class="text-[10px] px-1.5 py-0.5 rounded-full bg-sky-50 text-sky-600 dark:bg-sky-900/30 dark:text-sky-400"
+					class="text-[10px] px-1.5 py-0.5 rounded-full bg-violet-50 text-violet-600 dark:bg-[#6b62f2]/15 dark:text-[#a5a0f7]"
 					>{$i18n.t('Clé enregistrée')}</span
 				>
 			{:else if providerStatus(provider) === 'key-active'}
@@ -231,7 +231,7 @@
 
 	{#if provider.kind === 'oauth'}
 		<button
-			class="text-xs px-3 py-1.5 rounded-lg bg-sky-600 hover:bg-sky-700 text-white transition disabled:opacity-50"
+			class="text-xs px-3 py-1.5 rounded-lg bg-violet-600 hover:bg-violet-700 text-white transition disabled:opacity-50"
 			on:click={startOAuth}
 			disabled={oauthRunning}
 		>
@@ -247,7 +247,7 @@
 			<div class="text-xs text-gray-500 mt-2">
 				{$i18n.t('Si rien ne s’ouvre, ouvre ce lien :')}
 				<a
-					class="text-sky-600 dark:text-sky-400 underline break-all"
+					class="text-violet-600 dark:text-[#a5a0f7] underline break-all"
 					href={oauthAuthUrl}
 					target="_blank"
 					rel="noopener">{oauthAuthUrl}</a
@@ -276,7 +276,7 @@
 				/>
 				{#if field.url}
 					<a
-						class="text-[11px] text-sky-600 dark:text-sky-400 underline"
+						class="text-[11px] text-violet-600 dark:text-[#a5a0f7] underline"
 						href={field.url}
 						target="_blank"
 						rel="noopener">{$i18n.t('Obtenir cette valeur')}</a
@@ -286,7 +286,7 @@
 		{/each}
 		<div class="flex gap-2 mt-1 items-center">
 			<button
-				class="text-xs px-3 py-1.5 rounded-lg bg-sky-600 hover:bg-sky-700 text-white transition disabled:opacity-50"
+				class="text-xs px-3 py-1.5 rounded-lg bg-violet-600 hover:bg-violet-700 text-white transition disabled:opacity-50"
 				on:click={save}
 				disabled={saving}
 			>

@@ -21,6 +21,9 @@ export const apiCall = async (
 			'Content-Type': 'application/json',
 			Authorization: `Bearer ${token}`
 		},
+		// no-store : jamais de cache navigateur sur une API authentifiée — un 304 sans corps
+		// faisait planter le parsing JSON (bug « Échec du chargement des intégrations », 2026-07-19).
+		cache: 'no-store',
 		...(body !== undefined ? { body: JSON.stringify(body) } : {})
 	})
 		.then(async (res) => {

@@ -76,7 +76,7 @@
 			{:else}
 				{#if note}
 					<div
-						class="text-xs leading-relaxed text-emerald-800 dark:text-emerald-300 bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-100 dark:border-emerald-900/40 rounded-xl px-3 py-2.5 mb-3"
+						class="text-xs leading-relaxed text-violet-800 dark:text-[#a5a0f7] bg-violet-50 dark:bg-[#6b62f2]/10 border border-violet-100 dark:border-[#6b62f2]/25 rounded-xl px-3 py-2.5 mb-3"
 					>
 						{note}
 					</div>

@@ -7,8 +7,11 @@ import { apiCall } from '$lib/apis/apiCall';
 const call = (token: string, method: string, path: string, body?: unknown) =>
 	apiCall(token, '/integrations', method, path, body);
 
-// US1 — lister les intégrations connectables avec leur état réel
-export const getIntegrations = (token: string) => call(token, 'GET', '/');
+// US1 — lister les intégrations connectables avec leur état réel.
+// Chemin SANS slash final : la route backend est /api/v1/integrations ; avec un slash,
+// l'attrape-tout SPA de la stack sert la page HTML à la place du JSON (bug du 2026-07-19 —
+// le mode dev masquait le piège en redirigeant le slash, la stack ne le fait pas).
+export const getIntegrations = (token: string) => call(token, 'GET', '');
 
 // US2 — connexion par clé / chemin + test (Notion, GitHub, Airtable, Obsidian)
 export const setIntegrationKey = (token: string, id: string, value: string) =>
