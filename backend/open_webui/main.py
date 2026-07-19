@@ -812,6 +812,13 @@ from open_webui.hermes_bridge import crawl4ai_adapter as _hermes_crawl4ai_adapte
 
 _hermes_crawl4ai_adapter.start_preconnect_if_managed()
 
+# Idem pour la porte entreprises de data.gouv (SPEC-lea-prospection) : le mini-serveur MCP
+# recherche-entreprises (embarqué dans l'image) + le catalogue data-gouv-fr sont déclarés
+# dans la config Hermes au démarrage — filet indispensable pour les installations neuves.
+from open_webui.hermes_bridge import entreprises_adapter as _hermes_entreprises_adapter
+
+_hermes_entreprises_adapter.start_preconnect_if_managed()
+
 # Plugins moteur « maison » (providers V1 : Mistral, Groq, Sakana…) : réinstallés à
 # chaque démarrage dans ~/.hermes/plugins/ (emplacement préservé par `hermes update`).
 from open_webui.hermes_bridge import engine_plugins as _hermes_engine_plugins
