@@ -73,6 +73,7 @@ mkdir -p "${HERMES_HOME}/logs"
   agents_ok=""
   connection_ok=""
   apikey_ok=""
+  competences_ok=""
   for _ in $(seq 1 60); do
     if [ -z "${agents_ok}" ] && python /app/backend/seed_agents.py >>/tmp/seed_agents.log 2>&1; then
       agents_ok=1
@@ -89,7 +90,15 @@ mkdir -p "${HERMES_HOME}/logs"
       apikey_ok=1
       echo "entrypoint: pont Notes branché (clé interne seedée)."
     fi
-    [ -n "${agents_ok}" ] && [ -n "${connection_ok}" ] && [ -n "${apikey_ok}" ] && exit 0
+    # Compétences métier livrées (SPEC-competences-livrees) : le client n'ouvre jamais
+    # un onglet Compétences vide. Idempotent et NON DESTRUCTIF — une compétence déjà
+    # présente (ou modifiée par le patron) n'est jamais écrasée.
+    if [ -z "${competences_ok}" ] && python /app/backend/seed_competences.py >>/tmp/seed_agents.log 2>&1; then
+      competences_ok=1
+      echo "entrypoint: compétences métier en place (seed_competences.py OK)."
+    fi
+    [ -n "${agents_ok}" ] && [ -n "${connection_ok}" ] && [ -n "${apikey_ok}" ] \
+      && [ -n "${competences_ok}" ] && exit 0
     sleep 5
   done
   echo "entrypoint: seed incomplet après 5 min — voir /tmp/seed_agents.log" >&2
