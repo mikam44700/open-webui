@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { onMount, getContext } from 'svelte';
-	import { WEBUI_NAME, showSidebar, user, mobile } from '$lib/stores';
+	import { WEBUI_NAME, showSidebar, user, mobile, config } from '$lib/stores';
 	import { page } from '$app/stores';
 	import { goto } from '$app/navigation';
 	import Tooltip from '$lib/components/common/Tooltip.svelte';
@@ -16,6 +16,10 @@
 	$: canAgents = isAdmin || !!perms.models;
 	$: canLibrary =
 		isAdmin || !!(perms.models || perms.knowledge || perms.prompts || perms.skills || perms.tools);
+	// Même garde que l'entrée sidebar : l'onglet ne s'affiche que si la page unique est accessible.
+	$: canAutomations =
+		!!$config?.features?.enable_automations &&
+		(isAdmin || !!$user?.permissions?.features?.automations);
 
 	// Onglets V1 « Vos collègues numériques ». La Bibliothèque reste active quand on
 	// navigue dans une de ses 5 sections (routes historiques conservées).
@@ -31,11 +35,17 @@
 	$: onglets = [
 		...(canAgents ? [{ label: 'Agents', href: '/workspace/agents', paths: ['/workspace/agents'] }] : []),
 		{ label: 'Tâches', href: '/workspace/tasks', paths: ['/workspace/tasks'] },
-		{
-			label: 'Automatisations',
-			href: '/workspace/automations',
-			paths: ['/workspace/automations']
-		},
+		// Porte unique (SPEC-automatisations-porte-unique) : l'onglet mène directement
+		// à LA page Automatisations — plus de placeholder « Bientôt disponible ».
+		...(canAutomations
+			? [
+					{
+						label: 'Automatisations',
+						href: '/automations',
+						paths: ['/workspace/automations']
+					}
+				]
+			: []),
 		...(canLibrary ? [{ label: 'Bibliothèque', href: '/workspace/library', paths: LIBRARY_PATHS }] : [])
 	];
 	$: estActif = (paths: string[]) => paths.some((p) => $page.url.pathname.startsWith(p));

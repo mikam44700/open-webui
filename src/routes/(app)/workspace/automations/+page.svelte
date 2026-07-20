@@ -1,15 +1,11 @@
 <script lang="ts">
-	import HeroBanner from '$lib/components/workspace/common/HeroBanner.svelte';
-	import ComingSoon from '$lib/components/workspace/common/ComingSoon.svelte';
+	// Porte unique (SPEC-automatisations-porte-unique) : les Automatisations vivent sur
+	// /automations (page native + backend conservés). Cette route historique redirige
+	// pour ne casser aucun lien — le « Bientôt disponible » n'a plus lieu d'être.
+	import { onMount } from 'svelte';
+	import { goto } from '$app/navigation';
+
+	onMount(() => {
+		goto('/automations', { replaceState: true });
+	});
 </script>
-
-<HeroBanner
-	lead="Le"
-	strong="pilote automatique"
-	sub="Des actions récurrentes que vos agents exécutent tout seuls."
-	wrap="from-violet-200/60 via-slate-100/60 to-violet-100/40 dark:from-[#6b62f2]/25 dark:via-[#161616]/80 dark:to-[#0a0a0a]/90"
-	halo1="bg-violet-300/40 dark:bg-[#6b62f2]/25"
-	halo2="bg-indigo-200/30 dark:bg-[#6b62f2]/10"
-/>
-
-<ComingSoon label="Automatisations" />

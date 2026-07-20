@@ -14,6 +14,7 @@
 	} from '$lib/apis/automations';
 
 	import AutomationModal from '$lib/components/AutomationModal.svelte';
+	import HeroBanner from '$lib/components/workspace/common/HeroBanner.svelte';
 	import AutomationMenu from '$lib/components/automations/AutomationMenu.svelte';
 	import DeleteConfirmDialog from '$lib/components/common/ConfirmDialog.svelte';
 	import Spinner from '$lib/components/common/Spinner.svelte';
@@ -156,15 +157,27 @@
 		showCreateModal = true;
 	};
 
+	// Planification en français courant (SPEC-automatisations-porte-unique, critère 3) :
+	// même registre que la V1 (« tous les jours à 09:00 »), format 24 h.
+	const JOURS: Record<string, string> = {
+		MO: 'lundi',
+		TU: 'mardi',
+		WE: 'mercredi',
+		TH: 'jeudi',
+		FR: 'vendredi',
+		SA: 'samedi',
+		SU: 'dimanche'
+	};
+
 	const formatRRule = (rrule: string): string => {
 		// Detect one-time schedule (ONCE)
 		if (rrule.includes('COUNT=1')) {
 			const match = rrule.match(/DTSTART:(\d{4})(\d{2})(\d{2})T(\d{2})(\d{2})/);
 			if (match) {
 				const d = new Date(`${match[1]}-${match[2]}-${match[3]}T${match[4]}:${match[5]}`);
-				return `Once · ${d.toLocaleDateString(undefined, { month: 'short', day: 'numeric' })} ${d.toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' })}`;
+				return `une fois · le ${d.toLocaleDateString('fr-FR', { day: 'numeric', month: 'long' })} à ${d.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}`;
 			}
-			return 'Once';
+			return 'une fois';
 		}
 		const parts: Record<string, string> = {};
 		rrule
@@ -178,28 +191,32 @@
 		const hour = parseInt(parts.BYHOUR || '0');
 		const min = (parts.BYMINUTE || '0').padStart(2, '0');
 		const iv = parseInt(parts.INTERVAL || '1');
-		const ampm = hour >= 12 ? 'PM' : 'AM';
-		const h12 = hour % 12 || 12;
-		const time = `${h12}:${min} ${ampm}`;
+		const time = `${hour.toString().padStart(2, '0')}:${min}`;
 
-		if (freq === 'MINUTELY') return iv === 1 ? 'Every minute' : `Every ${iv} minutes`;
-		if (freq === 'HOURLY') return iv === 1 ? 'Hourly' : `Every ${iv} hours`;
-		if (freq === 'DAILY') return `Daily at ${time}`;
+		if (freq === 'MINUTELY') return iv === 1 ? 'toutes les minutes' : `toutes les ${iv} minutes`;
+		if (freq === 'HOURLY') return iv === 1 ? 'toutes les heures' : `toutes les ${iv} heures`;
+		if (freq === 'DAILY')
+			return iv === 1 ? `tous les jours à ${time}` : `tous les ${iv} jours à ${time}`;
 		if (freq === 'WEEKLY') {
-			const days = parts.BYDAY || '';
-			return days ? `${days} at ${time}` : `Weekly at ${time}`;
+			const days = (parts.BYDAY || '')
+				.split(',')
+				.filter(Boolean)
+				.map((d) => JOURS[d] ?? d)
+				.join(', ');
+			if (days) return `le ${days} à ${time}`;
+			return iv === 1 ? `toutes les semaines à ${time}` : `toutes les ${iv} semaines à ${time}`;
 		}
-		if (freq === 'MONTHLY')
-			return `Monthly on the ${parts.BYMONTHDAY || '1'}${ordinal(parts.BYMONTHDAY || '1')} at ${time}`;
+		if (freq === 'MONTHLY') {
+			const dom = parts.BYMONTHDAY || '1';
+			return `le ${dom === '1' ? '1er' : dom} du mois à ${time}`;
+		}
 		return rrule;
 	};
 
-	const ordinal = (n: string): string => {
-		const num = parseInt(n);
-		if (num % 10 === 1 && num !== 11) return 'st';
-		if (num % 10 === 2 && num !== 12) return 'nd';
-		if (num % 10 === 3 && num !== 13) return 'rd';
-		return 'th';
+	// « prochaine : le 18/07 à 09:00 » comme en V1 — next_run_at arrive en nanosecondes.
+	const formatNextRun = (ns: number): string => {
+		const d = new Date(ns / 1e6);
+		return `prochaine : le ${d.toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit' })} à ${d.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}`;
 	};
 
 	onMount(async () => {
@@ -301,6 +318,16 @@
 						</div>
 					</div>
 				</div>
+
+				<!-- Bannière V1 « Le pilote automatique » (SPEC-automatisations-porte-unique, critère 2) -->
+				<HeroBanner
+					lead="Le"
+					strong="pilote automatique"
+					sub="Programmez des actions récurrentes que vos agents exécutent tout seuls, au bon moment."
+					wrap="from-violet-200/60 via-slate-100/60 to-violet-100/40 dark:from-[#6b62f2]/25 dark:via-[#161616]/80 dark:to-[#0a0a0a]/90"
+					halo1="bg-violet-300/40 dark:bg-[#6b62f2]/25"
+					halo2="bg-indigo-200/30 dark:bg-[#6b62f2]/10"
+				/>
 
 				<div
 					class="py-2 bg-white dark:bg-gray-900 rounded-3xl border border-gray-100/30 dark:border-gray-850/30"
@@ -440,7 +467,10 @@
 									<div class="flex-1">
 										<div class="line-clamp-1 text-sm">{automation.name}</div>
 										<div class="text-xs text-gray-500 line-clamp-1">
-											{formatRRule(automation.data.rrule)}
+											{formatRRule(automation.data.rrule)}{automation.is_active &&
+											automation.next_run_at
+												? ` — ${formatNextRun(automation.next_run_at)}`
+												: ''}
 										</div>
 									</div>
 

@@ -322,6 +322,7 @@ type Config = {
 		enable_direct_connections: boolean;
 		enable_version_update_check: boolean;
 		enable_pyodide_file_persistence?: boolean;
+		enable_automations?: boolean;
 		folder_max_file_count?: number;
 	};
 	oauth: {
