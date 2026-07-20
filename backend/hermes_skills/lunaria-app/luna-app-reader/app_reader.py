@@ -21,6 +21,7 @@ import json
 import os
 import sys
 import urllib.error
+import urllib.parse
 import urllib.request
 
 DEFAULT_APP_URL = "http://localhost:8080"
@@ -123,6 +124,74 @@ def cmd_page(args: argparse.Namespace) -> None:
     print(f"{label} : {_summarize(data)}")
 
 
+def cmd_taches(args: argparse.Namespace) -> None:
+    """Le tableau de bord du travail, colonne par colonne (SPEC-luna-tableau-taches)."""
+    base_url, api_key = _config()
+    ok, data = _get("/api/v1/kanban/board", api_key, base_url)
+    if not ok or not isinstance(data, dict):
+        print(f"Tableau des tâches : {data if not ok else 'indisponible'}")
+        return
+
+    taches = data.get("taches") or []
+    print(f"Tableau de bord du travail — {data.get('total', len(taches))} tâche(s) :")
+    for colonne in data.get("colonnes") or []:
+        dedans = [t for t in taches if t.get("colonne") == colonne.get("cle")]
+        print(f"\n[{colonne.get('titre')}] {len(dedans)} tâche(s)")
+        for t in dedans:
+            marques = []
+            if t.get("priorite"):
+                marques.append({"urgent": "URGENT", "eleve": "priorité élevée", "bas": "priorité basse"}.get(t["priorite"], t["priorite"]))
+            if t.get("bloquee"):
+                marques.append("décision attendue")
+            if t.get("agent"):
+                marques.append(f"confiée à {t['agent']}")
+            suffixe = f"  ({', '.join(marques)})" if marques else ""
+            print(f"  - {t.get('titre')} [{t.get('id')}]{suffixe}")
+
+
+def cmd_tache(args: argparse.Namespace) -> None:
+    """Détail d'une tâche : ce qui s'est réellement passé dessus."""
+    base_url, api_key = _config()
+    ok, data = _get(f"/api/v1/kanban/tasks/{urllib.parse.quote(args.id)}", api_key, base_url)
+    if not ok or not isinstance(data, dict):
+        print(f"Tâche {args.id} : {data if not ok else 'introuvable'}")
+        return
+
+    t = data.get("tache") or {}
+    print(f"Tâche : {t.get('titre')} [{t.get('id')}]")
+    print(f"Colonne : {t.get('colonne')}")
+    if t.get("priorite"):
+        print(f"Priorité : {t['priorite']}")
+    if t.get("agent"):
+        print(f"Confiée à : {t['agent']}")
+    if t.get("description"):
+        print(f"Description : {t['description']}")
+    if data.get("dernier_resume"):
+        print(f"Dernier point : {data['dernier_resume']}")
+    if data.get("resultat"):
+        print(f"Résultat : {data['resultat']}")
+    executions = data.get("executions") or []
+    if executions:
+        print("Passages d'agents :")
+        for ex in executions:
+            ligne = f"  - {ex.get('agent') or 'agent non identifié'}"
+            if ex.get("issue"):
+                ligne += f" : {ex['issue']}"
+            if ex.get("erreur"):
+                ligne += f" (erreur : {ex['erreur']})"
+            print(ligne)
+
+    commentaires = data.get("commentaires") or []
+    if commentaires:
+        print("Commentaires :")
+        for c in commentaires:
+            print(f"  - {c.get('auteur') or 'anonyme'} : {c.get('texte')}")
+
+    etapes = [e.get("libelle") for e in (data.get("historique") or [])]
+    if etapes:
+        print("Historique : " + " → ".join(etapes))
+
+
 def cmd_overview(args: argparse.Namespace) -> None:
     base_url, api_key = _config()
     print("État de l'application LunarIA :")
@@ -140,6 +209,16 @@ def build_parser() -> argparse.ArgumentParser:
     p_page = sub.add_parser("page", help="État d'une page précise.")
     p_page.add_argument("nom", help="Nom de la page (voir `pages`).")
     p_page.set_defaults(func=cmd_page)
+
+    # Tableau de bord du travail (SPEC-luna-tableau-taches) : affichage dédié, car un
+    # résumé générique ne rendrait pas les colonnes lisibles.
+    sub.add_parser("taches", help="Le tableau des tâches, colonne par colonne.").set_defaults(
+        func=cmd_taches
+    )
+    p_tache = sub.add_parser("tache", help="Détail d'une tâche (historique, passages d'agents).")
+    p_tache.add_argument("--id", required=True)
+    p_tache.set_defaults(func=cmd_tache)
+
     return parser
 
 

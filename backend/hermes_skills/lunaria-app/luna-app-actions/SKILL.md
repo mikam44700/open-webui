@@ -1,7 +1,7 @@
 ---
 name: luna-app-actions
-description: "Actions SÛRES sur l'application LunarIA (pour Luna, l'orchestratrice) : activer/désactiver un agent, changer le modèle IA actif, activer/désactiver une automatisation. Toutes réversibles. Aucune suppression. Chaque action exige la validation explicite du patron AVANT exécution."
-version: 1.0.0
+description: "Actions SÛRES sur l'application LunarIA (pour Luna, l'orchestratrice) : activer/désactiver un agent, changer le modèle IA actif, activer/désactiver une automatisation, créer et faire avancer une tâche du tableau de bord du travail. Toutes réversibles. Aucune suppression. Chaque action exige la validation explicite du patron AVANT exécution."
+version: 1.1.0
 author: LunarIA
 license: MIT
 platforms: [linux]
@@ -49,7 +49,24 @@ Activer / désactiver une automatisation :
 python3 "$HERMES_HOME/skills/lunaria-app/luna-app-actions/app_actions.py" toggle-automation --id <id>
 ```
 
-Les identifiants (agents, automatisations, fournisseurs/modèles) se lisent avec ton GPS (`luna-app-reader`). Lis d'abord, propose ensuite.
+Créer une tâche sur le tableau de bord du travail (elle arrive dans « À faire ») :
+
+```bash
+python3 "$HERMES_HOME/skills/lunaria-app/luna-app-actions/app_actions.py" create-task \
+  --titre "Relancer Dupont" --description "facture de mars impayée" --priorite urgent
+```
+
+`--priorite` vaut `urgent`, `eleve`, `normal` (défaut) ou `bas`.
+
+Faire avancer une tâche d'une colonne à l'autre :
+
+```bash
+python3 "$HERMES_HOME/skills/lunaria-app/luna-app-actions/app_actions.py" move-task --id <id> --vers termine
+```
+
+`--vers` vaut `a_faire`, `en_cours` ou `termine`. Le travail avance, il ne recule pas : un déplacement en arrière est refusé par l'application. Les identifiants de tâches se lisent avec `app_reader.py taches`.
+
+Les identifiants (agents, automatisations, fournisseurs/modèles, tâches) se lisent avec ton GPS (`luna-app-reader`). Lis d'abord, propose ensuite.
 
 ## Ce que tu NE fais PAS
 

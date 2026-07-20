@@ -88,6 +88,35 @@ def cmd_toggle_automation(args: argparse.Namespace) -> None:
     print(f"Automatisation {result.get('name', args.id)} : {state}.")
 
 
+def cmd_create_task(args: argparse.Namespace) -> None:
+    """Crée une tâche sur le tableau de bord du travail (SPEC-luna-tableau-taches)."""
+    base_url, api_key = _config()
+    payload = {"titre": args.titre, "priorite": args.priorite}
+    if args.description:
+        payload["description"] = args.description
+    result = _post("/api/v1/kanban/tasks", api_key, base_url, payload)
+    if not isinstance(result, dict):
+        _fail("La tâche n'a pas pu être créée.")
+    priorite = result.get("priorite")
+    suffixe = f" (priorité {priorite})" if priorite else ""
+    print(f"Tâche créée : {result.get('titre')} [{result.get('id')}]{suffixe} — colonne « À faire ».")
+
+
+def cmd_move_task(args: argparse.Namespace) -> None:
+    """Fait avancer une tâche d'une colonne à l'autre. Aucun retour en arrière possible."""
+    base_url, api_key = _config()
+    result = _post(
+        f"/api/v1/kanban/tasks/{urllib.parse.quote(args.id)}/move",
+        api_key,
+        base_url,
+        {"vers": args.vers},
+    )
+    if not isinstance(result, dict):
+        _fail(f"Le déplacement de {args.id} n'a pas abouti.")
+    libelles = {"a_faire": "À faire", "en_cours": "En cours", "termine": "Terminé"}
+    print(f"Tâche « {result.get('titre')} » déplacée en « {libelles.get(args.vers, args.vers)} ».")
+
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(prog="app_actions", description="Actions sûres sur LunarIA (pour Luna).")
     sub = parser.add_subparsers(dest="command", required=True)
@@ -104,6 +133,21 @@ def build_parser() -> argparse.ArgumentParser:
     p_auto = sub.add_parser("toggle-automation", help="Active / désactive une automatisation.")
     p_auto.add_argument("--id", required=True)
     p_auto.set_defaults(func=cmd_toggle_automation)
+
+    # Tableau de bord du travail : créer et faire avancer. Ni suppression ni archivage —
+    # ces verbes n'existent pas côté application, donc ils sont hors d'atteinte ici.
+    p_task = sub.add_parser("create-task", help="Crée une tâche sur le tableau.")
+    p_task.add_argument("--titre", required=True)
+    p_task.add_argument("--description", default=None)
+    p_task.add_argument(
+        "--priorite", default="normal", choices=["urgent", "eleve", "normal", "bas"]
+    )
+    p_task.set_defaults(func=cmd_create_task)
+
+    p_move = sub.add_parser("move-task", help="Fait avancer une tâche d'une colonne à l'autre.")
+    p_move.add_argument("--id", required=True)
+    p_move.add_argument("--vers", required=True, choices=["a_faire", "en_cours", "termine"])
+    p_move.set_defaults(func=cmd_move_task)
 
     return parser
 

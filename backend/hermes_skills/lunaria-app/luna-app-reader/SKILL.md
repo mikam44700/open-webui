@@ -1,7 +1,7 @@
 ---
 name: luna-app-reader
-description: "GPS de l'application LunarIA (LECTURE SEULE) : permet à Luna de voir l'état réel de TOUTE l'application — agents, modèle IA actif, intégrations, serveurs MCP, outils, automatisations, connaissances, notes, mémoire, calendrier, utilisateurs, moteur Hermes. Utilisé par Luna, l'orchestratrice, quand le patron demande où en est son application ou l'état d'une page précise."
-version: 1.0.0
+description: "GPS de l'application LunarIA (LECTURE SEULE) : permet à Luna de voir l'état réel de TOUTE l'application — agents, modèle IA actif, intégrations, serveurs MCP, outils, automatisations, connaissances, notes, mémoire, calendrier, utilisateurs, moteur Hermes, et le tableau de bord du travail (tâches). Utilisé par Luna, l'orchestratrice, quand le patron demande où en est son application, l'état d'une page précise, ou où en est le travail en cours."
+version: 1.1.0
 author: LunarIA
 license: MIT
 platforms: [linux]
@@ -37,6 +37,22 @@ Noms disponibles : `agents`, `fournisseurs`, `outils`, `integrations`, `mcp`, `c
 ```bash
 python3 "$HERMES_HOME/skills/lunaria-app/luna-app-reader/app_reader.py" pages
 ```
+
+## Le tableau de bord du travail (onglet Tâches)
+
+Le tableau complet, colonne par colonne (Triage, À faire, En cours, Terminé) avec les priorités :
+
+```bash
+python3 "$HERMES_HOME/skills/lunaria-app/luna-app-reader/app_reader.py" taches
+```
+
+Le détail d'une tâche — ce qui s'est réellement passé dessus (historique, passages d'agents, commentaires) :
+
+```bash
+python3 "$HERMES_HOME/skills/lunaria-app/luna-app-reader/app_reader.py" tache --id <id>
+```
+
+C'est ce que tu utilises quand le patron demande « où on en est ? », « qu'est-ce qui est en cours ? », « c'est quoi le plus urgent ? ». Tu restitues en français courant (« Trois choses à faire, dont une urgente : relancer Dupont »), jamais la liste brute.
 
 ## Tes règles
 
