@@ -7,6 +7,7 @@
 	import ProviderOAuth from './ProviderOAuth.svelte';
 	import ModelSelect from './ModelSelect.svelte';
 	import ConnectorAboutModal from '$lib/components/connectors/ConnectorAboutModal.svelte';
+	import CodexDeviceHelp from './CodexDeviceHelp.svelte';
 	import { getModelPresentation } from '$lib/catalog/model-badges';
 	import { getProviderRegionFlag, getProviderRegionName } from '$lib/catalog/provider-taxonomy';
 	import { PROVIDER_INFO } from '$lib/catalog/provider-info';
@@ -99,6 +100,31 @@
 		return `${n}`;
 	};
 	let aboutOpen = false;
+	// Guide d'autorisation ChatGPT/Codex : déclenché depuis la popup (SPEC-cartes-modeles-ia).
+	let codexHelpOpen = false;
+	$: isCodex = provider.id === 'openai-codex';
+	// Puces additionnelles de la popup : les explications retirées des cartes pour les
+	// alléger (SPEC-cartes-modeles-ia). Le feedback d'action, lui, reste sur la carte.
+	const OAUTH_ABOUT =
+		'Connexion par compte : une fenêtre de navigateur s’ouvre pour autoriser l’accès.';
+	const MOA_ABOUT =
+		'Pas de clé à saisir : Mixture of Agents combine les modèles que vous avez déjà connectés pour produire une meilleure réponse. Il se règle dans les options avancées du moteur.';
+	const CLI_ABOUT =
+		'Connexion via le CLI GitHub Copilot authentifié sur la machine hôte (login externe) — rien à configurer ici.';
+	// Même chaîne de conditions que le bloc de connexion du gabarit (oauth → moa →
+	// api/local → bedrock → CLI) : le repli final correspond aux fournisseurs CLI.
+	$: isCliProvider =
+		provider.category !== 'oauth' &&
+		provider.id !== 'moa' &&
+		provider.category !== 'api' &&
+		provider.category !== 'local' &&
+		provider.id !== 'bedrock';
+	$: aboutItems = [
+		...(info.about ?? []),
+		...(provider.category === 'oauth' ? [OAUTH_ABOUT] : []),
+		...(provider.id === 'moa' ? [MOA_ABOUT] : []),
+		...(isCliProvider ? [CLI_ABOUT] : [])
+	];
 	// Logo du provider (URL + « carré plein » + repli) — logique partagée, cf. providerLogos.
 	$: logoUrl = providerLogoUrl(provider);
 	$: fullBleed = isProviderLogoFullBleed(provider);
@@ -335,7 +361,7 @@
 	{/if}
 
 	<!-- Voir ce que ça fait : popup centrée (même style que MCP / Intégrations). -->
-	{#if info.about?.length}
+	{#if aboutItems.length}
 		<button
 			type="button"
 			class="self-start text-xs font-medium text-sky-600 dark:text-sky-400 hover:underline"
@@ -366,13 +392,9 @@
 			</a>
 		{/if}
 	{:else if provider.id === 'moa'}
-		<!-- Mixture of Agents : technique interne du moteur, AUCUNE clé propre —
-		     il combine les modèles déjà connectés. Pas de champ clé (ce serait trompeur). -->
-		<div class="text-xs text-gray-500 leading-relaxed">
-			{$i18n.t(
-				'Pas de clé à saisir : Mixture of Agents combine les modèles que vous avez déjà connectés pour produire une meilleure réponse. Il se règle dans les options avancées du moteur.'
-			)}
-		</div>
+		<!-- Mixture of Agents : technique interne du moteur, AUCUNE clé propre — il combine
+		     les modèles déjà connectés. Ni champ clé ni texte : l'explication est dans la
+		     popup « Voir ce que ça fait » (SPEC-cartes-modeles-ia). -->
 	{:else if provider.category === 'api' || provider.category === 'local'}
 		{#if configured && !replacing}
 			<!-- Carte CALME (connectée) : on cache la mécanique, on montre juste l'état. -->
@@ -541,13 +563,9 @@
 				</button>
 			</div>
 		</div>
-	{:else}
-		<div class="text-xs text-gray-500 leading-relaxed">
-			{$i18n.t(
-				'Connexion via le CLI GitHub Copilot authentifié sur la machine hôte (login externe) — rien à configurer ici.'
-			)}
-		</div>
 	{/if}
+	<!-- Fournisseurs CLI (Copilot) : rien à configurer ici — l'explication est dans la
+	     popup « Voir ce que ça fait » (SPEC-cartes-modeles-ia). -->
 
 	{#if configured}
 		{#if showModelPicker && provider.models?.length}
@@ -583,11 +601,6 @@
 					/>
 				{/if}
 			</div>
-		{:else}
-			<!-- Rappel discret : hors onboarding, le choix du cerveau se fait dans le chat. -->
-			<div class="pt-2 border-t border-gray-100 dark:border-gray-850 text-xs text-gray-500">
-				{$i18n.t('Changez de modèle dans le chat, en haut à gauche.')}
-			</div>
 		{/if}
 	{/if}
 	</div>
@@ -599,5 +612,11 @@
 	desc={info.desc ?? ''}
 	logoSrc={logoUrl}
 	{fullBleed}
-	actions={info.about ?? []}
+	actions={aboutItems}
+	helpLabel={isCodex ? 'Première connexion ? Voir comment autoriser ChatGPT' : ''}
+	on:help={() => (codexHelpOpen = true)}
 />
+
+{#if codexHelpOpen}
+	<CodexDeviceHelp on:close={() => (codexHelpOpen = false)} />
+{/if}

@@ -1,9 +1,10 @@
 <script lang="ts">
-	import { getContext } from 'svelte';
+	import { getContext, createEventDispatcher } from 'svelte';
 	import type { Writable } from 'svelte/store';
 	import type { i18n as i18nType } from 'i18next';
 
 	const i18n = getContext<Writable<i18nType>>('i18n');
+	const dispatch = createEventDispatcher();
 
 	// Popup « Voir ce que ça fait » des connecteurs : même style que la modale des
 	// Intégrations (overlay centré, logo + nom + description + liste des actions).
@@ -14,6 +15,9 @@
 	export let logoSrc = '';
 	export let fullBleed = false;
 	export let actions: string[] = [];
+	// Lien d'aide optionnel sous la liste (ex. guide d'autorisation ChatGPT) :
+	// ferme la popup et émet `help`, le parent ouvre son guide — SPEC-cartes-modeles-ia.
+	export let helpLabel = '';
 </script>
 
 {#if open && actions.length}
@@ -71,6 +75,19 @@
 					</li>
 				{/each}
 			</ul>
+
+			{#if helpLabel}
+				<button
+					type="button"
+					class="mt-4 text-left text-[13px] text-gray-500 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-100 underline decoration-dotted underline-offset-2 transition"
+					on:click={() => {
+						open = false;
+						dispatch('help');
+					}}
+				>
+					{$i18n.t(helpLabel)}
+				</button>
+			{/if}
 
 			<div class="mt-5 flex justify-end">
 				<button

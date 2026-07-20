@@ -8,7 +8,6 @@
 		logoutProviderOAuth
 	} from '$lib/apis/providers';
 	import Spinner from '$lib/components/common/Spinner.svelte';
-	import CodexDeviceHelp from './CodexDeviceHelp.svelte';
 
 	const i18n = getContext('i18n');
 	const dispatch = createEventDispatcher();
@@ -18,11 +17,6 @@
 		label: string;
 		state: 'active' | 'configured' | 'not_configured';
 	};
-
-	// ChatGPT/Codex passe par un device code flow qui exige d'activer les codes d'appareil côté
-	// compte ChatGPT (désactivé par défaut). On propose le guide illustré, uniquement pour Codex.
-	$: isCodex = provider.id === 'openai-codex';
-	let showCodexHelp = false;
 
 	let status: 'idle' | 'running' | 'success' | 'error' = 'idle';
 	let log = '';
@@ -92,25 +86,8 @@
 </script>
 
 <div class="flex flex-col gap-2">
-	<div class="text-xs text-gray-500">
-		{#if connected}
-			{$i18n.t('Ce modèle IA est connecté. Tu peux te reconnecter si besoin.')}
-		{:else}
-			{$i18n.t('Connecte ce modèle IA avec ton compte. Une fenêtre de navigateur va s’ouvrir pour autoriser l’accès.')}
-		{/if}
-	</div>
-
-	{#if isCodex && !connected}
-		<!-- Au-dessus du bouton : les « Se connecter » de toutes les cartes restent alignés. -->
-		<button
-			type="button"
-			class="text-left text-[13px] text-gray-500 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-100 underline decoration-dotted underline-offset-2 transition"
-			on:click={() => (showCodexHelp = true)}
-		>
-			{$i18n.t('Première connexion ? Voir comment autoriser ChatGPT')}
-		</button>
-	{/if}
-
+	<!-- Explications déplacées dans la popup « Voir ce que ça fait » de la carte
+	     (SPEC-cartes-modeles-ia) : ici, seuls le bouton et le feedback d'action. -->
 	<div class="flex items-center gap-2 flex-wrap">
 		<button
 			type="button"
@@ -174,7 +151,3 @@
 		<pre class="text-[11px] leading-relaxed bg-gray-50 dark:bg-gray-900 rounded-xl p-2 max-h-40 overflow-y-auto whitespace-pre-wrap">{log}</pre>
 	{/if}
 </div>
-
-{#if showCodexHelp}
-	<CodexDeviceHelp on:close={() => (showCodexHelp = false)} />
-{/if}
