@@ -87,7 +87,7 @@
 	const BREAKPOINT = 768;
 	// Ordre demandé par Michael (2026-07-18) : Espace de travail, Hermes, Recherche, Notes
 	// (sous « Nouvelle conversation »). « search » vit dans la liste réordonnable.
-	const DEFAULT_PINNED_ITEMS = ['workspace', 'hermes', 'search', 'notes', 'memoire'];
+	const DEFAULT_PINNED_ITEMS = ['workspace', 'hermes', 'search', 'notes', 'documents', 'memoire'];
 
 	let scrollTop = 0;
 
@@ -120,9 +120,10 @@
 
 	// Un réglage sauvegardé AVANT l'ajout de « search » ne le contient pas :
 	// on repart alors de l'ordre par défaut (sinon Recherche disparaîtrait du menu).
-	$: pinnedItems = $settings?.pinnedMenuItems?.includes('search')
-		? $settings.pinnedMenuItems
-		: DEFAULT_PINNED_ITEMS;
+	$: pinnedItems =
+		$settings?.pinnedMenuItems?.includes('search') && $settings?.pinnedMenuItems?.includes('documents')
+			? $settings.pinnedMenuItems
+			: DEFAULT_PINNED_ITEMS;
 
 	const isMenuItemVisible = (id) => {
 		switch (id) {
@@ -152,6 +153,8 @@
 				);
 			case 'hermes':
 				return true;
+			case 'documents':
+				return true;
 			case 'memoire':
 				return true;
 			case 'search':
@@ -166,6 +169,7 @@
 	const getMenuItemMeta = (id) => {
 		const items = {
 			notes: { label: 'Notes', href: '/notes', iconType: 'note' },
+			documents: { label: 'Documents', href: '/documents', iconType: 'document' },
 			memoire: { label: 'Mémoire', href: '/memoire', iconType: 'memoire' },
 			search: { label: 'Search', href: null, iconType: 'search' },
 			workspace: { label: 'Workspace', href: '/workspace', iconType: 'workspace' },
@@ -935,6 +939,21 @@
 									<div class=" self-center flex items-center justify-center size-9">
 										{#if itemId === 'notes'}
 											<Note className="size-4.5" />
+										{:else if itemId === 'documents'}
+											<svg
+												xmlns="http://www.w3.org/2000/svg"
+												fill="none"
+												viewBox="0 0 24 24"
+												stroke-width="1.5"
+												stroke="currentColor"
+												class="size-4.5"
+											>
+												<path
+													stroke-linecap="round"
+													stroke-linejoin="round"
+													d="M19.5 14.25v-2.625a3.375 3.375 0 0 0-3.375-3.375h-1.5A1.125 1.125 0 0 1 13.5 7.125v-1.5a3.375 3.375 0 0 0-3.375-3.375H8.25m.75 12 3 3m0 0 3-3m-3 3v-6m-1.5-9H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 0 0-9-9Z"
+												/>
+											</svg>
 										{:else if itemId === 'memoire'}
 											<svg
 												xmlns="http://www.w3.org/2000/svg"
@@ -1215,6 +1234,21 @@
 										<div class="self-center">
 											{#if itemId === 'notes'}
 												<Note className="size-4.5" strokeWidth="2" />
+											{:else if itemId === 'documents'}
+												<svg
+													xmlns="http://www.w3.org/2000/svg"
+													fill="none"
+													viewBox="0 0 24 24"
+													stroke-width="2"
+													stroke="currentColor"
+													class="size-4.5"
+												>
+													<path
+														stroke-linecap="round"
+														stroke-linejoin="round"
+														d="M19.5 14.25v-2.625a3.375 3.375 0 0 0-3.375-3.375h-1.5A1.125 1.125 0 0 1 13.5 7.125v-1.5a3.375 3.375 0 0 0-3.375-3.375H8.25m.75 12 3 3m0 0 3-3m-3 3v-6m-1.5-9H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 0 0-9-9Z"
+													/>
+												</svg>
 											{:else if itemId === 'memoire'}
 												<svg
 													xmlns="http://www.w3.org/2000/svg"

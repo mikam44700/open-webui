@@ -55,8 +55,11 @@ Nomme les fichiers en clair : `suivi-tresorerie-2026-07.xlsx`, pas `doc1.xlsx`.
 ## Étape 3 — Publier (le patron reçoit un lien, pas une promesse)
 
 ```bash
-python3 "$HERMES_HOME/skills/lunaria-app/documents-lunaria/doc_cli.py" publier --fichier /tmp/suivi-tresorerie.xlsx
+python3 "$HERMES_HOME/skills/lunaria-app/documents-lunaria/doc_cli.py" publier \
+  --fichier /tmp/suivi-tresorerie.xlsx --agent "Théo"
 ```
+
+(`--agent "Théo"` : le document apparaît alors dans la page Documents du patron, signé de ton nom.)
 
 L'outil rend un **lien de téléchargement** : colle-le TEL QUEL dans ta réponse au patron (format markdown déjà prêt). Sans ce lien, le document n'existe pas pour lui — ne dis jamais « c'est fait » sans le lien.
 

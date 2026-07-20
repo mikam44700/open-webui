@@ -224,10 +224,16 @@ def cmd_publier(args: argparse.Namespace) -> None:
     frontiere = uuid.uuid4().hex
     with open(chemin, "rb") as handle:
         contenu = handle.read()
+    # Marquage « document d'agent » (SPEC-page-documents) : c'est cette métadonnée que
+    # la page Documents filtre — les pièces jointes du patron n'en ont pas.
+    meta = json.dumps({"lunaria_document": True, "lunaria_agent": args.agent or "agent"})
     corps = (
         f"--{frontiere}\r\nContent-Disposition: form-data; name=\"file\"; filename=\"{nom}\"\r\n"
         f"Content-Type: {ctype}\r\n\r\n"
-    ).encode("utf-8") + contenu + f"\r\n--{frontiere}--\r\n".encode("utf-8")
+    ).encode("utf-8") + contenu + (
+        f"\r\n--{frontiere}\r\nContent-Disposition: form-data; name=\"metadata\"\r\n\r\n{meta}"
+        f"\r\n--{frontiere}--\r\n"
+    ).encode("utf-8")
     # process=false : un document généré n'a pas à être indexé pour la recherche.
     req = urllib.request.Request(f"{base_url}/api/v1/files/?process=false", data=corps, method="POST")
     req.add_header("Authorization", f"Bearer {api_key}")
@@ -276,6 +282,7 @@ def build_parser() -> argparse.ArgumentParser:
     p_pub = sub.add_parser("publier", help="Téléverse le document et rend le lien de téléchargement.")
     p_pub.add_argument("--fichier", required=True)
     p_pub.add_argument("--nom", help="Nom affiché (défaut : nom du fichier).")
+    p_pub.add_argument("--agent", help="Nom de l'agent producteur (affiché dans la page Documents).")
     p_pub.set_defaults(func=cmd_publier)
 
     return parser
