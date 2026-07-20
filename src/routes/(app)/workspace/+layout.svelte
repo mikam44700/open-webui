@@ -35,14 +35,14 @@
 	$: onglets = [
 		...(canAgents ? [{ label: 'Agents', href: '/workspace/agents', paths: ['/workspace/agents'] }] : []),
 		{ label: 'Tâches', href: '/workspace/tasks', paths: ['/workspace/tasks'] },
-		// Porte unique (SPEC-automatisations-porte-unique) : l'onglet mène directement
-		// à LA page Automatisations — plus de placeholder « Bientôt disponible ».
+		// Porte unique (SPEC-automatisations-porte-unique) : LA page Automatisations vit
+		// dans le hub, pour garder l'en-tête et la barre d'onglets.
 		...(canAutomations
 			? [
 					{
 						label: 'Automatisations',
-						href: '/automations',
-						paths: ['/workspace/automations']
+						href: '/workspace/automations',
+						paths: ['/workspace/automations', '/automations']
 					}
 				]
 			: []),

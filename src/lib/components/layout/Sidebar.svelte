@@ -173,7 +173,11 @@
 			memoire: { label: 'Mémoire', href: '/memoire', iconType: 'memoire' },
 			search: { label: 'Search', href: null, iconType: 'search' },
 			workspace: { label: 'Workspace', href: '/workspace', iconType: 'workspace' },
-			automations: { label: 'Automations', href: '/automations', iconType: 'automations' },
+			automations: {
+				label: 'Automations',
+				href: '/workspace/automations',
+				iconType: 'automations'
+			},
 			calendar: { label: 'Calendar', href: '/calendar', iconType: 'calendar' },
 			playground: { label: 'Playground', href: '/playground', iconType: 'playground' },
 			hermes: { label: 'Hermes', href: '/hermes', iconType: 'hermes' }
