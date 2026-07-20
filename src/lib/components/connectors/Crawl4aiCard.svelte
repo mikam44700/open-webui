@@ -15,6 +15,7 @@
 	import Spinner from '$lib/components/common/Spinner.svelte';
 	import ActiveBadge from '$lib/components/common/ActiveBadge.svelte';
 	import UpdateButton from './UpdateButton.svelte';
+	import ConnectorAboutModal from './ConnectorAboutModal.svelte';
 	import { CONNECTOR_FR, CONNECTOR_TAGS } from '$lib/utils/connectorLabels';
 	import { CONNECTOR_LOGO, CONNECTOR_LOGO_FULL_BLEED } from '$lib/utils/connectorLogos';
 
@@ -49,7 +50,8 @@
 		managed?: boolean;
 	} | null = null;
 	let busy = false;
-	let expanded = false;
+	// « Ce que ça fait » : popup centrée (même style que les Intégrations).
+	let aboutOpen = false;
 	let pollTimer: ReturnType<typeof setTimeout> | null = null;
 
 	$: installed = status?.active ?? false;
@@ -171,38 +173,13 @@
 	{/if}
 
 	{#if actions.length > 0}
-		{#if !expanded}
-			<button
-				type="button"
-				class="self-start text-xs font-medium text-sky-600 dark:text-sky-400 hover:underline"
-				on:click={() => (expanded = true)}
-			>
-				{$i18n.t('Voir ce que ça fait')} ›
-			</button>
-		{:else}
-			<div class="flex flex-col gap-1.5">
-				<div
-					class="text-[11px] font-semibold uppercase tracking-wide text-gray-400 dark:text-gray-500"
-				>
-					{$i18n.t('Ce que ça fait')}
-				</div>
-				<ul class="flex flex-col gap-1 pl-0.5">
-					{#each actions as action}
-						<li class="flex items-start gap-1.5 text-[11px] text-gray-600 dark:text-gray-400">
-							<span class="flex-none mt-1 size-1 rounded-full bg-gray-400 dark:bg-gray-600"></span>
-							<span>{$i18n.t(action)}</span>
-						</li>
-					{/each}
-				</ul>
-				<button
-					type="button"
-					class="self-start text-xs text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 transition"
-					on:click={() => (expanded = false)}
-				>
-					{$i18n.t('Masquer')}
-				</button>
-			</div>
-		{/if}
+		<button
+			type="button"
+			class="self-start text-xs font-medium text-sky-600 dark:text-sky-400 hover:underline"
+			on:click={() => (aboutOpen = true)}
+		>
+			{$i18n.t('Voir ce que ça fait')} ›
+		</button>
 	{/if}
 
 	<div class="mt-auto flex justify-between items-center gap-2 pt-1">
@@ -264,3 +241,12 @@
 		</div>
 	</div>
 </div>
+
+<ConnectorAboutModal
+	bind:open={aboutOpen}
+	name={displayName}
+	desc={displayDesc}
+	{logoSrc}
+	{fullBleed}
+	{actions}
+/>

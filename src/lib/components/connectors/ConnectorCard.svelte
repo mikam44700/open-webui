@@ -7,6 +7,7 @@
 	import { setConnectorEnabled, testConnector, deleteConnector } from '$lib/apis/connectors';
 	import Spinner from '$lib/components/common/Spinner.svelte';
 	import ActiveBadge from '$lib/components/common/ActiveBadge.svelte';
+	import ConnectorAboutModal from './ConnectorAboutModal.svelte';
 	import { CONNECTOR_FR, CONNECTOR_TAGS } from '$lib/utils/connectorLabels';
 	import { CONNECTOR_LOGO, CONNECTOR_LOGO_FULL_BLEED } from '$lib/utils/connectorLogos';
 
@@ -28,9 +29,9 @@
 
 	let busy = ''; // '' | 'toggle' | 'test' | 'delete'
 	let confirmDelete = false;
-	// « Ce que ça fait » replié par défaut, comme dans le catalogue : on garde la liste
-	// des capacités accessible même une fois le connecteur installé.
-	let expanded = false;
+	// « Ce que ça fait » : popup centrée (même style que les Intégrations), au lieu d'un
+	// pavé dépliant qui étire la carte et casse l'alignement de la grille.
+	let aboutOpen = false;
 
 	const toggle = async () => {
 		busy = 'toggle';
@@ -192,38 +193,15 @@
 		</div>
 	{/if}
 
-	<!-- Ce que ça fait : replié par défaut, déployé au clic (comme le catalogue + l'onglet Outils) -->
+	<!-- Ce que ça fait : popup centrée (même style que les Intégrations) -->
 	{#if actions.length > 0}
-		{#if !expanded}
-			<button
-				type="button"
-				class="self-start text-xs font-medium text-sky-600 dark:text-sky-400 hover:underline"
-				on:click={() => (expanded = true)}
-			>
-				{$i18n.t('Voir ce que ça fait')} ›
-			</button>
-		{:else}
-			<div class="flex flex-col gap-1.5">
-				<div class="text-[11px] font-semibold uppercase tracking-wide text-gray-400 dark:text-gray-500">
-					{$i18n.t('Ce que ça fait')}
-				</div>
-				<ul class="flex flex-col gap-1 pl-0.5">
-					{#each actions as action}
-						<li class="flex items-start gap-1.5 text-[11px] text-gray-600 dark:text-gray-400">
-							<span class="flex-none mt-1 size-1 rounded-full bg-gray-400 dark:bg-gray-600"></span>
-							<span>{$i18n.t(action)}</span>
-						</li>
-					{/each}
-				</ul>
-				<button
-					type="button"
-					class="self-start text-xs text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 transition"
-					on:click={() => (expanded = false)}
-				>
-					{$i18n.t('Masquer')}
-				</button>
-			</div>
-		{/if}
+		<button
+			type="button"
+			class="self-start text-xs font-medium text-sky-600 dark:text-sky-400 hover:underline"
+			on:click={() => (aboutOpen = true)}
+		>
+			{$i18n.t('Voir ce que ça fait')} ›
+		</button>
 	{/if}
 
 	<!-- Actions : tester / activer-désactiver / supprimer -->
@@ -278,3 +256,12 @@
 		{/if}
 	</div>
 </div>
+
+<ConnectorAboutModal
+	bind:open={aboutOpen}
+	name={displayName}
+	desc={subtitle}
+	{logoSrc}
+	{fullBleed}
+	{actions}
+/>
