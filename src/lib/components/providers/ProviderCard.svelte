@@ -235,6 +235,9 @@
 	let awsKeyId = '';
 	let awsSecret = '';
 	let awsRegion = 'us-east-1';
+	// Champs AWS repliés par défaut (flèche) : garde la carte à la même hauteur que
+	// les autres — demande Michael 2026-07-20.
+	let awsOpen = false;
 	let savingAws = false;
 
 	const saveAws = async () => {
@@ -513,7 +516,27 @@
 			</div>
 		{/if}
 	{:else if provider.id === 'bedrock'}
-		<!-- AWS Bedrock : credentials AWS (lus par le SDK de Hermes) -->
+		<!-- AWS Bedrock : credentials AWS (lus par le SDK de Hermes), repliés derrière
+		     une flèche pour garder des cartes de même hauteur. -->
+		<button
+			type="button"
+			class="self-start inline-flex items-center gap-1 text-xs font-medium text-sky-600 dark:text-sky-400 hover:underline"
+			on:click={() => (awsOpen = !awsOpen)}
+			aria-expanded={awsOpen}
+		>
+			{$i18n.t('Clés AWS')}
+			<svg
+				xmlns="http://www.w3.org/2000/svg"
+				fill="none"
+				viewBox="0 0 24 24"
+				stroke-width="2"
+				stroke="currentColor"
+				class="size-3.5 transition-transform {awsOpen ? 'rotate-180' : ''}"
+			>
+				<path stroke-linecap="round" stroke-linejoin="round" d="m19.5 8.25-7.5 7.5-7.5-7.5" />
+			</svg>
+		</button>
+		{#if awsOpen}
 		<div class="flex flex-col gap-2">
 			<input
 				class="text-sm bg-transparent border border-gray-100 dark:border-gray-850 rounded-xl px-3 py-2 outline-none"
@@ -547,6 +570,7 @@
 				</button>
 			</div>
 		</div>
+		{/if}
 	{/if}
 	<!-- Fournisseurs CLI (Copilot) : rien à configurer ici — l'explication est dans la
 	     popup « Voir ce que ça fait » (SPEC-cartes-modeles-ia). -->
