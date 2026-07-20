@@ -105,8 +105,9 @@
 	$: isCodex = provider.id === 'openai-codex';
 	// Puces additionnelles de la popup : les explications retirées des cartes pour les
 	// alléger (SPEC-cartes-modeles-ia). Le feedback d'action, lui, reste sur la carte.
+	// Verbatim de l'ancienne carte (portage fidèle — pas de reformulation).
 	const OAUTH_ABOUT =
-		'Connexion par compte : une fenêtre de navigateur s’ouvre pour autoriser l’accès.';
+		'Connecte ce modèle IA avec ton compte. Une fenêtre de navigateur va s’ouvrir pour autoriser l’accès.';
 	const MOA_ABOUT =
 		'Pas de clé à saisir : Mixture of Agents combine les modèles que vous avez déjà connectés pour produire une meilleure réponse. Il se règle dans les options avancées du moteur.';
 	const CLI_ABOUT =
