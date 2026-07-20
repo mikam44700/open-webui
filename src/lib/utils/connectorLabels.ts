@@ -11,6 +11,9 @@
 export const CONNECTOR_TAGS: Record<string, string[]> = {
 	apify: ['Scraping web', 'Prospection', '5000+ robots'],
 	'data-gouv-fr': ['Données publiques', 'SIRENE', 'Souverain'],
+	'recherche-entreprises': ['Annuaire officiel', 'SIREN', 'Souverain'],
+	bodacc: ['Annonces légales', 'Officiel', 'Souverain'],
+	presenton: ['Présentations', 'PowerPoint', 'PDF'],
 	ableton: ['Pistes MIDI', 'Instruments', 'Live Set'],
 	alpaca: ['Trading', 'Actions', 'Crypto'],
 	aws: ['Cloud AWS', 'Services'],
@@ -99,6 +102,36 @@ export const CONNECTOR_FR: Record<
 			'Trouver les API officielles (entreprises SIRENE, adresses)',
 			'Rechercher une administration ou un organisme public',
 			'Consulter les statistiques d’un jeu de données'
+		]
+	},
+	'recherche-entreprises': {
+		name: 'Recherche d’entreprises',
+		desc: 'Annuaire officiel des entreprises françaises (SIRENE/INSEE). Souverain, gratuit, sans clé.',
+		popular: true,
+		actions: [
+			'Rechercher des entreprises par nom, activité (code NAF), département ou code postal',
+			'Filtrer les entreprises multi-sites (nombre d’établissements)',
+			'Consulter la fiche complète d’une entreprise par son SIREN (dirigeants, effectif, adresse)'
+		]
+	},
+	bodacc: {
+		name: 'BODACC',
+		desc: 'Annonces légales officielles : créations, ventes, procédures collectives. Souverain, gratuit, sans clé.',
+		popular: true,
+		actions: [
+			'Suivre les annonces légales d’une entreprise par son SIREN',
+			'Repérer les nouvelles immatriculations (prospects tout frais) par département',
+			'Détecter les ventes et cessions de fonds de commerce',
+			'Surveiller les procédures collectives (redressements, liquidations)'
+		]
+	},
+	presenton: {
+		name: 'Presenton',
+		desc: 'Usine à présentations : génère des diaporamas prêts à présenter.',
+		actions: [
+			'Générer une présentation complète à partir d’un sujet ou d’un brief',
+			'Exporter le résultat en PowerPoint (PPTX) ou en PDF',
+			'Service hébergé dans LunarIA ; s’appuie sur le modèle IA configuré pour rédiger'
 		]
 	},
 	ableton: {

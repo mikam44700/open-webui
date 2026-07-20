@@ -66,9 +66,15 @@ import sequentialLogo from '$lib/assets/connectors/sequential-thinking.jpg';
 import elevenlabsLogo from '$lib/assets/connectors/elevenlabs.png';
 import dataGouvFrLogo from '$lib/assets/connectors/data-gouv-fr.svg';
 import apifyLogo from '$lib/assets/connectors/apify.webp';
+// Bloc Marianne officiel : partagé par les services de l'État (même charte graphique).
+import marianneLogo from '$lib/assets/connectors/marianne.png';
+import presentonLogo from '$lib/assets/connectors/presenton.png';
 
 export const CONNECTOR_LOGO: Record<string, string> = {
 	'data-gouv-fr': dataGouvFrLogo,
+	'recherche-entreprises': marianneLogo,
+	bodacc: marianneLogo,
+	presenton: presentonLogo,
 	apify: apifyLogo,
 	linear: linearLogo,
 	n8n: n8nLogo,
@@ -135,6 +141,7 @@ export const CONNECTOR_LOGO: Record<string, string> = {
 // remplir tout le carré. Les autres gardent le fond blanc + une marge.
 export const CONNECTOR_LOGO_FULL_BLEED = new Set<string>([
 	'data-gouv-fr',
+	'presenton',
 	'crawl4ai',
 	'linear',
 	'n8n',
