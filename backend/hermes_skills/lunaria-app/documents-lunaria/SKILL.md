@@ -1,6 +1,6 @@
 ---
 name: documents-lunaria
-description: "Atelier documents de Théo (SPEC-agent-documents) : produire des documents d'entreprise finis et téléchargeables — tableur Excel (KPI, totaux calculés), document Word, rapport PDF, présentation PowerPoint (sobre via l'atelier, haute qualité via le MCP presenton) — puis les publier dans la conversation via le pont Fichiers. Utilisé par Théo quand le patron demande un document, un tableau, un rapport ou une présentation."
+description: "Atelier documents de Théo (SPEC-agent-documents) : produire des documents d'entreprise finis et téléchargeables — tableur Excel (KPI, totaux calculés), document Word, rapport PDF, présentation PowerPoint — puis les publier dans la conversation via le pont Fichiers. Utilisé par Théo quand le patron demande un document, un tableau, un rapport ou une présentation."
 version: 1.0.0
 author: LunarIA
 license: MIT
@@ -27,9 +27,7 @@ Un chiffre que le patron ne t'a pas donné — ou qui ne sort pas d'un outil de 
 - Chiffres, suivis, KPI → **xlsx** (Excel, s'importe dans Google Sheets)
 - Courrier, compte rendu, rapport texte → **docx** (Word / Google Docs)
 - Document à ENVOYER tel quel (figé, propre) → **pdf**
-- Présentation → deux niveaux :
-  - **Sobre et rapide** (points de réunion, brief interne) → `doc_cli.py pptx`
-  - **Haute qualité** (client, prospect, direction) → l'outil MCP `generate_presentation` du connecteur `presenton` : donne-lui le contenu COMPLET et structuré (tes faits, ton plan slide par slide) + les instructions de ton (professionnel, sobre). S'il répond que la clé de modèle manque, dis-le honnêtement au patron (à renseigner dans la configuration) et propose la version sobre en attendant.
+- Présentation → **pptx** : mise en page sobre et professionnelle, prête à retoucher dans PowerPoint. Soigne le PLAN et le texte : un plan clair vaut mieux qu'une décoration chargée.
 
 ## Étape 2 — Fabriquer
 
@@ -61,7 +59,7 @@ python3 "$HERMES_HOME/skills/lunaria-app/documents-lunaria/doc_cli.py" publier \
 
 (`--agent "Théo"` : le document apparaît alors dans la page Documents du patron, signé de ton nom.)
 
-L'outil rend un **lien de téléchargement** : colle-le TEL QUEL dans ta réponse au patron (format markdown déjà prêt). Sans ce lien, le document n'existe pas pour lui — ne dis jamais « c'est fait » sans le lien.
+L'outil rend un **lien de téléchargement** (`/api/v1/files/…`) : colle-le TEL QUEL dans ta réponse au patron (format markdown déjà prêt). Sans ce lien, le document n'existe pas pour lui — ne dis jamais « c'est fait » sans le lien, et ne colle jamais un chemin interne à sa place.
 
 ## Tes règles (non négociables)
 

@@ -13,7 +13,6 @@ Commandes :
   pptx    --spec spec.json --sortie out.pptx                    présentation sobre
   publier --fichier out.xlsx                                    téléverse + lien de téléchargement
 
-(Les présentations de haute qualité passent par le MCP presenton — voir SKILL.md.)
 Sortie : texte simple, code 0 si succès. Auth du pont : LUNARIA_INTERNAL_API_KEY (env).
 """
 
@@ -177,7 +176,7 @@ def cmd_pdf(args: argparse.Namespace) -> None:
     print(f"PDF créé : {args.sortie}")
 
 
-# ── pptx : présentation sobre (les slides de haute qualité = MCP presenton) ──
+# ── pptx : présentation PowerPoint sobre et professionnelle ──────────────────
 # spec.json : {"titre": "...", "sous_titre": "...", "slides": [{"titre": "...", "points": ["..."]}]}
 
 
@@ -219,11 +218,12 @@ def cmd_publier(args: argparse.Namespace) -> None:
     chemin = args.fichier
     if not os.path.isfile(chemin):
         _fail(f"Fichier introuvable : {chemin}")
+    with open(chemin, "rb") as handle:
+        contenu = handle.read()
+
     nom = args.nom or os.path.basename(chemin)
     ctype = mimetypes.guess_type(nom)[0] or "application/octet-stream"
     frontiere = uuid.uuid4().hex
-    with open(chemin, "rb") as handle:
-        contenu = handle.read()
     # Marquage « document d'agent » (SPEC-page-documents) : c'est cette métadonnée que
     # la page Documents filtre — les pièces jointes du patron n'en ont pas.
     meta = json.dumps({"lunaria_document": True, "lunaria_agent": args.agent or "agent"})
@@ -274,13 +274,13 @@ def build_parser() -> argparse.ArgumentParser:
     p_pdf.add_argument("--sortie", required=True)
     p_pdf.set_defaults(func=cmd_pdf)
 
-    p_pptx = sub.add_parser("pptx", help="Présentation sobre (haute qualité = MCP presenton).")
+    p_pptx = sub.add_parser("pptx", help="Présentation PowerPoint sobre et professionnelle.")
     p_pptx.add_argument("--spec", required=True, help="Spec JSON (titre, sous_titre, slides).")
     p_pptx.add_argument("--sortie", required=True)
     p_pptx.set_defaults(func=cmd_pptx)
 
     p_pub = sub.add_parser("publier", help="Téléverse le document et rend le lien de téléchargement.")
-    p_pub.add_argument("--fichier", required=True)
+    p_pub.add_argument("--fichier", required=True, help="Document local à publier.")
     p_pub.add_argument("--nom", help="Nom affiché (défaut : nom du fichier).")
     p_pub.add_argument("--agent", help="Nom de l'agent producteur (affiché dans la page Documents).")
     p_pub.set_defaults(func=cmd_publier)

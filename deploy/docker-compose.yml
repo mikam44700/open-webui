@@ -15,7 +15,6 @@ services:
     restart: unless-stopped
     depends_on:
       - crawl4ai
-      - presenton
     environment:
       # Nom affiché (onglet + interface) : distingue la version client du dev au
       # premier coup d'œil — le dev garde « Open WebUI ».
@@ -71,45 +70,8 @@ services:
       retries: 3
       start_period: 40s
 
-  # Usine à présentations (SPEC-agent-documents) : service GÉRÉ, même pattern que
-  # Crawl4AI — permanent, version épinglée, réseau interne seulement (aucun port
-  # publié), pré-connecté par l'app au démarrage via son serveur MCP natif
-  # (http://presenton:80/mcp, streamable HTTP). Max l'appelle pour les PPTX/PDF de
-  # qualité. Il génère avec une clé de modèle OpenAI-compatible (deploy/.env) —
-  # si la clé est vide, le service tourne mais la génération le signalera.
-  presenton:
-    image: ghcr.io/presenton/presenton:v0.9.0-beta # version épinglée — jamais :latest
-    restart: unless-stopped
-    environment:
-      - LLM=custom
-      - CUSTOM_LLM_URL=${PRESENTON_LLM_URL:-https://api.x.ai/v1}
-      - CUSTOM_LLM_API_KEY=${PRESENTON_LLM_API_KEY:-}
-      - CUSTOM_MODEL=${PRESENTON_LLM_MODEL:-grok-4-1212}
-      # Pas de clés modifiables depuis son interface (elle n'est de toute façon pas
-      # exposée). Images d'illustration DÉSACTIVÉES : sans ce flag, Presenton exige un
-      # fournisseur d'images (clé en plus) et refuse de démarrer — vérifié dans son code
-      # (model_availability.py : skip_image_validation = is_image_generation_disabled()).
-      # Des slides sobres sans images de banque = très bien pour la v1 ; images xAI
-      # (openai_compatible) possibles au palier 2.
-      - CAN_CHANGE_KEYS=false
-      - DISABLE_IMAGE_GENERATION=true
-      # Auth Presenton coupée : elle est ACTIVE par défaut en v0.9 et renvoie 401 sur
-      # /mcp (vérifié dans middlewares.py : is_disable_auth_enabled() court-circuite).
-      # Posture sûre malgré tout : aucun port publié, joignable uniquement par les
-      # conteneurs de la stack (même choix d'exposition que crawl4ai).
-      - DISABLE_AUTH=true
-    volumes:
-      - presenton-data:/app_data
-    networks:
-      - internal
-    deploy:
-      resources:
-        limits:
-          memory: 3G
-
 volumes:
   lunaria-data:
-  presenton-data:
 
 networks:
   internal:

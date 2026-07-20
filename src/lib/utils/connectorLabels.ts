@@ -13,7 +13,6 @@ export const CONNECTOR_TAGS: Record<string, string[]> = {
 	'data-gouv-fr': ['Données publiques', 'SIRENE', 'Souverain'],
 	'recherche-entreprises': ['Annuaire officiel', 'SIREN', 'Souverain'],
 	bodacc: ['Annonces légales', 'Officiel', 'Souverain'],
-	presenton: ['Présentations', 'PowerPoint', 'PDF'],
 	ableton: ['Pistes MIDI', 'Instruments', 'Live Set'],
 	alpaca: ['Trading', 'Actions', 'Crypto'],
 	aws: ['Cloud AWS', 'Services'],
@@ -123,15 +122,6 @@ export const CONNECTOR_FR: Record<
 			'Repérer les nouvelles immatriculations (prospects tout frais) par département',
 			'Détecter les ventes et cessions de fonds de commerce',
 			'Surveiller les procédures collectives (redressements, liquidations)'
-		]
-	},
-	presenton: {
-		name: 'Presenton',
-		desc: 'Usine à présentations : génère des diaporamas prêts à présenter.',
-		actions: [
-			'Générer une présentation complète à partir d’un sujet ou d’un brief',
-			'Exporter le résultat en PowerPoint (PPTX) ou en PDF',
-			'Service hébergé dans LunarIA ; s’appuie sur le modèle IA configuré pour rédiger'
 		]
 	},
 	ableton: {

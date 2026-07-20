@@ -36,10 +36,6 @@ MCP_NAME = "recherche-entreprises"
 BODACC_NAME = "bodacc"
 DATAGOUV_NAME = "data-gouv-fr"
 DATAGOUV_URL = "https://mcp.data.gouv.fr/mcp"
-# Usine à présentations (SPEC-agent-documents) : service géré du compose, MCP natif.
-# Port interne 80 du conteneur presenton — réseau Docker interne uniquement.
-PRESENTON_NAME = "presenton"
-PRESENTON_URL = os.environ.get("PRESENTON_MCP_URL", "http://presenton:80/mcp")
 # Chemins IMAGE (lecture seule, versionnés) — pas la copie du volume, modifiable par l'utilisateur.
 _SKILL_DIR = Path("/app/backend/hermes_skills/lunaria-app/prospection-lunaria")
 SERVER_PATH = _SKILL_DIR / "entreprises_mcp.py"
@@ -74,7 +70,6 @@ def _preconnect(attempts: int = 3) -> None:
                 args=[str(BODACC_PATH)],
             )
             _ensure(DATAGOUV_NAME, transport="http", url=DATAGOUV_URL)
-            _ensure(PRESENTON_NAME, transport="http", url=PRESENTON_URL)
             logger.info("MCP entreprises pré-connectés (mode géré).")
             return
         except Exception:  # noqa: BLE001 — on retente, puis on laisse la main aux logs
