@@ -48,6 +48,38 @@
 		en_cours: { vers: 'termine', libelle: 'Marquer terminé' }
 	};
 
+	// Glisser-déposer : carte attrapée et colonne survolée
+	let tacheGlissee: string | null = null;
+	let colonneSurvolee: string | null = null;
+
+	// Déplacements autorisés à la souris. Table fermée, comme la V1 : un déplacement
+	// non listé est refusé AVANT l'appel réseau, avec un message clair.
+	const DEPLACEMENTS_AUTORISES: Record<string, ('a_faire' | 'en_cours' | 'termine')[]> = {
+		triage: ['a_faire'],
+		a_faire: ['en_cours', 'termine'],
+		en_cours: ['termine'],
+		termine: []
+	};
+
+	const peutDeposer = (depuis: string, vers: string): boolean =>
+		(DEPLACEMENTS_AUTORISES[depuis] ?? []).includes(vers as 'a_faire' | 'en_cours' | 'termine');
+
+	const deposer = async (versColonne: string) => {
+		const id = tacheGlissee;
+		tacheGlissee = null;
+		colonneSurvolee = null;
+		if (!id) return;
+
+		const tache = (tableau?.taches ?? []).find((t) => t.id === id);
+		if (!tache || tache.colonne === versColonne) return;
+
+		if (!peutDeposer(tache.colonne, versColonne)) {
+			toast.error("Ce déplacement n'est pas possible depuis cette colonne.");
+			return;
+		}
+		await deplacerVers(tache, versColonne as 'a_faire' | 'en_cours' | 'termine');
+	};
+
 	const charger = async (silencieux = false) => {
 		try {
 			tableau = await getBoard(localStorage.token);
@@ -107,13 +139,16 @@
 		}
 	};
 
-	const avancer = async (tache: TacheKanban) => {
-		const suite = SUIVANTE[tache.colonne];
-		if (!suite || enMouvement.has(tache.id)) return;
+	// Un seul chemin de déplacement, partagé par le bouton de la carte et le glisser-déposer.
+	const deplacerVers = async (
+		tache: TacheKanban,
+		vers: 'a_faire' | 'en_cours' | 'termine'
+	) => {
+		if (enMouvement.has(tache.id)) return;
 
 		enMouvement = new Set(enMouvement).add(tache.id);
 		try {
-			await moveTask(localStorage.token, tache.id, suite.vers);
+			await moveTask(localStorage.token, tache.id, vers);
 			await charger();
 		} catch (err) {
 			toast.error(typeof err === 'string' ? err : 'Ce déplacement a été refusé.');
@@ -122,6 +157,12 @@
 			suivant.delete(tache.id);
 			enMouvement = suivant;
 		}
+	};
+
+	const avancer = async (tache: TacheKanban) => {
+		const suite = SUIVANTE[tache.colonne];
+		if (!suite) return;
+		await deplacerVers(tache, suite.vers);
 	};
 
 	// Âge de la tâche façon V1 (« 7j ») : plus parlant qu'une date pour du suivi.
@@ -246,8 +287,26 @@
 	<div class="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-4 pb-8">
 		{#each tableau.colonnes as colonne (colonne.cle)}
 			{@const taches = tachesDe(colonne.cle)}
+			{@const survolee = colonneSurvolee === colonne.cle}
+			{@const accueille =
+				tacheGlissee !== null &&
+				peutDeposer(
+					(tableau.taches.find((t) => t.id === tacheGlissee)?.colonne ?? ''),
+					colonne.cle
+				)}
 			<div
-				class="flex flex-col min-h-[26rem] rounded-2xl border border-transparent bg-sky-50/50 dark:bg-sky-950/20 p-3"
+				class="flex flex-col min-h-[26rem] rounded-2xl border p-3 motion-safe:transition-colors {survolee &&
+				accueille
+					? 'bg-sky-100/70 dark:bg-sky-900/30 border-sky-300 dark:border-sky-700'
+					: 'bg-sky-50/50 dark:bg-sky-950/20 border-transparent'} {tacheGlissee && !accueille
+					? 'opacity-60'
+					: ''}"
+				on:dragover|preventDefault={() => (colonneSurvolee = colonne.cle)}
+				on:dragleave={() => {
+					if (colonneSurvolee === colonne.cle) colonneSurvolee = null;
+				}}
+				on:drop|preventDefault={() => deposer(colonne.cle)}
+				role="list"
 			>
 				<!-- En-tête de colonne V1 : pastille + libellé compact + compteur rond -->
 				<div class="flex items-center gap-2 px-1 py-1.5">
@@ -263,9 +322,12 @@
 
 				{#if taches.length === 0}
 					<div
-						class="rounded-2xl border border-dashed border-gray-200 dark:border-white/10 px-3 py-10 text-center text-xs text-gray-400 dark:text-gray-500"
+						class="rounded-xl border border-dashed py-6 text-center text-[11px] motion-safe:transition-colors {survolee &&
+						accueille
+							? 'border-sky-400 text-sky-600 dark:border-sky-500 dark:text-sky-400'
+							: 'border-gray-200 text-gray-300 dark:border-gray-700 dark:text-gray-600'}"
 					>
-						Aucune tâche
+						{survolee && accueille ? 'Déposer ici' : 'Aucune tâche'}
 					</div>
 				{:else}
 					<div class="flex flex-col gap-2.5">
@@ -275,9 +337,18 @@
 							<div
 								class="group cursor-pointer rounded-xl border border-l-4 border-gray-100 dark:border-gray-800 {tache.priorite
 									? PRIORITE[tache.priorite].barre
-									: 'border-l-transparent'} bg-white dark:bg-gray-900 p-2.5 shadow-sm hover:border-gray-200 dark:hover:border-gray-700 hover:shadow-md motion-safe:transition-all motion-safe:duration-150 motion-safe:hover:-translate-y-0.5"
+									: 'border-l-transparent'} bg-white dark:bg-gray-900 p-2.5 shadow-sm hover:border-gray-200 dark:hover:border-gray-700 hover:shadow-md motion-safe:transition-all motion-safe:duration-150 motion-safe:hover:-translate-y-0.5 {tacheGlissee ===
+								tache.id
+									? 'opacity-50 motion-safe:scale-[0.98]'
+									: ''}"
 								role="button"
 								tabindex="0"
+								draggable="true"
+								on:dragstart={() => (tacheGlissee = tache.id)}
+								on:dragend={() => {
+									tacheGlissee = null;
+									colonneSurvolee = null;
+								}}
 								on:click={() => ouvrirDetail(tache.id)}
 								on:keydown={(e) => (e.key === 'Enter' || e.key === ' ') && ouvrirDetail(tache.id)}
 							>
