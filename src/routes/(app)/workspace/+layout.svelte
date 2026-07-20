@@ -46,6 +46,8 @@
 					}
 				]
 			: []),
+		// Compétences maison (portage V1) : les savoir-faire sur mesure rangés par métier.
+		{ label: 'Compétences', href: '/workspace/competences', paths: ['/workspace/competences'] },
 		...(canLibrary ? [{ label: 'Bibliothèque', href: '/workspace/library', paths: LIBRARY_PATHS }] : [])
 	];
 	$: estActif = (paths: string[]) => paths.some((p) => $page.url.pathname.startsWith(p));
