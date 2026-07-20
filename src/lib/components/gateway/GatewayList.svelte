@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { getContext, onMount, onDestroy } from 'svelte';
 	import { toast } from 'svelte-sonner';
+	import ConnectorAboutModal from '$lib/components/connectors/ConnectorAboutModal.svelte';
 
 	import {
 		getGatewayStatus,
@@ -38,8 +39,11 @@
 	import { CHANNEL_FR, CHANNEL_TAGS } from '$lib/utils/channelLabels';
 	import { isBridgeDown } from '$lib/apis/isBridgeDown';
 
-	// Déroulant « Voir ce que ça fait » ouvert, par canal (id → booléen).
-	let aboutOpen: Record<string, boolean> = {};
+	// Popup « Voir ce que ça fait » (même style que MCP / Intégrations) : une seule,
+	// alimentée par le canal cliqué.
+	let aboutChannel: { id: string; name: string; description?: string } | null = null;
+	let aboutOpen = false;
+	$: if (!aboutOpen) aboutChannel = null;
 
 	let showRestartConfirm = false;
 	let showRegenConfirm = false;
@@ -1036,38 +1040,16 @@
 
 						{#if CHANNEL_FR[p.id]?.actions?.length}
 							<div class="mt-2">
-								{#if !aboutOpen[p.id]}
-									<button
-										type="button"
-										class="text-xs font-medium text-sky-600 dark:text-sky-400 hover:underline"
-										on:click={() => (aboutOpen = { ...aboutOpen, [p.id]: true })}
-									>
-										{$i18n.t('Voir ce que ça fait')} ›
-									</button>
-								{:else}
-									<div class="flex flex-col gap-1.5">
-										<div
-											class="text-[11px] font-semibold uppercase tracking-wide text-gray-400 dark:text-gray-500"
-										>
-											{$i18n.t('Ce que ça fait')}
-										</div>
-										<ul class="flex flex-col gap-1 pl-0.5">
-											{#each CHANNEL_FR[p.id].actions as action}
-												<li class="flex items-start gap-1.5 text-[11px] text-gray-600 dark:text-gray-400">
-													<span class="flex-none mt-1 size-1 rounded-full bg-gray-400 dark:bg-gray-600"></span>
-													<span>{$i18n.t(action)}</span>
-												</li>
-											{/each}
-										</ul>
-										<button
-											type="button"
-											class="self-start text-xs text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 transition"
-											on:click={() => (aboutOpen = { ...aboutOpen, [p.id]: false })}
-										>
-											{$i18n.t('Masquer')}
-										</button>
-									</div>
-								{/if}
+								<button
+									type="button"
+									class="text-xs font-medium text-sky-600 dark:text-sky-400 hover:underline"
+									on:click={() => {
+										aboutChannel = p;
+										aboutOpen = true;
+									}}
+								>
+									{$i18n.t('Voir ce que ça fait')} ›
+								</button>
 							</div>
 						{/if}
 
@@ -2248,3 +2230,14 @@
 	confirmLabel={$i18n.t('Déconnecter')}
 	onConfirm={onDisconnect}
 />
+
+{#if aboutChannel}
+	<ConnectorAboutModal
+		bind:open={aboutOpen}
+		name={aboutChannel.name}
+		desc={CHANNEL_FR[aboutChannel.id]?.desc ?? aboutChannel.description ?? ''}
+		logoSrc={LOGO_BY_ID[aboutChannel.id] ?? ''}
+		fullBleed={LOGO_FULL_BLEED.has(aboutChannel.id)}
+		actions={CHANNEL_FR[aboutChannel.id]?.actions ?? []}
+	/>
+{/if}

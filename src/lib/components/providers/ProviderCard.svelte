@@ -6,6 +6,7 @@
 	import Spinner from '$lib/components/common/Spinner.svelte';
 	import ProviderOAuth from './ProviderOAuth.svelte';
 	import ModelSelect from './ModelSelect.svelte';
+	import ConnectorAboutModal from '$lib/components/connectors/ConnectorAboutModal.svelte';
 	import { getModelPresentation } from '$lib/catalog/model-badges';
 	import { getProviderRegionFlag, getProviderRegionName } from '$lib/catalog/provider-taxonomy';
 	import { PROVIDER_INFO } from '$lib/catalog/provider-info';
@@ -333,38 +334,15 @@
 		</div>
 	{/if}
 
-	<!-- Voir ce que ça fait (déroulant façon MCP / Intégrations). -->
+	<!-- Voir ce que ça fait : popup centrée (même style que MCP / Intégrations). -->
 	{#if info.about?.length}
-		{#if !aboutOpen}
-			<button
-				type="button"
-				class="self-start text-xs font-medium text-sky-600 dark:text-sky-400 hover:underline"
-				on:click={() => (aboutOpen = true)}
-			>
-				{$i18n.t('Voir ce que ça fait')} ›
-			</button>
-		{:else}
-			<div class="flex flex-col gap-1.5">
-				<div class="text-[11px] font-semibold uppercase tracking-wide text-gray-400 dark:text-gray-500">
-					{$i18n.t('Ce que ça fait')}
-				</div>
-				<ul class="flex flex-col gap-1 pl-0.5">
-					{#each info.about as line}
-						<li class="flex items-start gap-1.5 text-[11px] text-gray-600 dark:text-gray-400">
-							<span class="flex-none mt-1 size-1 rounded-full bg-gray-400 dark:bg-gray-600"></span>
-							<span>{$i18n.t(line)}</span>
-						</li>
-					{/each}
-				</ul>
-				<button
-					type="button"
-					class="self-start text-xs text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 transition"
-					on:click={() => (aboutOpen = false)}
-				>
-					{$i18n.t('Masquer')}
-				</button>
-			</div>
-		{/if}
+		<button
+			type="button"
+			class="self-start text-xs font-medium text-sky-600 dark:text-sky-400 hover:underline"
+			on:click={() => (aboutOpen = true)}
+		>
+			{$i18n.t('Voir ce que ça fait')} ›
+		</button>
 	{/if}
 
 	<!-- Bloc de connexion collé en bas : aligne champ + Tester/Enregistrer entre les cartes,
@@ -614,3 +592,12 @@
 	{/if}
 	</div>
 </div>
+
+<ConnectorAboutModal
+	bind:open={aboutOpen}
+	name={info.name ?? provider.label}
+	desc={info.desc ?? ''}
+	logoSrc={logoUrl}
+	{fullBleed}
+	actions={info.about ?? []}
+/>
