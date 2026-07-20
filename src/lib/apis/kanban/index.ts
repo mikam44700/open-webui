@@ -9,6 +9,8 @@ export type ColonneKanban = {
 	aide: string;
 };
 
+export type PrioriteKanban = 'urgent' | 'eleve' | 'bas' | null;
+
 export type TacheKanban = {
 	id: string;
 	titre: string;
@@ -16,7 +18,36 @@ export type TacheKanban = {
 	colonne: string;
 	agent: string | null;
 	bloquee: boolean;
+	priorite: PrioriteKanban;
 	cree_le: number | null;
+};
+
+export type ExecutionKanban = {
+	agent: string | null;
+	issue: string | null;
+	resume: string | null;
+	erreur: string | null;
+	debut: number | null;
+};
+
+export type CommentaireKanban = {
+	auteur: string | null;
+	texte: string;
+	le: number | null;
+};
+
+export type EtapeHistoriqueKanban = {
+	libelle: string;
+	le: number | null;
+};
+
+export type DetailTacheKanban = {
+	tache: TacheKanban;
+	dernier_resume: string | null;
+	resultat: string | null;
+	executions: ExecutionKanban[];
+	commentaires: CommentaireKanban[];
+	historique: EtapeHistoriqueKanban[];
 };
 
 export type TableauKanban = {
@@ -49,12 +80,20 @@ export const getBoard = async (token: string): Promise<TableauKanban> => {
 export const createTask = async (
 	token: string,
 	titre: string,
-	description?: string
+	description?: string,
+	priorite: 'urgent' | 'eleve' | 'normal' | 'bas' = 'normal'
 ): Promise<TacheKanban> => {
 	return fetch(`${WEBUI_API_BASE_URL}/kanban/tasks`, {
 		method: 'POST',
 		headers: entetes(token),
-		body: JSON.stringify({ titre, description: description || null })
+		body: JSON.stringify({ titre, description: description || null, priorite })
+	}).then(lire);
+};
+
+export const getTask = async (token: string, id: string): Promise<DetailTacheKanban> => {
+	return fetch(`${WEBUI_API_BASE_URL}/kanban/tasks/${encodeURIComponent(id)}`, {
+		method: 'GET',
+		headers: entetes(token)
 	}).then(lire);
 };
 

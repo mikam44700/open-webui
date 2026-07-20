@@ -54,6 +54,21 @@ _STATUT_VERS_COLONNE = {
 }
 
 
+# Priorités du moteur (entier) traduites en langage dirigeant. Seuils repris de la V1.
+def _priorite(valeur: Optional[int]) -> Optional[str]:
+    p = valeur or 0
+    if p >= 10:
+        return "urgent"
+    if p >= 5:
+        return "eleve"
+    if p < 0:
+        return "bas"
+    return None  # normal : rien à afficher
+
+
+_PRIORITE_VERS_ENTIER = {"urgent": 10, "eleve": 5, "normal": 0, "bas": -5}
+
+
 class Tache(BaseModel):
     id: str
     titre: str
@@ -61,7 +76,38 @@ class Tache(BaseModel):
     colonne: str
     agent: Optional[str] = None  # assignee du moteur
     bloquee: bool = False
+    priorite: Optional[str] = None  # urgent | eleve | bas | None (normal)
     cree_le: Optional[int] = None  # epoch secondes
+
+
+class Execution(BaseModel):
+    """Un passage d'agent sur la tâche (« runs » côté moteur)."""
+
+    agent: Optional[str] = None
+    issue: Optional[str] = None
+    resume: Optional[str] = None
+    erreur: Optional[str] = None
+    debut: Optional[int] = None
+
+
+class Commentaire(BaseModel):
+    auteur: Optional[str] = None
+    texte: str
+    le: Optional[int] = None
+
+
+class EtapeHistorique(BaseModel):
+    libelle: str
+    le: Optional[int] = None
+
+
+class DetailTache(BaseModel):
+    tache: Tache
+    dernier_resume: Optional[str] = None
+    resultat: Optional[str] = None
+    executions: list[Execution] = []
+    commentaires: list[Commentaire] = []
+    historique: list[EtapeHistorique] = []
 
 
 class Tableau(BaseModel):
@@ -73,6 +119,7 @@ class Tableau(BaseModel):
 class CreationTache(BaseModel):
     titre: str = Field(min_length=1, max_length=300)
     description: Optional[str] = Field(default=None, max_length=5000)
+    priorite: Literal["urgent", "eleve", "normal", "bas"] = "normal"
 
 
 class AvancementTache(BaseModel):
@@ -123,8 +170,34 @@ def _vers_tache(brut: dict) -> Optional[Tache]:
         colonne=colonne,
         agent=brut.get("assignee"),
         bloquee=statut == "blocked",
+        priorite=_priorite(brut.get("priority")),
         cree_le=brut.get("created_at"),
     )
+
+
+# Événements du moteur traduits en langage dirigeant (la V1 laissait le terme brut).
+_HISTORIQUE_FR = {
+    "created": "Créée",
+    "claimed": "Prise en charge",
+    "completed": "Terminée",
+    "blocked": "Mise en attente",
+    "unblocked": "Remise en route",
+    "promoted": "Passée en prêt",
+    "scheduled": "Planifiée",
+    "archived": "Archivée",
+    "assigned": "Confiée à un agent",
+    "reclaimed": "Reprise",
+    "commented": "Commentaire ajouté",
+    "specified": "Précisée",
+}
+
+_ISSUE_FR = {
+    "completed": "terminée",
+    "failed": "échec",
+    "crashed": "interrompue",
+    "timed_out": "délai dépassé",
+    "spawn_failed": "n'a pas pu démarrer",
+}
 
 
 @router.get("/board", response_model=Tableau)
@@ -141,6 +214,7 @@ def create_task(form: CreationTache, user=Depends(get_verified_user)):
     args = ["create", form.titre]
     if form.description:
         args += ["--body", form.description]
+    args += ["--priority", str(_PRIORITE_VERS_ENTIER[form.priorite])]
     args += ["--created-by", "patron"]
 
     brut = _run_json(args)
@@ -150,6 +224,61 @@ def create_task(form: CreationTache, user=Depends(get_verified_user)):
     if tache is None:
         raise HTTPException(status_code=502, detail="La tâche a été créée dans un état inattendu.")
     return tache
+
+
+@router.get("/tasks/{task_id}", response_model=DetailTache)
+def get_task(task_id: str, user=Depends(get_verified_user)):
+    """Détail d'une tâche : ce qui s'est passé dessus, en français.
+
+    Manque n°1 relevé à l'audit V1 (specs/AUDIT-kanban-v1.md) : sans ce détail,
+    une carte est un cul-de-sac.
+    """
+    brut = _run_json(["show", task_id])
+    if not isinstance(brut, dict):
+        raise HTTPException(status_code=404, detail="Tâche introuvable.")
+
+    donnees = brut.get("task") if "task" in brut else brut
+    if not isinstance(donnees, dict):
+        raise HTTPException(status_code=404, detail="Tâche introuvable.")
+    tache = _vers_tache(donnees)
+    if tache is None:
+        raise HTTPException(status_code=404, detail="Cette tâche n'est plus affichable.")
+
+    executions = [
+        Execution(
+            agent=r.get("profile"),
+            issue=_ISSUE_FR.get(r.get("outcome") or "", r.get("outcome")),
+            resume=r.get("summary"),
+            erreur=r.get("error"),
+            debut=r.get("started_at"),
+        )
+        for r in (brut.get("runs") or [])
+        if isinstance(r, dict)
+    ]
+
+    commentaires = [
+        Commentaire(auteur=c.get("author"), texte=c.get("body") or "", le=c.get("created_at"))
+        for c in (brut.get("comments") or [])
+        if isinstance(c, dict) and c.get("body")
+    ]
+
+    historique = [
+        EtapeHistorique(
+            libelle=_HISTORIQUE_FR.get(e.get("kind") or "", e.get("kind") or "Étape"),
+            le=e.get("created_at"),
+        )
+        for e in (brut.get("events") or [])
+        if isinstance(e, dict)
+    ]
+
+    return DetailTache(
+        tache=tache,
+        dernier_resume=brut.get("latest_summary"),
+        resultat=donnees.get("result") or None,
+        executions=executions,
+        commentaires=commentaires,
+        historique=historique,
+    )
 
 
 @router.post("/tasks/{task_id}/move", response_model=Tache)
