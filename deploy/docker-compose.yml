@@ -93,6 +93,11 @@ services:
       # (openai_compatible) possibles au palier 2.
       - CAN_CHANGE_KEYS=false
       - DISABLE_IMAGE_GENERATION=true
+      # Auth Presenton coupée : elle est ACTIVE par défaut en v0.9 et renvoie 401 sur
+      # /mcp (vérifié dans middlewares.py : is_disable_auth_enabled() court-circuite).
+      # Posture sûre malgré tout : aucun port publié, joignable uniquement par les
+      # conteneurs de la stack (même choix d'exposition que crawl4ai).
+      - DISABLE_AUTH=true
     volumes:
       - presenton-data:/app_data
     networks:
