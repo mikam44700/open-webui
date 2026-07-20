@@ -125,6 +125,17 @@
 		...(provider.id === 'moa' ? [MOA_ABOUT] : []),
 		...(isCliProvider ? [CLI_ABOUT] : [])
 	];
+	// Pastilles capacités (mêmes libellés/emoji que l'ancienne carte) — dans la popup.
+	$: capTags = caps
+		? [
+				...(caps.reasoning ? [`🧠 ${$i18n.t('Raisonnement')}`] : []),
+				...(caps.vision ? [`👁️ ${$i18n.t('Vision')}`] : []),
+				...(caps.tools ? [`🔧 ${$i18n.t('Outils')}`] : []),
+				...(caps.context_window
+					? [`📏 ${ctxLabel(caps.context_window)} ${$i18n.t('contexte')}`]
+					: [])
+			]
+		: [];
 	// Logo du provider (URL + « carré plein » + repli) — logique partagée, cf. providerLogos.
 	$: logoUrl = providerLogoUrl(provider);
 	$: fullBleed = isProviderLogoFullBleed(provider);
@@ -329,36 +340,8 @@
 		</div>
 	{/if}
 
-	<!-- Capacités du modèle principal (Raisonnement/Vision/Outils/contexte). Même source
-	     que le chat → honnête. Emoji pour distinguer des badges métier ci-dessus. -->
-	{#if caps && (caps.reasoning || caps.vision || caps.tools || caps.context_window)}
-		<div class="flex flex-wrap gap-1">
-			{#if caps.reasoning}
-				<span
-					class="text-[10px] px-1.5 py-0.5 rounded-md bg-sky-50 text-sky-700 dark:bg-sky-900/30 dark:text-sky-300"
-					>🧠 {$i18n.t('Raisonnement')}</span
-				>
-			{/if}
-			{#if caps.vision}
-				<span
-					class="text-[10px] px-1.5 py-0.5 rounded-md bg-sky-50 text-sky-700 dark:bg-sky-900/30 dark:text-sky-300"
-					>👁️ {$i18n.t('Vision')}</span
-				>
-			{/if}
-			{#if caps.tools}
-				<span
-					class="text-[10px] px-1.5 py-0.5 rounded-md bg-sky-50 text-sky-700 dark:bg-sky-900/30 dark:text-sky-300"
-					>🔧 {$i18n.t('Outils')}</span
-				>
-			{/if}
-			{#if caps.context_window}
-				<span
-					class="text-[10px] px-1.5 py-0.5 rounded-md bg-sky-50 text-sky-700 dark:bg-sky-900/30 dark:text-sky-300"
-					>📏 {ctxLabel(caps.context_window)} {$i18n.t('contexte')}</span
-				>
-			{/if}
-		</div>
-	{/if}
+	<!-- Capacités du modèle principal (Raisonnement/Vision/Outils/contexte) : déplacées
+	     dans la popup « Voir ce que ça fait » pour alléger la carte (SPEC-cartes-modeles-ia). -->
 
 	<!-- Voir ce que ça fait : popup centrée (même style que MCP / Intégrations). -->
 	{#if aboutItems.length}
@@ -613,6 +596,7 @@
 	logoSrc={logoUrl}
 	{fullBleed}
 	actions={aboutItems}
+	tags={capTags}
 	helpLabel={isCodex ? 'Première connexion ? Voir comment autoriser ChatGPT' : ''}
 	on:help={() => (codexHelpOpen = true)}
 />

@@ -18,6 +18,9 @@
 	// Lien d'aide optionnel sous la liste (ex. guide d'autorisation ChatGPT) :
 	// ferme la popup et émet `help`, le parent ouvre son guide — SPEC-cartes-modeles-ia.
 	export let helpLabel = '';
+	// Pastilles capacités optionnelles (Raisonnement/Vision/Outils/contexte) : retirées
+	// des cartes Modèles IA pour les alléger, affichées ici — SPEC-cartes-modeles-ia.
+	export let tags: string[] = [];
 </script>
 
 {#if open && actions.length}
@@ -60,6 +63,17 @@
 			</div>
 			{#if desc}
 				<div class="text-xs text-gray-500 mb-4">{desc}</div>
+			{/if}
+
+			{#if tags.length}
+				<div class="flex flex-wrap gap-1 mb-4">
+					{#each tags as t (t)}
+						<span
+							class="text-[10px] px-1.5 py-0.5 rounded-md bg-sky-50 text-sky-700 dark:bg-sky-900/30 dark:text-sky-300"
+							>{t}</span
+						>
+					{/each}
+				</div>
 			{/if}
 
 			<div
