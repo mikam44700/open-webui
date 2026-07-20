@@ -144,10 +144,10 @@
 
 	// Pastille de couleur par colonne (portage V1 : repère visuel immédiat).
 	const PASTILLE: Record<string, string> = {
-		triage: 'bg-gray-400 dark:bg-gray-500',
-		a_faire: 'bg-blue-500 dark:bg-blue-400',
-		en_cours: 'bg-emerald-500 dark:bg-emerald-400',
-		termine: 'bg-violet-500 dark:bg-[#6b62f2]'
+		triage: 'bg-slate-400',
+		a_faire: 'bg-sky-400',
+		en_cours: 'bg-emerald-400',
+		termine: 'bg-teal-400'
 	};
 
 	// Priorités : pastille + barre de couleur à gauche de la carte (recette V1, très scannable).
@@ -240,79 +240,26 @@
 		</div>
 	</div>
 
-	{#if creationOuverte}
-		<div
-			class="mb-5 rounded-3xl border border-gray-200/80 dark:border-white/6 bg-white dark:bg-[#161616] p-5"
-		>
-			<input
-				class="w-full rounded-xl bg-gray-50 dark:bg-[#0f0f0f] px-3.5 py-2.5 text-sm outline-hidden border border-transparent focus:border-violet-400/60 dark:text-gray-100"
-				placeholder="Que faut-il faire ?"
-				maxlength="300"
-				bind:value={nouveauTitre}
-				on:keydown={(e) => e.key === 'Enter' && creer()}
-			/>
-			<textarea
-				class="mt-2 w-full resize-none rounded-xl bg-gray-50 dark:bg-[#0f0f0f] px-3.5 py-2.5 text-sm outline-hidden border border-transparent focus:border-violet-400/60 dark:text-gray-100"
-				rows="2"
-				maxlength="5000"
-				placeholder="Précisions (facultatif)"
-				bind:value={nouvelleDescription}
-			></textarea>
-			<div class="mt-2 flex items-center gap-2">
-				<span class="text-xs text-gray-500 dark:text-gray-400">Priorité</span>
-				{#each [{ v: 'normal', l: 'Normale' }, { v: 'eleve', l: 'Élevée' }, { v: 'urgent', l: 'Urgente' }, { v: 'bas', l: 'Basse' }] as choix}
-					<button
-						type="button"
-						class="rounded-full px-3 py-1 text-xs transition {nouvellePriorite === choix.v
-							? 'bg-gray-900 text-white dark:bg-white dark:text-gray-900'
-							: 'bg-gray-100 text-gray-600 hover:bg-gray-200 dark:bg-[#262626] dark:text-gray-300 dark:hover:bg-[#303030]'}"
-						on:click={() => (nouvellePriorite = choix.v as typeof nouvellePriorite)}
-					>
-						{choix.l}
-					</button>
-				{/each}
-			</div>
 
-			<div class="mt-3 flex justify-end gap-2">
-				<button
-					class="rounded-full px-4 py-1.5 text-sm text-gray-500 dark:text-gray-400 transition hover:bg-gray-50 dark:hover:bg-gray-850"
-					on:click={() => (creationOuverte = false)}
-				>
-					Annuler
-				</button>
-				<button
-					class="rounded-full bg-gray-900 px-4 py-1.5 text-sm font-medium text-white transition hover:bg-gray-700 disabled:opacity-50 dark:bg-white dark:text-gray-900 dark:hover:bg-gray-200"
-					disabled={!nouveauTitre.trim() || enregistrement}
-					on:click={creer}
-				>
-					{enregistrement ? 'Création…' : 'Créer la tâche'}
-				</button>
-			</div>
-		</div>
-	{/if}
-
-	<!-- Colonnes façon V1 : lanes séparées par un filet vertical, pastille de couleur
-	     en tête, compteur en pastille ronde. -->
-	<div
-		class="grid grid-cols-1 gap-0 md:grid-cols-2 xl:grid-cols-4 pb-8 rounded-3xl border border-gray-200/80 dark:border-white/6 bg-white dark:bg-[#111111]/70 overflow-hidden"
-	>
-		{#each tableau.colonnes as colonne, i (colonne.cle)}
+	<!-- Colonnes V1 : lanes au fond bleuté (choix de Michael le 2026-07-20 — exception
+	     assumée à la charte Dimension, c'est LA signature visuelle du tableau). -->
+	<div class="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-4 pb-8">
+		{#each tableau.colonnes as colonne (colonne.cle)}
 			{@const taches = tachesDe(colonne.cle)}
 			<div
-				class="flex flex-col min-h-[26rem] p-4 {i > 0
-					? 'md:border-l border-gray-200/70 dark:border-white/6'
-					: ''}"
+				class="flex flex-col min-h-[26rem] rounded-2xl border border-transparent bg-sky-50/50 dark:bg-sky-950/20 p-3"
 			>
-				<div class="flex items-center gap-2 mb-1">
+				<!-- En-tête de colonne V1 : pastille + libellé compact + compteur rond -->
+				<div class="flex items-center gap-2 px-1 py-1.5">
 					<span class="size-2 rounded-full {PASTILLE[colonne.cle]}"></span>
-					<div class="text-sm font-medium text-gray-900 dark:text-gray-50">{colonne.titre}</div>
+					<span class="text-xs font-semibold text-gray-600 dark:text-gray-300">{colonne.titre}</span>
 					<span
-						class="ml-auto min-w-6 rounded-full bg-gray-100 dark:bg-[#1e1e1e] px-2 py-0.5 text-center text-xs text-gray-500 dark:text-gray-400"
+						class="ml-auto min-w-5 rounded-full bg-gray-200/70 dark:bg-gray-800 px-1.5 py-0.5 text-center text-[11px] font-medium text-gray-500 dark:text-gray-400"
 					>
 						{taches.length}
 					</span>
 				</div>
-				<div class="text-xs text-gray-500 dark:text-gray-400 mb-3.5">{colonne.aide}</div>
+				<div class="px-1 pb-2.5 text-[11px] text-gray-400 dark:text-gray-500">{colonne.aide}</div>
 
 				{#if taches.length === 0}
 					<div
@@ -326,9 +273,9 @@
 							<!-- Carte cliquable : ouvre le détail (manque n°1 de l'audit V1).
 							     Barre de couleur à gauche = priorité, scannable d'un coup d'œil. -->
 							<div
-								class="cursor-pointer rounded-2xl border border-l-4 border-gray-200/80 dark:border-white/6 {tache.priorite
+								class="group cursor-pointer rounded-xl border border-l-4 border-gray-100 dark:border-gray-800 {tache.priorite
 									? PRIORITE[tache.priorite].barre
-									: 'border-l-transparent'} bg-white dark:bg-[#181818] p-3.5 transition-colors hover:border-gray-300 dark:hover:border-white/15"
+									: 'border-l-transparent'} bg-white dark:bg-gray-900 p-2.5 shadow-sm hover:border-gray-200 dark:hover:border-gray-700 hover:shadow-md motion-safe:transition-all motion-safe:duration-150 motion-safe:hover:-translate-y-0.5"
 								role="button"
 								tabindex="0"
 								on:click={() => ouvrirDetail(tache.id)}
@@ -383,9 +330,10 @@
 								</div>
 
 								{#if SUIVANTE[tache.colonne]}
-									<div class="mt-2.5">
+									<!-- Actions estompées au repos, pleines au survol (recette V1) -->
+									<div class="mt-2.5 opacity-80 motion-safe:transition group-hover:opacity-100">
 										<button
-											class="rounded-lg bg-gray-100 dark:bg-[#262626] px-2.5 py-1 text-[11px] text-gray-600 dark:text-gray-300 transition hover:bg-gray-200 dark:hover:bg-[#303030] disabled:opacity-50"
+											class="rounded-md bg-gray-100 dark:bg-gray-800 px-2 py-0.5 text-[10px] text-gray-600 dark:text-gray-300 transition hover:bg-gray-200 dark:hover:bg-gray-700 disabled:opacity-50"
 											disabled={enMouvement.has(tache.id)}
 											on:click|stopPropagation={() => avancer(tache)}
 										>
@@ -399,6 +347,72 @@
 				{/if}
 			</div>
 		{/each}
+	</div>
+{/if}
+
+<!-- Modale « Nouvelle tâche » centrée (recette V1) -->
+{#if creationOuverte}
+	<div
+		class="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4"
+		on:click={() => (creationOuverte = false)}
+		on:keydown={(e) => e.key === 'Escape' && (creationOuverte = false)}
+		role="presentation"
+	>
+		<div
+			class="w-full max-w-lg rounded-2xl bg-white dark:bg-gray-900 p-5 shadow-xl"
+			on:click|stopPropagation
+			on:keydown|stopPropagation
+			role="dialog"
+			aria-modal="true"
+			tabindex="-1"
+		>
+			<div class="mb-4 text-base font-medium text-gray-900 dark:text-gray-50">Nouvelle tâche</div>
+			<div class="flex flex-col gap-3">
+				<input
+					class="w-full rounded-lg bg-gray-50 dark:bg-gray-850 px-3 py-2 text-sm outline-hidden dark:text-gray-100"
+					placeholder="Que faut-il faire ?"
+					maxlength="300"
+					bind:value={nouveauTitre}
+					on:keydown={(e) => e.key === 'Enter' && creer()}
+				/>
+				<textarea
+					class="w-full resize-none rounded-lg bg-gray-50 dark:bg-gray-850 px-3 py-2 text-sm outline-hidden dark:text-gray-100"
+					rows="3"
+					maxlength="5000"
+					placeholder="Précisions (facultatif)"
+					bind:value={nouvelleDescription}
+				></textarea>
+				<div class="flex flex-wrap items-center gap-1.5">
+					<span class="mr-1 text-xs text-gray-500 dark:text-gray-400">Priorité</span>
+					{#each [{ v: 'normal', l: 'Normale' }, { v: 'eleve', l: 'Élevée' }, { v: 'urgent', l: 'Urgente' }, { v: 'bas', l: 'Basse' }] as choix}
+						<button
+							type="button"
+							class="rounded-full px-3 py-1 text-xs transition {nouvellePriorite === choix.v
+								? 'bg-gray-900 text-white dark:bg-white dark:text-gray-900'
+								: 'bg-gray-100 text-gray-600 hover:bg-gray-200 dark:bg-gray-850 dark:text-gray-300 dark:hover:bg-gray-800'}"
+							on:click={() => (nouvellePriorite = choix.v as typeof nouvellePriorite)}
+						>
+							{choix.l}
+						</button>
+					{/each}
+				</div>
+			</div>
+			<div class="mt-5 flex items-center justify-end gap-2">
+				<button
+					class="rounded-lg bg-gray-100 px-3 py-1.5 text-sm text-gray-600 transition hover:bg-gray-200 dark:bg-gray-850 dark:text-gray-300 dark:hover:bg-gray-800"
+					on:click={() => (creationOuverte = false)}
+				>
+					Annuler
+				</button>
+				<button
+					class="rounded-lg bg-black px-3 py-1.5 text-sm font-medium text-white transition hover:opacity-90 disabled:opacity-40 dark:bg-white dark:text-black"
+					disabled={!nouveauTitre.trim() || enregistrement}
+					on:click={creer}
+				>
+					{enregistrement ? 'Création…' : 'Créer'}
+				</button>
+			</div>
+		</div>
 	</div>
 {/if}
 
