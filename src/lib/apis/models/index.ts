@@ -421,3 +421,34 @@ export const deleteAllModels = async (token: string) => {
 
 	return res;
 };
+
+// Compétences métier attribuées à un agent (onglet Compétences de l'Espace de travail).
+// Le patron choisit qui porte quelle procédure — rien n'est attribué d'office.
+export const setModelCompetences = async (token: string, id: string, competences: string[]) => {
+	let error = null;
+
+	const res = await fetch(`${WEBUI_API_BASE_URL}/models/model/competences`, {
+		method: 'POST',
+		headers: {
+			Accept: 'application/json',
+			'Content-Type': 'application/json',
+			authorization: `Bearer ${token}`
+		},
+		body: JSON.stringify({ id, competences })
+	})
+		.then(async (res) => {
+			if (!res.ok) throw await res.json();
+			return res.json();
+		})
+		.catch((err) => {
+			error = err?.detail ?? err;
+			console.error(err);
+			return null;
+		});
+
+	if (error) {
+		throw error;
+	}
+
+	return res;
+};

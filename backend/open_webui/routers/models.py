@@ -681,6 +681,71 @@ async def toggle_model_by_id(
 ############################
 
 
+############################
+# Compétences métier attribuées à un agent
+############################
+
+
+class CompetencesForm(BaseModel):
+    """Compétences maison attribuées à un agent (onglet Compétences de l'Espace de travail).
+
+    Le patron choisit lui-même qui porte quelle procédure — rien n'est attribué d'office.
+    """
+
+    id: str
+    competences: list[str]
+
+
+@router.post('/model/competences', response_model=ModelModel | None)
+async def set_model_competences(
+    form_data: CompetencesForm,
+    user=Depends(get_verified_user),
+    db: AsyncSession = Depends(get_async_session),
+):
+    """Remplace la liste des compétences métier d'un agent.
+
+    Écriture chirurgicale : on ne touche QU'À ``meta.competences``. Le reste de la fiche
+    (mission, règlement, outils, instructions) est relu puis réécrit à l'identique — jamais
+    reconstruit à partir du formulaire, pour qu'un client léger ne puisse pas effacer un
+    champ en l'omettant.
+    """
+    model = await Models.get_model_by_id(form_data.id, db=db)
+    if not model:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=ERROR_MESSAGES.NOT_FOUND)
+
+    if (
+        user.role != 'admin'
+        and model.user_id != user.id
+        and not await AccessGrants.has_access(
+            user_id=user.id,
+            resource_type='model',
+            resource_id=model.id,
+            permission='write',
+            db=db,
+        )
+    ):
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED, detail=ERROR_MESSAGES.UNAUTHORIZED
+        )
+
+    meta = dict(model.meta or {})
+    # Dédoublonnage en conservant l'ordre choisi par le patron.
+    meta['competences'] = list(dict.fromkeys(c for c in form_data.competences if c))
+
+    # access_grants est volontairement OMIS (et non passé à None) : le champ est typé
+    # `list`, donc fournir None explicitement échoue à la validation. L'omettre laisse
+    # le défaut, qui signifie « ne touche pas aux partages existants ».
+    form = ModelForm(
+        id=model.id,
+        base_model_id=model.base_model_id,
+        name=model.name,
+        meta=meta,
+        params=model.params,
+        is_active=model.is_active,
+    )
+    return await Models.update_model_by_id(model.id, form, db=db)
+
+
 @router.post('/model/update', response_model=ModelModel | None)
 async def update_model_by_id(
     request: Request,
