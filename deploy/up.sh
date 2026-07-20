@@ -34,6 +34,20 @@ if [[ "$MODE" == "vps" ]] && ! grep -Eq '^LUNARIA_DOMAIN=.+$' .env; then
   exit 1
 fi
 
+# Presenton (SPEC-agent-documents) : complète le .env EXISTANT sans jamais l'écraser
+# (installations déjà en place). La clé de modèle est à renseigner UNE fois par le
+# dirigeant (fournisseur OpenAI-compatible, ex. xAI) — vide, le service tourne mais
+# la génération de présentations le signalera honnêtement.
+if ! grep -q '^PRESENTON_LLM_URL=' .env; then
+  {
+    echo "# Presenton (presentations PPTX/PDF de Max) : fournisseur OpenAI-compatible."
+    echo "PRESENTON_LLM_URL=https://api.x.ai/v1"
+    echo "PRESENTON_LLM_API_KEY="
+    echo "PRESENTON_LLM_MODEL=grok-4-1212"
+  } >> .env
+  echo "Presenton : variables ajoutées à deploy/.env — renseigner PRESENTON_LLM_API_KEY."
+fi
+
 # Règle projet : UNE SEULE adresse (http://localhost:3000) et une seule app à la fois.
 # Si le port est occupé (serveur de dev vite/uvicorn), on explique au lieu d'empiler
 # une deuxième app — et on ne tue JAMAIS un processus existant nous-mêmes.

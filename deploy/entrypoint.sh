@@ -41,6 +41,20 @@ python -c "from open_webui.hermes_bridge import entreprises_adapter as a; a._pre
   && echo "entrypoint: connecteurs MCP LunarIA déclarés avant le moteur." \
   || echo "entrypoint: déclaration MCP avant moteur échouée (filet in-app au prochain boot)." >&2
 
+# Presenton (SPEC-agent-documents) : son démarrage à froid (Next.js + FastAPI) peut
+# dépasser la fenêtre de retentatives du moteur — qui GARE alors le connecteur jusqu'au
+# redémarrage suivant (leçon du 2026-07-19 : le moteur fige sa liste au démarrage).
+# On attend donc qu'il réponde (90 s max), sans bloquer le boot s'il traîne.
+if [ -n "${PRESENTON_WAIT:-1}" ]; then
+  for _ in $(seq 1 45); do
+    if curl -sf -o /dev/null --max-time 2 "http://presenton:80" 2>/dev/null; then
+      echo "entrypoint: presenton prêt — le moteur le verra dès son premier scan."
+      break
+    fi
+    sleep 2
+  done
+fi
+
 # Moteur Hermes : garantit API_SERVER_* dans le .env, puis lance le gateway (qui porte
 # le serveur de chat OpenAI-compatible sur 127.0.0.1:8642) en arrière-plan, supervisé
 # par une boucle de relance simple. Le chat open-webui s'y branche via hermes_boot

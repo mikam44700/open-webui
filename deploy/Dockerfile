@@ -32,6 +32,12 @@ RUN git clone --filter=blob:none ${HERMES_REPO} /opt/hermes-agent \
 # accès à leurs intégrations. Version alignée sur l'API non dépréciée (mcp >= 1.24).
 RUN /opt/hermes-agent/venv/bin/pip install --no-cache-dir uv "aiohttp==3.14.1" "mcp==1.27.2"
 
+# Bibliothèques documents pour Max (SPEC-agent-documents), dans le python de l'APP
+# (celui qui exécute doc_cli.py) : Word (python-docx) et PDF (xhtml2pdf, pur Python,
+# aucune dépendance système). Excel (openpyxl) et PowerPoint (python-pptx) sont déjà
+# fournis par les dépendances open-webui — on n'installe que le manquant.
+RUN pip install --no-cache-dir python-docx==1.2.0 xhtml2pdf==0.2.17
+
 # Moteur de recherche sociale last30days (MIT, mvanhorn) pour la skill veille-lunaria
 # (agent Sacha, SPEC-agent-veille) : sources libres uniquement (Reddit, HN, YouTube,
 # arXiv...), AUCUNE clé embarquée — l'image reste le template neutre des VPS clients.
