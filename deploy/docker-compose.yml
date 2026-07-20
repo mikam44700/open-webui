@@ -86,8 +86,13 @@ services:
       - CUSTOM_LLM_API_KEY=${PRESENTON_LLM_API_KEY:-}
       - CUSTOM_MODEL=${PRESENTON_LLM_MODEL:-grok-4-1212}
       # Pas de clés modifiables depuis son interface (elle n'est de toute façon pas
-      # exposée) ; images d'illustration désactivées par défaut (pas de clé requise).
+      # exposée). Images d'illustration DÉSACTIVÉES : sans ce flag, Presenton exige un
+      # fournisseur d'images (clé en plus) et refuse de démarrer — vérifié dans son code
+      # (model_availability.py : skip_image_validation = is_image_generation_disabled()).
+      # Des slides sobres sans images de banque = très bien pour la v1 ; images xAI
+      # (openai_compatible) possibles au palier 2.
       - CAN_CHANGE_KEYS=false
+      - DISABLE_IMAGE_GENERATION=true
     volumes:
       - presenton-data:/app_data
     networks:
