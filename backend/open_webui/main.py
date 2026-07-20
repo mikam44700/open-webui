@@ -152,6 +152,7 @@ from open_webui.routers import (
     groups,
     hermes,
     images,
+    kanban,
     knowledge,
     memoire,
     memories,
@@ -781,6 +782,7 @@ if ENABLE_ADMIN_ANALYTICS:
 app.include_router(utils.router, prefix='/api/v1/utils', tags=['utils'])
 app.include_router(terminals.router, prefix='/api/v1/terminals', tags=['terminals'])
 app.include_router(hermes.router, prefix='/api/v1/hermes', tags=['hermes'])
+app.include_router(kanban.router, prefix='/api/v1/kanban', tags=['kanban'])
 app.include_router(providers.router, prefix='/api/v1/providers', tags=['providers'])
 
 # Routers du bridge Hermes v1 montés en direct (pas de service intermédiaire) :
