@@ -1,18 +1,18 @@
 ---
 name: documents-lunaria
-description: "Atelier documents de Max (SPEC-agent-documents) : produire des documents d'entreprise finis et téléchargeables — tableur Excel (KPI, totaux calculés), document Word, rapport PDF, présentation PowerPoint (sobre via l'atelier, haute qualité via le MCP presenton) — puis les publier dans la conversation via le pont Fichiers. Utilisé par Max quand le patron demande un document, un tableau, un rapport ou une présentation."
+description: "Atelier documents de Théo (SPEC-agent-documents) : produire des documents d'entreprise finis et téléchargeables — tableur Excel (KPI, totaux calculés), document Word, rapport PDF, présentation PowerPoint (sobre via l'atelier, haute qualité via le MCP presenton) — puis les publier dans la conversation via le pont Fichiers. Utilisé par Théo quand le patron demande un document, un tableau, un rapport ou une présentation."
 version: 1.0.0
 author: LunarIA
 license: MIT
 platforms: [linux]
 metadata:
   hermes:
-    tags: [Documents, Excel, Word, PDF, PowerPoint, LunarIA, Max]
+    tags: [Documents, Excel, Word, PDF, PowerPoint, LunarIA, Théo]
 prerequisites:
   commands: [python3]
 ---
 
-# Atelier documents LunarIA (compétence de Max)
+# Atelier documents LunarIA (compétence de Théo)
 
 Quand le patron demande un document, tu le PRODUIS en fichier fini, téléchargeable depuis la conversation. Jamais un pavé de texte à copier-coller quand un vrai fichier est possible.
 
