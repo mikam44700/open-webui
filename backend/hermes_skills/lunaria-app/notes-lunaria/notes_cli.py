@@ -10,6 +10,11 @@ Commandes :
   read   --id <id>          affiche le contenu d'une note
   create --title <t> [--content <md> | --content-file <path>]
                             crée une note et renvoie son identifiant
+  update --id <id> [--content <md> | --content-file <path>]
+                            met à jour le CONTENU d'une note — garde-fou par
+                            construction : seulement les notes de travail des agents
+                            (titre commençant par « Pipeline prospection »), jamais
+                            les notes personnelles du patron
   delete --id <id>          BLOQUÉ par défaut (garde-fou) : exige une validation
                             humaine explicite via --confirm-human
 
@@ -107,6 +112,42 @@ def cmd_create(args: argparse.Namespace) -> None:
     print(f"Note créée : [{note['id']}] {note.get('title')}")
 
 
+# Titres de notes que les agents ont le droit de MODIFIER (leurs notes de travail).
+# Tout le reste (les notes personnelles du patron) est immodifiable par construction :
+# écraser le contenu d'une note revient à effacer l'ancien — même famille de risque que
+# delete, donc même philosophie (limité à la source, pas juste interdit par consigne).
+_UPDATABLE_TITLE_PREFIXES = ("Pipeline prospection",)
+
+
+def cmd_update(args: argparse.Namespace) -> None:
+    base_url, api_key = _config()
+    note = _request("GET", f"/api/v1/notes/{args.id}", api_key, base_url)
+    if not note:
+        _fail("Note introuvable.")
+    title = str(note.get("title") or "")
+    if not title.startswith(_UPDATABLE_TITLE_PREFIXES):
+        _fail(
+            "Mise à jour REFUSÉE : cette note n'est pas une note de travail d'agent "
+            f"(titres autorisés : {', '.join(_UPDATABLE_TITLE_PREFIXES)}…). Les notes du "
+            "patron ne se modifient pas — crée une nouvelle note ou demande-lui."
+        )
+    if args.content_file:
+        try:
+            with open(args.content_file, encoding="utf-8") as handle:
+                md = handle.read()
+        except OSError as exc:
+            _fail(f"Fichier de contenu illisible : {exc}")
+    elif args.content is not None:
+        md = args.content
+    else:
+        md = sys.stdin.read()
+    payload = {"title": title, "data": {"content": {"json": None, "html": None, "md": md}}}
+    updated = _request("POST", f"/api/v1/notes/{args.id}/update", api_key, base_url, payload)
+    if not updated or not updated.get("id"):
+        _fail("La note n'a pas pu être mise à jour.")
+    print(f"Note mise à jour : [{updated['id']}] {title}")
+
+
 def cmd_delete(args: argparse.Namespace) -> None:
     # Garde-fou (SPEC critère 3) : une suppression ne part JAMAIS sans validation humaine.
     if not args.confirm_human:
@@ -135,6 +176,12 @@ def build_parser() -> argparse.ArgumentParser:
     p_create.add_argument("--content", help="Contenu markdown en argument.")
     p_create.add_argument("--content-file", help="Chemin d'un fichier markdown.")
     p_create.set_defaults(func=cmd_create)
+
+    p_update = sub.add_parser("update", help="Met à jour une note de travail d'agent (garde-fou).")
+    p_update.add_argument("--id", required=True)
+    p_update.add_argument("--content", help="Nouveau contenu markdown en argument.")
+    p_update.add_argument("--content-file", help="Chemin d'un fichier markdown.")
+    p_update.set_defaults(func=cmd_update)
 
     p_delete = sub.add_parser("delete", help="Supprime une note (garde-fou).")
     p_delete.add_argument("--id", required=True)

@@ -43,6 +43,15 @@ python3 "$HERMES_HOME/skills/lunaria-app/notes-lunaria/notes_cli.py" \
 
 Le script confirme la création avec l'identifiant de la note. Annonce alors au patron que la note est disponible dans sa page Notes.
 
+## Mettre à jour une note de travail d'agent (garde-fou intégré)
+
+Réservé aux notes de TRAVAIL des agents (titre commençant par « Pipeline prospection ») — l'outil REFUSE de modifier toute autre note : les notes personnelles du patron ne se réécrivent jamais. Rédige le nouveau contenu complet dans un fichier, puis :
+
+```bash
+python3 "$HERMES_HOME/skills/lunaria-app/notes-lunaria/notes_cli.py" \
+  update --id <identifiant> --content-file /tmp/nouvelle-version.md
+```
+
 ## Supprimer une note — INTERDIT sans le feu vert du patron
 
 Effacer une note est irréversible. Le pont **bloque** toute suppression par défaut. Tu ne supprimes JAMAIS de ta propre initiative. Si — et seulement si — le patron a demandé explicitement, en toutes lettres, de supprimer une note précise, tu peux exécuter :
