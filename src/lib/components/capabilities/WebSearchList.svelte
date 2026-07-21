@@ -131,7 +131,7 @@
 					<Last30DaysCard />
 				{/if}
 				{#if crawl4aiActive}
-					<div class="w-full max-w-[32rem]">
+					<div class="w-full" style="max-width: 32rem;">
 						<Crawl4aiCard showMcpBadge on:changed={load} />
 					</div>
 				{/if}
