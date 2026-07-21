@@ -28,6 +28,8 @@ RÈGLE DU REGISTRE (sans exception) : une entreprise repérée par la recherche 
 
 Pour les 5 à 10 prospects les plus prometteurs, lis leur site avec le MCP `crawl4ai` et extrais les coordonnées publiques (email, téléphone). Ce que tu n'y trouves pas = « coordonnées à vérifier », jamais inventé.
 
+Pour les signaux datés, utilise aussi le MCP `sources-publiques` (web, YouTube, RSS, GitHub). Chaque signal porte son URL, sa date si disponible et un niveau de confiance. L'absence d'accès au CRM impose la mention « à vérifier dans le CRM » : ne prétends jamais avoir exclu les clients existants.
+
 ## Étape 3 — Signaux : MCP `bodacc`, recherche web, Sacha
 
 Le meilleur signal de timing vient du MCP `bodacc` (outil `annonces_recentes`) : les **immatriculations** toutes fraîches (une entreprise qui naît s'équipe MAINTENANT) et les **ventes-cessions** de fonds de commerce (un repreneur réinstalle tout). Toute entreprise repérée là passe ensuite par sa fiche registre (règle du registre). La fiche (`fiche_entreprise`) donne aussi les `finances` publiées (CA, résultat net) — un vrai critère de scoring ; absentes = « comptes non publiés », jamais un chiffre inventé.

@@ -24,6 +24,8 @@ Tu produis un BRIEF DE VEILLE professionnel, sourcé et vérifié, sur le sujet 
 
 ## Étape 2 — Moteur A : le social mondial (last30days)
 
+Pour une URL précise, une vidéo YouTube, un flux RSS ou une recherche GitHub, utilise aussi le MCP `sources-publiques`. Une vidéo sans transcription disponible n'est jamais résumée comme si elle avait été regardée. Toute source inaccessible est annoncée dans l'état de vérification.
+
 Le moteur est installé dans l'image à `/opt/last30days` (version épinglée). Il interroge les sources LIBRES : Reddit (fils + commentaires votés), Hacker News, YouTube (transcriptions via yt-dlp), Polymarket. Lance-le ainsi (une seule commande, timeout 5 minutes) :
 
 ```bash

@@ -32,6 +32,16 @@ RUN git clone --filter=blob:none ${HERMES_REPO} /opt/hermes-agent \
 # accès à leurs intégrations. Version alignée sur l'API non dépréciée (mcp >= 1.24).
 RUN /opt/hermes-agent/venv/bin/pip install --no-cache-dir uv "aiohttp==3.14.1" "mcp==1.27.2"
 
+# Agent Reach : couche de sélection/diagnostic des sources publiques. Version figée au
+# commit validé — jamais d'installation dynamique sur le VPS client. Seuls ses canaux
+# publics sans compte sont exposés par notre MCP `sources-publiques` (web, YouTube,
+# RSS, GitHub) ; aucun shell général ni cookie social n'est donné aux agents.
+ARG AGENT_REACH_REPO=https://github.com/Panniantong/Agent-Reach.git
+ARG AGENT_REACH_COMMIT=1494c2ab239e7355a77e7cceaf3271453a1f34b5
+RUN git clone --filter=blob:none ${AGENT_REACH_REPO} /opt/agent-reach \
+    && git -C /opt/agent-reach checkout ${AGENT_REACH_COMMIT} \
+    && /opt/hermes-agent/venv/bin/pip install --no-cache-dir -e /opt/agent-reach
+
 # Bibliothèques documents pour Max (SPEC-agent-documents), dans le python de l'APP
 # (celui qui exécute doc_cli.py) : Word (python-docx) et PDF (xhtml2pdf, pur Python,
 # aucune dépendance système). Excel (openpyxl) et PowerPoint (python-pptx) sont déjà

@@ -9,6 +9,7 @@
 	import ToolProviderCatalogCard from '$lib/components/integrations/ToolProviderCatalogCard.svelte';
 	import WebSearchBrowseModal from '$lib/components/capabilities/WebSearchBrowseModal.svelte';
 	import Crawl4aiCard from '$lib/components/connectors/Crawl4aiCard.svelte';
+	import PublicSourcesCard from '$lib/components/capabilities/PublicSourcesCard.svelte';
 	import CatalogCard from '$lib/components/connectors/CatalogCard.svelte';
 	import ConnectorCard from '$lib/components/connectors/ConnectorCard.svelte';
 	import { type Provider, providerStatus } from '$lib/utils/toolConnect';
@@ -50,7 +51,7 @@
 	$: connected = items.filter((it) => ACTIVE_STATES.includes(providerStatus(it.provider)));
 	// Crawl4AI actif ? (sa carte dédiée rejoint alors la section « Actifs »)
 	let crawl4aiActive = false;
-	$: hasActive = connected.length > 0 || crawl4aiActive || !!apifyConnector;
+	$: hasActive = true;
 	$: connectedKeys = new Set(connected.map((it) => it.toolsetName + ':' + it.provider.name));
 	// Vedettes « Les plus populaires » : liste choisie à la main (par slug), dans cet ordre.
 	// On exclut ceux déjà branchés (remontés en haut) pour éviter le doublon.
@@ -117,6 +118,7 @@
 		{#if hasActive}
 			<div class="text-sm font-medium mb-3">{$i18n.t('Actifs')}</div>
 			<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+				<PublicSourcesCard />
 				{#if crawl4aiActive}
 					<Crawl4aiCard showMcpBadge on:changed={load} />
 				{/if}

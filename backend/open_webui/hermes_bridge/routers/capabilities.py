@@ -2,6 +2,10 @@
 
 from __future__ import annotations
 
+import re
+import subprocess
+from pathlib import Path
+
 from fastapi import APIRouter, Depends, HTTPException
 
 from .. import hermes_adapter, skills_adapter, tool_connection_adapter, tools_adapter
@@ -16,6 +20,44 @@ from ..models import (
 from ..schemas import CapabilityEnabledBody, CustomSkillCreateBody, ToolDisconnectBody, ToolKeyBody
 
 router = APIRouter(dependencies=[Depends(require_bridge_key)])
+
+
+@router.get("/sources-publiques/status")
+def get_sources_publiques_status() -> dict:
+    """État réel du palier Agent Reach géré, sans exposer sa plomberie au client."""
+    agent_reach_bin = Path("/opt/hermes-agent/venv/bin/agent-reach")
+    ytdlp_bin = Path("/opt/hermes-agent/venv/bin/yt-dlp")
+    try:
+        result = subprocess.run(
+            [str(agent_reach_bin), "--version"],
+            capture_output=True,
+            check=True,
+            text=True,
+            timeout=3,
+        )
+        match = re.search(r"\d+(?:\.\d+)+", result.stdout)
+        version = match.group(0) if match else "installé"
+    except (OSError, subprocess.SubprocessError):
+        version = None
+    try:
+        connected = "sources-publiques" in __import__(
+            "open_webui.hermes_bridge.mcp_adapter", fromlist=["_load_mcp_servers"]
+        )._load_mcp_servers()
+    except Exception:  # noqa: BLE001 — statut best effort, jamais bloquant
+        connected = False
+    channels = {
+        "web": version is not None,
+        "youtube": version is not None and ytdlp_bin.is_file(),
+        "rss": version is not None,
+        "github": version is not None,
+    }
+    return {
+        "installed": version is not None,
+        "active": version is not None and connected and all(channels.values()),
+        "managed": True,
+        "version": version,
+        "channels": channels,
+    }
 
 
 def _toolset_unknown(name: str) -> HTTPException:

@@ -40,10 +40,12 @@ DATAGOUV_URL = "https://mcp.data.gouv.fr/mcp"
 # serveur MCP en stdio. Un seul outil qui donne accès à toute sa ligne de commande.
 OFFICECLI_NAME = "officecli"
 OFFICECLI_BIN = os.environ.get("OFFICECLI_BIN", "/usr/local/bin/officecli")
+SOURCES_NAME = "sources-publiques"
 # Chemins IMAGE (lecture seule, versionnés) — pas la copie du volume, modifiable par l'utilisateur.
 _SKILL_DIR = Path("/app/backend/hermes_skills/lunaria-app/prospection-lunaria")
 SERVER_PATH = _SKILL_DIR / "entreprises_mcp.py"
 BODACC_PATH = _SKILL_DIR / "bodacc_mcp.py"
+SOURCES_PATH = Path("/app/backend/hermes_skills/research/sources-publiques-lunaria/sources_mcp.py")
 
 
 def _ensure(name: str, **kwargs) -> None:
@@ -75,6 +77,12 @@ def _preconnect(attempts: int = 3) -> None:
             )
             _ensure(DATAGOUV_NAME, transport="http", url=DATAGOUV_URL)
             _ensure(OFFICECLI_NAME, transport="stdio", command=OFFICECLI_BIN, args=["mcp"])
+            _ensure(
+                SOURCES_NAME,
+                transport="stdio",
+                command=hermes_adapter.HERMES_PYTHON,
+                args=[str(SOURCES_PATH)],
+            )
             logger.info("MCP entreprises pré-connectés (mode géré).")
             return
         except Exception:  # noqa: BLE001 — on retente, puis on laisse la main aux logs
@@ -91,7 +99,7 @@ def start_preconnect_if_managed() -> None:
     """No-op hors mode géré (dev local : on ne touche jamais au ~/.hermes du poste)."""
     if not MANAGED:
         return
-    for path in (SERVER_PATH, BODACC_PATH):
+    for path in (SERVER_PATH, BODACC_PATH, SOURCES_PATH):
         if not path.exists():
             logger.error("serveur MCP introuvable dans l'image : %s", path)
             return

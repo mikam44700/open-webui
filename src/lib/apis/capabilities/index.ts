@@ -97,6 +97,9 @@ export const getToolOAuthStatus = (token: string, name: string) =>
 // Crawl4AI : lecture web approfondie installée à la demande (conteneur Docker + connecteur MCP).
 export const getCrawl4aiStatus = (token: string) => call(token, 'GET', '/crawl4ai/status');
 
+export const getPublicSourcesStatus = (token: string) =>
+	call(token, 'GET', '/sources-publiques/status');
+
 export const installCrawl4ai = (token: string) => call(token, 'POST', '/crawl4ai/install');
 
 export const uninstallCrawl4ai = (token: string) => call(token, 'POST', '/crawl4ai/uninstall');
