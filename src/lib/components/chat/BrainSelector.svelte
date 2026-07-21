@@ -108,6 +108,15 @@
 	// « Mixture of Agents »), pas le modèle technique (« gpt-5.5 »). Repli sur l'id du modèle
 	// si le fournisseur n'a pas de label (ex. mode « auto »).
 	$: activeBrainName = !active ? '' : activeProviderLabel || active.model_id;
+	// Le modèle affiché est-il encore utilisable ? Cas vécu le 2026-07-21 : le sélecteur
+	// affichait fièrement « grok-4.3 » alors que ce compte était à sec et déconnecté — le
+	// patron ne l'a découvert qu'en écrivant un message et en recevant une erreur. Chez un
+	// client, ce sera une clé qui expire un matin : il doit le voir AVANT d'écrire.
+	$: modeleHorsService =
+		!loading &&
+		hasBrain &&
+		Boolean(active?.provider_id) &&
+		!connected.some((p) => p.id === active?.provider_id);
 	// Nom du modèle exact (technique, ex. « gemini-3.1-pro-preview ») affiché en second,
 	// discret, sous le nom lisible du fournisseur. Repli sur l'id si pas de label.
 	$: activeModelLabel = (() => {
@@ -312,9 +321,16 @@
 			{/if}
 			<span class="flex min-w-0 flex-col text-left leading-tight">
 				<span class="flex items-center gap-1.5">
-					{#if !hasBrain && !loading}
-						<!-- Point d'alerte pulsant : aucun modèle branché = l'assistant ne peut pas répondre. -->
-						<span class="relative flex h-2 w-2 shrink-0" aria-hidden="true">
+					{#if (!hasBrain && !loading) || modeleHorsService}
+						<!-- Point d'alerte pulsant : aucun modèle branché, OU modèle affiché dont le
+						     compte n'est plus connecté — dans les deux cas l'assistant ne répondra pas. -->
+						<span
+							class="relative flex h-2 w-2 shrink-0"
+							aria-hidden="true"
+							title={modeleHorsService
+								? $i18n.t('Ce modèle IA n’est plus connecté — l’assistant ne peut pas répondre.')
+								: ''}
+						>
 							<span class="absolute inline-flex h-full w-full animate-ping rounded-full bg-amber-400/70"></span>
 							<span class="relative inline-flex h-2 w-2 rounded-full bg-amber-500"></span>
 						</span>
@@ -385,6 +401,12 @@
 					</div>
 					{#if activeProviderLabel}
 						<div class="text-[11px] text-gray-400">{activeProviderLabel}</div>
+					{/if}
+					{#if modeleHorsService}
+						<!-- Dit en toutes lettres pourquoi rien ne répond, et où aller le corriger. -->
+						<div class="mt-1.5 rounded-lg bg-amber-50 dark:bg-amber-500/10 px-2 py-1.5 text-[11px] text-amber-800 dark:text-amber-300">
+							{$i18n.t('Ce modèle n’est plus connecté : l’assistant ne peut pas répondre. Choisis-en un autre ci-dessous, ou reconnecte le compte dans Capacités → Modèles IA.')}
+						</div>
 					{/if}
 					{#if caps && (caps.reasoning || caps.vision || caps.tools || caps.context_window)}
 						<div class="mt-1.5 flex flex-wrap items-center gap-1">

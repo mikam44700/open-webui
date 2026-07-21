@@ -144,6 +144,41 @@
 		}
 	}
 
+	// Documents produits par un agent → carte téléchargeable (SPEC-atelier-documents-officecli).
+	//
+	// Les agents livrent leur document en collant un lien markdown vers le pont Fichiers.
+	// Un lien texte se remarque mal et se clique mal ; ailleurs (Claude, ChatGPT) un fichier
+	// arrive sous forme de carte avec un bouton de téléchargement. Le composant sait déjà
+	// afficher `message.files` — il suffit de les déduire du contenu.
+	//
+	// Fait ici plutôt que côté agent : ça vaut pour TOUS les agents sans qu'aucun n'ait à
+	// changer, et ça résiste au cas où l'un d'eux recopie une ligne parasite autour du lien.
+	const LIEN_DOCUMENT = /\[([^\]\n]+)\]\((\/api\/v1\/files\/([0-9a-f-]{16,})\/content)\)/gi;
+	const TYPES_PAR_EXTENSION: Record<string, string> = {
+		xlsx: 'Excel', xls: 'Excel', csv: 'CSV',
+		docx: 'Word', doc: 'Word', pdf: 'PDF',
+		pptx: 'PowerPoint', ppt: 'PowerPoint', txt: 'Texte', md: 'Markdown'
+	};
+	$: documentsLies = (() => {
+		const contenu = message?.content ?? '';
+		if (!contenu.includes('/api/v1/files/')) return [];
+		const dejaJoints = new Set((message?.files ?? []).map((f) => f?.url).filter(Boolean));
+		const trouves = new Map();
+		for (const [, nom, url, id] of contenu.matchAll(LIEN_DOCUMENT)) {
+			if (dejaJoints.has(url) || trouves.has(id)) continue;
+			const extension = (nom.split('.').pop() ?? '').toLowerCase();
+			trouves.set(id, {
+				type: 'file',
+				id,
+				url,
+				name: nom,
+				collection_name: TYPES_PAR_EXTENSION[extension] ?? 'Document',
+				status: 'uploaded'
+			});
+		}
+		return [...trouves.values()];
+	})();
+
 	export let siblings;
 
 	export let setInputText: Function = () => {};
@@ -710,12 +745,12 @@
 							<StatusHistory statusHistory={visibleStatusHistory} />
 						{/if}
 
-						{#if message?.files && message.files?.filter( (f) => ['image', 'file'].includes(f.type) ).length > 0}
+						{#if [...(message?.files ?? []), ...documentsLies].filter( (f) => ['image', 'file'].includes(f.type) ).length > 0}
 							<div
 								class="my-1 w-full flex overflow-x-auto gap-2 flex-wrap"
 								dir={$settings?.chatDirection ?? 'auto'}
 							>
-								{#each message.files.filter((f) => ['image', 'file'].includes(f.type)) as file}
+								{#each [...(message?.files ?? []), ...documentsLies].filter((f) => ['image', 'file'].includes(f.type)) as file}
 									<div>
 										{#if file.type === 'image' || (file?.content_type ?? '').startsWith('image/')}
 											<Image src={file.url} alt={message.content} />

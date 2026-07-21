@@ -25,6 +25,20 @@ import re
 # l'erreur du fournisseur en guise de réponse (finish_reason=error).
 _PREFIXE_ERREUR = re.compile(r"^\s*HTTP\s+\d{3}\s*:", re.IGNORECASE)
 
+# Toutes les pannes ne portent pas ce préfixe : celles du MOTEUR lui-même arrivent en
+# texte nu (« No LLM provider configured. Run `hermes model`… » — passé au travers du
+# filtre le 2026-07-21). Signatures reconnaissables sans ambiguïté : jamais un agent ne
+# répond ça à un dirigeant.
+_SIGNATURES_NUES = (
+    "no llm provider configured",
+    "no inference provider configured",
+    "run `hermes ",
+    "run 'hermes ",
+    "traceback (most recent call last)",
+    "connection refused",
+    "econnrefused",
+)
+
 # (signatures à chercher en minuscules, message français). Ordre = priorité : la première
 # règle qui correspond gagne, donc les cas précis avant les cas génériques.
 _REGLES: list[tuple[tuple[str, ...], str]] = [
@@ -35,10 +49,10 @@ _REGLES: list[tuple[tuple[str, ...], str]] = [
         "recharger le compte ou relever la limite de dépense, puis relancez la conversation.",
     ),
     (
-        ("no inference provider configured",),
-        "Votre équipe est prête, mais le moteur n’a pas encore de fournisseur de modèle. "
-        "Rendez-vous dans **Capacités → Modèles IA** pour ajouter une clé, puis relancez "
-        "la conversation.",
+        ("no inference provider configured", "no llm provider configured", "run `hermes model", "hermes setup"),
+        "Votre équipe est prête, mais aucun modèle IA n’est sélectionné. Rendez-vous dans "
+        "**Capacités → Modèles IA** : connectez un compte dans l’onglet « Comptes », puis "
+        "choisissez-le comme moteur dans l’onglet « Moteur ».",
     ),
     (
         ("invalid api key", "incorrect api key", "invalid_api_key", "authentication_error", "unauthorized"),
@@ -103,4 +117,7 @@ def ressemble_a_une_panne(contenu: str | None) -> bool:
     """
     if not contenu:
         return False
-    return bool(_PREFIXE_ERREUR.match(contenu))
+    if _PREFIXE_ERREUR.match(contenu):
+        return True
+    debut = contenu[:400].lower()
+    return any(signature in debut for signature in _SIGNATURES_NUES)
