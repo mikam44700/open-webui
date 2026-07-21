@@ -11,6 +11,7 @@
 		settings,
 		showArchivedChats,
 		showControls,
+		showSearch,
 		showSidebar,
 		temporaryChatEnabled,
 		user
@@ -29,6 +30,7 @@
 	import Menu from '$lib/components/layout/Navbar/Menu.svelte';
 	import UserMenu from '$lib/components/layout/Sidebar/UserMenu.svelte';
 	import AdjustmentsHorizontal from '../icons/AdjustmentsHorizontal.svelte';
+	import Search from '../icons/Search.svelte';
 
 	import PencilSquare from '../icons/PencilSquare.svelte';
 	import Banner from '../common/Banner.svelte';
@@ -140,7 +142,9 @@
 					{/if}
 				</div>
 
-				<div class="self-start flex flex-none items-center text-gray-600 dark:text-gray-400">
+				<div
+					class="self-start flex flex-none items-center gap-1 pr-1 text-gray-600 dark:text-gray-400"
+				>
 					{#if showModelSelector}
 						<AgentSelector />
 					{/if}
@@ -150,7 +154,7 @@
 						{#if !chat?.id}
 							<Tooltip content={$i18n.t(`Temporary Chat`)}>
 								<button
-									class="flex cursor-pointer px-2 py-2 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-850 transition"
+									class="flex size-9 shrink-0 cursor-pointer items-center justify-center rounded-xl hover:bg-gray-50 dark:hover:bg-gray-850 transition"
 									id="temporary-chat-button"
 									on:click={async () => {
 										if (($settings?.temporaryChatByDefault ?? false) && $temporaryChatEnabled) {
@@ -184,7 +188,7 @@
 						{:else if $temporaryChatEnabled}
 							<Tooltip content={$i18n.t(`Save Chat`)}>
 								<button
-									class="flex cursor-pointer px-2 py-2 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-850 transition"
+									class="flex size-9 shrink-0 cursor-pointer items-center justify-center rounded-xl hover:bg-gray-50 dark:hover:bg-gray-850 transition"
 									id="save-temporary-chat-button"
 									on:click={async () => {
 										onSaveTempChat();
@@ -201,9 +205,9 @@
 					{#if $mobile && !$temporaryChatEnabled && chat && chat.id}
 						<Tooltip content={$i18n.t('New Chat')}>
 							<button
-								class=" flex {$showSidebar
+								class="flex size-9 shrink-0 items-center justify-center {$showSidebar
 									? 'md:hidden'
-									: ''} cursor-pointer px-2 py-2 rounded-xl text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-850 transition"
+									: ''} cursor-pointer rounded-xl text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-850 transition"
 								on:click={() => {
 									initNewChat();
 								}}
@@ -234,7 +238,7 @@
 							{moveChatHandler}
 						>
 							<button
-								class="flex cursor-pointer px-2 py-2 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-850 transition"
+								class="flex size-9 shrink-0 cursor-pointer items-center justify-center rounded-xl hover:bg-gray-50 dark:hover:bg-gray-850 transition"
 								id="chat-context-menu-button"
 							>
 								<div class=" m-auto self-center">
@@ -247,7 +251,7 @@
 					{#if $user?.role === 'admin' || ($user?.permissions.chat?.controls ?? true)}
 						<Tooltip content={$i18n.t('Controls')}>
 							<button
-								class=" flex cursor-pointer px-2 py-2 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-850 transition"
+								class="flex size-9 shrink-0 cursor-pointer items-center justify-center rounded-xl hover:bg-gray-50 dark:hover:bg-gray-850 transition"
 								on:click={async () => {
 									await showControls.set(!$showControls);
 								}}
@@ -259,6 +263,18 @@
 							</button>
 						</Tooltip>
 					{/if}
+
+					<Tooltip content={$i18n.t('Search')}>
+						<button
+							class="flex size-9 shrink-0 cursor-pointer items-center justify-center rounded-xl hover:bg-gray-50 dark:hover:bg-gray-850 transition"
+							on:click={() => showSearch.set(true)}
+							aria-label={$i18n.t('Search')}
+						>
+							<div class="m-auto self-center">
+								<Search className="size-5" strokeWidth="1.5" />
+							</div>
+						</button>
+					</Tooltip>
 
 					{#if $user !== undefined && $user !== null}
 						<UserMenu
@@ -273,7 +289,7 @@
 						>
 							<button
 								type="button"
-								class="select-none flex rounded-xl p-1.5 w-full hover:bg-gray-50 dark:hover:bg-gray-850 transition"
+								class="flex size-9 shrink-0 select-none items-center justify-center rounded-xl hover:bg-gray-50 dark:hover:bg-gray-850 transition"
 								aria-label={$i18n.t('User menu')}
 							>
 								<div class=" self-center">

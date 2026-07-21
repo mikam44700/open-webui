@@ -109,38 +109,41 @@
 </script>
 
 {#if badge}
-	<div class="relative">
-		<!-- Déclencheur : agent actif (visage + prénom) -->
+	<div class="relative flex size-9 shrink-0 items-center justify-center">
+		<!-- Déclencheur compact : le visage et sa flèche forment un seul bouton. -->
 		<button
 			type="button"
 			bind:this={triggerEl}
 			style="-webkit-app-region: no-drag;"
-			class="flex items-center gap-1.5 rounded-xl px-1.5 py-1 hover:bg-gray-50 dark:hover:bg-gray-850 transition"
+			class="flex size-9 items-center justify-center rounded-xl hover:bg-gray-50 dark:hover:bg-gray-850 transition"
 			on:click={toggle}
 			aria-haspopup="menu"
 			aria-expanded={open}
 			title={$i18n.t('Choisir un agent')}
 		>
-			{#if badge.faceUrl ?? badge.avatarUrl}
-				<img
-					src={badge.faceUrl ?? badge.avatarUrl}
-					alt={badge.firstName}
-					style="background-image: {badgeGradient}"
-					class="size-6 rounded-full object-cover bg-gray-100 dark:bg-gray-800"
-					draggable="false"
-					on:error={(e) => avatarImgFallback(e, badge.avatarUrl)}
-				/>
-			{/if}
-			<span class="text-sm font-medium text-gray-800 dark:text-gray-100 line-clamp-1 max-w-28">
-				{badge.firstName}
+			<span class="relative flex size-7 shrink-0 items-center justify-center">
+				{#if badge.faceUrl ?? badge.avatarUrl}
+					<img
+						src={badge.faceUrl ?? badge.avatarUrl}
+						alt={badge.firstName}
+						style="background-image: {badgeGradient}"
+						class="size-6 rounded-full object-cover bg-gray-100 dark:bg-gray-800"
+						draggable="false"
+						on:error={(e) => avatarImgFallback(e, badge.avatarUrl)}
+					/>
+				{/if}
+				<span
+					class="absolute right-0 bottom-0 flex size-3 items-center justify-center rounded-full bg-white text-gray-500 ring-1 ring-gray-200 dark:bg-gray-900 dark:text-gray-300 dark:ring-gray-700"
+				>
+					<svg class="size-2.5" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+						<path
+							fill-rule="evenodd"
+							d="M5.23 7.21a.75.75 0 011.06.02L10 11.17l3.71-3.94a.75.75 0 111.08 1.04l-4.25 4.5a.75.75 0 01-1.08 0l-4.25-4.5a.75.75 0 01.02-1.06z"
+							clip-rule="evenodd"
+						/>
+					</svg>
+				</span>
 			</span>
-			<svg class="size-3.5 text-gray-400 shrink-0" viewBox="0 0 20 20" fill="currentColor">
-				<path
-					fill-rule="evenodd"
-					d="M5.23 7.21a.75.75 0 011.06.02L10 11.17l3.71-3.94a.75.75 0 111.08 1.04l-4.25 4.5a.75.75 0 01-1.08 0l-4.25-4.5a.75.75 0 01.02-1.06z"
-					clip-rule="evenodd"
-				/>
-			</svg>
 		</button>
 
 		{#if open}
