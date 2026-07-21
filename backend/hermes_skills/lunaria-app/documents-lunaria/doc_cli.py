@@ -1,9 +1,10 @@
 #!/usr/bin/env python3
 """Atelier documents LunarIA — outil de Max (SPEC-agent-documents).
 
-Fabrique des documents d'entreprise FINIS à partir de contenu structuré, puis les
-publie dans l'application via l'API officielle des Fichiers (pont Fichiers, même
-modèle que le pont Notes). L'agent fournit les faits ; le CLI garantit la forme
+Fabrique des documents d'entreprise FINIS à partir de contenu structuré ET LES LIVRE :
+chaque commande de fabrication publie automatiquement le document via l'API officielle
+des Fichiers et rend le LIEN de téléchargement du patron. Fabriquer sans livrer n'a
+aucun intérêt — les deux gestes n'en font qu'un (leçon du 2026-07-20). L'agent fournit les faits ; le CLI garantit la forme
 (mise en page sobre, totaux CALCULÉS — jamais fournis, donc jamais faux).
 
 Commandes :
@@ -11,7 +12,7 @@ Commandes :
   docx    --titre T --md contenu.md --sortie out.docx           document Word
   pdf     --titre T --md contenu.md --sortie out.pdf            rapport PDF
   pptx    --spec spec.json --sortie out.pptx                    présentation sobre
-  publier --fichier out.xlsx                                    téléverse + lien de téléchargement
+  publier --fichier out.xlsx                                    publication seule (rare)
 
 Sortie : texte simple, code 0 si succès. Auth du pont : LUNARIA_INTERNAL_API_KEY (env).
 """
@@ -52,6 +53,18 @@ def _lire_json(path: str) -> dict:
     except json.JSONDecodeError as exc:
         _fail(f"JSON invalide ({path}) : {exc}")
     return {}
+
+
+def _livrer(args: argparse.Namespace) -> None:
+    """Publie le document qui vient d'être fabriqué — appelé par TOUTES les commandes.
+
+    Fabriquer sans livrer n'a aucun intérêt pour le patron : les deux gestes n'en font
+    donc plus qu'un. `--sans-livrer` existe pour les cas rares (document intermédiaire).
+    """
+    if getattr(args, "sans_livrer", False):
+        print("(non publié : --sans-livrer)")
+        return
+    _publier(args.sortie, getattr(args, "nom", None), getattr(args, "agent", None))
 
 
 # ── xlsx : tableur sobre, totaux calculés ────────────────────────────────────
@@ -106,6 +119,7 @@ def cmd_xlsx(args: argparse.Namespace) -> None:
                     ws.cell(row=ws.max_row, column=idx).number_format = fmt
     wb.save(args.sortie)
     print(f"Tableur créé : {args.sortie}")
+    _livrer(args)
 
 
 # ── markdown minimal → blocs (titres, puces, paragraphes) ────────────────────
@@ -153,6 +167,7 @@ def cmd_docx(args: argparse.Namespace) -> None:
                 run.font.size = Pt(11)
     document.save(args.sortie)
     print(f"Document Word créé : {args.sortie}")
+    _livrer(args)
 
 
 def cmd_pdf(args: argparse.Namespace) -> None:
@@ -174,6 +189,7 @@ def cmd_pdf(args: argparse.Namespace) -> None:
     if resultat.err:
         _fail("La génération PDF a échoué (contenu markdown à simplifier).")
     print(f"PDF créé : {args.sortie}")
+    _livrer(args)
 
 
 # ── pptx : présentation PowerPoint sobre et professionnelle ──────────────────
@@ -205,28 +221,36 @@ def cmd_pptx(args: argparse.Namespace) -> None:
             paragraphe.font.size = Pt(18)
     presentation.save(args.sortie)
     print(f"Présentation créée : {args.sortie}")
+    _livrer(args)
 
 
 # ── publier : pont Fichiers (API officielle, clé interne) ────────────────────
+#
+# Fabriquer ET livrer sont UNE SEULE opération (leçon du 2026-07-20). Quand c'étaient
+# deux commandes séparées, l'agent fabriquait un document parfait puis oubliait de le
+# publier une fois sur deux, et donnait au patron un chemin interne (/root/x.xlsx) qu'il
+# ne pouvait pas ouvrir. Une consigne écrite dans le persona n'a pas suffi : on supprime
+# donc l'étape oubliable au lieu de la rappeler.
 
 
-def cmd_publier(args: argparse.Namespace) -> None:
+def _publier(chemin: str, nom: str | None = None, agent: str | None = None) -> None:
+    """Téléverse le document et affiche le lien de téléchargement du patron."""
     api_key = os.environ.get("LUNARIA_INTERNAL_API_KEY", "").strip()
     base_url = os.environ.get("LUNARIA_APP_URL", DEFAULT_APP_URL).rstrip("/")
     if not api_key:
         _fail("Clé interne absente (LUNARIA_INTERNAL_API_KEY) : pont Fichiers non configuré.")
-    chemin = args.fichier
     if not os.path.isfile(chemin):
         _fail(f"Fichier introuvable : {chemin}")
     with open(chemin, "rb") as handle:
         contenu = handle.read()
 
-    nom = args.nom or os.path.basename(chemin)
+    nom = nom or os.path.basename(chemin)
+    agent_nom = agent or "Théo"
     ctype = mimetypes.guess_type(nom)[0] or "application/octet-stream"
     frontiere = uuid.uuid4().hex
     # Marquage « document d'agent » (SPEC-page-documents) : c'est cette métadonnée que
     # la page Documents filtre — les pièces jointes du patron n'en ont pas.
-    meta = json.dumps({"lunaria_document": True, "lunaria_agent": args.agent or "agent"})
+    meta = json.dumps({"lunaria_document": True, "lunaria_agent": agent_nom})
     corps = (
         f"--{frontiere}\r\nContent-Disposition: form-data; name=\"file\"; filename=\"{nom}\"\r\n"
         f"Content-Type: {ctype}\r\n\r\n"
@@ -248,8 +272,21 @@ def cmd_publier(args: argparse.Namespace) -> None:
     identifiant = fichier.get("id")
     if not identifiant:
         _fail("Téléversement sans identifiant retourné.")
-    print(f"Fichier publié : {nom}")
-    print(f"Lien de téléchargement à donner au patron : [{nom}](/api/v1/files/{identifiant}/content)")
+    # La consigne part sur stderr, le lien seul sur stdout : l'agent recopie parfois
+    # tout ce qu'il lit (constaté le 2026-07-20 — « LIVRÉ. Colle CE LIEN… » est arrivé
+    # jusqu'au patron). Sur stdout, il ne reste donc QUE ce qui est destiné au patron.
+    print(f"[{nom}](/api/v1/files/{identifiant}/content)")
+    print(
+        "Document publié. La ligne ci-dessus est le lien du patron : colle-la telle "
+        "quelle dans ta réponse, et ne donne jamais le chemin du fichier à sa place.",
+        file=sys.stderr,
+    )
+
+
+def cmd_publier(args: argparse.Namespace) -> None:
+    """Publication seule — pour un document déjà fabriqué (rare : les commandes de
+    fabrication publient toutes automatiquement)."""
+    _publier(args.fichier, args.nom, args.agent)
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -279,11 +316,23 @@ def build_parser() -> argparse.ArgumentParser:
     p_pptx.add_argument("--sortie", required=True)
     p_pptx.set_defaults(func=cmd_pptx)
 
-    p_pub = sub.add_parser("publier", help="Téléverse le document et rend le lien de téléchargement.")
+    p_pub = sub.add_parser("publier", help="Publication seule (rare : la fabrication publie déjà).")
     p_pub.add_argument("--fichier", required=True, help="Document local à publier.")
     p_pub.add_argument("--nom", help="Nom affiché (défaut : nom du fichier).")
     p_pub.add_argument("--agent", help="Nom de l'agent producteur (affiché dans la page Documents).")
     p_pub.set_defaults(func=cmd_publier)
+
+    # Options de livraison communes aux 4 commandes de fabrication : elles publient
+    # TOUTES automatiquement et rendent le lien du patron (voir _livrer).
+    for fabrication in (p_xlsx, p_docx, p_pdf, p_pptx):
+        fabrication.add_argument("--nom", help="Nom affiché dans la page Documents.")
+        fabrication.add_argument("--agent", default="Théo", help="Agent producteur (défaut : Théo).")
+        fabrication.add_argument(
+            "--sans-livrer",
+            action="store_true",
+            dest="sans_livrer",
+            help="Ne pas publier (document intermédiaire seulement).",
+        )
 
     return parser
 

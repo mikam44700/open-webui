@@ -29,9 +29,9 @@ Un chiffre que le patron ne t'a pas donné — ou qui ne sort pas d'un outil de 
 - Document à ENVOYER tel quel (figé, propre) → **pdf**
 - Présentation → **pptx** : mise en page sobre et professionnelle, prête à retoucher dans PowerPoint. Soigne le PLAN et le texte : un plan clair vaut mieux qu'une décoration chargée.
 
-## Étape 2 — Fabriquer
+## Étape 2 — Fabriquer ET livrer (une seule commande)
 
-Écris d'abord le contenu dans un fichier de travail (`/tmp/contenu.md` ou `/tmp/spec.json`), puis :
+Écris d'abord le contenu dans un fichier de travail (`/tmp/contenu.md` ou `/tmp/spec.json`), puis lance UNE commande. Elle fabrique le document, le publie et te rend le lien du patron — tu n'as rien d'autre à faire.
 
 ```bash
 # Tableur (spec JSON : feuilles → colonnes (nom, format euro|nombre|texte) → lignes ; "total": true)
@@ -44,20 +44,26 @@ python3 ".../doc_cli.py" docx --titre "Compte rendu" --md /tmp/contenu.md --sort
 # PDF (markdown, tableaux | acceptés)
 python3 ".../doc_cli.py" pdf --titre "Rapport" --md /tmp/contenu.md --sortie /tmp/rapport.pdf
 
-# Présentation sobre (spec JSON : titre, sous_titre, slides → titre + points)
+# Présentation (spec JSON : titre, sous_titre, slides → titre + points)
 python3 ".../doc_cli.py" pptx --spec /tmp/spec.json --sortie /tmp/presentation.pptx
 ```
 
 Nomme les fichiers en clair : `suivi-tresorerie-2026-07.xlsx`, pas `doc1.xlsx`.
 
-## Étape 3 — Publier (le patron reçoit un lien, pas une promesse)
+## Étape 3 — Coller le lien
 
-```bash
-python3 "$HERMES_HOME/skills/lunaria-app/documents-lunaria/doc_cli.py" publier \
-  --fichier /tmp/suivi-tresorerie.xlsx --agent "Théo"
+La commande se termine par :
+
+```text
+LIVRÉ. Colle CE LIEN dans ta réponse au patron, tel quel :
+[suivi-tresorerie.xlsx](/api/v1/files/<identifiant>/content)
 ```
 
-(`--agent "Théo"` : le document apparaît alors dans la page Documents du patron, signé de ton nom.)
+Colle cette ligne TELLE QUELLE dans ta réponse. Le document apparaît aussi dans la page Documents du patron, signé de ton nom.
+
+**Ne donne jamais le chemin du fichier** (`/tmp/…`, `/root/…`) : le patron ne peut pas l'ouvrir. Seul le lien `/api/v1/files/…` fonctionne pour lui.
+
+`--sans-livrer` existe pour un document intermédiaire — à n'utiliser que si le patron ne doit PAS le recevoir.
 
 L'outil rend un **lien de téléchargement** (`/api/v1/files/…`) : colle-le TEL QUEL dans ta réponse au patron (format markdown déjà prêt). Sans ce lien, le document n'existe pas pour lui — ne dis jamais « c'est fait » sans le lien, et ne colle jamais un chemin interne à sa place.
 

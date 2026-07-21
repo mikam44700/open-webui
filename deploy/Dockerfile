@@ -53,6 +53,48 @@ RUN git clone --filter=blob:none ${LAST30DAYS_REPO} /opt/last30days \
     && printf 'SETUP_COMPLETE=true\n' > /root/.config/last30days/.env \
     && chmod 600 /root/.config/last30days/.env
 
+# Atelier documents de Théo (SPEC-atelier-documents-officecli).
+#
+# OfficeCLI : Word, Excel, PowerPoint. Apache-2.0, binaire autonome de 33 Mo, aucune
+# suite Office requise. Il expose un serveur MCP en stdio (même mode que nos connecteurs
+# recherche-entreprises et bodacc) et sait SE RELIRE : `view <fichier> issues` détecte
+# les débordements de texte et propose la correction — c'est ce qui manquait quand un
+# titre coupé en plein mot est parti chez le patron (2026-07-20).
+#
+# Typst : les PDF. Apache-2.0, 15 Mo, compile la même source en PDF ou en image (donc
+# relecture possible). OfficeCLI n'exporte pas en PDF sans greffon.
+#
+# TARGETARCH est fourni par Docker (arm64 sur le Mac de Michael, amd64 sur un VPS
+# client) : le binaire est choisi au build, JAMAIS figé — sinon l'image ne marche que
+# sur une architecture. Empreintes vérifiées : un binaire altéré fait échouer le build.
+ARG TARGETARCH
+ARG OFFICECLI_VERSION=v1.0.139
+ARG OFFICECLI_SHA_ARM64=39008c7f76d202858637810553ef14e2cd3e7f61485fdcf2011f26967a7babd1
+ARG OFFICECLI_SHA_AMD64=da07d4f787d7c85724104294ac023c89971ddfaee93ebb183b289282b8f869cc
+ARG TYPST_VERSION=v0.15.1
+ARG TYPST_SHA_ARM64=5aa8d74a3d906e60ea12a66ac2f37f8eef1b14cbad7182a745e393a10c23dcee
+ARG TYPST_SHA_AMD64=a6d077d0a95eed5a2eba715b2dae06be954f624ccbf85758a03f389ded33118c
+RUN set -eu; \
+    if [ "${TARGETARCH}" = "arm64" ]; then \
+      oc_suffixe=arm64; oc_sha="${OFFICECLI_SHA_ARM64}"; \
+      ty_cible=aarch64-unknown-linux-musl; ty_sha="${TYPST_SHA_ARM64}"; \
+    else \
+      oc_suffixe=x64; oc_sha="${OFFICECLI_SHA_AMD64}"; \
+      ty_cible=x86_64-unknown-linux-musl; ty_sha="${TYPST_SHA_AMD64}"; \
+    fi; \
+    curl -fsSL -o /usr/local/bin/officecli \
+      "https://github.com/iOfficeAI/OfficeCLI/releases/download/${OFFICECLI_VERSION}/officecli-linux-${oc_suffixe}"; \
+    echo "${oc_sha}  /usr/local/bin/officecli" | sha256sum -c -; \
+    chmod 0755 /usr/local/bin/officecli; \
+    curl -fsSL -o /tmp/typst.tar.xz \
+      "https://github.com/typst/typst/releases/download/${TYPST_VERSION}/typst-${ty_cible}.tar.xz"; \
+    echo "${ty_sha}  /tmp/typst.tar.xz" | sha256sum -c -; \
+    tar -xJf /tmp/typst.tar.xz -C /tmp; \
+    mv "/tmp/typst-${ty_cible}/typst" /usr/local/bin/typst; \
+    chmod 0755 /usr/local/bin/typst; \
+    rm -rf /tmp/typst.tar.xz "/tmp/typst-${ty_cible}"; \
+    officecli --version && typst --version
+
 # HERMES_HOME vit DANS le volume de données open-webui (/app/backend/data) :
 # config.yaml, .env (tokens) et mémoires survivent aux redémarrages et aux MAJ d'image.
 ENV HERMES_HOME=/app/backend/data/hermes \

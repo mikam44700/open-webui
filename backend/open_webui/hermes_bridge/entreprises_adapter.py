@@ -36,6 +36,10 @@ MCP_NAME = "recherche-entreprises"
 BODACC_NAME = "bodacc"
 DATAGOUV_NAME = "data-gouv-fr"
 DATAGOUV_URL = "https://mcp.data.gouv.fr/mcp"
+# Atelier documents de Théo (SPEC-atelier-documents-officecli) : binaire de l'image,
+# serveur MCP en stdio. Un seul outil qui donne accès à toute sa ligne de commande.
+OFFICECLI_NAME = "officecli"
+OFFICECLI_BIN = os.environ.get("OFFICECLI_BIN", "/usr/local/bin/officecli")
 # Chemins IMAGE (lecture seule, versionnés) — pas la copie du volume, modifiable par l'utilisateur.
 _SKILL_DIR = Path("/app/backend/hermes_skills/lunaria-app/prospection-lunaria")
 SERVER_PATH = _SKILL_DIR / "entreprises_mcp.py"
@@ -70,6 +74,7 @@ def _preconnect(attempts: int = 3) -> None:
                 args=[str(BODACC_PATH)],
             )
             _ensure(DATAGOUV_NAME, transport="http", url=DATAGOUV_URL)
+            _ensure(OFFICECLI_NAME, transport="stdio", command=OFFICECLI_BIN, args=["mcp"])
             logger.info("MCP entreprises pré-connectés (mode géré).")
             return
         except Exception:  # noqa: BLE001 — on retente, puis on laisse la main aux logs

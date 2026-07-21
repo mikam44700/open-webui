@@ -13,6 +13,7 @@ export const CONNECTOR_TAGS: Record<string, string[]> = {
 	'data-gouv-fr': ['Données publiques', 'SIRENE', 'Souverain'],
 	'recherche-entreprises': ['Annuaire officiel', 'SIREN', 'Souverain'],
 	bodacc: ['Annonces légales', 'Officiel', 'Souverain'],
+	officecli: ['Word, Excel, PowerPoint', 'Relecture automatique', 'Hors ligne'],
 	ableton: ['Pistes MIDI', 'Instruments', 'Live Set'],
 	alpaca: ['Trading', 'Actions', 'Crypto'],
 	aws: ['Cloud AWS', 'Services'],
@@ -122,6 +123,16 @@ export const CONNECTOR_FR: Record<
 			'Repérer les nouvelles immatriculations (prospects tout frais) par département',
 			'Détecter les ventes et cessions de fonds de commerce',
 			'Surveiller les procédures collectives (redressements, liquidations)'
+		]
+	},
+	officecli: {
+		name: 'Atelier documents',
+		desc: 'Fabrique et relit les documents d’entreprise : Word, Excel, PowerPoint.',
+		actions: [
+			'Produire un tableur Excel avec formules, totaux et mise en forme conditionnelle',
+			'Rédiger un courrier ou un rapport Word (en-têtes, styles, tableaux)',
+			'Monter une présentation PowerPoint prête à retoucher',
+			'Se relire avant de livrer : détecte les textes qui débordent et les corrige'
 		]
 	},
 	ableton: {
