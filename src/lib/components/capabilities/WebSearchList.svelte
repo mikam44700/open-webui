@@ -2,6 +2,7 @@
 	import { getContext, onMount } from 'svelte';
 	import type { Writable } from 'svelte/store';
 	import type { i18n as i18nType } from 'i18next';
+	import { expertMode } from '$lib/stores';
 
 	import { getCrawl4aiStatus, getToolConnection } from '$lib/apis/capabilities';
 	import { getConnectors } from '$lib/apis/connectors';
@@ -50,9 +51,15 @@
 	// enregistrée ou clé active. État réel côté bridge, jamais inventé.
 	const ACTIVE_STATES = ['saved', 'detected', 'active', 'key-active'];
 	$: connected = items.filter((it) => ACTIVE_STATES.includes(providerStatus(it.provider)));
+	$: visibleConnected = connected.filter(
+		(it) =>
+			$expertMode ||
+			!(it.toolsetName === 'browser' || it.provider.slug === 'duckduckgo')
+	);
 	// Crawl4AI actif ? (sa carte dédiée rejoint alors la section « Actifs »)
 	let crawl4aiActive = false;
-	$: hasActive = true;
+	$: hasActive =
+		crawl4aiActive || !!apifyConnector || visibleConnected.length > 0 || $expertMode;
 	$: connectedKeys = new Set(connected.map((it) => it.toolsetName + ':' + it.provider.name));
 	// Vedettes « Les plus populaires » : liste choisie à la main (par slug), dans cet ordre.
 	// On exclut ceux déjà branchés (remontés en haut) pour éviter le doublon.
@@ -118,16 +125,18 @@
 		<!-- Actifs — tout ce qui marche déjà, remonté EN HAUT (Crawl4AI en premier) -->
 		{#if hasActive}
 			<div class="text-sm font-medium mb-3">{$i18n.t('Actifs')}</div>
-			<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-				<PublicSourcesCard />
-				<Last30DaysCard />
+			<div class="responsive-card-grid">
+				{#if $expertMode}
+					<PublicSourcesCard />
+					<Last30DaysCard />
+				{/if}
 				{#if crawl4aiActive}
 					<Crawl4aiCard showMcpBadge on:changed={load} />
 				{/if}
 				{#if apifyConnector}
 					<ConnectorCard connector={apifyConnector} showMcpBadge on:changed={load} />
 				{/if}
-				{#each connected as it (it.toolsetName + ':' + it.provider.name)}
+				{#each visibleConnected as it (it.toolsetName + ':' + it.provider.name)}
 					<ToolProviderCatalogCard
 						toolsetName={it.toolsetName}
 						provider={it.provider}
@@ -165,7 +174,7 @@
 			</button>
 		</div>
 
-		<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+		<div class="responsive-card-grid">
 			<!-- Crawl4AI : carte dédiée (lecture web approfondie). Si actif, elle est déjà
 			     affichée dans « Actifs » ci-dessus — pas de doublon ici. -->
 			{#if !crawl4aiActive}
@@ -187,3 +196,13 @@
 </div>
 
 <WebSearchBrowseModal bind:open={showBrowse} {items} on:changed={load} />
+
+<style>
+	/* La largeur utile dépend de la barre latérale, pas de celle de la fenêtre.
+	   auto-fit empêche donc les cartes d'être écrasées en deux colonnes. */
+	.responsive-card-grid {
+		display: grid;
+		grid-template-columns: repeat(auto-fit, minmax(min(100%, 20rem), 1fr));
+		gap: 0.75rem;
+	}
+</style>

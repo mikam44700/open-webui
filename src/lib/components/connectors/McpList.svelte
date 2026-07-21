@@ -5,6 +5,7 @@
 	import { toast } from 'svelte-sonner';
 
 	import { getCatalog, getConnectors } from '$lib/apis/connectors';
+	import { expertMode } from '$lib/stores';
 	import Spinner from '$lib/components/common/Spinner.svelte';
 	import CatalogCard from './CatalogCard.svelte';
 	import ConnectorCard from './ConnectorCard.svelte';
@@ -96,8 +97,16 @@
 	let connectors: Connector[] = [];
 	let showAddModal = false;
 	let showBrowse = false;
+	const ADVANCED_MANAGED = new Set([
+		'bodacc',
+		'data-gouv-fr',
+		'recherche-entreprises',
+		'officecli',
+		'sources-publiques'
+	]);
 
 	$: installedIds = new Set(connectors.map((c) => c.id));
+	$: displayedConnectors = connectors.filter((c) => $expertMode || !ADVANCED_MANAGED.has(c.id));
 	// Presets maison non encore installés + catalogue fusionné (registre + moteur).
 	$: presetFeatured = PRESET_FEATURED.filter((e) => !installedIds.has(e.name));
 	$: allEntries = [...presetFeatured, ...entries];
@@ -118,10 +127,11 @@
 				getCatalog(localStorage.token),
 				getConnectors(localStorage.token)
 			]);
-			// Crawl4AI a sa carte dédiée dans « Recherche & web » — on ne l'affiche pas une
-			// deuxième fois ici (décision Michael 2026-07-18 : un seul endroit par outil).
-			entries = (cat?.entries ?? []).filter((e) => e.name !== 'crawl4ai');
-			connectors = (conn?.connectors ?? []).filter((c) => c.id !== 'crawl4ai');
+			// Crawl4AI a sa carte dédiée dans « Recherche & web ». Les autres
+			// connecteurs gérés sont chargés, puis réservés au mode avancé ci-dessus.
+			const hiddenManaged = new Set(['crawl4ai']);
+			entries = (cat?.entries ?? []).filter((e) => !hiddenManaged.has(e.name));
+			connectors = (conn?.connectors ?? []).filter((c) => !hiddenManaged.has(c.id));
 		} catch (err) {
 			if (isBridgeDown(err)) bridgeDown = true;
 			else toast.error($i18n.t('Échec du chargement des connecteurs'));
@@ -154,10 +164,10 @@
 	{:else}
 		<!-- Ajout d'un connecteur sur mesure : action mise en avant sous la bannière. -->
 		<!-- Connecteurs installés — remontés EN HAUT et mis en avant (si non vide) -->
-		{#if connectors.length > 0}
+		{#if displayedConnectors.length > 0}
 			<div class="text-sm font-medium mb-3">{$i18n.t('Connecteurs installés')}</div>
-			<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 mb-7">
-				{#each connectors as connector (connector.id)}
+			<div class="responsive-card-grid mb-7">
+				{#each displayedConnectors as connector (connector.id)}
 					<ConnectorCard {connector} on:changed={load} />
 				{/each}
 			</div>
@@ -210,7 +220,7 @@
 		</div>
 
 		<!-- Crawl4AI a été déplacé vers l'onglet « Recherche & web » (c'est de la lecture web). -->
-		<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+		<div class="responsive-card-grid">
 			{#each featured as entry (entry.name)}
 				<CatalogCard {entry} on:changed={load} />
 			{/each}
@@ -234,3 +244,11 @@
 
 <!-- Catalogue complet recherchable (tous les connecteurs, visibles + avancés). -->
 <McpBrowseModal bind:open={showBrowse} entries={allEntries} on:changed={load} />
+
+<style>
+	.responsive-card-grid {
+		display: grid;
+		grid-template-columns: repeat(auto-fit, minmax(min(100%, 20rem), 1fr));
+		gap: 0.75rem;
+	}
+</style>

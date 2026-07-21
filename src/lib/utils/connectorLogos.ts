@@ -74,6 +74,7 @@ export const CONNECTOR_LOGO: Record<string, string> = {
 	'recherche-entreprises': marianneLogo,
 	bodacc: marianneLogo,
 	apify: apifyLogo,
+	officecli: '/assets/logos/lunaria/officecli.jpg',
 	linear: linearLogo,
 	n8n: n8nLogo,
 	'unreal-engine': unrealEngineLogo,

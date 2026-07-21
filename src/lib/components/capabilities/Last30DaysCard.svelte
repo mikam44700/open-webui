@@ -14,12 +14,12 @@
 </script>
 
 <div class="flex flex-col gap-2.5 p-4 rounded-2xl border border-gray-100 dark:border-gray-850 h-full card-lift hover:border-gray-200 dark:hover:border-gray-700">
-	<div class="flex items-start gap-2.5">
-		<div class="size-12 flex-none rounded-xl bg-orange-500/10 text-orange-600 dark:text-orange-400 flex items-center justify-center" aria-hidden="true">
-			<svg viewBox="0 0 24 24" fill="none" class="size-7" stroke="currentColor" stroke-width="1.7"><path d="M4 7h16M7 3v4m10-4v4M5 11h4m2 0h4m2 0h2M5 15h4m2 0h4m2 0h2M5 19h4m2 0h4" /><rect x="3" y="5" width="18" height="16" rx="2" /></svg>
+	<div class="flex flex-wrap items-start gap-2.5 min-w-0">
+		<div class="size-12 flex-none rounded-xl overflow-hidden border border-gray-100 dark:border-gray-700 bg-white flex items-center justify-center">
+			<img src="/assets/logos/lunaria/last30days.png" alt="Last30Days" class="w-full h-full object-cover" draggable="false" />
 		</div>
-		<div class="flex-1 min-w-0 flex flex-col gap-1">
-			<div class="flex items-center gap-1.5"><span class="text-sm font-medium leading-tight">Tendances des 30 derniers jours</span><ActiveBadge /></div>
+		<div class="flex-1 min-w-[10rem] flex flex-col gap-1">
+			<div class="flex flex-wrap items-center gap-1.5 min-w-0"><span class="text-sm font-medium leading-tight break-normal">Tendances des 30 derniers jours</span><span class="flex-none"><ActiveBadge /></span></div>
 			<div class="text-xs text-gray-500 leading-snug">Ce qui bouge maintenant sur votre marché.</div>
 		</div>
 		<span class="flex-none text-[11px] px-2 py-0.5 rounded-full font-medium text-green-700 bg-green-500/10 dark:text-green-400">Installé</span>

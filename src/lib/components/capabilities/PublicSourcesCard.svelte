@@ -20,12 +20,12 @@
 </script>
 
 <div class="flex flex-col gap-2.5 p-4 rounded-2xl border border-gray-100 dark:border-gray-850 h-full card-lift hover:border-gray-200 dark:hover:border-gray-700">
-	<div class="flex items-start gap-2.5">
-		<div class="size-12 flex-none rounded-xl bg-[#6b62f2]/10 text-[#6b62f2] flex items-center justify-center" aria-hidden="true">
-			<svg viewBox="0 0 24 24" fill="none" class="size-7" stroke="currentColor" stroke-width="1.7"><circle cx="11" cy="11" r="6.5" /><path d="m16 16 4 4M8.5 11h5M11 8.5v5" /></svg>
+	<div class="flex flex-wrap items-start gap-2.5 min-w-0">
+		<div class="size-12 flex-none rounded-xl overflow-hidden border border-gray-100 dark:border-gray-700 bg-[#050818] flex items-center justify-center">
+			<img src="/assets/logos/lunaria/agent-reach.png" alt="Agent Reach" class="w-full h-full object-cover" draggable="false" />
 		</div>
-		<div class="flex-1 min-w-0 flex flex-col gap-1">
-			<div class="flex items-center gap-1.5"><span class="text-sm font-medium leading-tight">Recherche web et veille multicanale</span>{#if status?.active}<ActiveBadge />{/if}</div>
+		<div class="flex-1 min-w-[10rem] flex flex-col gap-1">
+			<div class="flex flex-wrap items-center gap-1.5 min-w-0"><span class="text-sm font-medium leading-tight break-normal">Recherche web et veille multicanale</span>{#if status?.active}<span class="flex-none"><ActiveBadge /></span>{/if}</div>
 			<div class="text-xs text-gray-500 leading-snug">Les yeux de Sacha et Lea sur les sources publiques.</div>
 		</div>
 		{#if status === null}<Spinner className="size-4" />{:else if status.active}<span class="flex-none text-[11px] px-2 py-0.5 rounded-full font-medium text-green-700 bg-green-500/10 dark:text-green-400">Installé</span>{:else}<span class="flex-none text-[11px] px-2 py-0.5 rounded-full text-amber-700 bg-amber-500/10 dark:text-amber-400">Démarrage…</span>{/if}

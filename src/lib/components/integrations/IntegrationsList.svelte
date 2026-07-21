@@ -3,7 +3,6 @@
 	import { toast } from 'svelte-sonner';
 
 	import { getIntegrations } from '$lib/apis/integrations';
-	import { INTEGRATION_FR } from '$lib/utils/integrationLabels';
 	import Spinner from '$lib/components/common/Spinner.svelte';
 	import IntegrationCard from './IntegrationCard.svelte';
 	import IntegrationsBrowseModal from './IntegrationsBrowseModal.svelte';
@@ -25,17 +24,20 @@
 	let bridgeDown = false;
 	let integrations: Integration[] = [];
 	let showBrowse = false;
+	const MAIN_IDS = ['google-workspace', 'microsoft-365', 'notion', 'airtable', 'obsidian', 'calendly'];
 
 	// Le client final ne voit que les intégrations visibles (les masquées restent gérées en admin).
 	$: visible = integrations.filter((i) => i.visible !== false);
+	// La page principale reste volontairement courte. Les réseaux sociaux et les
+	// autres applications demeurent disponibles dans « Tout parcourir ».
+	$: main = MAIN_IDS.map((id) => visible.find((i) => i.id === id)).filter(
+		(i): i is Integration => !!i
+	);
 	// Déjà connectées (ou clé enregistrée) — mises en avant EN HAUT de page.
-	$: connected = visible.filter((i) => i.state === 'connected' || i.state === 'key_present');
+	$: connected = main.filter((i) => i.state === 'connected' || i.state === 'key_present');
 	$: connectedIds = new Set(connected.map((i) => i.id));
 	// « À découvrir » : tout ce qui n'est pas déjà connecté (évite le doublon avec la section du haut).
-	$: discover = visible.filter((i) => !connectedIds.has(i.id));
-	// Vedettes : marquées « populaires » ; repli sur les 4 premières si rien n'est marqué.
-	$: popular = discover.filter((i) => INTEGRATION_FR[i.id]?.popular);
-	$: featured = popular.length > 0 ? popular : discover.slice(0, 4);
+	$: featured = main.filter((i) => !connectedIds.has(i.id));
 
 	const isBridgeDown = (err: any) =>
 		err?.error?.code === 'bridge_unreachable' || err?.error?.code === 'hermes_unavailable';
@@ -84,7 +86,7 @@
 		<!-- Applications connectées — remontées EN HAUT et mises en avant (si non vide) -->
 		{#if connected.length > 0}
 			<div class="text-sm font-medium mb-3">{$i18n.t('Applications connectées')}</div>
-			<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+			<div class="responsive-card-grid">
 				{#each connected as integration (integration.id)}
 					<IntegrationCard {integration} on:changed={load} />
 				{/each}
@@ -116,7 +118,7 @@
 				</button>
 			</div>
 
-			<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+			<div class="responsive-card-grid">
 				{#each featured as integration (integration.id)}
 					<IntegrationCard {integration} on:changed={load} />
 				{/each}
@@ -128,3 +130,11 @@
 </div>
 
 <IntegrationsBrowseModal bind:open={showBrowse} integrations={visible} on:changed={load} />
+
+<style>
+	.responsive-card-grid {
+		display: grid;
+		grid-template-columns: repeat(auto-fit, minmax(min(100%, 20rem), 1fr));
+		gap: 0.75rem;
+	}
+</style>
