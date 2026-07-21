@@ -89,6 +89,7 @@
 	wrap="from-violet-200/60 via-slate-100/60 to-violet-100/40 dark:from-[#6b62f2]/25 dark:via-[#161616]/80 dark:to-[#0a0a0a]/90"
 	halo1="bg-violet-300/40 dark:bg-[#6b62f2]/25"
 	halo2="bg-indigo-200/30 dark:bg-[#6b62f2]/10"
+	compact={true}
 />
 
 {#if agents === null}
@@ -109,12 +110,12 @@
 			</div>
 		</div>
 	{:else}
-		<div class="flex items-center justify-between mb-3">
+		<div class="mb-3 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
 			<div class="text-sm text-gray-500 dark:text-gray-400">
 				{total} agent{total > 1 ? 's' : ''} à ton service
 			</div>
 			<button
-				class="inline-flex items-center gap-2 rounded-full border border-gray-200 dark:border-gray-800 px-4 py-1.5 text-sm text-gray-600 dark:text-gray-400 transition hover:bg-gray-50 dark:hover:bg-gray-850"
+				class="inline-flex w-fit items-center gap-2 rounded-full border border-gray-200 px-4 py-1.5 text-sm text-gray-600 transition hover:bg-gray-50 dark:border-gray-800 dark:text-gray-400 dark:hover:bg-gray-850"
 				on:click={() => goto('/workspace/models/create')}
 			>
 				<Plus className="size-4" />
@@ -122,19 +123,21 @@
 			</button>
 		</div>
 
-		<div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+		<div class="grid grid-cols-1 gap-4 xl:grid-cols-2">
 			{#each agents as agent (agent.id)}
 				<div
-					class="flex flex-col rounded-3xl border border-gray-200/80 dark:border-white/6 bg-white dark:bg-[#161616] p-6 transition-colors hover:border-gray-300 dark:hover:border-white/15 {agent.is_active
+					class="rounded-2xl border border-gray-200/80 bg-white p-4 transition-colors hover:border-gray-300 dark:border-white/6 dark:bg-[#161616] dark:hover:border-white/15 {agent.is_active
 						? ''
 						: 'opacity-60'}"
 				>
-					<div class="flex items-center gap-5">
-						<div class="flex bg-white rounded-2xl shrink-0">
+					<div class="flex flex-col gap-4 sm:flex-row sm:items-center">
+						<div
+							class="size-20 shrink-0 overflow-hidden rounded-xl bg-white sm:h-28 sm:w-24"
+						>
 							<img
 								src={`${WEBUI_API_BASE_URL}/models/model/profile/image?id=${agent.id}&lang=${$i18n.language}`}
 								alt={agent.name}
-								class="rounded-2xl w-40 h-auto"
+								class="size-full object-cover object-top"
 								loading="lazy"
 								decoding="async"
 								on:error={(e) => {
@@ -143,7 +146,7 @@
 							/>
 						</div>
 						<div class="min-w-0 flex-1">
-							<div class="flex items-center gap-2">
+							<div class="flex flex-wrap items-center gap-2">
 								<div
 									class="text-lg font-medium tracking-tight text-gray-900 dark:text-gray-50 capitalize line-clamp-1"
 								>
@@ -160,10 +163,10 @@
 							<div class="text-sm text-gray-500 dark:text-gray-400 line-clamp-2 mt-0.5">
 								{agent?.meta?.tagline || agent?.meta?.description || 'Aucune description pour le moment.'}
 							</div>
-							<div class="flex items-center gap-3">
+							<div class="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1">
 								{#if (agent?.meta?.mission ?? []).length}
 									<button
-										class="mt-1 text-xs font-medium text-violet-600 dark:text-[#a5a0f7] hover:underline"
+										class="whitespace-nowrap text-left text-xs font-medium text-violet-600 hover:underline dark:text-[#a5a0f7]"
 										on:click={() =>
 											openMission(
 												agent.name,
@@ -177,7 +180,7 @@
 								{/if}
 								{#if (agent?.meta?.reglement ?? []).length}
 									<button
-										class="mt-1 text-xs font-medium text-violet-600 dark:text-[#a5a0f7] hover:underline"
+										class="whitespace-nowrap text-left text-xs font-medium text-violet-600 hover:underline dark:text-[#a5a0f7]"
 										on:click={() =>
 											(reglementAgent = {
 												name: agent.name,
@@ -191,11 +194,13 @@
 							</div>
 						</div>
 
-						<!-- Boutons en colonne à droite (demande Michael 2026-07-19) : l'image reste pleine -->
-						<div class="flex flex-col items-stretch gap-2 shrink-0">
+						<!-- Actions : côte à côte sur mobile, en colonne stable dès que la carte est horizontale. -->
+						<div
+							class="grid w-full shrink-0 grid-cols-2 gap-2 sm:flex sm:w-auto sm:min-w-[9.5rem] sm:flex-col sm:items-stretch"
+						>
 							<a
 								draggable="false"
-								class="inline-flex items-center justify-center rounded-full bg-gray-900 px-4 py-1.5 text-sm font-medium text-white transition hover:bg-gray-700 dark:bg-white dark:text-gray-900 dark:hover:bg-gray-200"
+								class="inline-flex items-center justify-center whitespace-nowrap rounded-full bg-gray-900 px-4 py-1.5 text-sm font-medium text-white transition hover:bg-gray-700 dark:bg-white dark:text-gray-900 dark:hover:bg-gray-200"
 								href={`/?models=${encodeURIComponent(agent.id)}`}
 							>
 								Parler à {agent.name}
@@ -203,7 +208,7 @@
 							{#if agent.write_access ?? true}
 								<a
 									draggable="false"
-									class="inline-flex items-center justify-center rounded-full border border-gray-200 dark:border-gray-800 px-4 py-1.5 text-sm text-gray-700 dark:text-gray-300 transition hover:bg-gray-50 dark:hover:bg-gray-850"
+									class="inline-flex items-center justify-center whitespace-nowrap rounded-full border border-gray-200 px-4 py-1.5 text-sm text-gray-700 transition hover:bg-gray-50 dark:border-gray-800 dark:text-gray-300 dark:hover:bg-gray-850"
 									href={`/workspace/models/edit?id=${encodeURIComponent(agent.id)}`}
 								>
 									Modifier
@@ -226,23 +231,25 @@
 	{/if}
 
 	<!-- L'équipe grandit : agents à venir, activés à la demande -->
-	<div class="mt-14 pb-8">
+	<div class="mt-10 pb-8">
 		<div
 			class="text-xs font-medium uppercase tracking-[0.14em] text-gray-500 dark:text-[#c2c2c2] mb-4"
 		>
 			Bientôt dans ton équipe
 		</div>
-		<div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+		<div class="grid grid-cols-1 gap-4 xl:grid-cols-2">
 			{#each comingSoon as soon (soon.name)}
 				<div
-					class="flex flex-col rounded-3xl border border-dashed border-gray-200 dark:border-white/8 bg-gray-50/60 dark:bg-[#111111]/70 p-6 opacity-75"
+					class="rounded-2xl border border-dashed border-gray-200 bg-gray-50/60 p-4 opacity-75 dark:border-white/8 dark:bg-[#111111]/70"
 				>
-					<div class="flex items-center gap-5">
-						<div class="flex bg-white rounded-2xl shrink-0">
+					<div class="flex flex-col gap-4 sm:flex-row sm:items-center">
+						<div
+							class="size-20 shrink-0 overflow-hidden rounded-xl bg-white sm:h-28 sm:w-24"
+						>
 							<img
 								src={soon.avatar}
 								alt={soon.name}
-								class="rounded-2xl w-40 h-auto grayscale"
+								class="size-full object-cover object-top grayscale"
 								loading="lazy"
 								decoding="async"
 								on:error={(e) => {
@@ -251,7 +258,7 @@
 							/>
 						</div>
 						<div class="min-w-0 flex-1">
-							<div class="flex items-center gap-2">
+							<div class="flex flex-wrap items-center gap-2">
 								<div class="font-medium text-gray-900 dark:text-gray-50">{soon.name}</div>
 								<span
 									class="shrink-0 rounded-full bg-gray-200/80 dark:bg-gray-800 px-2 py-0.5 text-xs text-gray-500 dark:text-gray-400"
@@ -262,16 +269,16 @@
 							<div class="text-sm text-gray-500 dark:text-gray-400 line-clamp-2 mt-0.5">
 								{soon.tagline}
 							</div>
-							<div class="flex items-center gap-3">
+							<div class="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1">
 								<button
-									class="mt-1 text-xs font-medium text-violet-600 dark:text-[#a5a0f7] hover:underline"
+									class="whitespace-nowrap text-left text-xs font-medium text-violet-600 hover:underline dark:text-[#a5a0f7]"
 									on:click={() => openMission(soon.name, soon.avatar, soon.description, soon.mission)}
 								>
 									Voir sa mission ›
 								</button>
 								{#if (soon.reglement ?? []).length}
 									<button
-										class="mt-1 text-xs font-medium text-violet-600 dark:text-[#a5a0f7] hover:underline"
+										class="whitespace-nowrap text-left text-xs font-medium text-violet-600 hover:underline dark:text-[#a5a0f7]"
 										on:click={() =>
 											(reglementAgent = {
 												name: soon.name,
