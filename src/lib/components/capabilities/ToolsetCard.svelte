@@ -102,7 +102,7 @@
 </script>
 
 <div
-	class="border border-gray-100 dark:border-gray-850 rounded-2xl px-5 py-4 h-full transition hover:border-gray-200 dark:hover:border-gray-700 hover:shadow-sm {canExpand
+	class="flex flex-col border border-gray-100 dark:border-gray-850 rounded-2xl px-5 py-4 h-full transition hover:border-gray-200 dark:hover:border-gray-700 hover:shadow-sm {canExpand
 		? 'cursor-pointer hover:bg-gray-50 dark:hover:bg-white/[0.03]'
 		: ''}"
 	role={canExpand ? 'button' : undefined}
@@ -124,7 +124,7 @@
 			</div>
 		{/if}
 
-		<div class="flex-1 min-w-0">
+		<div class="flex-1 min-w-0 flex flex-col">
 			<div class="flex items-start justify-between gap-3">
 				<div class="min-w-0 flex items-center gap-2 flex-wrap pt-1">
 					<span class="text-base font-medium">{labelText}</span>
@@ -157,7 +157,7 @@
 			{/if}
 
 			{#if canExpand && !expanded}
-				<div class="text-xs font-medium text-violet-600 dark:text-[#a5a0f7] mt-2.5">
+				<div class="text-xs font-medium text-violet-600 dark:text-[#a5a0f7] mt-auto pt-2.5">
 					{$i18n.t('Voir les services')} ›
 				</div>
 			{/if}

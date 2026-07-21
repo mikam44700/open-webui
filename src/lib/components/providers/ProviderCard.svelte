@@ -393,7 +393,7 @@
 				</svg>
 				<span>{$i18n.t('Clé connectée')}</span>
 			</div>
-			<div class="flex items-center justify-between gap-2">
+			<div class="flex flex-wrap items-center justify-between gap-2">
 				<!-- Voir sa conso / son quota chez le fournisseur (facturation à l'usage). -->
 				{#if info.usageUrl}
 					<a
@@ -407,7 +407,7 @@
 				{:else}
 					<span></span>
 				{/if}
-				<div class="flex items-center gap-3">
+				<div class="flex flex-wrap items-center justify-end gap-3">
 					{#if confirmingDelete}
 						<span class="text-xs text-gray-500">{$i18n.t('Retirer cette clé ?')}</span>
 						<button
@@ -471,7 +471,7 @@
 					</button>
 				{/if}
 			</div>
-			<div class="flex items-center justify-between gap-2">
+			<div class="flex flex-wrap items-center justify-between gap-2">
 				{#if info.keyUrl}
 					<a
 						href={info.keyUrl}
@@ -580,7 +580,7 @@
 		{#if showModelPicker && provider.models?.length}
 			<!-- Onboarding : le client voit et choisit son modèle ICI, sans passer par le chat. -->
 			<div class="pt-2 border-t border-gray-100 dark:border-gray-850 flex flex-col gap-2">
-				<div class="flex items-center justify-between gap-2">
+				<div class="flex flex-wrap items-center justify-between gap-2">
 					<div class="min-w-0">
 						<div class="text-[11px] font-semibold uppercase tracking-wide text-gray-400 dark:text-gray-500">
 							{$i18n.t('Modèle')}

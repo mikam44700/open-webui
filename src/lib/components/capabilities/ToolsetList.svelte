@@ -157,7 +157,7 @@
 						{$i18n.t('Outils puissants ou techniques — réservés aux usages avancés.')}
 					</div>
 				{/if}
-				<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3.5 items-stretch">
+				<div class="responsive-card-grid">
 					{#each activeGroup.items as toolset (toolset.name)}
 						<ToolsetCard
 							{toolset}
@@ -176,6 +176,15 @@
 		{/if}
 	{/if}
 </div>
+
+<style>
+	.responsive-card-grid {
+		display: grid;
+		grid-template-columns: repeat(auto-fit, minmax(min(100%, 20rem), 1fr));
+		gap: 0.875rem;
+		align-items: stretch;
+	}
+</style>
 
 <ToolConnectModal
 	bind:open={showConnectModal}

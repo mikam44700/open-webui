@@ -101,8 +101,7 @@
 		'bodacc',
 		'data-gouv-fr',
 		'recherche-entreprises',
-		'officecli',
-		'sources-publiques'
+		'officecli'
 	]);
 
 	$: installedIds = new Set(connectors.map((c) => c.id));
@@ -129,7 +128,7 @@
 			]);
 			// Crawl4AI a sa carte dédiée dans « Recherche & web ». Les autres
 			// connecteurs gérés sont chargés, puis réservés au mode avancé ci-dessus.
-			const hiddenManaged = new Set(['crawl4ai']);
+			const hiddenManaged = new Set(['crawl4ai', 'sources-publiques']);
 			entries = (cat?.entries ?? []).filter((e) => !hiddenManaged.has(e.name));
 			connectors = (conn?.connectors ?? []).filter((c) => !hiddenManaged.has(c.id));
 		} catch (err) {

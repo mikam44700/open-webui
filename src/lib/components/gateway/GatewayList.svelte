@@ -940,11 +940,11 @@
 			</button>
 		</div>
 		{#if filtered.length > 0}
-			<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+			<div class="responsive-card-grid">
 				{#each filtered as p (p.id)}
 					{@const st = stateLabel(p.state)}
 					<div
-						class="rounded-2xl border border-gray-100 dark:border-gray-850 p-4 transition hover:border-gray-200 dark:hover:border-gray-700 hover:shadow-sm {isUnavailable(
+						class="flex flex-col h-full rounded-2xl border border-gray-100 dark:border-gray-850 p-4 transition hover:border-gray-200 dark:hover:border-gray-700 hover:shadow-sm {isUnavailable(
 							p
 						)
 							? 'opacity-60 saturate-0'
@@ -1060,7 +1060,7 @@
 						{/if}
 
 						<div
-							class="flex items-center gap-1 mt-3 pt-3 border-t border-gray-50 dark:border-gray-850"
+							class="mt-auto flex flex-wrap items-center gap-1 pt-3 border-t border-gray-50 dark:border-gray-850"
 						>
 							{#if p.docs_url}
 								<a
@@ -2241,3 +2241,12 @@
 		actions={CHANNEL_FR[aboutChannel.id]?.actions ?? []}
 	/>
 {/if}
+
+<style>
+	.responsive-card-grid {
+		display: grid;
+		grid-template-columns: repeat(auto-fit, minmax(min(100%, 20rem), 1fr));
+		gap: 0.75rem;
+		align-items: stretch;
+	}
+</style>

@@ -131,7 +131,9 @@
 					<Last30DaysCard />
 				{/if}
 				{#if crawl4aiActive}
-					<Crawl4aiCard showMcpBadge on:changed={load} />
+					<div class="w-full max-w-[32rem]">
+						<Crawl4aiCard showMcpBadge on:changed={load} />
+					</div>
 				{/if}
 				{#if apifyConnector}
 					<ConnectorCard connector={apifyConnector} showMcpBadge on:changed={load} />

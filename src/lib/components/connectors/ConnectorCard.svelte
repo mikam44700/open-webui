@@ -205,7 +205,7 @@
 	{/if}
 
 	<!-- Actions : tester / activer-désactiver / supprimer -->
-	<div class="mt-auto flex items-center justify-end gap-2 pt-2 border-t border-gray-100 dark:border-gray-850">
+	<div class="mt-auto flex flex-wrap items-center justify-end gap-2 pt-2 border-t border-gray-100 dark:border-gray-850">
 		<button
 			type="button"
 			class="text-xs px-2 py-1 rounded-lg text-gray-500 hover:text-gray-800 dark:hover:text-gray-200 transition disabled:opacity-40"

@@ -341,7 +341,7 @@
 					autocomplete="off"
 				/>
 			{/if}
-			<div class="flex justify-between items-center gap-2">
+			<div class="flex flex-wrap justify-between items-center gap-2">
 				<span class="text-[11px] text-gray-500 dark:text-gray-400 truncate">
 					{$i18n.t(ACCESS_LABEL[entry.auth_type] ?? '')}
 				</span>

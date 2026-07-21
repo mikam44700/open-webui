@@ -182,7 +182,7 @@
 		</button>
 	{/if}
 
-	<div class="mt-auto flex justify-between items-center gap-2 pt-1">
+	<div class="mt-auto flex flex-wrap justify-between items-center gap-2 pt-1">
 		<span class="text-[11px] text-gray-500 dark:text-gray-400 truncate">
 			{#if installed}
 				{$i18n.t('Souverain · actif')}

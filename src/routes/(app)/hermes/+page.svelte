@@ -34,7 +34,7 @@
 	type Onglet = (typeof ONGLETS)[number];
 	let ongletActif: Onglet = 'Modèles IA';
 
-	const ONGLETS_EXPERTS: Onglet[] = ['Compétences'];
+	const ONGLETS_EXPERTS: Onglet[] = ['Garde-fous', 'Compétences'];
 	$: ongletsVisibles = $expertMode
 		? [...ONGLETS]
 		: ONGLETS.filter((o) => !ONGLETS_EXPERTS.includes(o));

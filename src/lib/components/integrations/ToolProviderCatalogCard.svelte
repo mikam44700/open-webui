@@ -252,7 +252,7 @@
 			{/if}
 		{/if}
 
-		<div class="flex items-center justify-between gap-2">
+		<div class="flex flex-wrap items-center justify-between gap-2">
 			<span class="text-[11px] text-gray-500 dark:text-gray-400">
 				{provider.badge ?? (isKey ? $i18n.t('Clé requise') : '')}
 			</span>

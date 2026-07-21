@@ -265,7 +265,7 @@
 		{:else if activeTab === 'multiagent'}
 			<!-- Modèles IA combinés : grille plate avec carte MoA dédiée (inchangé). -->
 			{#if tabItems.length > 0}
-				<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2.5">
+				<div class="responsive-card-grid">
 					{#each tabItems as provider (provider.id)}
 						{#if provider.id === 'moa'}
 							<!-- Mixture of Agents : carte de configuration dédiée (proposeurs + agrégateur). -->
@@ -293,7 +293,7 @@
 						{$i18n.t('Connectés')}
 						<span class="opacity-60">({connectedItems.length})</span>
 					</div>
-					<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2.5">
+					<div class="responsive-card-grid">
 						{#each connectedItems as provider (provider.id)}
 							<ProviderCard
 								{provider}
@@ -317,7 +317,7 @@
 								{$i18n.t(group.label)}
 								<span class="opacity-60">({group.items.length})</span>
 							</div>
-							<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2.5">
+							<div class="responsive-card-grid">
 								{#each group.items as provider (provider.id)}
 									<ProviderCard
 										{provider}
@@ -331,7 +331,7 @@
 					{/each}
 				</div>
 			{:else if discoverItems.length > 0}
-				<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2.5">
+				<div class="responsive-card-grid">
 					{#each discoverItems as provider (provider.id)}
 						<ProviderCard
 							{provider}
@@ -349,3 +349,12 @@
 		{/if}
 	{/if}
 </div>
+
+<style>
+	.responsive-card-grid {
+		display: grid;
+		grid-template-columns: repeat(auto-fit, minmax(min(100%, 20rem), 1fr));
+		gap: 0.625rem;
+		align-items: stretch;
+	}
+</style>
