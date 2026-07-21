@@ -10,6 +10,7 @@
 	import WebSearchBrowseModal from '$lib/components/capabilities/WebSearchBrowseModal.svelte';
 	import Crawl4aiCard from '$lib/components/connectors/Crawl4aiCard.svelte';
 	import PublicSourcesCard from '$lib/components/capabilities/PublicSourcesCard.svelte';
+	import Last30DaysCard from '$lib/components/capabilities/Last30DaysCard.svelte';
 	import CatalogCard from '$lib/components/connectors/CatalogCard.svelte';
 	import ConnectorCard from '$lib/components/connectors/ConnectorCard.svelte';
 	import { type Provider, providerStatus } from '$lib/utils/toolConnect';
@@ -119,6 +120,7 @@
 			<div class="text-sm font-medium mb-3">{$i18n.t('Actifs')}</div>
 			<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
 				<PublicSourcesCard />
+				<Last30DaysCard />
 				{#if crawl4aiActive}
 					<Crawl4aiCard showMcpBadge on:changed={load} />
 				{/if}
