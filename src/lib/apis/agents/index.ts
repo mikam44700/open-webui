@@ -13,6 +13,18 @@ import { WEBUI_API_BASE_URL } from '$lib/constants';
 
 const TEAM_TAG = 'Équipe LunarIA';
 const ACTIVE_KEY = 'lunaria-active-agent';
+const SEEDED_TEAM_AGENT_IDS = new Set(['luna', 'mike', 'victor', 'lea', 'sacha', 'theo', 'clara']);
+
+// L'API /models retire volontairement profile_image_url de ses réponses. Les sept agents
+// LunarIA ont cependant des portraits statiques livrés avec l'app ; on restaure ici leur
+// chemin source afin que tous les consommateurs (sélecteur, badge, messages) puissent en
+// déduire le gros plan /static/agents/faces/<id>.png. Un futur agent personnalisé passe par
+// l'endpoint officiel de profil du modèle.
+const modelAvatarUrl = (id: string, metaAvatar?: string | null): string =>
+	metaAvatar ||
+	(SEEDED_TEAM_AGENT_IDS.has(id)
+		? `/static/agents/${id}.png`
+		: `${WEBUI_API_BASE_URL}/models/model/profile/image?id=${encodeURIComponent(id)}`);
 
 export type AgentDTO = {
 	name: string;
@@ -52,7 +64,7 @@ export const getAgents = async (token: string): Promise<{ agents: AgentDTO[] }> 
 			return {
 				name: m.id,
 				description: meta.description ?? '',
-				avatar: meta.profile_image_url ?? null,
+				avatar: modelAvatarUrl(m.id, meta.profile_image_url),
 				active: m.id === activeId,
 				is_default: false,
 				role: meta.tagline ?? '',
