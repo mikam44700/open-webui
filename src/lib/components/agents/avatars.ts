@@ -33,13 +33,22 @@ export const avatarFromImage = (image?: string | null): Avatar | undefined => {
 // /assets/VisageAvatars/<id>.webp, dérivés des portraits corps entier de /assets/agents/.
 export const avatarFaceImage = (id: string): string => `/assets/VisageAvatars/${id}.webp`;
 
-// Convertit un chemin d'avatar « corps entier » en son gros plan visage, UNIQUEMENT pour
-// les avatars du manifeste (servis depuis /assets/agents/). Tout autre chemin (avatar custom
-// uploadé) est renvoyé tel quel. Le repli sur l'image d'origine est géré à l'affichage.
+// Gros plan visage des 7 agents de l'équipe LunarIA : leurs portraits sont servis depuis
+// /static/agents/<id>.png (hors manifeste des 100 — Luna et Léa sont sur mesure), leurs
+// visages cadrés depuis /static/agents/faces/<id>.png.
+export const teamFaceImage = (id: string): string => `/static/agents/faces/${id}.png`;
+
+// Convertit un chemin d'avatar « corps entier » en son gros plan visage, pour les avatars du
+// manifeste (/assets/agents/) ET pour l'équipe LunarIA (/static/agents/). Tout autre chemin
+// (avatar custom uploadé) est renvoyé tel quel. Le repli sur l'image d'origine est géré à
+// l'affichage.
 export const faceFromImage = (image?: string | null): string | null => {
 	if (!image) return image ?? null;
 	const id = avatarId(image);
-	return id && image.includes('/assets/agents/') ? avatarFaceImage(id) : image;
+	if (!id) return image;
+	if (image.includes('/assets/agents/')) return avatarFaceImage(id);
+	if (/\/static\/agents\/[^/]+$/.test(image)) return teamFaceImage(id);
+	return image;
 };
 
 // Bascule un chemin d'avatar du manifeste (corps entier ou visage) vers sa variante WebP,
