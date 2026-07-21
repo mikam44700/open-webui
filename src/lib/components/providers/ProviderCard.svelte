@@ -367,6 +367,7 @@
 			{provider}
 			on:connected={() => dispatch('changed')}
 			on:changed={() => dispatch('changed')}
+			on:help={() => (codexHelpOpen = true)}
 		/>
 		{#if info.usageUrl && provider.state !== 'not_configured'}
 			<a
