@@ -41,6 +41,7 @@ from open_webui.models.models import Models
 from open_webui.models.users import UserModel
 from open_webui.utils.access_control import check_model_access, has_connection_access, has_permission
 from open_webui.utils.anthropic import get_anthropic_models, is_anthropic_url
+from open_webui.hermes_bridge import pannes_fournisseur
 from open_webui.utils.auth import get_admin_user, get_verified_user
 from open_webui.utils.headers import get_custom_headers, include_user_info_headers
 from open_webui.utils.misc import (
@@ -1308,7 +1309,7 @@ async def generate_chat_completion(
 
             streaming = True
             return StreamingResponse(
-                stream_wrapper(r, content_handler=stream_chunks_handler),
+                _traduire_pannes_en_flux(stream_wrapper(r, content_handler=stream_chunks_handler)),
                 status_code=r.status,
                 headers=_clean_proxy_headers(r.headers),
             )
@@ -1352,22 +1353,81 @@ async def generate_chat_completion(
             await cleanup_response(r)
 
 
-def _humanize_hermes_error(response):
-    """Erreur connue du moteur Hermes → message français clair (SPEC-chat-agentique).
+async def _traduire_pannes_en_flux(flux):
+    """Remplace une panne de fournisseur déguisée en réponse d'agent, à la volée.
 
-    Un dirigeant ne doit jamais lire une erreur technique anglaise dans le chat : le cas
-    « pas de fournisseur configuré » (aucune clé API posée) est traduit en consigne simple.
+    Le moteur renvoie parfois HTTP 200 avec l'erreur du fournisseur EN GUISE DE RÉPONSE
+    (finish_reason=error) : le chat affiche alors « HTTP 403: {"code":... } » dans la
+    bulle de l'agent, avec l'identifiant d'équipe du fournisseur en clair (constaté le
+    2026-07-21). On inspecte donc le premier contenu de chaque flux ; s'il porte la
+    signature d'une erreur technique, on lui substitue le message français.
+
+    Volontairement conservateur : dès qu'un contenu normal est vu, on cesse d'inspecter
+    et le flux repart tel quel — un chat qui fonctionne ne doit jamais être ralenti ni
+    altéré par ce filet.
+    """
+    inspecter = True
+    async for morceau in flux:
+        if not inspecter:
+            yield morceau
+            continue
+        try:
+            texte = morceau.decode('utf-8') if isinstance(morceau, bytes) else str(morceau)
+            if 'data:' not in texte:
+                yield morceau
+                continue
+
+            lignes_sorties = []
+            traduit = False
+            for ligne in texte.split('\n'):
+                charge = ligne[5:].strip() if ligne.startswith('data:') else ''
+                if not charge or charge == '[DONE]':
+                    lignes_sorties.append(ligne)
+                    continue
+                bloc = json.loads(charge)
+
+                # 1) L'erreur portée par le chunk lui-même (cas réel constaté : le moteur
+                #    renvoie finish_reason=error avec la charge du fournisseur dans
+                #    `error.message`, dupliquée dans `hermes.error` — les deux contiennent
+                #    l'identifiant d'équipe et doivent être nettoyées.
+                brut = (bloc.get('error') or {}).get('message') or (bloc.get('hermes') or {}).get('error')
+                if brut and pannes_fournisseur.ressemble_a_une_panne(brut):
+                    clair = pannes_fournisseur.message_panne(brut)
+                    if isinstance(bloc.get('error'), dict):
+                        bloc['error']['message'] = clair
+                    if isinstance(bloc.get('hermes'), dict):
+                        bloc['hermes'].pop('error', None)  # jamais de double affichage
+                    traduit = True
+
+                # 2) L'erreur déguisée en contenu de réponse (l'agent « dit » l'erreur).
+                for choix in bloc.get('choices', []):
+                    for champ in ('delta', 'message'):
+                        contenu = (choix.get(champ) or {}).get('content')
+                        if pannes_fournisseur.ressemble_a_une_panne(contenu):
+                            choix[champ]['content'] = pannes_fournisseur.message_panne(contenu)
+                            traduit = True
+                        elif contenu:
+                            inspecter = False  # contenu normal : on lâche le filet
+                lignes_sorties.append(f'data: {json.dumps(bloc)}' if traduit else ligne)
+            yield ('\n'.join(lignes_sorties)).encode('utf-8') if traduit else morceau
+        except Exception:  # noqa: BLE001 — un filet ne casse jamais le flux qu'il protège
+            inspecter = False
+            yield morceau
+
+
+def _humanize_hermes_error(response):
+    """Panne d'un fournisseur de modèle → message français clair (SPEC-chat-agentique).
+
+    Un dirigeant ne doit jamais lire une erreur technique anglaise dans le chat. Vaut pour
+    TOUS les fournisseurs : ils passent tous par ce routeur. Les signatures reconnues et
+    les messages vivent dans hermes_bridge/pannes_fournisseur.py.
     """
     try:
         message = response.get('error', {}).get('message', '') if isinstance(response, dict) else ''
     except AttributeError:
         return response
-    if 'No inference provider configured' in message:
-        response['error']['message'] = (
-            'Votre équipe est prête, mais le moteur n’a pas encore de fournisseur de modèle. '
-            'Rendez-vous dans Capacités → Modèles IA pour ajouter une clé (OpenRouter par exemple), '
-            'puis relancez la conversation.'
-        )
+    if message:
+        response['error']['message'] = pannes_fournisseur.message_panne(message)
     return response
 
 
