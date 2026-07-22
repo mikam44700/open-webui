@@ -84,6 +84,7 @@ def test_tool_progress_is_explicit_and_separate_from_text():
     assert event is not None
     assert event.type == 'tool_started'
     assert event.item_type == 'mcpToolCall'
+    assert event.tool == 'mcpToolCall'
 
 
 def test_unknown_notification_is_ignored():

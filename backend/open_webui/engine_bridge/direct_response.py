@@ -48,8 +48,6 @@ async def stream_direct_events(payload: dict) -> AsyncIterator[DirectEvent]:
 
 
 async def stream_action_events(payload: dict, action: HermesAction) -> AsyncIterator[DirectEvent]:
-    # Transition volontaire : les actions ne passent à Codex qu'après branchement et tests
-    # réels de leurs MCP. Le repli n'est jamais utilisé pour une action déjà commencée.
-    async for event in hermes_direct.stream_action_events(payload, action):
+    backend = codex_direct if active_engine() == 'codex' else hermes_direct
+    async for event in backend.stream_action_events(payload, action):
         yield event
-

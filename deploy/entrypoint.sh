@@ -19,6 +19,11 @@ chmod 700 "${LUNARIA_CODEX_HOME:-/app/backend/data/codex}"
 mkdir -p "${OPENCODEX_HOME:-/app/backend/data/opencodex}"
 chmod 700 "${OPENCODEX_HOME:-/app/backend/data/opencodex}"
 
+# La sélection MCP reste pilotée par l'interface LunarIA. Codex reçoit les connecteurs
+# activés compatibles ; un échec n'empêche jamais l'application de démarrer.
+python -m open_webui.codex_bridge.sync_mcp \
+  >>"${LUNARIA_CODEX_HOME:-/app/backend/data/codex}/mcp-sync.log" 2>&1 || true
+
 # OpenCodex ne reçoit qu'une liste blanche de clés de FOURNISSEURS LLM. Les secrets MCP,
 # la clé interne LunarIA et les tokens de canaux restent hors de son processus.
 if [ "${LUNARIA_OPENCODEX_ENABLED:-0}" = "1" ]; then

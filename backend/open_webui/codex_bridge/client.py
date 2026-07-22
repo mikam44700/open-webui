@@ -35,6 +35,7 @@ class CodexEvent:
     duration_ms: int = 0
     usage: dict[str, Any] = field(default_factory=dict)
     message: str = ''
+    tool: str = ''
 
 
 _TERMINAL_TURN_STATUSES = frozenset({'completed', 'failed', 'interrupted', 'cancelled'})
@@ -80,6 +81,7 @@ def notification_to_event(message: Mapping[str, Any]) -> CodexEvent | None:
             item_id=str(item.get('id') or ''),
             item_type=item_type,
             status=str(item.get('status') or ''),
+            tool=str(item.get('tool') or item.get('name') or item_type),
         )
 
     if method == 'thread/tokenUsage/updated':

@@ -1,8 +1,7 @@
 """Chemin conversationnel Codex compatible avec le flux actuel de LunarIA.
 
-Cette première étape remplace uniquement le tour LLM sans outil. Les actions restent
-temporairement confiées au chemin Hermes existant jusqu'au portage de leurs MCP. Le choix
-est réversible avec ``LUNARIA_ENGINE=hermes|codex`` et ne modifie aucune donnée utilisateur.
+Les réponses directes et les actions MCP bornées passent par App Server. Le choix reste
+réversible avec ``LUNARIA_ENGINE=hermes|codex`` et ne modifie aucune donnée utilisateur.
 """
 
 from __future__ import annotations
@@ -11,13 +10,19 @@ import os
 import time
 from collections.abc import AsyncIterator
 
-from open_webui.hermes_bridge.direct_response import DirectEvent, ROUTING_POLICY
+from open_webui.hermes_bridge.direct_response import (
+    BOUNDED_CAPABILITIES,
+    DirectEvent,
+    HermesAction,
+    ROUTING_POLICY,
+    action_handoff_policy,
+)
 
 from .client import CodexProtocolError
 from .runtime import get_client
 
 
-def _conversation(payload: dict) -> tuple[str, str]:
+def _conversation(payload: dict, *, allow_tools: bool = False) -> tuple[str, str]:
     """Sépare les instructions de l'historique transmis au tour éphémère Codex."""
     instructions: list[str] = []
     history: list[str] = []
@@ -51,11 +56,13 @@ def _conversation(payload: dict) -> tuple[str, str]:
     # pas créer une deuxième source de vérité pour les conversations LunarIA.
     transcript = '\n\n'.join(history[-24:])[-48_000:]
     developer = '\n\n'.join(instructions)[-24_000:]
-    developer = (
-        f'{developer}\n\n{ROUTING_POLICY}\n\n'
-        "Contrainte du tour direct : n'utilise aucun outil, terminal, fichier ou accès web. "
-        "Réponds directement ou émets uniquement le contrat JSON LunarIA demandé."
-    ).strip()
+    developer = f'{developer}\n\n{ROUTING_POLICY}'.strip()
+    if not allow_tools:
+        developer = (
+            f'{developer}\n\n'
+            "Contrainte du tour direct : n'utilise aucun outil, terminal, fichier ou accès web. "
+            "Réponds directement ou émets uniquement le contrat JSON LunarIA demandé."
+        )
     return developer, transcript
 
 
@@ -112,6 +119,94 @@ async def stream_direct_events(payload: dict) -> AsyncIterator[DirectEvent]:
                     answer=''.join(answer),
                     model=model or 'codex',
                     elapsed_ms=round((time.perf_counter() - started) * 1000),
+                )
+                return
+    except (CodexProtocolError, OSError, TimeoutError, ValueError) as exc:
+        yield DirectEvent(
+            type='error',
+            error_type=type(exc).__name__,
+            message=str(exc)[:300],
+            elapsed_ms=round((time.perf_counter() - started) * 1000),
+        )
+
+
+async def stream_action_events(payload: dict, action: HermesAction) -> AsyncIterator[DirectEvent]:
+    """Exécute les actions bornées avec les MCP Codex, sans boucle Hermes."""
+    if action.capacite not in BOUNDED_CAPABILITIES:
+        yield DirectEvent(type='error', error_type='UnboundedCapability', message=action.capacite)
+        return
+
+    started = time.perf_counter()
+    instructions, transcript = _conversation(payload, allow_tools=True)
+    instructions = (
+        f"{instructions}\n\n{action_handoff_policy(action.objectif, action.capacite)}\n"
+        "Tu peux maintenant utiliser les MCP configurés. N'utilise le terminal que si aucun "
+        "MCP adapté n'existe. Maximum trois appels d'outils."
+    )
+    model = os.environ.get('LUNARIA_CODEX_MODEL', '').strip() or None
+    provider = os.environ.get('LUNARIA_CODEX_PROVIDER', '').strip() or None
+    effort = os.environ.get('LUNARIA_CODEX_EFFORT', 'low').strip() or None
+    answer: list[str] = []
+    tool_count = 0
+
+    try:
+        client = await get_client()
+        thread_id = await client.start_thread(
+            model=model,
+            model_provider=provider,
+            developer_instructions=instructions,
+            ephemeral=True,
+        )
+        yield DirectEvent(type='started', model=model or 'codex')
+        async for event in client.stream_turn(
+            thread_id,
+            f"{transcript}\n\nACTION À EXÉCUTER : {action.objectif}",
+            model=model,
+            effort=effort,
+            timeout=float(os.environ.get('LUNARIA_CODEX_ACTION_TIMEOUT', '120')),
+        ):
+            if event.type == 'delta' and event.text:
+                answer.append(event.text)
+                yield DirectEvent(type='delta', text=event.text, model=model or 'codex')
+            elif event.type == 'tool_started':
+                tool_count += 1
+                if tool_count > 3:
+                    await client.interrupt_turn(event.thread_id, event.turn_id)
+                    yield DirectEvent(
+                        type='error',
+                        error_type='CodexToolBudgetExceeded',
+                        message='maximum 3 outils',
+                        tool_count=tool_count,
+                    )
+                    return
+                yield DirectEvent(
+                    type='tool_started',
+                    tool=event.tool or event.item_type,
+                    tool_call_id=event.item_id,
+                    tool_count=tool_count,
+                )
+            elif event.type == 'tool_completed':
+                yield DirectEvent(
+                    type='tool_completed',
+                    tool=event.tool or event.item_type,
+                    tool_call_id=event.item_id,
+                    tool_count=tool_count,
+                )
+            elif event.type == 'error':
+                yield DirectEvent(
+                    type='error',
+                    error_type='CodexActionFailed',
+                    message=event.message,
+                    elapsed_ms=round((time.perf_counter() - started) * 1000),
+                )
+                return
+            elif event.type == 'done':
+                yield DirectEvent(
+                    type='done',
+                    answer=''.join(answer),
+                    model=model or 'codex',
+                    elapsed_ms=round((time.perf_counter() - started) * 1000),
+                    tool_count=tool_count,
                 )
                 return
     except (CodexProtocolError, OSError, TimeoutError, ValueError) as exc:
