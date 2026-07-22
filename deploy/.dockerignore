@@ -1,0 +1,8 @@
+# Contexte de build de l'image finale (lunaria-app). Ce dossier contient des secrets :
+# ils ne doivent JAMAIS transiter par le demon Docker ni finir dans une couche d'image.
+.env
+.env.*
+.hermes-seed/
+
+# Inutile au build de l'image
+README.md

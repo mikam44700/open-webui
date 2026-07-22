@@ -7,6 +7,15 @@ node_modules
 /package
 .env
 .env.*
+# Les motifs ci-dessus ne couvrent que la racine du contexte : Docker compare le chemin
+# complet, donc deploy/.env doit etre exclu explicitement (secrets + config Hermes perso).
+deploy/.env
+deploy/.env.*
+deploy/.hermes-seed
+# Jamais lus pendant le build (le numero de version passe par l'ARG BUILD_HASH) et lourds :
+# .git ~600 Mo, /build = residu d'un build local, regenere dans l'image de toute facon.
+.git
+/build
 vite.config.js.timestamp-*
 vite.config.ts.timestamp-*
 __pycache__
