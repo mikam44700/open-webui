@@ -88,6 +88,10 @@ export const disconnectTool = (token: string, name: string) =>
 export const disconnectToolProvider = (token: string, name: string, keys: string[]) =>
 	call(token, 'POST', `/tools/${encodeURIComponent(name)}/disconnect-provider`, { keys });
 
+// Choisit un fournisseur déjà connecté comme moteur web actif (aucun secret ne transite).
+export const activateToolProvider = (token: string, name: string, slug: string) =>
+	call(token, 'POST', `/tools/${encodeURIComponent(name)}/activate-provider`, { slug });
+
 export const startToolOAuth = (token: string, name: string) =>
 	call(token, 'POST', `/tools/${encodeURIComponent(name)}/oauth/start`);
 

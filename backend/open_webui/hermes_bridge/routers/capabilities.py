@@ -17,7 +17,13 @@ from ..models import (
     ToolOAuthStatus,
     ToolsetsResponse,
 )
-from ..schemas import CapabilityEnabledBody, CustomSkillCreateBody, ToolDisconnectBody, ToolKeyBody
+from ..schemas import (
+    CapabilityEnabledBody,
+    CustomSkillCreateBody,
+    ToolDisconnectBody,
+    ToolKeyBody,
+    ToolProviderBody,
+)
 
 router = APIRouter(dependencies=[Depends(require_bridge_key)])
 
@@ -159,6 +165,26 @@ def post_tool_disconnect_provider(toolset_name: str, body: ToolDisconnectBody) -
         )
     except hermes_adapter.HermesUnavailable as exc:
         raise hermes_unavailable(exc)
+
+
+@router.post("/tools/{toolset_name}/activate-provider")
+def post_tool_activate_provider(toolset_name: str, body: ToolProviderBody) -> dict:
+    """Choisit explicitement le fournisseur utilisé par un toolset connecté."""
+    if toolset_name != "web":
+        raise HTTPException(
+            status_code=422,
+            detail={"error": {"code": "invalid_input", "message": "choix réservé à la recherche web"}},
+        )
+    try:
+        backend = tool_connection_adapter.activate_web_provider(body.slug)
+    except (KeyError, ValueError) as exc:
+        raise HTTPException(
+            status_code=422,
+            detail={"error": {"code": "invalid_input", "message": str(exc)}},
+        )
+    except hermes_adapter.HermesUnavailable as exc:
+        raise hermes_unavailable(exc)
+    return {"active": body.slug, "backend": backend}
 
 
 @router.post("/tools/{toolset_name}/oauth/start")

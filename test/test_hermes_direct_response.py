@@ -83,3 +83,20 @@ def test_only_bounded_capabilities_use_the_restricted_runtime():
     assert direct.BOUNDED_CAPABILITIES == {'web', 'document', 'memory'}
     assert 'integration' in direct.ACTION_CAPABILITIES
     assert 'complex' in direct.ACTION_CAPABILITIES
+
+
+def test_existing_web_sources_force_direct_synthesis_without_second_search():
+    payload = {
+        'messages': [
+            {'role': 'system', 'content': '<source id="1">Résultat vérifié</source>'},
+            {'role': 'user', 'content': 'Quelles sont les actualités ?'},
+        ]
+    }
+    policy = direct.routing_policy_for_payload(payload)
+    assert 'sources web vérifiées sont déjà présentes' in policy
+    assert 'ne demande jamais une nouvelle action web' in policy
+
+
+def test_normal_prompt_keeps_standard_routing_policy():
+    payload = {'messages': [{'role': 'user', 'content': 'Salut'}]}
+    assert direct.routing_policy_for_payload(payload) == direct.ROUTING_POLICY

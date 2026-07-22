@@ -431,6 +431,45 @@ async def get_retrieval_config() -> RetrievalConfig:
     return RetrievalConfig(await get_config_values(RETRIEVAL_CONFIG_KEYS))
 
 
+# Le client choisit ses fournisseurs dans Moteur, qui écrit la configuration Hermes.
+# Le chat relit ce même choix à chaque recherche afin d'éviter deux configurations qui
+# divergent (cause du repli DuckDuckGo observé le 2026-07-22).
+_LUNARIA_WEB_PROVIDERS = {
+    'exa': ('exa', 'EXA_API_KEY', 'EXA_API_KEY'),
+    'brave-free': ('brave', 'BRAVE_SEARCH_API_KEY', 'BRAVE_SEARCH_API_KEY'),
+    'tavily': ('tavily', 'TAVILY_API_KEY', 'TAVILY_API_KEY'),
+    'firecrawl': ('firecrawl', 'FIRECRAWL_API_KEY', 'FIRECRAWL_API_KEY'),
+}
+
+
+def _lunaria_web_search_plan(config: RetrievalConfig) -> list[str]:
+    """Fournisseur choisi, autres connexions client, puis DuckDuckGo en dernier.
+
+    Les secrets sont seulement relus côté serveur depuis le coffre Hermes et injectés dans
+    l'objet de requête en mémoire. Ils ne sont ni copiés en base, ni journalisés, ni renvoyés.
+    """
+    try:
+        from open_webui.hermes_bridge import hermes_adapter
+
+        active_backend = hermes_adapter.get_web_backends().get('search', '')
+        connected: dict[str, str] = {}
+        for backend, (engine, env_key, config_attr) in _LUNARIA_WEB_PROVIDERS.items():
+            value = (hermes_adapter.read_env_value(env_key) or '').strip().strip('"').strip("'")
+            if value:
+                object.__setattr__(config, config_attr, value)
+                connected[backend] = engine
+
+        ordered: list[str] = []
+        if active_backend in connected:
+            ordered.append(connected[active_backend])
+        ordered.extend(engine for backend, engine in connected.items() if backend != active_backend)
+        ordered.append('duckduckgo')
+        return list(dict.fromkeys(ordered))
+    except Exception:  # noqa: BLE001 — le filet historique doit rester disponible
+        configured = str(getattr(config, 'WEB_SEARCH_ENGINE', '') or '').strip()
+        return list(dict.fromkeys([configured, 'duckduckgo'])) if configured else ['duckduckgo']
+
+
 class CollectionNameForm(BaseModel):
     collection_name: str | None = None
 
@@ -2175,6 +2214,10 @@ async def search_web(request: Request, engine: str, query: str, user=None) -> li
 
     # TODO: add playwright to search the web
     config = await get_retrieval_config()
+    # Recharge aussi les identifiants du coffre Hermes pour le fournisseur choisi dans
+    # l'interface LunarIA. La liste retournée n'est pas utilisée ici : elle sert au repli
+    # ordonné dans process_web_search.
+    _lunaria_web_search_plan(config)
     if engine == 'ollama_cloud':
         return await asyncio.to_thread(
             search_ollama_cloud,
@@ -2531,7 +2574,23 @@ async def process_web_search(request: Request, form_data: SearchForm, user=Depen
     result_items = []
 
     try:
-        logging.debug(f'trying to web search with {config.WEB_SEARCH_ENGINE, form_data.queries}')
+        search_engines = _lunaria_web_search_plan(config)
+        logging.info('LunarIA web search provider order: %s', ' -> '.join(search_engines))
+
+        async def search_query(query: str):
+            last_error: Exception | None = None
+            for engine in search_engines:
+                try:
+                    results = await search_web(request, engine, query, user)
+                    if results:
+                        logging.info('LunarIA web search provider used: %s', engine)
+                        return results
+                except Exception as exc:  # fournisseur suivant, sans exposer la clé
+                    last_error = exc
+                    logging.warning('LunarIA web provider %s failed; trying fallback', engine)
+            if last_error:
+                raise last_error
+            return []
 
         # Use semaphore to limit concurrent requests based on WEB_SEARCH_CONCURRENT_REQUESTS
         # 0 or None = unlimited (previous behavior), positive number = limited concurrency
@@ -2544,25 +2603,12 @@ async def process_web_search(request: Request, form_data: SearchForm, user=Depen
 
             async def search_query_with_semaphore(query):
                 async with semaphore:
-                    return await search_web(
-                        request,
-                        config.WEB_SEARCH_ENGINE,
-                        query,
-                        user,
-                    )
+                    return await search_query(query)
 
             search_tasks = [search_query_with_semaphore(query) for query in form_data.queries]
         else:
             # Unlimited parallel execution
-            search_tasks = [
-                search_web(
-                    request,
-                    config.WEB_SEARCH_ENGINE,
-                    query,
-                    user,
-                )
-                for query in form_data.queries
-            ]
+            search_tasks = [search_query(query) for query in form_data.queries]
 
         search_results = await asyncio.gather(*search_tasks)
 

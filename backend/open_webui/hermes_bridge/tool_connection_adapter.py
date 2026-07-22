@@ -557,6 +557,27 @@ def _apply_web_backend_for_env_vars(env_vars: list[str]) -> None:
             return
 
 
+def activate_web_provider(slug: str) -> str:
+    """Rend actif un fournisseur web déjà connecté, sans jamais recevoir sa clé.
+
+    Le choix est persisté dans la configuration Hermes, point de vérité également relu
+    par le pipeline web du chat. DuckDuckGo reste sélectionnable comme filet gratuit,
+    mais n'est jamais préféré à la place d'un choix client.
+    """
+    normalized = (slug or "").strip().lower()
+    backend = _backend_for_slug(normalized)
+    if not backend:
+        raise KeyError(f"fournisseur web non activable: {normalized or 'inconnu'}")
+
+    if normalized != "duckduckgo":
+        env_vars = [key for key, candidate in _web_env_to_slug().items() if candidate == normalized]
+        if not env_vars or not any(hermes_adapter.read_env_value(key) for key in env_vars):
+            raise ValueError("connecte d'abord ce fournisseur avant de l'utiliser")
+
+    hermes_adapter.set_web_backend(backend, _extract_for(backend))
+    return backend
+
+
 def _resolve_active_web_backend() -> tuple[str, str]:
     """(search, extract) à appliquer d'après les fournisseurs web encore connectés.
 

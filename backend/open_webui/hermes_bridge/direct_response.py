@@ -55,6 +55,24 @@ ROUTING_POLICY = """Politique interne LunarIA — réponse ou action :
 """
 
 
+def routing_policy_for_payload(payload: dict) -> str:
+    """Évite de relancer Hermes quand le middleware a déjà fourni des sources web."""
+    messages = payload.get('messages') or []
+    has_sources = any(
+        '<source id=' in str(message.get('content') or '')
+        for message in messages
+        if isinstance(message, dict)
+    )
+    if not has_sources:
+        return ROUTING_POLICY
+    return (
+        ROUTING_POLICY
+        + "\n- Des sources web vérifiées sont déjà présentes dans la conversation. "
+        "Réponds directement à partir de ces sources avec leurs citations ; ne demande "
+        "jamais une nouvelle action web pour cette requête.\n"
+    )
+
+
 @dataclass(slots=True)
 class DirectEvent:
     type: Literal['started', 'delta', 'tool_started', 'tool_completed', 'done', 'budget', 'error']
@@ -181,7 +199,7 @@ async def stream_direct_events(payload: dict) -> AsyncIterator[DirectEvent]:
         'mode': 'direct',
         'messages': payload.get('messages') or [],
         'max_tokens': payload.get('max_tokens') or payload.get('max_completion_tokens'),
-        'policy': ROUTING_POLICY,
+        'policy': routing_policy_for_payload(payload),
         'timeout_seconds': 45,
         'max_iterations': 1,
         'max_tools': 0,

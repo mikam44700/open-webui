@@ -6,6 +6,7 @@
 		setToolKey,
 		testToolKey,
 		disconnectToolProvider,
+		activateToolProvider,
 		startToolOAuth,
 		getToolOAuthStatus
 	} from '$lib/apis/capabilities';
@@ -128,6 +129,20 @@
 			else toast.error($i18n.t('Échec de la connexion') + (res?.reason ? ` : ${res.reason}` : ''));
 		} catch (err: any) {
 			toast.error(err?.error?.message ?? $i18n.t('Impossible de tester.'));
+		} finally {
+			busy = false;
+		}
+	};
+
+	const onActivate = async () => {
+		if (toolsetName !== 'web' || !provider.slug) return;
+		busy = true;
+		try {
+			await activateToolProvider(localStorage.token, toolsetName, provider.slug);
+			toast.success($i18n.t('{{provider}} est maintenant utilisé pour les recherches.', { provider: provider.name }));
+			dispatch('changed');
+		} catch (err: any) {
+			toast.error(err?.error?.message ?? $i18n.t('Impossible de choisir ce fournisseur.'));
 		} finally {
 			busy = false;
 		}
@@ -270,6 +285,16 @@
 			</span>
 
 			<div class="flex items-center gap-1.5">
+				{#if toolsetName === 'web' && saved && status === 'saved'}
+					<button
+						type="button"
+						class="text-xs px-3 py-2 rounded-lg bg-black text-white dark:bg-white dark:text-black btn-premium disabled:opacity-40"
+						disabled={busy}
+						on:click={onActivate}
+					>
+						{#if busy}<Spinner className="size-3.5" />{:else}{$i18n.t('Utiliser')}{/if}
+					</button>
+				{/if}
 				{#if isKey && showField}
 					<button
 						type="button"

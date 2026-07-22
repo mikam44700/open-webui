@@ -184,6 +184,10 @@ class ToolDisconnectBody(BaseModel):
     keys: list[str]
 
 
+class ToolProviderBody(BaseModel):
+    slug: str
+
+
 # --- Automatisations (feature 013) -------------------------------------------
 
 
