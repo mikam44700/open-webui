@@ -1,7 +1,12 @@
 import pytest
 
 from open_webui.hermes_bridge import hermes_adapter, tool_connection_adapter
-from open_webui.routers.retrieval import RetrievalConfig, _lunaria_web_search_plan
+from open_webui.retrieval.web.main import SearchResult
+from open_webui.routers.retrieval import (
+    RetrievalConfig,
+    _lunaria_direct_search_docs,
+    _lunaria_web_search_plan,
+)
 
 
 def test_explicit_connected_provider_is_activated(monkeypatch):
@@ -62,3 +67,19 @@ def test_duckduckgo_is_last_when_a_client_provider_is_connected(monkeypatch):
     )
 
     assert _lunaria_web_search_plan(RetrievalConfig({})) == ['exa', 'duckduckgo']
+
+
+def test_specialized_search_results_keep_every_distinct_url_for_the_llm():
+    results = [
+        SearchResult(link='https://example.com/a', title='Actualité A', snippet='Résumé A'),
+        SearchResult(link='https://example.com/b', title='Actualité B', snippet='Résumé B'),
+        SearchResult(link='https://example.com/a', title='Doublon A', snippet='Autre résumé'),
+    ]
+
+    docs = _lunaria_direct_search_docs(results)
+
+    assert len(docs) == 2
+    assert docs[0].metadata['source'] == 'https://example.com/a'
+    assert 'Titre : Actualité A' in docs[0].page_content
+    assert 'URL : https://example.com/a' in docs[0].page_content
+    assert 'Extrait : Résumé A' in docs[0].page_content

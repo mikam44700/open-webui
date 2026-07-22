@@ -441,6 +441,8 @@ _LUNARIA_WEB_PROVIDERS = {
     'firecrawl': ('firecrawl', 'FIRECRAWL_API_KEY', 'FIRECRAWL_API_KEY'),
 }
 
+_LUNARIA_SEARCH_SNIPPET_LIMIT = 3_000
+
 
 def _lunaria_web_search_plan(config: RetrievalConfig) -> list[str]:
     """Fournisseur choisi, autres connexions client, puis DuckDuckGo en dernier.
@@ -468,6 +470,37 @@ def _lunaria_web_search_plan(config: RetrievalConfig) -> list[str]:
     except Exception:  # noqa: BLE001 — le filet historique doit rester disponible
         configured = str(getattr(config, 'WEB_SEARCH_ENGINE', '') or '').strip()
         return list(dict.fromkeys([configured, 'duckduckgo'])) if configured else ['duckduckgo']
+
+
+def _lunaria_direct_search_docs(result_items: list) -> list[Document]:
+    """Prépare un résultat de recherche rapide, lisible et citable par le LLM.
+
+    Les moteurs spécialisés renvoient déjà le titre, l'URL et un extrait pertinent. Les
+    recharger puis les découper en embeddings faisait perdre des sources et ajoutait plus
+    de dix secondes. On conserve ici une entrée par URL, avec le lien dans le texte envoyé
+    au modèle. Crawl4AI reste disponible séparément lorsqu'une page doit être lue en entier.
+    """
+    docs: list[Document] = []
+    seen_urls: set[str] = set()
+    for result in result_items:
+        url = str(getattr(result, 'link', '') or '').strip()
+        if not url or url in seen_urls:
+            continue
+        seen_urls.add(url)
+        title = str(getattr(result, 'title', '') or '').strip()
+        snippet = str(getattr(result, 'snippet', '') or '').strip()[:_LUNARIA_SEARCH_SNIPPET_LIMIT]
+        docs.append(
+            Document(
+                page_content=f'Titre : {title}\nURL : {url}\nExtrait : {snippet}',
+                metadata={
+                    'source': url,
+                    'title': title,
+                    'snippet': snippet,
+                    'link': url,
+                },
+            )
+        )
+    return docs
 
 
 class CollectionNameForm(BaseModel):
@@ -2575,6 +2608,7 @@ async def process_web_search(request: Request, form_data: SearchForm, user=Depen
 
     try:
         search_engines = _lunaria_web_search_plan(config)
+        direct_search_context = bool(search_engines and search_engines[0] != 'duckduckgo')
         logging.info('LunarIA web search provider order: %s', ' -> '.join(search_engines))
 
         async def search_query(query: str):
@@ -2633,7 +2667,15 @@ async def process_web_search(request: Request, form_data: SearchForm, user=Depen
         )
 
     try:
-        if config.BYPASS_WEB_SEARCH_WEB_LOADER:
+        if direct_search_context:
+            docs = _lunaria_direct_search_docs(result_items)
+            urls = [doc.metadata['source'] for doc in docs]
+            result_items = [dict(item) for item in result_items if item.link in set(urls)]
+            logging.info(
+                'LunarIA direct web context: %s distinct sources (loader and embeddings skipped)',
+                len(docs),
+            )
+        elif config.BYPASS_WEB_SEARCH_WEB_LOADER:
             search_results = [item for result in search_results for item in result if result]
 
             docs = [
@@ -2665,7 +2707,7 @@ async def process_web_search(request: Request, form_data: SearchForm, user=Depen
             dict(item) for item in result_items if item.link in urls
         ]  # only keep the search results that have been loaded
 
-        if config.BYPASS_WEB_SEARCH_EMBEDDING_AND_RETRIEVAL:
+        if direct_search_context or config.BYPASS_WEB_SEARCH_EMBEDDING_AND_RETRIEVAL:
             return {
                 'status': True,
                 'collection_name': None,
