@@ -1219,6 +1219,19 @@ _FIELD_TEST: dict[str, dict] = {
     "OPENAI_API_KEY": {"kind": "bearer", "url": "https://api.openai.com/v1/models"},
     "OPENROUTER_API_KEY": {"kind": "bearer", "url": "https://openrouter.ai/api/v1/key"},
     "XAI_API_KEY": {"kind": "bearer", "url": "https://api.x.ai/v1/api-key"},
+    # Exa ne propose pas d'endpoint GET gratuit de validation : une recherche minimale
+    # confirme simultanément l'authentification et l'accès réel au service.
+    "EXA_API_KEY": {
+        "kind": "header",
+        "header": "x-api-key",
+        "url": "https://api.exa.ai/search",
+        "method": "POST",
+        "json": {
+            "query": "LunarIA connection test",
+            "type": "instant",
+            "numResults": 1,
+        },
+    },
     # Brave : header dédié (consomme 1 requête du quota gratuit)
     "BRAVE_SEARCH_API_KEY": {
         "kind": "header",
@@ -1334,7 +1347,13 @@ def test_key(values: dict[str, str]) -> dict:
             headers["Authorization"] = f"Bearer {value}"
         elif cfg["kind"] == "header":
             headers[cfg["header"]] = value
-        r = httpx.get(cfg["url"], headers=headers, timeout=12.0)
+        r = httpx.request(
+            cfg.get("method", "GET"),
+            cfg["url"],
+            headers=headers,
+            json=cfg.get("json"),
+            timeout=12.0,
+        )
         if r.status_code in (401, 403):
             return {"tested": True, "ok": False, "reason": f"Clé refusée (HTTP {r.status_code})."}
         if r.status_code < 400:

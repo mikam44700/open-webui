@@ -49,13 +49,14 @@
 
 	$: field = provider.fields?.[0] ?? null;
 	$: status = providerStatus(provider);
-	$: saved = status === 'saved';
+	$: saved = status === 'saved' || status === 'key-active';
 	$: isKey = provider.kind === 'key';
 	$: isOAuth = provider.kind === 'oauth';
 
 	// Badge d'état (honnête, mêmes libellés que la carte dépliée).
 	const BADGE: Record<string, { label: string; cls: string }> = {
 		saved: { label: 'Clé enregistrée', cls: 'text-sky-700 bg-sky-500/10 dark:text-sky-400' },
+		'key-active': { label: 'Actif', cls: 'text-green-700 bg-green-500/10 dark:text-green-400' },
 		detected: { label: 'Connecté', cls: 'text-green-700 bg-green-500/10 dark:text-green-400' },
 		disconnected: { label: 'Non connecté', cls: 'text-amber-700 bg-amber-500/10 dark:text-amber-400' },
 		active: { label: 'Actif sans clé', cls: 'text-green-700 bg-green-500/10 dark:text-green-400' },
@@ -68,7 +69,7 @@
 	};
 	$: badge = BADGE[status] ?? BADGE.none;
 	// Actif = réellement connecté/vérifié → pastille verte clignotante « Actif ».
-	$: connectedActive = status === 'detected' || status === 'active';
+	$: connectedActive = status === 'key-active' || status === 'detected' || status === 'active';
 	// Non connecté = redondant (le bouton « Se connecter » suffit) → pas de chip.
 	$: hideBadge = status === 'disconnected' || status === 'none';
 
@@ -94,7 +95,15 @@
 		if (!field || !fieldValue.trim()) return;
 		busy = true;
 		try {
-			await setToolKey(localStorage.token, toolsetName, { [field.key]: fieldValue.trim() });
+			const value = fieldValue.trim();
+			const test = await testToolKey(localStorage.token, toolsetName, { [field.key]: value });
+			if (test?.tested && !test?.ok) {
+				toast.error(
+					$i18n.t('Échec de la connexion') + (test?.reason ? ` : ${test.reason}` : '')
+				);
+				return;
+			}
+			await setToolKey(localStorage.token, toolsetName, { [field.key]: value });
 			for (const f of provider.fields) if (f.key === field.key) f.present = true;
 			provider = provider;
 			fieldValue = '';
@@ -109,9 +118,12 @@
 	};
 
 	const onTest = async () => {
+		if (!field) return;
 		busy = true;
 		try {
-			const res = await testToolKey(localStorage.token, toolsetName, {});
+			// Une valeur vide demande au backend de relire la clé déjà enregistrée sans
+			// jamais la renvoyer au navigateur.
+			const res = await testToolKey(localStorage.token, toolsetName, { [field.key]: '' });
 			if (res?.tested && res?.ok) toast.success($i18n.t('Connexion réussie !'));
 			else toast.error($i18n.t('Échec de la connexion') + (res?.reason ? ` : ${res.reason}` : ''));
 		} catch (err: any) {
