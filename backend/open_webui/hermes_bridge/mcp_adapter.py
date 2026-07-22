@@ -505,7 +505,9 @@ print(json.dumps({{"removed": bool(removed)}}))
 
 def set_enabled(name: str, enabled: bool, hermes_home=None) -> bool:
     """Active/désactive un connecteur (champ ``enabled`` de config.yaml du profil). False si inconnu."""
-    script = _SET_ENABLED_SCRIPT.format(name=json.dumps(name), enabled=json.dumps(bool(enabled)))
+    # This template is Python, not JSON: use ``True``/``False`` rather than
+    # JSON's lowercase booleans (which raise NameError in the subprocess).
+    script = _SET_ENABLED_SCRIPT.format(name=json.dumps(name), enabled=repr(bool(enabled)))
     result = _mcp_introspect(script, hermes_home=hermes_home)
     return bool(result.get("found"))
 

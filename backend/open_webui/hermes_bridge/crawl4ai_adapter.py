@@ -913,6 +913,13 @@ def _register(token: str) -> None:
     mcp_adapter.set_key(MCP_NAME, token)
     if not _mcp_registered():
         mcp_adapter.add_custom(MCP_NAME, "sse", url=MCP_URL, auth_type="key")
+    if MANAGED:
+        # The managed service remains available to LunarIA's dedicated crawl
+        # endpoints, but must not sit in every chat agent's generic MCP catalog.
+        # In production measurements it duplicated sources-publiques and could
+        # block a one-fact web lookup for 60 seconds. An admin can still use the
+        # dedicated Crawl4AI capability; no container or data is removed.
+        mcp_adapter.set_enabled(MCP_NAME, False)
 
 
 def uninstall() -> dict:

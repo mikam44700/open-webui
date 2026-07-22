@@ -21,7 +21,10 @@ from mcp.server.fastmcp import FastMCP
 
 mcp = FastMCP("sources-publiques")
 TIMEOUT = 35
-MAX_TEXT = 50_000
+# Keep public pages inline in the agent context. Larger payloads are externalized
+# by Hermes, forcing extra search/read turns and making a one-fact lookup take a
+# minute. 12k chars is enough for the useful body of a normal official page.
+MAX_TEXT = 12_000
 UA = "LunarIA-public-research/1.0"
 YTDLP = "/opt/hermes-agent/venv/bin/yt-dlp"
 
@@ -36,12 +39,51 @@ def _http_json(url: str) -> object:
         return json.loads(response.read().decode("utf-8"))
 
 
+def _github_release(url: str) -> dict | None:
+    """Resolve a GitHub release page through the public API (HTML often 403s)."""
+    match = re.match(
+        r"https?://github\.com/([^/]+)/([^/]+)/releases/tag/([^/?#]+)",
+        url,
+    )
+    if not match:
+        return None
+    owner, repo, requested_tag = (urllib.parse.unquote(part) for part in match.groups())
+    api_root = f"https://api.github.com/repos/{owner}/{repo}/releases"
+    try:
+        release = _http_json(f"{api_root}/tags/{urllib.parse.quote(requested_tag, safe='')}")
+    except Exception:
+        releases = _http_json(f"{api_root}?per_page=30")
+        needle = requested_tag.lower().lstrip('v')
+        release = next(
+            (
+                row
+                for row in releases
+                if needle in str(row.get('tag_name') or '').lower()
+                or needle in str(row.get('name') or '').lower()
+            ),
+            None,
+        )
+    if not isinstance(release, dict):
+        return {'url': url, 'erreur': 'Release GitHub officielle introuvable.'}
+    return {
+        'url': release.get('html_url') or url,
+        'tag': release.get('tag_name'),
+        'titre': release.get('name'),
+        'publie_le': release.get('published_at'),
+        'cree_le': release.get('created_at'),
+        'contenu': str(release.get('body') or '')[:MAX_TEXT],
+    }
+
+
 @mcp.tool()
 def lire_page_publique(url: str) -> str:
-    """Lit une page HTTP(S) publique via le canal Web Agent Reach (Jina Reader)."""
+    """Lit UNE page publique et renvoie au plus 12k caractères utiles. Ne pas rappeler cet outil sur la même URL."""
     if not url.startswith(("http://", "https://")):
         return _json({"erreur": "URL publique HTTP(S) requise."})
     try:
+        github_release = _github_release(url)
+        if github_release is not None:
+            return _json(github_release)
         text = WebChannel().read(url)
         return _json({"url": url, "contenu": text[:MAX_TEXT], "tronque": len(text) > MAX_TEXT})
     except Exception as exc:  # noqa: BLE001
