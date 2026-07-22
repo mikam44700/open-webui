@@ -503,6 +503,18 @@ def _lunaria_direct_search_docs(result_items: list) -> list[Document]:
     return docs
 
 
+def _lunaria_serialize_search_items(result_items: list, urls: list[str]) -> list[dict]:
+    """Sérialise les résultats une seule fois, sans supposer encore ``item.link`` ensuite."""
+    allowed_urls = set(urls)
+    serialized: list[dict] = []
+    for item in result_items:
+        link = item.get('link') if isinstance(item, dict) else getattr(item, 'link', None)
+        if link not in allowed_urls:
+            continue
+        serialized.append(item if isinstance(item, dict) else dict(item))
+    return serialized
+
+
 class CollectionNameForm(BaseModel):
     collection_name: str | None = None
 
@@ -2670,7 +2682,6 @@ async def process_web_search(request: Request, form_data: SearchForm, user=Depen
         if direct_search_context:
             docs = _lunaria_direct_search_docs(result_items)
             urls = [doc.metadata['source'] for doc in docs]
-            result_items = [dict(item) for item in result_items if item.link in set(urls)]
             logging.info(
                 'LunarIA direct web context: %s distinct sources (loader and embeddings skipped)',
                 len(docs),
@@ -2703,9 +2714,7 @@ async def process_web_search(request: Request, form_data: SearchForm, user=Depen
         urls = [
             doc.metadata.get('source') for doc in docs if doc.metadata.get('source')
         ]  # only keep the urls returned by the loader
-        result_items = [
-            dict(item) for item in result_items if item.link in urls
-        ]  # only keep the search results that have been loaded
+        result_items = _lunaria_serialize_search_items(result_items, urls)
 
         if direct_search_context or config.BYPASS_WEB_SEARCH_EMBEDDING_AND_RETRIEVAL:
             return {

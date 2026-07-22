@@ -5,6 +5,7 @@ from open_webui.retrieval.web.main import SearchResult
 from open_webui.routers.retrieval import (
     RetrievalConfig,
     _lunaria_direct_search_docs,
+    _lunaria_serialize_search_items,
     _lunaria_web_search_plan,
 )
 
@@ -83,3 +84,17 @@ def test_specialized_search_results_keep_every_distinct_url_for_the_llm():
     assert 'Titre : Actualité A' in docs[0].page_content
     assert 'URL : https://example.com/a' in docs[0].page_content
     assert 'Extrait : Résumé A' in docs[0].page_content
+
+
+def test_search_items_can_be_filtered_after_serialization_without_crashing():
+    results = [
+        SearchResult(link='https://example.com/a', title='A', snippet='Résumé'),
+        SearchResult(link='https://example.com/b', title='B', snippet='Résumé'),
+    ]
+
+    serialized = _lunaria_serialize_search_items(results, ['https://example.com/a'])
+    serialized_again = _lunaria_serialize_search_items(serialized, ['https://example.com/a'])
+
+    assert serialized_again == [
+        {'link': 'https://example.com/a', 'title': 'A', 'snippet': 'Résumé'}
+    ]
