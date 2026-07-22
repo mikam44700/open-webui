@@ -131,9 +131,7 @@
 					<Last30DaysCard />
 				{/if}
 				{#if crawl4aiActive}
-					<div class="w-full" style="max-width: 32rem;">
-						<Crawl4aiCard showMcpBadge on:changed={load} />
-					</div>
+					<Crawl4aiCard showMcpBadge on:changed={load} />
 				{/if}
 				{#if apifyConnector}
 					<ConnectorCard connector={apifyConnector} showMcpBadge on:changed={load} />
@@ -200,11 +198,11 @@
 <WebSearchBrowseModal bind:open={showBrowse} {items} on:changed={load} />
 
 <style>
-	/* La largeur utile dépend de la barre latérale, pas de celle de la fenêtre.
-	   auto-fit empêche donc les cartes d'être écrasées en deux colonnes. */
+	/* auto-fill conserve les colonnes vides : deux cartes actives gardent exactement
+	   la même largeur que les cartes du catalogue au lieu de s'étirer sur toute la ligne. */
 	.responsive-card-grid {
 		display: grid;
-		grid-template-columns: repeat(auto-fit, minmax(min(100%, 20rem), 1fr));
+		grid-template-columns: repeat(auto-fill, minmax(min(100%, 20rem), 1fr));
 		gap: 0.75rem;
 	}
 </style>
