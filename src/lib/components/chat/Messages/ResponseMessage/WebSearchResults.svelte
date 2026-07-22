@@ -1,11 +1,24 @@
 <script lang="ts">
+	import { getContext } from 'svelte';
+	const i18n = getContext('i18n');
+
 	import ChevronDown from '$lib/components/icons/ChevronDown.svelte';
 	import ChevronUp from '$lib/components/icons/ChevronUp.svelte';
 	import Search from '$lib/components/icons/Search.svelte';
 	import Collapsible from '$lib/components/common/Collapsible.svelte';
 
 	export let status = { urls: [], query: '' };
-	let state = false;
+	let state = true;
+
+	const getDomain = (url: string) => {
+		try {
+			return new URL(url).hostname;
+		} catch {
+			return '';
+		}
+	};
+
+	$: resultCount = (status?.items ?? status?.urls ?? []).length;
 </script>
 
 <Collapsible grow={true} className="w-full" buttonClassName="w-full" bind:open={state}>
@@ -15,6 +28,13 @@
 			<ChevronUp strokeWidth="2.5" className="size-3.5 " />
 		{:else}
 			<ChevronDown strokeWidth="2.5" className="size-3.5 " />
+		{/if}
+
+		{#if resultCount > 0}
+			<div class="ml-auto shrink-0 text-xs text-gray-500 dark:text-gray-400">
+				<!-- $i18n.t('{{count}} results') -->
+				{$i18n.t('{{count}} results', { count: resultCount })}
+			</div>
 		{/if}
 	</div>
 
@@ -76,6 +96,12 @@
 							{item?.title ?? item.link}
 						</div>
 					</div>
+
+					{#if getDomain(item.link)}
+						<div class="ml-3 shrink-0 text-xs text-gray-500 dark:text-gray-400 line-clamp-1">
+							{getDomain(item.link)}
+						</div>
+					{/if}
 
 					<div
 						class=" ml-1 text-white dark:text-gray-900 group-hover/item:text-gray-600 dark:group-hover/item:text-white transition"

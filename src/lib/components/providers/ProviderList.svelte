@@ -353,7 +353,7 @@
 <style>
 	.responsive-card-grid {
 		display: grid;
-		grid-template-columns: repeat(auto-fit, minmax(min(100%, 20rem), 1fr));
+		grid-template-columns: repeat(auto-fill, minmax(min(100%, 20rem), 1fr));
 		gap: 0.625rem;
 		align-items: stretch;
 	}

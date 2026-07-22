@@ -25,6 +25,8 @@
 	"{{count}} of {{total}} accessible_one": "",
 	"{{count}} of {{total}} accessible_other": "",
 	"{{COUNT}} Replies": "",
+	"{{count}} results_one": "",
+	"{{count}} results_other": "",
 	"{{COUNT}} Rows": "",
 	"{{count}} selected_one": "",
 	"{{count}} selected_other": "",
