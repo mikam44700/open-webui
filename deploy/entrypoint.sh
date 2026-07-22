@@ -31,6 +31,12 @@ if [ "${LUNARIA_OPENCODEX_ENABLED:-0}" = "1" ]; then
     # OpenCodex et App Server doivent impérativement partager le même CODEX_HOME :
     # la passerelle y injecte le catalogue multi-provider lu ensuite par Codex.
     export CODEX_HOME="${LUNARIA_CODEX_HOME:-/app/backend/data/codex}"
+    # Codex sait fonctionner sans config.toml, mais OpenCodex a besoin de ce fichier
+    # pour y déclarer sa passerelle locale. On le crée seulement s'il n'existe pas :
+    # une configuration déjà personnalisée par le client n'est jamais écrasée.
+    if [ ! -e "${CODEX_HOME}/config.toml" ]; then
+      install -m 0600 /dev/null "${CODEX_HOME}/config.toml"
+    fi
     provider_env="${HERMES_HOME:-/app/backend/data/hermes}/.env"
     if [ -f "${provider_env}" ]; then
       while IFS='=' read -r key value; do
