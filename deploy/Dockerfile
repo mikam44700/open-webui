@@ -127,6 +127,37 @@ RUN set -eu; \
     rm -f /tmp/codex.tgz; \
     codex --version
 
+# OpenCodex : passerelle tierce de traduction multi-provider, désactivée par défaut.
+# Bun et le paquet OpenCodex sont tous deux épinglés ; aucune mise à jour npm/git n'a lieu au boot
+# d'un client. L'interface OpenCodex restera liée à 127.0.0.1 dans le conteneur.
+ARG BUN_VERSION=1.3.14
+ARG BUN_SHA512_ARM64=5f94ac3d91ecfa260ef11fde7c8711b5cee04f64360e03df9620b1124c7871706e9b0930d1cfc4b0730dc07dc4806a420da67b21854f869086ff104e40713067
+ARG BUN_SHA512_AMD64=ece55300abf07cf9926c85751e974ea15571e5545ce36ec6b8f3e77bddcdeaf93879004f21df675e664387dff319a28f75b56356d41265a7d6428523c77f14b7
+ARG OPENCODEX_VERSION=2.7.31
+ARG OPENCODEX_SHA512=15cfa649ecd32b989abe7f68b71eebee17640dc8e076a331f1216f51ce7210e4b6ffe76d8e686bedff45a2c0887293d79247d976a4ee4f8dfe0811a118d0ecb0
+RUN set -eu; \
+    if [ "${TARGETARCH}" = "arm64" ]; then \
+      bun_suffix=linux-aarch64; bun_sha="${BUN_SHA512_ARM64}"; \
+    else \
+      bun_suffix=linux-x64; bun_sha="${BUN_SHA512_AMD64}"; \
+    fi; \
+    curl -fsSL --retry 3 -o /tmp/bun.tgz \
+      "https://registry.npmjs.org/@oven/bun-${bun_suffix}/-/bun-${bun_suffix}-${BUN_VERSION}.tgz"; \
+    echo "${bun_sha}  /tmp/bun.tgz" | sha512sum -c -; \
+    tar -xzf /tmp/bun.tgz -C /tmp; \
+    install -m 0755 "/tmp/package/bin/bun" /usr/local/bin/bun; \
+    rm -f /tmp/bun.tgz; \
+    curl -fsSL --retry 3 -o /tmp/opencodex.tgz \
+      "https://registry.npmjs.org/@bitkyc08/opencodex/-/opencodex-${OPENCODEX_VERSION}.tgz"; \
+    echo "${OPENCODEX_SHA512}  /tmp/opencodex.tgz" | sha512sum -c -; \
+    mkdir -p /opt/opencodex; \
+    tar -xzf /tmp/opencodex.tgz -C /opt/opencodex --strip-components=1; \
+    rm -f /tmp/opencodex.tgz; \
+    cd /opt/opencodex; \
+    bun install --production --frozen-lockfile --ignore-scripts; \
+    rm -rf /opt/opencodex/node_modules/@oven /opt/opencodex/node_modules/bun; \
+    bun run src/cli/index.ts --version
+
 # HERMES_HOME vit DANS le volume de données open-webui (/app/backend/data) :
 # config.yaml, .env (tokens) et mémoires survivent aux redémarrages et aux MAJ d'image.
 ENV HERMES_HOME=/app/backend/data/hermes \
@@ -138,7 +169,8 @@ ENV HERMES_HOME=/app/backend/data/hermes \
 # d'Hermes. Aucun secret n'entre dans l'image. App Server est lancé à la demande en stdio.
 ENV LUNARIA_CODEX_BIN=/usr/local/bin/codex \
     LUNARIA_CODEX_HOME=/app/backend/data/codex \
-    LUNARIA_CODEX_WORKDIR=/tmp
+    LUNARIA_CODEX_WORKDIR=/tmp \
+    OPENCODEX_HOME=/app/backend/data/opencodex
 
 # Le venv Hermes en FIN de PATH : hermes/uv/uvx trouvables partout, sans jamais masquer
 # le python/uvicorn de l'app (qui restent prioritaires en tête de PATH).

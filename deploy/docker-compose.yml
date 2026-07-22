@@ -31,6 +31,8 @@ services:
       # Passer temporairement à `codex` ne change ni données ni connexion fournisseur.
       - LUNARIA_ENGINE=${LUNARIA_ENGINE:-hermes}
       - LUNARIA_CODEX_EFFORT=${LUNARIA_CODEX_EFFORT:-low}
+      - LUNARIA_OPENCODEX_ENABLED=${LUNARIA_OPENCODEX_ENABLED:-0}
+      - LUNARIA_OPENCODEX_URL=http://127.0.0.1:10100
       # Pont Notes (SPEC-agents-mains-sur-app) : clé interne lue par les agents pour
       # écrire dans les Notes via l'API officielle. Absente = pont simplement inactif.
       - LUNARIA_INTERNAL_API_KEY=${LUNARIA_INTERNAL_API_KEY:-}

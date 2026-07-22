@@ -16,6 +16,37 @@ set -euo pipefail
 mkdir -p "${LUNARIA_CODEX_HOME:-/app/backend/data/codex}"
 chmod 700 "${LUNARIA_CODEX_HOME:-/app/backend/data/codex}"
 
+mkdir -p "${OPENCODEX_HOME:-/app/backend/data/opencodex}"
+chmod 700 "${OPENCODEX_HOME:-/app/backend/data/opencodex}"
+
+# OpenCodex ne reçoit qu'une liste blanche de clés de FOURNISSEURS LLM. Les secrets MCP,
+# la clé interne LunarIA et les tokens de canaux restent hors de son processus.
+if [ "${LUNARIA_OPENCODEX_ENABLED:-0}" = "1" ]; then
+  (
+    provider_env="${HERMES_HOME:-/app/backend/data/hermes}/.env"
+    if [ -f "${provider_env}" ]; then
+      while IFS='=' read -r key value; do
+        case "${key}" in
+          OPENROUTER_API_KEY|OPENAI_API_KEY|ANTHROPIC_API_KEY|KIMI_API_KEY|ZAI_API_KEY|DEEPSEEK_API_KEY|GEMINI_API_KEY|QWEN_API_KEY|MISTRAL_API_KEY|GROQ_API_KEY|XAI_API_KEY)
+            [ -n "${value}" ] && export "${key}=${value}"
+            ;;
+        esac
+      done < "${provider_env}"
+    fi
+    export OCX_SERVICE=1
+    while true; do
+      set +e
+      /usr/local/bin/bun run /opt/opencodex/src/cli/index.ts start --port 10100 \
+        >>"${OPENCODEX_HOME:-/app/backend/data/opencodex}/service.log" 2>&1
+      code=$?
+      set -e
+      echo "entrypoint: OpenCodex arrêté (code ${code}) — relance dans 3 s." \
+        >>"${OPENCODEX_HOME:-/app/backend/data/opencodex}/service.log"
+      sleep 3
+    done
+  ) &
+fi
+
 if [ -n "${HERMES_HOME:-}" ] && [ ! -f "${HERMES_HOME}/config.yaml" ] && [ -f /hermes-seed/config.yaml ]; then
   echo "entrypoint: premier démarrage — reprise de la config Hermes depuis le seed."
   mkdir -p "${HERMES_HOME}"
