@@ -126,16 +126,24 @@ _CURATED_MODELS: dict[str, list[tuple[str, str]]] = {
         ("magistral-medium-latest", "Magistral-Medium-Latest"),
         ("mistral-small-latest", "Mistral-Small-Latest"),
     ],
-    "kimi-coding": [  # plus récent → ancien : K2.7 > K2.6 > K2.5 > Moonshot-V1
-        # Coding Plan (sk-kimi-) : alias stable auto-MAJ vers le dernier modèle (doc officielle).
-        # Absent de l'API classique (404) → n'apparaît que pour une clé Coding Plan.
-        ("kimi-for-coding", "Kimi Code (dernier modèle)"),
-        ("kimi-k2.7-code", "Kimi-K2.7-Code"),
-        ("kimi-k2.7-code-highspeed", "Kimi-K2.7-Code-Highspeed"),
-        ("kimi-k2-thinking", "Kimi-K2-Thinking"),
-        ("kimi-k2-thinking-turbo", "Kimi-K2-Thinking-Turbo"),
-        ("kimi-k2.6", "Kimi-K2.6"),
-        ("kimi-k2.5", "Kimi-K2.5"),
+    "kimi-coding": [  # ordre produit vérifié : plus récent → plus ancien (2026-07-22)
+        # Les deux API Kimi n'exposent pas toujours les mêmes alias. La fonction
+        # `_display_pairs` ne conserve que les IDs réellement renvoyés par la clé : cette
+        # table nettoie donc les libellés et l'ordre sans inventer de disponibilité.
+        ("kimi-k3", "Kimi K3"),
+        ("k3", "Kimi K3"),
+        ("kimi-for-coding-highspeed", "Kimi K2.7 Code HighSpeed"),
+        ("kimi-k2.7-code-highspeed", "Kimi K2.7 Code HighSpeed"),
+        # ID de requête officiel Kimi Code. `kimi-k2.7-code` est seulement un nom de
+        # version parfois renvoyé par `/models` et provoque HTTP 401 au chat.
+        ("kimi-for-coding", "Kimi K2.7 Code"),
+        ("kimi-k2.7-code", "Kimi K2.7 Code"),
+        ("kimi-k2.6", "Kimi K2.6"),
+        ("kimi-k2.5", "Kimi K2.5"),
+        ("kimi-k2-thinking-turbo", "Kimi K2 Thinking Turbo"),
+        ("kimi-k2-thinking", "Kimi K2 Thinking"),
+        ("kimi-k2-0905-preview", "Kimi K2 0905 Preview"),
+        ("kimi-k2-turbo-preview", "Kimi K2 Turbo Preview"),
         ("moonshot-v1-auto", "Moonshot-V1-Auto"),
         ("moonshot-v1-128k", "Moonshot-V1-128K"),
         ("moonshot-v1-32k", "Moonshot-V1-32K"),
@@ -208,7 +216,10 @@ def _display_pairs(slug: str, raw_ids: list[str]) -> list[tuple[str, str]]:
     """(id, label) pour le sélecteur : ordre + libellés curés si le provider est connu,
     sinon libellés auto-embellis. Ne montre que les modèles réellement exposés par le moteur ;
     un modèle inconnu de la table (nouveau) passe à la fin, label auto-embelli."""
-    curated = _CURATED_MODELS.get(slug)
+    # Les régions internationale et chinoise de Kimi servent la même famille de
+    # modèles : elles partagent donc les mêmes libellés et le même ordre produit.
+    curated_slug = "kimi-coding" if slug == "kimi-coding-cn" else slug
+    curated = _CURATED_MODELS.get(curated_slug)
     if not curated:
         return [(mid, _beautify_model_label(mid)) for mid in raw_ids]
     order = {mid: i for i, (mid, _lbl) in enumerate(curated)}

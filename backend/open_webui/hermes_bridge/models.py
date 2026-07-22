@@ -38,6 +38,16 @@ class Model(BaseModel):
     id: str
     label: str
     provider_id: str
+    release_date: str | None = None
+    family: str | None = None
+    reasoning: bool | None = None
+    supported_efforts: list[str] | None = None
+    metadata_confidence: str = "unknown"
+    # Modèle au catalogue mais refusé par l'abonnement de la clé (ex. Kimi HighSpeed hors
+    # forfait Allegretto) : le front l'affiche grisé avec la raison au lieu de laisser
+    # partir un appel voué à l'erreur en plein chat.
+    available: bool = True
+    unavailable_reason: str | None = None
 
 
 class Provider(BaseModel):
@@ -50,6 +60,9 @@ class Provider(BaseModel):
     base_url: str | None = None
     state: ProviderState
     models: list[Model] = []
+    catalog_source: str = "hermes_catalog"
+    catalog_refresh: str = "engine_update"
+    catalog_sort: str = "recent_first"
 
 
 class ActiveSelection(BaseModel):

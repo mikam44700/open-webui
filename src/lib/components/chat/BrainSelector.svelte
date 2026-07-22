@@ -23,6 +23,7 @@
 		isProviderLogoFullBleed,
 		PROVIDER_LOGO_FALLBACK
 	} from '$lib/utils/providerLogos';
+	import BrainModelOption from './BrainModelOption.svelte';
 
 	const i18n = getContext('i18n');
 
@@ -46,6 +47,7 @@
 	// Recherche de modèle : indispensable pour les passerelles (OpenRouter expose 256+
 	// modèles). La barre n'apparaît qu'au-delà d'un seuil (inutile pour 3-5 modèles).
 	let modelQuery = '';
+	let legacyModelsOpen = false;
 	const MODEL_SEARCH_THRESHOLD = 12;
 
 	// Le menu est rendu en position FIXE (calculée sous le bouton) pour échapper au
@@ -63,24 +65,40 @@
 
 	let active: { provider_id: string; model_id: string } | null = null;
 	let effort = 'medium';
+	type BrainModel = {
+		id: string;
+		label: string;
+		provider_id: string;
+		release_date?: string | null;
+		family?: string | null;
+		reasoning?: boolean | null;
+		supported_efforts?: string[] | null;
+		metadata_confidence?: string;
+		// Modèle au catalogue mais refusé par l'abonnement de la clé (ex. Kimi HighSpeed
+		// hors forfait Allegretto) : affiché grisé avec la raison, jamais sélectionnable.
+		available?: boolean;
+		unavailable_reason?: string | null;
+	};
 	let providers: {
 		id: string;
 		label: string;
 		logo?: string;
 		state: string;
-		models: { id: string; label: string; provider_id: string }[];
+		models: BrainModel[];
+		catalog_sort?: 'recent_first' | 'alphabetical_search';
 	}[] = [];
 
-	// Capacités du modèle ACTIF (reasoning/vision/outils/contexte). null = inconnu → on
-	// affiche tout par défaut (repli gracieux). Le menu s'adapte quand elles arrivent.
+	// Capacités du modèle ACTIF (reasoning/vision/outils/contexte). null = inconnu : on
+	// reste en mode Automatique au lieu de promettre des niveaux non attestés.
 	let caps: {
 		reasoning: boolean | null;
 		vision: boolean | null;
 		tools: boolean | null;
 		context_window: number | null;
-		// Niveaux d'intelligence réellement honorés par le fournisseur actif (le reste est
-		// grisé). Absent/null = inconnu → on autorise tout (repli gracieux).
+		// null = compatibilité granulaire non attestée → mode Automatique, jamais quatre
+		// boutons supposés compatibles.
 		supported_efforts?: string[] | null;
+		effort_confidence?: string;
 	} | null = null;
 
 	$: connected = providers.filter(
@@ -120,9 +138,10 @@
 	// Nom du modèle exact (technique, ex. « gemini-3.1-pro-preview ») affiché en second,
 	// discret, sous le nom lisible du fournisseur. Repli sur l'id si pas de label.
 	$: activeModelLabel = (() => {
-		if (!active) return '';
-		const m = activeProvider?.models?.find((mm) => mm.id === active.model_id);
-		return m?.label || active.model_id;
+		const selection = active;
+		if (!selection) return '';
+		const m = activeProvider?.models?.find((mm) => mm.id === selection.model_id);
+		return m?.label || selection.model_id;
 	})();
 
 	// Type de sortie d'un modèle. models.dev (output_modalities) est souvent vide pour les
@@ -136,27 +155,56 @@
 			return 'image';
 		return 'chat';
 	};
-	// Modèles de CONVERSATION du fournisseur actif, RECOMMANDÉ en tête (le reste garde son
-	// ordre : on ne devine pas la « puissance » depuis un nom, ça mentirait). Le curé porte
-	// un badge « Recommandé » — seul classement honnête et durable.
+	// Modèles de conversation : gros catalogue = A-Z + recherche ; petit catalogue = vraies
+	// dates models.dev si elles sont disponibles pour TOUTE la liste, sinon ordre officiel.
 	$: recommendedModelId =
-		activeProvider && !NO_RECOMMENDED_BADGE.has(activeProvider.id)
-			? defaultModelId(activeProvider)
+		activeProvider
+			? curatedRecommendedModelId(activeProvider)
 			: undefined;
-	$: chatModels = (() => {
-		const items = (activeProvider?.models ?? []).filter((m) => modelKind(m.id) === 'chat');
-		if (!recommendedModelId) return items;
-		const rec = items.filter((m) => m.id === recommendedModelId);
-		const rest = items.filter((m) => m.id !== recommendedModelId);
-		return [...rec, ...rest];
-	})();
+	$: chatModels = (activeProvider?.models ?? []).filter((m) => modelKind(m.id) === 'chat');
+	$: recommendedModel = chatModels.find((m) => m.id === recommendedModelId) ?? null;
+	$: catalogModels = chatModels.filter((m) => m.id !== recommendedModelId);
 	// Barre de recherche affichée seulement si le fournisseur a beaucoup de modèles.
 	$: showModelSearch = chatModels.length > MODEL_SEARCH_THRESHOLD;
+	$: orderedCatalogModels = (() => {
+		if (showModelSearch) {
+			return [...catalogModels].sort((a, b) => a.label.localeCompare(b.label, 'fr', { sensitivity: 'base' }));
+		}
+		if (catalogModels.length > 0 && catalogModels.every((m) => Boolean(m.release_date))) {
+			return [...catalogModels].sort((a, b) =>
+				String(b.release_date).localeCompare(String(a.release_date))
+			);
+		}
+		return catalogModels;
+	})();
+	const VERSIONED_FAMILIES = /^(gpt|claude|gemini|grok|llama|deepseek|mistral|qwen|glm|mimo)(?:[-_/]|$)/i;
+	const modelGeneration = (model: BrainModel): number | null => {
+		const value = model.id.split('/').pop() ?? model.id;
+		if (!VERSIONED_FAMILIES.test(value)) return null;
+		for (const match of value.matchAll(/(?:^|[-_])v?(\d+(?:\.\d+)?)(?=$|[-_])/gi)) {
+			const version = Number(match[1]);
+			if (Number.isFinite(version) && version > 0 && version < 20) return version;
+		}
+		return null;
+	};
+	$: generationValues = orderedCatalogModels
+		.map(modelGeneration)
+		.filter((value): value is number => value !== null);
+	$: newestGeneration = generationValues.length > 1 ? Math.max(...generationValues) : null;
+	$: legacyModels = !showModelSearch && newestGeneration !== null
+		? orderedCatalogModels.filter((m) => {
+				const generation = modelGeneration(m);
+				return generation !== null && generation < newestGeneration;
+			})
+		: [];
+	$: currentCatalogModels = legacyModels.length
+		? orderedCatalogModels.filter((m) => !legacyModels.some((legacy) => legacy.id === m.id))
+		: orderedCatalogModels;
 	// Filtre typeahead : cherche dans le nom lisible ET l'id technique (« gpt », « llama »…).
 	$: filteredModels = (() => {
 		const q = modelQuery.trim().toLowerCase();
-		if (!q) return chatModels;
-		return chatModels.filter(
+		if (!q) return currentCatalogModels;
+		return orderedCatalogModels.filter(
 			(m) => m.label.toLowerCase().includes(q) || m.id.toLowerCase().includes(q)
 		);
 	})();
@@ -175,8 +223,16 @@
 	$: activeLevel = LEVELS.find((l) => l.effort === effort) ?? null;
 	// On masque l'intelligence seulement si on SAIT que le modèle ne raisonne pas.
 	$: showIntelligence = !caps || caps.reasoning !== false;
-	// Niveaux honorés par le modèle actif ; null = inconnu → tout autorisé (repli gracieux).
+	// Niveaux honorés ; null = inconnu → Automatique (aucun cran inventé).
 	$: supportedEfforts = caps?.supported_efforts ?? null;
+	$: intelligenceAutomatic = supportedEfforts === null || supportedEfforts.length === 0;
+	// K3 possède officiellement trois crans. On masque uniquement son cran générique
+	// « Équilibré » car Kimi le remappe vers High : l'afficher créerait deux boutons au
+	// résultat identique. Les autres fournisseurs conservent strictement leur UI actuelle.
+	$: visibleLevels =
+		active?.provider_id === 'kimi-coding' && ['kimi-k3', 'k3'].includes(active?.model_id ?? '')
+			? LEVELS.filter((level) => supportedEfforts?.includes(level.effort))
+			: LEVELS;
 
 	const ctxLabel = (n: number | null | undefined) => {
 		if (!n) return '';
@@ -244,6 +300,7 @@
 	// Même table que le bridge : la liste des modèles n'est pas triée par pertinence.
 	const RECOMMENDED_MODEL: Record<string, string> = {
 		anthropic: 'claude-sonnet-4-6',
+		'openai-codex': 'gpt-5.6-sol',
 		'openai-api': 'gpt-5.5',
 		gemini: 'gemini-3.5-flash',
 		mistral: 'mistral-large-latest',
@@ -257,19 +314,29 @@
 		novita: 'deepseek/deepseek-v4-flash',
 		huggingface: 'deepseek-ai/DeepSeek-V3.2'
 	};
-	// Fournisseurs à TROP de modèles (catalogues) : pas de badge « Recommandé » (le client
-	// choisit), et rien n'est remonté en tête → l'ordre alphabétique du bridge est préservé.
-	const NO_RECOMMENDED_BADGE = new Set(['ollama-cloud', 'openrouter', 'kilocode', 'opencode-zen', 'opencode-go', 'novita', 'huggingface']);
-	// Défaut d'ACTIVATION à la bascule de fournisseur : le curé s'il existe (pour Ollama, un
-	// GRATUIT — sinon models[0] serait un premium 403 avec le tri alpha), sinon le 1er exposé.
-	const defaultModelId = (p: { id: string; models: { id: string }[] }): string | undefined => {
+	// Un badge n'est affiché que lorsqu'une recommandation a été explicitement curée. Le premier
+	// modèle d'une API n'est jamais présenté comme « Recommandé » par simple hasard d'ordre.
+	const curatedRecommendedModelId = (p: { id: string; models: { id: string }[] }): string | undefined => {
 		const rec = RECOMMENDED_MODEL[p.id];
-		if (rec && p.models.some((m) => m.id === rec)) return rec;
-		return p.models[0]?.id;
+		return rec && p.models.some((m) => m.id === rec) ? rec : undefined;
+	};
+	// Défaut d'ACTIVATION à la bascule de fournisseur : le curé s'il existe (pour Ollama, un
+	// GRATUIT — sinon models[0] serait un premium 403 avec le tri alpha), sinon le 1er exposé
+	// UTILISABLE (jamais un modèle verrouillé par l'abonnement, ex. Kimi HighSpeed).
+	const defaultModelId = (p: {
+		id: string;
+		models: { id: string; available?: boolean }[];
+	}): string | undefined => {
+		return (
+			curatedRecommendedModelId(p) ??
+			p.models.find((m) => m.available !== false)?.id ??
+			p.models[0]?.id
+		);
 	};
 	const switchProvider = (p: { id: string; models: { id: string }[] }) => {
 		if (p.id === active?.provider_id) return; // déjà aux commandes
 		modelQuery = ''; // change de fournisseur => on repart d'une recherche vierge
+		legacyModelsOpen = false;
 		const mid = defaultModelId(p);
 		if (mid) chooseModel(p.id, mid);
 	};
@@ -507,7 +574,11 @@
 					>
 						<span class="flex items-center gap-1.5">
 							{$i18n.t('Intelligence')}
-							{#if activeLevel}<span class="normal-case font-normal tracking-normal text-gray-400">· {$i18n.t(activeLevel.label)}</span>{/if}
+							{#if intelligenceAutomatic}
+								<span class="normal-case font-normal tracking-normal text-gray-400">· {$i18n.t('Automatique')}</span>
+							{:else if activeLevel}
+								<span class="normal-case font-normal tracking-normal text-gray-400">· {$i18n.t(activeLevel.label)}</span>
+							{/if}
 						</span>
 						<svg
 							class="size-3.5 shrink-0 transition-transform {intelligenceOpen ? 'rotate-180' : ''}"
@@ -521,38 +592,45 @@
 						>
 					</button>
 					{#if intelligenceOpen}
-					{#each LEVELS as lvl (lvl.effort)}
-						{@const supported = !supportedEfforts || supportedEfforts.includes(lvl.effort)}
-						<button
-							type="button"
-							role="menuitemradio"
-							aria-checked={effort === lvl.effort}
-							disabled={!supported}
-							title={supported ? '' : $i18n.t('Ce modèle ne propose pas ce niveau')}
-							class="flex w-full items-center justify-between gap-2 rounded-lg px-2 py-1.5 text-left transition {!supported
-								? 'cursor-not-allowed opacity-40'
-								: effort === lvl.effort
-									? 'bg-gray-100 dark:bg-gray-800'
-									: 'hover:bg-gray-50 dark:hover:bg-gray-850'}"
-							on:click={() => supported && chooseLevel(lvl.effort)}
-						>
-							<span class="min-w-0">
-								<span class="block text-sm text-gray-900 dark:text-white">{$i18n.t(lvl.label)}</span>
-								<span class="block text-[11px] text-gray-400"
-									>{supported ? $i18n.t(lvl.desc) : $i18n.t('Non proposé par ce modèle')}</span
+						{#if intelligenceAutomatic}
+							<div class="rounded-lg bg-gray-50 px-2.5 py-2 text-[11px] leading-snug text-gray-500 dark:bg-gray-850 dark:text-gray-400">
+								<div class="font-medium text-gray-700 dark:text-gray-200">{$i18n.t('Géré automatiquement')}</div>
+								<div class="mt-0.5">{$i18n.t('Ce modèle choisit lui-même son niveau de réflexion.')}</div>
+							</div>
+						{:else}
+							{#each visibleLevels as lvl (lvl.effort)}
+								{@const supported = supportedEfforts?.includes(lvl.effort) ?? false}
+								<button
+									type="button"
+									role="menuitemradio"
+									aria-checked={effort === lvl.effort}
+									disabled={!supported}
+									title={supported ? '' : $i18n.t('Ce modèle ne propose pas ce niveau')}
+									class="flex w-full items-center justify-between gap-2 rounded-lg px-2 py-1.5 text-left transition {!supported
+										? 'cursor-not-allowed opacity-40'
+										: effort === lvl.effort
+											? 'bg-gray-100 dark:bg-gray-800'
+											: 'hover:bg-gray-50 dark:hover:bg-gray-850'}"
+									on:click={() => supported && chooseLevel(lvl.effort)}
 								>
-							</span>
-							{#if supported && effort === lvl.effort}
-								<svg class="size-4 shrink-0 text-gray-900 dark:text-white" viewBox="0 0 20 20" fill="currentColor"
-									><path
-										fill-rule="evenodd"
-										d="M16.7 5.3a1 1 0 010 1.4l-7.5 7.5a1 1 0 01-1.4 0l-3.5-3.5a1 1 0 111.4-1.4l2.8 2.79 6.8-6.79a1 1 0 011.4 0z"
-										clip-rule="evenodd"
-									/></svg
-								>
-							{/if}
-						</button>
-					{/each}
+									<span class="min-w-0">
+										<span class="block text-sm text-gray-900 dark:text-white">{$i18n.t(lvl.label)}</span>
+										<span class="block text-[11px] text-gray-400"
+											>{supported ? $i18n.t(lvl.desc) : $i18n.t('Non proposé par ce modèle')}</span
+										>
+									</span>
+									{#if supported && effort === lvl.effort}
+										<svg class="size-4 shrink-0 text-gray-900 dark:text-white" viewBox="0 0 20 20" fill="currentColor"
+											><path
+												fill-rule="evenodd"
+												d="M16.7 5.3a1 1 0 010 1.4l-7.5 7.5a1 1 0 01-1.4 0l-3.5-3.5a1 1 0 111.4-1.4l2.8 2.79 6.8-6.79a1 1 0 011.4 0z"
+												clip-rule="evenodd"
+											/></svg
+										>
+									{/if}
+								</button>
+							{/each}
+						{/if}
 					{/if}
 				{:else}
 					<div class="border-t border-gray-100 dark:border-gray-800 px-2 py-2 text-[11px] text-gray-400">
@@ -588,6 +666,16 @@
 							{$i18n.t('Aucun modèle IA connecté. Connectez-en un dans « Modèles IA ».')}
 						</div>
 					{:else if activeProvider}
+						{#if recommendedModel}
+							<div class="pb-1">
+								<BrainModelOption
+									model={recommendedModel}
+									active={active?.model_id === recommendedModel.id}
+									recommended={true}
+									on:select={() => chooseModel(activeProvider.id, recommendedModel.id)}
+								/>
+							</div>
+						{/if}
 						<!-- Passerelles (OpenRouter, 256+ modèles) : barre de recherche pour ne pas
 						     noyer le dirigeant. Grands noms visibles par défaut, le reste à la demande. -->
 						{#if showModelSearch}
@@ -617,37 +705,35 @@
 						<!-- Liste scrollable dédiée : barre de scroll visible (256+ modèles), la
 						     barre de recherche au-dessus reste fixe. -->
 						<div class="max-h-[50vh] overflow-y-auto scrollbar-thin pr-1">
-						<!-- Modèles de CONVERSATION du fournisseur aux commandes, recommandé en tête. -->
 						{#each filteredModels as m (m.id)}
-							{@const isActive = active?.model_id === m.id}
-							{@const isRecommended = m.id === recommendedModelId}
+							<BrainModelOption
+								model={m}
+								active={active?.model_id === m.id}
+								on:select={() => chooseModel(activeProvider.id, m.id)}
+							/>
+						{/each}
+						{#if !showModelSearch && legacyModels.length > 0}
 							<button
 								type="button"
-								role="menuitemradio"
-								aria-checked={isActive}
-								class="flex w-full items-center justify-between gap-2 rounded-lg px-2 py-1.5 text-left transition {isActive
-									? 'bg-gray-100 dark:bg-gray-800'
-									: 'hover:bg-gray-50 dark:hover:bg-gray-850'}"
-								on:click={() => chooseModel(activeProvider.id, m.id)}
+								class="mt-1 flex w-full items-center justify-between rounded-lg px-2 py-1.5 text-left text-[12px] font-medium text-gray-500 transition hover:bg-gray-50 hover:text-gray-700 dark:text-gray-400 dark:hover:bg-gray-850 dark:hover:text-gray-200"
+								on:click={() => (legacyModelsOpen = !legacyModelsOpen)}
+								aria-expanded={legacyModelsOpen}
 							>
-								<span class="flex min-w-0 items-center gap-1.5">
-									<span class="shrink-0 text-gray-300 dark:text-gray-600" aria-hidden="true">·</span>
-									<span class="truncate text-sm text-gray-900 dark:text-white">{m.label}</span>
-									{#if isRecommended}
-										<span class="shrink-0 rounded-full bg-gray-100 px-1.5 py-0.5 text-[9px] font-medium uppercase tracking-wide text-gray-500 dark:bg-gray-800 dark:text-gray-400">{$i18n.t('Recommandé')}</span>
-									{/if}
-								</span>
-								{#if isActive}
-									<svg class="size-4 shrink-0 text-gray-900 dark:text-white" viewBox="0 0 20 20" fill="currentColor"
-										><path
-											fill-rule="evenodd"
-											d="M16.7 5.3a1 1 0 010 1.4l-7.5 7.5a1 1 0 01-1.4 0l-3.5-3.5a1 1 0 111.4-1.4l2.8 2.79 6.8-6.79a1 1 0 011.4 0z"
-											clip-rule="evenodd"
-										/></svg
-									>
-								{/if}
+								<span>{legacyModelsOpen ? $i18n.t('Masquer les anciens modèles') : $i18n.t('Voir les anciens modèles')} ({legacyModels.length})</span>
+								<span aria-hidden="true">{legacyModelsOpen ? '−' : '+'}</span>
 							</button>
-						{/each}
+							{#if legacyModelsOpen}
+								<div class="mt-1 border-t border-gray-100 pt-1 dark:border-gray-800">
+									{#each legacyModels as m (m.id)}
+										<BrainModelOption
+											model={m}
+											active={active?.model_id === m.id}
+											on:select={() => chooseModel(activeProvider.id, m.id)}
+										/>
+									{/each}
+								</div>
+							{/if}
+						{/if}
 						{#if showModelSearch && filteredModels.length === 0}
 							<div class="px-2 py-2 text-[12px] text-gray-400">
 								{$i18n.t('Aucun modèle ne correspond à votre recherche.')}

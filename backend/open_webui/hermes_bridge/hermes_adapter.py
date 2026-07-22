@@ -19,6 +19,7 @@ import json
 import logging
 import os
 import re
+import signal
 import subprocess
 import tempfile
 import threading
@@ -31,6 +32,7 @@ import httpx
 import yaml
 
 from . import fsutil
+from .model_catalog import clean_model_label, load_model_metadata, provider_catalog_policy
 from .models import ActiveSelection, AuthType, Category, Model, Provider, ProviderState
 from .ttl_cache import TTLCache
 
@@ -143,6 +145,7 @@ from .providers.kimi import (  # noqa: F401 — ré-export intentionnel
     _kimi_base_for_key,
     _kimi_served_ids,
     _kimi_model_pairs,
+    _kimi_unavailable_reasons,
     _KIMI_CACHE,
     _KIMI_CODE_BASE,
 )
@@ -209,6 +212,20 @@ for e in m.CANONICAL_PROVIDERS:
     _models = list(m._PROVIDER_MODELS.get(e.slug, []) or [])
     if not _models:
         _models = _plugin_models.get(e.slug, [])
+    # Les catalogues dont Hermes sait récupérer une version fraîche sont fusionnés avec le
+    # repli embarqué. Cas clé : ChatGPT Codex publie ses nouveaux modèles par compte ; ils
+    # apparaissent ainsi sans attendre une nouvelle image LunarIA. Toute panne conserve la
+    # liste statique et ne peut donc jamais vider le sélecteur.
+    if e.slug in {
+        "nous", "openai-codex", "anthropic", "gemini", "deepseek",
+        "mistral", "together", "cohere", "perplexity",
+    }:
+        try:
+            _live = list(m.provider_model_ids(e.slug) or [])
+        except Exception:
+            _live = []
+        _seen = {str(_mid).lower() for _mid in _live}
+        _models = _live + [_mid for _mid in _models if str(_mid).lower() not in _seen]
     out.append({
         "slug": e.slug,
         "label": e.label,
@@ -407,6 +424,7 @@ def _ollama_local_provider(active: ActiveSelection | None) -> Provider:
         state = ProviderState.configured
     else:
         state = ProviderState.not_configured
+    policy = provider_catalog_policy(OLLAMA_LOCAL_ID, len(models))
     return Provider(
         id=OLLAMA_LOCAL_ID,
         label="Modèle local (confidentiel)",
@@ -416,7 +434,10 @@ def _ollama_local_provider(active: ActiveSelection | None) -> Provider:
         env_key=None,
         base_url=f"{OLLAMA_LOCAL_BASE_URL}/v1",
         state=state,
-        models=[Model(id=m, label=m, provider_id=OLLAMA_LOCAL_ID) for m in models],
+        models=[Model(id=m, label=clean_model_label(m, m), provider_id=OLLAMA_LOCAL_ID) for m in models],
+        catalog_source=policy["source"],
+        catalog_refresh=policy["refresh"],
+        catalog_sort=policy["sort"],
     )
 
 
@@ -578,11 +599,48 @@ def _list_providers_uncached() -> list[Provider]:
             metas,
         ))
 
+    # Une seule lecture models.dev pour TOUS les modèles. Elle n'appelle aucun modèle et ne
+    # consomme aucun crédit : dates/casse/raisonnement servent uniquement à l'UX et au tri.
+    requested_metadata = {
+        meta["slug"]: [mid for mid, _label in pairs]
+        for meta, pairs in zip(metas, pairs_by_index)
+        if pairs
+    }
+    model_metadata = load_model_metadata(HERMES_PYTHON, HERMES_HOME, requested_metadata)
+
     # Passe 3 (locale) : assemble les objets Provider.
     providers: list[Provider] = []
     for meta, model_pairs in zip(metas, pairs_by_index):
         item, slug = meta["item"], meta["slug"]
         env_vars = meta["env_vars"]
+        policy = provider_catalog_policy(slug, len(model_pairs))
+        provider_meta = model_metadata.get(slug, {})
+        models: list[Model] = []
+        for mid, label in model_pairs:
+            details = provider_meta.get(mid, {})
+            models.append(
+                Model(
+                    id=mid,
+                    label=clean_model_label(label, mid),
+                    provider_id=slug,
+                    release_date=details.get("release_date") or None,
+                    family=details.get("family") or None,
+                    reasoning=details.get("reasoning"),
+                    supported_efforts=details.get("supported_efforts"),
+                    metadata_confidence=details.get("confidence") or "unknown",
+                )
+            )
+        # Kimi Coding Plan : un modèle peut être au catalogue mais refusé par le FORFAIT
+        # de la clé (HighSpeed = Allegretto et plus). On le grise avec la raison au lieu
+        # de laisser le client récolter un 401 anglais en plein chat (vécu le 2026-07-22).
+        # Lecture de cache uniquement : la sonde a été chauffée en passe 2 (parallèle).
+        if slug in ("kimi-coding", "kimi-coding-cn"):
+            plan_locks = _kimi_unavailable_reasons(slug)
+            for model in models:
+                reason = plan_locks.get(model.id)
+                if reason:
+                    model.available = False
+                    model.unavailable_reason = reason
         providers.append(
             Provider(
                 id=slug,
@@ -593,7 +651,10 @@ def _list_providers_uncached() -> list[Provider]:
                 env_key=env_vars[0] if env_vars else None,
                 base_url=item.get("base_url") or meta["fallback"].get("base_url"),
                 state=meta["state"],
-                models=[Model(id=mid, label=lbl, provider_id=slug) for mid, lbl in model_pairs],
+                models=models,
+                catalog_source=policy["source"],
+                catalog_refresh=policy["refresh"],
+                catalog_sort=policy["sort"],
             )
         )
     # Injection bridge : « Modèle local (confidentiel) » (Ollama local), sans toucher Hermes.
@@ -752,6 +813,27 @@ def activate_provider(provider_id: str, model_id: str) -> tuple[ActiveSelection,
 # réellement aux appels API (OpenAI Responses/OpenRouter/Gemini/Anthropic…). Valeurs
 # acceptées par le moteur : none | minimal | low | medium | high | xhigh.
 VALID_REASONING_EFFORTS = ("none", "minimal", "low", "medium", "high", "xhigh")
+
+
+def ensure_performance_defaults() -> None:
+    """Enable Hermes progressive tool disclosure on installs without a choice.
+
+    With several MCP connectors, sending every JSON schema on every turn wastes
+    context and lets the model pick a heavyweight crawler for trivial lookups.
+    Hermes' native tool-search bridge keeps all capabilities available on
+    demand. An explicit user value (``on``, ``off`` or ``auto``) always wins.
+    """
+    cfg_path = HERMES_HOME / "config.yaml"
+    if not cfg_path.exists():
+        return
+    try:
+        cfg = yaml.safe_load(cfg_path.read_text(encoding="utf-8")) or {}
+        configured = (((cfg.get("tools") or {}).get("tool_search") or {}).get("enabled"))
+        if configured is None:
+            _hermes_config_set("tools.tool_search.enabled", "on")
+            logger.info("performance Hermes : découverte progressive des outils activée")
+    except Exception:  # noqa: BLE001 — optimisation non bloquante au démarrage
+        logger.warning("activation de la découverte progressive des outils impossible", exc_info=True)
 
 
 def get_reasoning() -> str:
@@ -958,7 +1040,13 @@ _EFFORTS_UNSUPPORTED: dict[str, frozenset[str]] = {
 _MODEL_EFFORTS_LOW_MED_HIGH = ("gpt-oss",)
 
 
-def supported_efforts(provider_id: str, model_id: str = "") -> list[str]:
+def supported_efforts(
+    provider_id: str,
+    model_id: str = "",
+    *,
+    declared_efforts: list[str] | None = None,
+    reasoning: bool | None = None,
+) -> list[str] | None:
     """Niveaux d'intelligence réellement acceptés par ce (fournisseur, modèle), parmi ceux du chat.
 
     Sert au front à griser les crans qu'un modèle n'honore pas (honnêteté : ne jamais proposer un
@@ -967,6 +1055,12 @@ def supported_efforts(provider_id: str, model_id: str = "") -> list[str]:
     sert gpt-oss en low/medium/high mais qwen3/llama en none|default seulement). Défaut = tous les
     niveaux du chat, moins ceux que le fournisseur rejette en bloc."""
     m = (model_id or "").lower()
+    if reasoning is False:
+        return []
+    # Une source exacte prime, puis on applique les restrictions de transport prouvées.
+    if declared_efforts is not None:
+        bad = _EFFORTS_UNSUPPORTED.get(provider_id, frozenset())
+        return [e for e in declared_efforts if e in _CHAT_EFFORT_LEVELS and e not in bad]
     # gpt-oss : low/medium/high partout, jamais xhigh (400 chez Groq/Cerebras/Fireworks).
     if any(tok in m for tok in _MODEL_EFFORTS_LOW_MED_HIGH):
         return ["low", "medium", "high"]
@@ -975,8 +1069,12 @@ def supported_efforts(provider_id: str, model_id: str = "") -> list[str]:
     # ne raisonnent pas. Dans les deux cas : aucun niveau proposé (tous grisés côté front).
     if provider_id == "groq":
         return []
-    bad = _EFFORTS_UNSUPPORTED.get(provider_id, frozenset())
-    return [e for e in _CHAT_EFFORT_LEVELS if e not in bad]
+    bad = _EFFORTS_UNSUPPORTED.get(provider_id)
+    if bad is not None:
+        return [e for e in _CHAT_EFFORT_LEVELS if e not in bad]
+    # Inconnu n'est PAS synonyme de compatible : le front affiche « Automatique » au lieu
+    # de quatre boutons susceptibles d'être ignorés ou refusés par l'API.
+    return None
 
 
 def get_model_capabilities(provider_id: str, model_id: str) -> dict:
@@ -986,7 +1084,21 @@ def get_model_capabilities(provider_id: str, model_id: str) -> dict:
     Inclut ``supported_efforts`` : les niveaux d'intelligence que ce (fournisseur, modèle) honore
     vraiment (le front grise le reste)."""
     caps = _caps_with_fallback(model_id, _raw_model_capabilities(provider_id, model_id))
-    caps["supported_efforts"] = supported_efforts(provider_id, model_id)
+    metadata = load_model_metadata(HERMES_PYTHON, HERMES_HOME, {provider_id: [model_id]})
+    details = metadata.get(provider_id, {}).get(model_id, {})
+    # L'alias de modèle peut être inconnu du helper capabilities tout en étant rattaché à une
+    # famille exacte par notre enrichissement (ex. gpt-5.6-sol-pro -> gpt-5.6-sol).
+    if details.get("reasoning") is not None:
+        caps["reasoning"] = details["reasoning"]
+    caps["supported_efforts"] = supported_efforts(
+        provider_id,
+        model_id,
+        declared_efforts=details.get("supported_efforts"),
+        reasoning=caps.get("reasoning"),
+    )
+    caps["effort_confidence"] = details.get("confidence") or (
+        "verified_override" if caps["supported_efforts"] is not None else "unknown"
+    )
     return caps
 
 
@@ -1438,7 +1550,18 @@ def logout_oauth(provider_id: str) -> None:
 #   4. si la MAJ a échoué OU si le moteur ne repart pas → rollback automatique
 #      (git reset + réinstall des deps + restauration + redémarrage du gateway).
 
-_HERMES_CLONE = HERMES_HOME / "hermes-agent"
+# Le clone réellement exécuté par HERMES_BIN. Dans la stack Docker il est monté sur un
+# volume dédié à /opt/hermes-agent afin que `hermes update` survive aux recréations.
+# HERMES_INSTALL_DIR explicite évite surtout l'ancien bug : le rollback visait une copie
+# sous HERMES_HOME alors que le gateway exécutait /opt/hermes-agent.
+_HERMES_CLONE = Path(
+    os.path.expanduser(
+        os.environ.get(
+            "HERMES_INSTALL_DIR",
+            str(HERMES_HOME / "hermes-agent"),
+        )
+    )
+)
 
 # État partagé enrichi par le thread de supervision. `phase` ∈
 # idle | running | finalizing | success | rolling_back | rolled_back | rollback_failed
@@ -1446,6 +1569,12 @@ _UPDATE_STATE: dict = {"phase": "idle"}
 # Protège le check-then-spawn de start_update : deux appels concurrents (double-clic, retry
 # front) ne doivent JAMAIS lancer deux superviseurs sur le même process (double rollback).
 _UPDATE_LOCK = threading.Lock()
+_GATEWAY_PID_FILE = Path(
+    os.environ.get("HERMES_GATEWAY_PID_FILE", "/tmp/lunaria-hermes-gateway.pid")
+)
+_RUNTIME_PID_FILE = Path(
+    os.environ.get("HERMES_RUNTIME_PID_FILE", "/tmp/lunaria-hermes-runtime.pid")
+)
 
 
 def _git_head() -> str | None:
@@ -1465,6 +1594,42 @@ def _git_head() -> str | None:
         logger.debug("git rev-parse HEAD a échoué (code %s) — aucun point de retour connu", res.returncode)
         return None
     return head
+
+
+def _prepare_git_branch_for_update(prev_hash: str | None) -> bool:
+    """Place un ancien seed Docker détaché sur ``main`` avant la MAJ.
+
+    Les premières images LunarIA épinglaient Hermes avec ``git checkout <sha>``.
+    Dans ce cas, ``hermes update`` bascule vers la branche locale ``main`` déjà au
+    dernier commit, conclut « Already up to date » et saute la réinstallation des
+    dépendances. Le code change alors sans que le venv suive. Les nouvelles images
+    sont seedées directement sur ``main`` ; cette garde répare aussi les volumes
+    persistants créés par les anciennes images.
+    """
+    if not prev_hash:
+        return False
+    try:
+        branch = subprocess.run(
+            ["git", "-C", str(_HERMES_CLONE), "symbolic-ref", "--quiet", "--short", "HEAD"],
+            capture_output=True,
+            text=True,
+            timeout=15,
+        )
+        if branch.returncode == 0:
+            return True
+        checkout = subprocess.run(
+            ["git", "-C", str(_HERMES_CLONE), "checkout", "-B", "main", prev_hash],
+            capture_output=True,
+            text=True,
+            timeout=30,
+        )
+    except (OSError, subprocess.TimeoutExpired) as exc:
+        logger.error("Préparation de la branche Hermes impossible : %s", exc)
+        return False
+    if checkout.returncode != 0:
+        logger.error("Préparation de la branche Hermes échouée : %s", checkout.stderr.strip()[:1000])
+        return False
+    return True
 
 
 def _latest_pre_update_backup() -> Path | None:
@@ -1517,26 +1682,64 @@ def _log_step_result(
 
 
 def _restart_gateway() -> None:
-    """Redémarre le service gateway (best-effort) pour recharger le code courant."""
-    logger.info("Redémarrage du gateway Hermes (hermes gateway restart)")
+    """Demande à la boucle de l'entrypoint de relancer le gateway Hermes.
+
+    Dans Docker, ``hermes gateway restart`` tente de gérer lui-même un service et peut
+    rester bloqué. L'entrypoint LunarIA est déjà le superviseur : on termine uniquement
+    son processus enfant identifié par PID, puis sa boucle le relance avec le nouveau code.
+    """
+    logger.info("Redémarrage du gateway et du runtime Hermes via le superviseur LunarIA")
+    # Le runtime résident a importé le code Hermes en mémoire : une mise à jour doit donc
+    # le recycler lui aussi. Échec non bloquant, car le gateway reste le repli sûr.
     try:
-        r = subprocess.run(
-            [HERMES_BIN, "gateway", "restart"],
-            capture_output=True,
-            text=True,
-            stdin=subprocess.DEVNULL,
-            timeout=120,
+        runtime_pid = int(_RUNTIME_PID_FILE.read_text(encoding="utf-8").strip())
+        runtime_cmdline = (
+            Path(f"/proc/{runtime_pid}/cmdline")
+            .read_bytes()
+            .replace(b"\0", b" ")
+            .decode("utf-8", errors="replace")
         )
-        _log_step_result("hermes gateway restart", r)
-    except (OSError, subprocess.TimeoutExpired) as exc:
-        _log_step_result("hermes gateway restart", None, exc)
+        if "hermes_runtime_server.py" not in runtime_cmdline:
+            raise RuntimeError(f"PID {runtime_pid} ne correspond pas au runtime LunarIA")
+        os.kill(runtime_pid, signal.SIGTERM)
+    except (OSError, ValueError, RuntimeError) as exc:
+        logger.warning("Recyclage du runtime conversationnel non confirmé : %s", exc)
+    try:
+        old_pid = int(_GATEWAY_PID_FILE.read_text(encoding="utf-8").strip())
+        cmdline = (
+            Path(f"/proc/{old_pid}/cmdline")
+            .read_bytes()
+            .replace(b"\0", b" ")
+            .decode("utf-8", errors="replace")
+        )
+        if "hermes" not in cmdline or "gateway run" not in cmdline:
+            raise RuntimeError(f"PID {old_pid} ne correspond pas au gateway Hermes")
+        os.kill(old_pid, signal.SIGTERM)
+        for _ in range(15):  # boucle entrypoint : relance après 10 s
+            time.sleep(2)
+            try:
+                new_pid = int(_GATEWAY_PID_FILE.read_text(encoding="utf-8").strip())
+            except (OSError, ValueError):
+                continue
+            if new_pid != old_pid and Path(f"/proc/{new_pid}").exists():
+                logger.info(
+                    "Gateway Hermes relancé par LunarIA (ancien PID=%s, nouveau PID=%s)",
+                    old_pid,
+                    new_pid,
+                )
+                return
+        raise TimeoutError("le superviseur LunarIA n'a pas relancé le gateway sous 30 s")
+    except (OSError, ValueError, RuntimeError, TimeoutError) as exc:
+        _log_step_result("relance gateway supervisée", None, exc)
 
 
 def _rollback(prev_hash: str | None, backup: Path | None) -> bool:
     """Restaure l'état d'avant la MAJ : code (git) + deps + données, puis relance.
 
     Best-effort : on tente chaque étape et on relance le gateway dans tous les cas.
-    Renvoie True si le code a bien été ramené au commit précédent.
+    Renvoie True uniquement si le VRAI clone exécuté a le commit attendu ET si le moteur
+    répond après redémarrage. On ne doit jamais annoncer « restauré » sur le seul code retour
+    de `git reset` appliqué au mauvais dossier ou sur un gateway resté hors ligne.
 
     Chaque étape journalise début/fin/résultat (INFO succès, WARNING échec) — c'est le chemin
     le plus critique du bridge (audit observabilité 2026-07-16, Haute #1) : sans ça, un rollback
@@ -1588,8 +1791,24 @@ def _rollback(prev_hash: str | None, backup: Path | None) -> bool:
         except (OSError, subprocess.TimeoutExpired) as exc:
             _log_step_result("hermes import --force", None, exc)
     _restart_gateway()
-    logger.warning("Rollback moteur TERMINÉ : code_ok=%s (code source restauré=%s)", code_ok, code_ok)
-    return code_ok
+    actual_hash = _git_head()
+    commit_ok = bool(code_ok and prev_hash and actual_hash == prev_hash)
+    ready = False
+    if commit_ok:
+        for _ in range(20):  # ~80 s max, comme la vérification post-MAJ
+            if _engine_ready():
+                ready = True
+                break
+            time.sleep(4)
+    restored = bool(commit_ok and ready)
+    logger.warning(
+        "Rollback moteur TERMINÉ : reset_ok=%s commit_ok=%s moteur_prêt=%s restauré=%s",
+        code_ok,
+        commit_ok,
+        ready,
+        restored,
+    )
+    return restored
 
 
 def _supervise_update(prev_hash: str | None) -> None:
@@ -1652,6 +1871,8 @@ def start_update() -> None:
             )
             return
         prev_hash = _git_head()
+        if not _prepare_git_branch_for_update(prev_hash):
+            raise RuntimeError("Impossible de préparer le dépôt Hermes pour une mise à jour sûre")
         logger.info("Démarrage d'une MAJ moteur (hermes update --yes --backup, prev_hash=%s)", prev_hash or "(inconnu)")
         _start_bg_run("__update__", [HERMES_BIN, "update", "--yes", "--backup"])
         _UPDATE_STATE.clear()
