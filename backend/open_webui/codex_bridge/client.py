@@ -302,6 +302,33 @@ class CodexAppServerClient:
             timeout=10,
         )
 
+    async def account_read(self, *, refresh_token: bool = False) -> dict[str, Any]:
+        """Lit uniquement l'état public du compte ; aucun jeton n'est retourné."""
+        return await self.request(
+            'account/read',
+            {'refreshToken': refresh_token},
+            timeout=20,
+        )
+
+    async def start_chatgpt_device_login(self) -> dict[str, Any]:
+        """Démarre le flux officiel adapté à un navigateur distant/VPS."""
+        return await self.request(
+            'account/login/start',
+            {'type': 'chatgptDeviceCode'},
+            timeout=20,
+        )
+
+    async def cancel_login(self, login_id: str) -> None:
+        if login_id:
+            await self.request(
+                'account/login/cancel',
+                {'loginId': login_id},
+                timeout=10,
+            )
+
+    async def logout(self) -> None:
+        await self.request('account/logout', {}, timeout=20)
+
     async def request(self, method: str, params: Mapping[str, Any], *, timeout: float) -> dict[str, Any]:
         process = self._process
         if not process or not process.stdin or process.returncode is not None:

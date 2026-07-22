@@ -785,6 +785,12 @@ app.include_router(hermes.router, prefix='/api/v1/hermes', tags=['hermes'])
 app.include_router(kanban.router, prefix='/api/v1/kanban', tags=['kanban'])
 app.include_router(providers.router, prefix='/api/v1/providers', tags=['providers'])
 
+# Codex App Server reste strictement en stdio ; seule cette API admin filtrée est exposée
+# au frontend LunarIA pour l'état et la connexion officielle du moteur.
+from open_webui.codex_bridge import router as codex_engine
+
+app.include_router(codex_engine.router, prefix='/api/v1/providers/codex', tags=['codex'])
+
 # Routers du bridge Hermes v1 montés en direct (pas de service intermédiaire) :
 # leur auth par clé partagée (X-Bridge-Key) est remplacée par l'auth admin du fork.
 from open_webui.hermes_bridge.deps import require_bridge_key as _hermes_bridge_key

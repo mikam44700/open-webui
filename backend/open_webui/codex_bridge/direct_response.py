@@ -7,18 +7,14 @@ est réversible avec ``LUNARIA_ENGINE=hermes|codex`` et ne modifie aucune donné
 
 from __future__ import annotations
 
-import asyncio
 import os
 import time
 from collections.abc import AsyncIterator
 
 from open_webui.hermes_bridge.direct_response import DirectEvent, ROUTING_POLICY
 
-from .client import CodexAppServerClient, CodexProtocolError
-
-
-_client: CodexAppServerClient | None = None
-_client_lock = asyncio.Lock()
+from .client import CodexProtocolError
+from .runtime import get_client
 
 
 def _conversation(payload: dict) -> tuple[str, str]:
@@ -63,21 +59,6 @@ def _conversation(payload: dict) -> tuple[str, str]:
     return developer, transcript
 
 
-async def _resident_client() -> CodexAppServerClient:
-    global _client
-    async with _client_lock:
-        if _client is None or not _client.running:
-            if _client is not None:
-                await _client.stop()
-            _client = CodexAppServerClient(
-                codex_bin=os.environ.get('LUNARIA_CODEX_BIN', 'codex'),
-                codex_home=os.environ.get('LUNARIA_CODEX_HOME', '/app/backend/data/codex'),
-                cwd=os.environ.get('LUNARIA_CODEX_WORKDIR', '/tmp'),
-            )
-            await _client.start()
-        return _client
-
-
 async def stream_direct_events(payload: dict) -> AsyncIterator[DirectEvent]:
     """Transforme un tour App Server en événements déjà compris par le frontend."""
     started = time.perf_counter()
@@ -87,7 +68,7 @@ async def stream_direct_events(payload: dict) -> AsyncIterator[DirectEvent]:
     effort = os.environ.get('LUNARIA_CODEX_EFFORT', 'low').strip() or None
 
     try:
-        client = await _resident_client()
+        client = await get_client()
         thread_id = await client.start_thread(
             model=model,
             model_provider=provider,
