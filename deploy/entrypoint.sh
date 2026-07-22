@@ -47,10 +47,66 @@ python -c "from open_webui.hermes_bridge import entreprises_adapter as a; a._pre
 # connection (plus bas). Logs dans le volume : $HERMES_HOME/logs/gateway.log.
 python /app/backend/hermes_boot.py env || true
 mkdir -p "${HERMES_HOME}/logs"
+
+# Politique produit LunarIA : même le repli vers le gateway complet reste borné. Ces
+# réglages vivent dans la config persistante du client et sont réappliqués après une mise
+# à jour Hermes. La revue automatique des skills est désactivée dans le chat interactif :
+# elle consommait le gros modèle après une réponse et pouvait concurrencer le message suivant.
+"${HERMES_BIN:-hermes}" config set agent.max_turns 7 >/dev/null 2>&1 \
+  || echo "entrypoint: impossible d'appliquer agent.max_turns=7" >&2
+"${HERMES_BIN:-hermes}" config set skills.creation_nudge_interval 0 >/dev/null 2>&1 \
+  || echo "entrypoint: impossible de désactiver la revue skills interactive" >&2
+
+# Runtime conversationnel résident (port local 8643) : les imports Hermes et le client
+# restent chauds entre deux messages. Le gateway 8642 demeure le repli universel.
 (
   while true; do
-    "${HERMES_BIN:-hermes}" gateway run >>"${HERMES_HOME}/logs/gateway.log" 2>&1
-    echo "entrypoint: gateway Hermes arrêté (code $?) — relance dans 10 s." >>"${HERMES_HOME}/logs/gateway.log"
+    "${HERMES_PYTHON:-python}" \
+      /app/backend/open_webui/hermes_bridge/hermes_runtime_server.py \
+      >>"${HERMES_HOME}/logs/lunaria-runtime.log" 2>&1 &
+    runtime_pid=$!
+    printf '%s\n' "${runtime_pid}" > /tmp/lunaria-hermes-runtime.pid
+    set +e
+    wait "${runtime_pid}"
+    runtime_code=$?
+    set -e
+    rm -f /tmp/lunaria-hermes-runtime.pid
+    echo "entrypoint: runtime Hermes arrêté (code ${runtime_code}) — relance dans 2 s." \
+      >>"${HERMES_HOME}/logs/lunaria-runtime.log"
+    sleep 2
+  done
+) &
+
+(
+  find_gateway_pid() {
+    for proc_dir in /proc/[0-9]*; do
+      [ -r "${proc_dir}/cmdline" ] || continue
+      cmdline=$(tr '\000' ' ' < "${proc_dir}/cmdline" 2>/dev/null || true)
+      case "${cmdline}" in
+        *hermes*gateway\ run*) printf '%s\n' "${proc_dir##*/}"; return 0 ;;
+      esac
+    done
+    return 1
+  }
+  while true; do
+    # `hermes update` peut relancer lui-même le gateway avec `--replace`. Il ne s'agit
+    # alors plus d'un enfant de cette boucle : on l'adopte en le surveillant au lieu
+    # d'essayer d'en démarrer un second toutes les 10 secondes.
+    if existing_pid=$(find_gateway_pid); then
+      printf '%s\n' "${existing_pid}" > /tmp/lunaria-hermes-gateway.pid
+      while kill -0 "${existing_pid}" 2>/dev/null; do sleep 2; done
+      rm -f /tmp/lunaria-hermes-gateway.pid
+      continue
+    fi
+    "${HERMES_BIN:-hermes}" gateway run >>"${HERMES_HOME}/logs/gateway.log" 2>&1 &
+    gateway_pid=$!
+    printf '%s\n' "${gateway_pid}" > /tmp/lunaria-hermes-gateway.pid
+    set +e
+    wait "${gateway_pid}"
+    gateway_code=$?
+    set -e
+    rm -f /tmp/lunaria-hermes-gateway.pid
+    echo "entrypoint: gateway Hermes arrêté (code ${gateway_code}) — relance dans 10 s." >>"${HERMES_HOME}/logs/gateway.log"
     sleep 10
   done
 ) &

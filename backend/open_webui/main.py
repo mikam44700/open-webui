@@ -827,6 +827,12 @@ from open_webui.hermes_bridge import engine_plugins as _hermes_engine_plugins
 
 _hermes_engine_plugins.install_engine_plugins()
 
+# Beaucoup de connecteurs MCP restent disponibles, mais leurs schémas ne doivent pas tous
+# gonfler chaque message. Le moteur les découvre à la demande (réglage natif Hermes v0.19+).
+from open_webui.hermes_bridge import hermes_adapter as _hermes_runtime_adapter
+
+threading.Thread(target=_hermes_runtime_adapter.ensure_performance_defaults, daemon=True).start()
+
 # Garde-fous (chantier Guardrails) : armés à chaque démarrage, idempotent — disjoncteur
 # de boucle (hard stop) + approbation des écritures mémoire. En thread pour ne pas
 # retarder le démarrage (l'armement passe par l'interpréteur Hermes, ~1-2 s).
@@ -1218,7 +1224,7 @@ async def chat_completion(
                 'function_calling': (
                     form_data.get('params', {}).get('function_calling')
                     or model_info_params.get('function_calling')
-                    or 'native'
+                    or 'legacy'
                 ),
             },
         }

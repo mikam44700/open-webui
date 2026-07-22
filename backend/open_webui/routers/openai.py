@@ -5,6 +5,8 @@ import hashlib
 import json
 import logging
 import re
+import time
+import uuid
 from typing import Optional
 from urllib.parse import quote, urlparse
 
@@ -42,6 +44,7 @@ from open_webui.models.users import UserModel
 from open_webui.utils.access_control import check_model_access, has_connection_access, has_permission
 from open_webui.utils.anthropic import get_anthropic_models, is_anthropic_url
 from open_webui.hermes_bridge import pannes_fournisseur
+from open_webui.hermes_bridge import direct_response as hermes_direct
 from open_webui.utils.auth import get_admin_user, get_verified_user
 from open_webui.utils.headers import get_custom_headers, include_user_info_headers
 from open_webui.utils.misc import (
@@ -1169,6 +1172,31 @@ async def generate_chat_completion(
 
     url, key, api_config = await get_openai_connection(idx)
 
+    # Hermes is an agent harness rather than a plain completion endpoint. Give
+    # it a strict, request-level research budget so a failed crawler cannot
+    # cascade into repeated terminal/curl attempts lasting several minutes.
+    # This lives in LunarIA (not the updatable Hermes checkout), so engine
+    # updates cannot erase the product policy.
+    is_hermes = bool(re.search(r'(?:127\.0\.0\.1|localhost):8642(?:/|$)', url))
+    if is_hermes:
+        performance_policy = (
+            'LunarIA performance policy: For a current fact or public-web lookup, use at most '
+            '4 tool calls total. Never use terminal, code execution, or file tools to retrieve '
+            'public web information; use a web or public-source tool only. After one official '
+            'source confirms the answer, stop researching and answer. If a web tool fails, try '
+            'at most one different web tool, then state the limitation and answer with what is '
+            'verified. Never retry the same URL. Respect the requested response length.'
+        )
+        messages = payload.setdefault('messages', [])
+        system_message = next(
+            (message for message in messages if message.get('role') == 'system'),
+            None,
+        )
+        if system_message is None:
+            messages.insert(0, {'role': 'system', 'content': performance_policy})
+        elif isinstance(system_message.get('content'), str):
+            system_message['content'] = f"{system_message['content']}\n\n{performance_policy}"
+
     prefix_id = api_config.get('prefix_id', None)
     if prefix_id:
         payload['model'] = payload['model'].replace(f'{prefix_id}.', '')
@@ -1247,7 +1275,26 @@ async def generate_chat_completion(
                     part.get('text', '') for part in message['content'] if part.get('type') in ('input_text', 'text')
                 )
 
-    payload = json.dumps(payload)
+    payload_dict = payload
+
+    # Le chemin conversationnel rapide reste dans Hermes, mais sans exposer le moindre
+    # outil au premier tour. S'il demande une action, le flux bascule mécaniquement vers
+    # le serveur-agent Hermes actuel. L'interrupteur et tout échec du runner conservent le
+    # parcours historique intact.
+    if is_hermes and not is_responses and hermes_direct.is_direct_candidate(payload_dict):
+        return StreamingResponse(
+            _stream_hermes_direct_or_action(
+                payload=payload_dict,
+                request_url=request_url,
+                headers=headers,
+                cookies=cookies,
+                requested_model=requested_model,
+            ),
+            media_type='text/event-stream',
+            headers={'Cache-Control': 'no-cache', 'X-Accel-Buffering': 'no'},
+        )
+
+    payload = json.dumps(payload_dict)
 
     r = None
     streaming = False
@@ -1351,6 +1398,232 @@ async def generate_chat_completion(
     finally:
         if not streaming:
             await cleanup_response(r)
+
+
+async def _stream_hermes_direct_or_action(
+    *,
+    payload: dict,
+    request_url: str,
+    headers: dict,
+    cookies: dict,
+    requested_model: str,
+):
+    """Diffuse une réponse sans outil ou replie vers l'agent Hermes complet."""
+    started = time.perf_counter()
+    completion_id = f'chatcmpl-lunaria-{uuid.uuid4().hex}'
+    buffered: list[str] = []
+    direct_started = False
+    first_content_ms = None
+    direct_model = requested_model or 'hermes-agent'
+    runner_error = None
+    action = None
+
+    try:
+        async with asyncio.timeout(45):
+            async for event in hermes_direct.stream_direct_events(payload):
+                if event.model:
+                    direct_model = event.model
+                if event.type == 'error':
+                    runner_error = f'{event.error_type}: {event.message}'
+                    break
+                if event.type == 'delta':
+                    buffered.append(event.text)
+                    combined = ''.join(buffered)
+                    if direct_started:
+                        yield hermes_direct.openai_delta(event.text, direct_model, completion_id)
+                    elif not hermes_direct.looks_like_action_prefix(combined):
+                        direct_started = True
+                        first_content_ms = round((time.perf_counter() - started) * 1000)
+                        yield hermes_direct.openai_delta(combined, direct_model, completion_id)
+                elif event.type == 'done':
+                    answer = event.answer or ''.join(buffered)
+                    action = hermes_direct.parse_action(answer)
+                    if action is None and not direct_started:
+                        # Un JSON qui ne respecte pas exactement le contrat ne doit jamais
+                        # être montré au client. Il replie vers Hermes comme une ambiguïté.
+                        if hermes_direct.looks_like_action_prefix(answer):
+                            runner_error = 'invalid action contract'
+                        else:
+                            direct_started = True
+                            first_content_ms = round((time.perf_counter() - started) * 1000)
+                            yield hermes_direct.openai_delta(answer, direct_model, completion_id)
+                    if action is None and direct_started:
+                        for ending in hermes_direct.openai_done(direct_model, completion_id):
+                            yield ending
+                        log.info(
+                            'lunaria_chat_route route=direct llm_calls=1 tools=0 '
+                            'first_content_ms=%d total_ms=%d model=%s',
+                            first_content_ms or round((time.perf_counter() - started) * 1000),
+                            round((time.perf_counter() - started) * 1000),
+                            direct_model,
+                        )
+                        return
+                    break
+    except (TimeoutError, OSError) as exc:
+        runner_error = f'{type(exc).__name__}: {exc}'
+    except Exception as exc:  # noqa: BLE001 — repli sûr, jamais de panne du chat
+        log.exception('Hermes direct runner failed')
+        runner_error = f'{type(exc).__name__}: {exc}'
+
+    if direct_started:
+        # Une panne après le début d'une réponse ne peut pas basculer vers un second agent
+        # sans produire une réponse incohérente. On termine proprement le flux déjà visible.
+        for ending in hermes_direct.openai_done(direct_model, completion_id):
+            yield ending
+        log.warning(
+            'lunaria_chat_route route=direct_partial tools=0 total_ms=%d reason=%s',
+            round((time.perf_counter() - started) * 1000),
+            runner_error or 'runner ended before done',
+        )
+        return
+
+    # Les actions ordinaires connues passent par le runtime résident avec une surface
+    # d'outils fermée. Une intégration inconnue ou une mission complexe conserve le
+    # gateway Hermes complet, lui-même borné par la configuration LunarIA.
+    if action is not None and action.capacite in hermes_direct.BOUNDED_CAPABILITIES:
+        action_started = False
+        action_model = direct_model
+        try:
+            async with asyncio.timeout(70):
+                async for event in hermes_direct.stream_action_events(payload, action):
+                    if event.model:
+                        action_model = event.model
+                    if event.type == 'started':
+                        action_started = True
+                    elif event.type == 'delta' and event.text:
+                        yield hermes_direct.openai_delta(event.text, action_model, completion_id)
+                    elif event.type in {'tool_started', 'tool_completed'}:
+                        yield hermes_direct.openai_tool_progress(event)
+                    elif event.type == 'budget':
+                        message = (
+                            "Je m'arrête ici pour éviter une attente anormale. "
+                            "L'action n'est pas confirmée ; tu peux réessayer ou préciser la demande."
+                        )
+                        yield hermes_direct.openai_delta(message, action_model, completion_id)
+                        for ending in hermes_direct.openai_done(action_model, completion_id):
+                            yield ending
+                        log.warning(
+                            'lunaria_chat_route route=action_bounded budget=%s total_ms=%d',
+                            event.reason or 'reached',
+                            round((time.perf_counter() - started) * 1000),
+                        )
+                        return
+                    elif event.type == 'done':
+                        for ending in hermes_direct.openai_done(action_model, completion_id):
+                            yield ending
+                        log.info(
+                            'lunaria_chat_route route=action_bounded capability=%s tools=%d '
+                            'total_ms=%d',
+                            action.capacite,
+                            event.tool_count,
+                            round((time.perf_counter() - started) * 1000),
+                        )
+                        return
+                    elif event.type == 'error':
+                        runner_error = f'{event.error_type}: {event.message}'
+                        break
+        except (TimeoutError, OSError) as exc:
+            runner_error = f'{type(exc).__name__}: {exc}'
+
+        if action_started:
+            # Ne jamais rejouer une action potentiellement partiellement exécutée dans le
+            # gateway complet : cela pourrait créer deux fichiers ou envoyer deux messages.
+            message = (
+                "L'action s'est interrompue avant confirmation. Rien n'est annoncé comme "
+                "réussi ; réessaie dans un instant."
+            )
+            yield hermes_direct.openai_delta(message, action_model, completion_id)
+            for ending in hermes_direct.openai_done(action_model, completion_id):
+                yield ending
+            log.warning(
+                'lunaria_chat_route route=action_bounded_failed capability=%s total_ms=%d reason=%s',
+                action.capacite,
+                round((time.perf_counter() - started) * 1000),
+                runner_error or 'runtime ended without done',
+            )
+            return
+
+    fallback_payload = json.loads(json.dumps(payload))
+    route = 'action' if action is not None else 'fallback'
+    if action is not None:
+        messages = fallback_payload.setdefault('messages', [])
+        handoff = hermes_direct.action_handoff_policy(action.objectif, action.capacite)
+        system_message = next(
+            (message for message in messages if message.get('role') == 'system'),
+            None,
+        )
+        if system_message is None:
+            messages.insert(0, {'role': 'system', 'content': handoff})
+        elif isinstance(system_message.get('content'), str):
+            system_message['content'] = f"{system_message['content']}\n\n{handoff}"
+
+    log.info(
+        'lunaria_chat_route route=%s first_pass_ms=%d reason=%s',
+        route,
+        round((time.perf_counter() - started) * 1000),
+        'llm_requested_action' if action is not None else (runner_error or 'no terminal event'),
+    )
+    response = None
+    try:
+        session = await get_session()
+        response = await session.request(
+            method='POST',
+            url=request_url,
+            data=json.dumps(fallback_payload),
+            headers=headers,
+            cookies=cookies,
+            ssl=AIOHTTP_CLIENT_SESSION_SSL,
+            timeout=aiohttp.ClientTimeout(total=120),
+        )
+        if response.status >= 400:
+            body = await response.text()
+            error = {
+                'error': {
+                    'message': pannes_fournisseur.message_panne(body),
+                    'code': response.status,
+                }
+            }
+            yield f'data: {json.dumps(error, ensure_ascii=False)}\n\n'.encode('utf-8')
+            yield b'data: [DONE]\n\n'
+            return
+        if 'text/event-stream' not in response.headers.get('Content-Type', ''):
+            body = await response.read()
+            yield body
+            return
+        fallback_tool_count = 0
+        async for chunk in _traduire_pannes_en_flux(
+            stream_wrapper(response, content_handler=stream_chunks_handler)
+        ):
+            chunk_text = chunk.decode('utf-8', errors='replace') if isinstance(chunk, bytes) else str(chunk)
+            fallback_tool_count += chunk_text.count('"status": "running"')
+            if fallback_tool_count > 8:
+                message = (
+                    "Je m'arrête pour éviter une boucle anormalement longue. "
+                    "L'action n'est pas confirmée ; précise la demande avant de réessayer."
+                )
+                yield hermes_direct.openai_delta(message, direct_model, completion_id)
+                for ending in hermes_direct.openai_done(direct_model, completion_id):
+                    yield ending
+                log.warning(
+                    'lunaria_chat_route route=%s budget=tool_limit tools=%d total_ms=%d',
+                    route,
+                    fallback_tool_count,
+                    round((time.perf_counter() - started) * 1000),
+                )
+                return
+            yield chunk
+        log.info(
+            'lunaria_chat_route route=%s total_ms=%d',
+            route,
+            round((time.perf_counter() - started) * 1000),
+        )
+    except Exception as exc:  # noqa: BLE001 — le flux doit exposer une erreur lisible
+        log.exception('Hermes %s stream failed', route)
+        error = {'error': {'message': pannes_fournisseur.message_panne(str(exc)), 'code': 500}}
+        yield f'data: {json.dumps(error, ensure_ascii=False)}\n\n'.encode('utf-8')
+        yield b'data: [DONE]\n\n'
+    finally:
+        await cleanup_response(response)
 
 
 async def _traduire_pannes_en_flux(flux):

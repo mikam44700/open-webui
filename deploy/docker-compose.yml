@@ -23,14 +23,34 @@ services:
       - CRAWL4AI_MANAGED=1
       - CRAWL4AI_BASE_URL=http://crawl4ai:11235
       - CRAWL4AI_API_TOKEN=${CRAWL4AI_API_TOKEN:?lancer ./up.sh qui genere le .env}
+      # Repli d'urgence : mettre 0 dans le .env restaure le parcours Hermes complet
+      # historique, sans rebuild et sans toucher aux conversations ni aux données.
+      - LUNARIA_HERMES_DIRECT_MODE=${LUNARIA_HERMES_DIRECT_MODE:-1}
+      - LUNARIA_HERMES_RUNTIME_URL=http://127.0.0.1:8643
       # Pont Notes (SPEC-agents-mains-sur-app) : clé interne lue par les agents pour
       # écrire dans les Notes via l'API officielle. Absente = pont simplement inactif.
       - LUNARIA_INTERNAL_API_KEY=${LUNARIA_INTERNAL_API_KEY:-}
     volumes:
       - lunaria-data:/app/backend/data
+      # Le code + venv du moteur vivent dans leur propre volume : Docker initialise ce
+      # volume depuis l'image au premier démarrage, puis `hermes update` le fait évoluer.
+      # La version installée survit ainsi aux recréations du conteneur LunarIA.
+      - hermes-engine:/opt/hermes-agent
       # Seed de config Hermes (rempli par up.sh, gitignoré) : lu une seule fois au premier
       # démarrage d'un volume neuf par l'entrypoint ; lecture seule, peut être vide (vps).
       - ./.hermes-seed:/hermes-seed:ro
+    # Plafond memoire, comme crawl4ai : sans limite, un pic (embeddings, transcription,
+    # agent Hermes) peut assecher la machine hote. 4 Go laisse de la marge sur un VPS 8 Go.
+    deploy:
+      resources:
+        limits:
+          memory: 4G
+    # Sans rotation, les journaux grossissent sans fin chez un client (disque plein a terme).
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
     networks:
       - internal
 
@@ -63,6 +83,11 @@ services:
         limits:
           memory: 4G
           pids: 512
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:11235/health"]
       interval: 30s
@@ -72,6 +97,7 @@ services:
 
 volumes:
   lunaria-data:
+  hermes-engine:
 
 networks:
   internal:

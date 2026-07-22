@@ -1,5 +1,7 @@
 import logging
+import json
 import re
+import time
 from typing import Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Request, Response, status
@@ -36,6 +38,96 @@ from pydantic import BaseModel
 log = logging.getLogger(__name__)
 
 router = APIRouter()
+
+
+def _local_task_response(model: str, payload: dict) -> dict:
+    """Return an OpenAI-shaped response without invoking a full LLM agent.
+
+    Titles, tags and follow-up chips are interface conveniences. Sending each
+    one through Hermes loads its complete tools/skills/MCP harness (roughly
+    20k input tokens on the reference install). Keeping these tiny tasks local
+    makes the optimization provider/model agnostic and leaves the actual chat
+    agent untouched.
+    """
+    return {
+        'id': f'local-task-{int(time.time() * 1000)}',
+        'object': 'chat.completion',
+        'created': int(time.time()),
+        'model': model,
+        'choices': [
+            {
+                'index': 0,
+                'message': {
+                    'role': 'assistant',
+                    'content': json.dumps(payload, ensure_ascii=False),
+                },
+                'finish_reason': 'stop',
+            }
+        ],
+        'usage': {'prompt_tokens': 0, 'completion_tokens': 0, 'total_tokens': 0},
+    }
+
+
+def _message_text(messages: object, *, role: str | None = None, last: bool = False) -> str:
+    if not isinstance(messages, list):
+        return ''
+    candidates = [
+        str(item.get('content') or '').strip()
+        for item in messages
+        if isinstance(item, dict) and (role is None or item.get('role') == role)
+    ]
+    candidates = [text for text in candidates if text]
+    if not candidates:
+        return ''
+    return candidates[-1] if last else candidates[0]
+
+
+def _compact_title(messages: object) -> str:
+    text = _message_text(messages, role='user') or _message_text(messages)
+    text = re.sub(r'\s+', ' ', re.sub(r'<[^>]+>', ' ', text)).strip(' \t\n\r.,;:!?')
+    if not text:
+        return 'Nouvelle conversation'
+    words = text.split()
+    title = ' '.join(words[:8])
+    if len(words) > 8 or len(title) > 64:
+        title = title[:61].rstrip() + '…'
+    return title[0].upper() + title[1:] if title else 'Nouvelle conversation'
+
+
+_TAG_STOP_WORDS = {
+    'avec', 'dans', 'pour', 'mais', 'donc', 'comment', 'pourquoi', 'faire', 'peux',
+    'peut', 'est', 'une', 'des', 'les', 'que', 'qui', 'sur', 'the', 'and', 'with',
+    'from', 'this', 'that', 'what', 'how', 'can', 'you', 'please', 'bonjour', 'salut',
+}
+
+
+def _compact_tags(messages: object) -> list[str]:
+    text = _message_text(messages, role='user') or _message_text(messages)
+    words = re.findall(r"[\wÀ-ÿ-]{4,}", text.lower())
+    tags: list[str] = []
+    for word in words:
+        if word not in _TAG_STOP_WORDS and word not in tags:
+            tags.append(word)
+        if len(tags) == 3:
+            break
+    return tags
+
+
+def _compact_follow_ups(messages: object) -> list[str]:
+    topic = _compact_title(messages).rstrip('…')
+    latest = _message_text(messages, last=True).lower()
+    french = any(token in latest for token in (' le ', ' la ', ' les ', ' une ', ' des ', ' je ', ' vous '))
+    if french:
+        return [
+            f'Peux-tu approfondir « {topic} » ?',
+            'Peux-tu me donner un exemple concret ?',
+            'Quelle est la prochaine étape recommandée ?',
+        ]
+    return [
+        f'Can you go deeper on “{topic}”?',
+        'Can you give me a concrete example?',
+        'What next step do you recommend?',
+    ]
 
 TASK_CONFIG_KEYS = {
     'TASK_MODEL': 'task.model.default',
@@ -148,6 +240,8 @@ async def generate_title(request: Request, form_data: dict, user=Depends(get_ver
             detail=ERROR_MESSAGES.MODEL_NOT_FOUND(),
         )
 
+    return _local_task_response(model_id, {'title': _compact_title(form_data.get('messages'))})
+
     # Check if the user has a custom task model
     # If the user has a custom task model, use that model
     task_model_id = get_task_model_id(
@@ -227,6 +321,11 @@ async def generate_follow_ups(request: Request, form_data: dict, user=Depends(ge
             detail=ERROR_MESSAGES.MODEL_NOT_FOUND(),
         )
 
+    return _local_task_response(
+        model_id,
+        {'follow_ups': _compact_follow_ups(form_data.get('messages'))},
+    )
+
     # Check if the user has a custom task model
     # If the user has a custom task model, use that model
     task_model_id = get_task_model_id(
@@ -296,6 +395,8 @@ async def generate_chat_tags(request: Request, form_data: dict, user=Depends(get
             status_code=status.HTTP_404_NOT_FOUND,
             detail=ERROR_MESSAGES.MODEL_NOT_FOUND(),
         )
+
+    return _local_task_response(model_id, {'tags': _compact_tags(form_data.get('messages'))})
 
     # Check if the user has a custom task model
     # If the user has a custom task model, use that model
