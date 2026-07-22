@@ -84,7 +84,7 @@
 	} from '$lib/apis/chats';
 	import { generateOpenAIChatCompletion } from '$lib/apis/openai';
 	import { processWeb, processWebSearch, processYoutubeVideo } from '$lib/apis/retrieval';
-	import { getAndUpdateUserLocation, getUserSettings } from '$lib/apis/users';
+	import { getAndUpdateUserLocation, getUserSettings, updateUserSettings } from '$lib/apis/users';
 	import {
 		generateQueries,
 		chatAction,
@@ -163,9 +163,20 @@
 	let webSearchEnabled = false;
 	let codeInterpreterEnabled = false;
 	let webSearchActive = false;
+	let lastSavedWebSearchPreference: boolean | undefined;
 	let showWebSearchConfirm = false;
 	let pendingWebSearchPrompt: string | null = null;
 	let webSearchConfirmed = false;
+
+	const getSavedWebSearchPreference = () => ($settings?.webSearch ?? null) === 'always';
+
+	$: {
+		const savedWebSearchPreference = getSavedWebSearchPreference();
+		if (savedWebSearchPreference !== lastSavedWebSearchPreference) {
+			lastSavedWebSearchPreference = savedWebSearchPreference;
+			webSearchEnabled = savedWebSearchPreference;
+		}
+	}
 
 	$: {
 		const currentModels = atSelectedModel?.id ? [atSelectedModel.id] : selectedModels;
@@ -188,12 +199,33 @@
 		}, 0);
 	};
 
-	const handleWebSearchToggle = (enabled: boolean) => {
+	const saveWebSearchPreference = async (enabled: boolean) => {
+		const previousSettings = $settings;
+		const nextSettings = {
+			...previousSettings,
+			webSearch: enabled ? 'always' : null
+		};
+
+		settings.set(nextSettings);
+
+		try {
+			await updateUserSettings(localStorage.token, { ui: nextSettings });
+		} catch (error) {
+			settings.set(previousSettings);
+			webSearchEnabled = (previousSettings?.webSearch ?? null) === 'always';
+			toast.error("Impossible d'enregistrer la préférence Recherche & web.");
+		}
+	};
+
+	const handleWebSearchToggle = async (enabled: boolean) => {
 		if (enabled && $config?.features?.enable_web_search_confirmation && !webSearchConfirmed) {
 			webSearchEnabled = false;
 			pendingWebSearchPrompt = null;
 			openWebSearchConfirm();
+			return;
 		}
+
+		await saveWebSearchPreference(enabled);
 	};
 
 	const resetWebSearchConfirmation = () => {
@@ -262,7 +294,7 @@
 		selectedToolIds = [];
 		selectedSkillIds = [];
 		selectedFilterIds = [];
-		webSearchEnabled = false;
+		webSearchEnabled = getSavedWebSearchPreference();
 		imageGenerationEnabled = false;
 
 		const storageChatInput = sessionStorage.getItem(
@@ -298,7 +330,7 @@
 						selectedToolIds = input.selectedToolIds;
 						selectedSkillIds = input.selectedSkillIds ?? [];
 						selectedFilterIds = input.selectedFilterIds;
-						webSearchEnabled = input.webSearchEnabled;
+						webSearchEnabled = input.webSearchEnabled || getSavedWebSearchPreference();
 						imageGenerationEnabled = input.imageGenerationEnabled;
 						codeInterpreterEnabled = input.codeInterpreterEnabled;
 					}
@@ -381,7 +413,7 @@
 		selectedSkillIds = [];
 		selectedFilterIds = [];
 		pendingOAuthTools = [];
-		webSearchEnabled = false;
+		webSearchEnabled = getSavedWebSearchPreference();
 		imageGenerationEnabled = false;
 		codeInterpreterEnabled = false;
 
@@ -488,7 +520,9 @@
 						$config?.features?.enable_web_search &&
 						($user?.role === 'admin' || $user?.permissions?.features?.web_search)
 					) {
-						webSearchEnabled = model.info.meta.defaultFeatureIds.includes('web_search');
+						webSearchEnabled =
+							model.info.meta.defaultFeatureIds.includes('web_search') ||
+							getSavedWebSearchPreference();
 					}
 
 					if (
@@ -1009,7 +1043,7 @@
 				selectedToolIds = [];
 				selectedSkillIds = [];
 				selectedFilterIds = [];
-				webSearchEnabled = false;
+				webSearchEnabled = getSavedWebSearchPreference();
 				imageGenerationEnabled = false;
 				codeInterpreterEnabled = false;
 
@@ -1022,7 +1056,7 @@
 						selectedToolIds = input.selectedToolIds;
 						selectedSkillIds = input.selectedSkillIds ?? [];
 						selectedFilterIds = input.selectedFilterIds;
-						webSearchEnabled = input.webSearchEnabled;
+						webSearchEnabled = input.webSearchEnabled || getSavedWebSearchPreference();
 						imageGenerationEnabled = input.imageGenerationEnabled;
 						codeInterpreterEnabled = input.codeInterpreterEnabled;
 					}
@@ -3057,6 +3091,7 @@
 			await submitHandler(userPrompt);
 		} else {
 			webSearchEnabled = true;
+			await saveWebSearchPreference(true);
 		}
 	};
 
