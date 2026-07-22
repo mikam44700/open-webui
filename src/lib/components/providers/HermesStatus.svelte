@@ -8,7 +8,11 @@
 		getHermesStatus,
 		checkHermesUpdate,
 		startHermesUpdate,
-		getHermesUpdateStatus
+		getHermesUpdateStatus,
+		getCodexStatus,
+		startCodexDeviceLogin,
+		cancelCodexLogin,
+		logoutCodex
 	} from '$lib/apis/providers';
 	import Spinner from '$lib/components/common/Spinner.svelte';
 	import ConfirmDialog from '$lib/components/common/ConfirmDialog.svelte';
@@ -21,6 +25,9 @@
 
 	let loading = true;
 	let status: any = null;
+	let codexStatus: any = null;
+	let codexLogin: any = null;
+	let codexLoginBusy = false;
 
 	let checking = false;
 	let checkOutput = '';
@@ -31,13 +38,16 @@
 	let poller: ReturnType<typeof setInterval> | null = null;
 
 	// État de santé synthétique : moteur en ligne + connexion au chat + un cerveau branché.
-	$: engineOk = !!status?.hermes_available;
-	$: chatOk = !!status?.api_server?.reachable;
+	$: engineIsCodex = codexStatus?.selected_engine === 'codex';
+	$: engineOk = engineIsCodex ? !!codexStatus?.reachable : !!status?.hermes_available;
+	$: chatOk = engineIsCodex ? !!codexStatus?.reachable : !!status?.api_server?.reachable;
 	// Rétrocompat : champ absent (bridge pas encore resync) => on ne déclenche pas l'alerte.
-	$: brainConnected = status?.brain_connected !== false;
+	$: brainConnected = engineIsCodex
+		? !!codexStatus?.account || codexStatus?.requires_openai_auth === false
+		: status?.brain_connected !== false;
 	// « auto » = le cerveau par défaut d'usine (openrouter sans clé) : il ne répond PAS.
 	// On ne doit donc pas afficher « opérationnel » tant qu'un vrai cerveau n'est pas activé.
-	$: activeIsAuto = status?.active?.provider_id === 'auto';
+	$: activeIsAuto = !engineIsCodex && status?.active?.provider_id === 'auto';
 	$: health = !engineOk
 		? {
 				tone: 'down',
@@ -69,7 +79,7 @@
 						};
 	// Version lisible (ex. « v0.17.0 ») extraite de la chaîne technique complète.
 	$: versionShort = (() => {
-		const v = status?.version ?? '';
+		const v = (engineIsCodex ? codexStatus?.version : status?.version) ?? '';
 		const m = v.match(/v\d+\.\d+(?:\.\d+)?/);
 		return m ? m[0] : v || '—';
 	})();
@@ -77,12 +87,37 @@
 	const loadStatus = async () => {
 		loading = true;
 		try {
-			status = await getHermesStatus(localStorage.token);
+			[status, codexStatus] = await Promise.all([
+				getHermesStatus(localStorage.token),
+				getCodexStatus(localStorage.token)
+			]);
 		} catch {
 			toast.error($i18n.t('Impossible de récupérer l’état du moteur'));
 		} finally {
 			loading = false;
 		}
+	};
+
+	const connectCodex = async () => {
+		codexLoginBusy = true;
+		try {
+			codexLogin = await startCodexDeviceLogin(localStorage.token);
+		} catch {
+			toast.error($i18n.t('Impossible de démarrer la connexion Codex'));
+		} finally {
+			codexLoginBusy = false;
+		}
+	};
+
+	const cancelCodex = async () => {
+		if (codexLogin?.loginId) await cancelCodexLogin(localStorage.token, codexLogin.loginId);
+		codexLogin = null;
+	};
+
+	const disconnectCodex = async () => {
+		await logoutCodex(localStorage.token);
+		codexLogin = null;
+		await loadStatus();
 	};
 
 	const check = async () => {
@@ -217,8 +252,8 @@
 		<div class="flex items-center justify-between">
 			<div class="flex items-center gap-2.5">
 				<img
-					src="/assets/providers/nousresearch.png"
-					alt="Agent Hermes"
+					src={engineIsCodex ? '/assets/providers/codex.png' : '/assets/providers/nousresearch.png'}
+					alt={engineIsCodex ? 'Codex' : 'Agent Hermes'}
 					class="size-11 rounded-xl object-cover shrink-0"
 					draggable="false"
 				/>
@@ -305,7 +340,7 @@
 		</div>
 
 		<!-- Date de la dernière mise à jour (déduite de la dernière sauvegarde pre-update) -->
-		{#if status.last_update}
+		{#if !engineIsCodex && status.last_update}
 			<div class="flex items-center justify-between text-sm">
 				<span class="text-gray-500">{$i18n.t('Dernière mise à jour')}</span>
 				<span class="font-medium text-right text-gray-900 dark:text-gray-100">
@@ -323,8 +358,50 @@
 		{/if}
 	</div>
 
-	<!-- Mise à jour -->
+	<!-- Gestion du moteur, dans le même bloc et aux mêmes dimensions. -->
 	<div class="mt-3 p-4 rounded-2xl border border-gray-100 dark:border-gray-850 flex flex-col gap-3">
+		{#if engineIsCodex}
+			<div>
+				<div class="text-sm font-medium">{$i18n.t('Connexion au moteur Codex')}</div>
+				<div class="text-xs text-gray-500 mt-0.5">
+					{$i18n.t('Connexion officielle OpenAI. Les identifiants restent sur ce VPS.')}
+				</div>
+			</div>
+			{#if codexStatus?.account}
+				<div class="flex items-center justify-between gap-3">
+					<div class="inline-flex items-center gap-1.5 text-xs font-medium text-emerald-600 dark:text-emerald-400">
+						<span class="size-1.5 rounded-full bg-emerald-500"></span>
+						{$i18n.t('Compte Codex connecté')}
+						{#if codexStatus.account.email}<span class="font-normal text-gray-400">· {codexStatus.account.email}</span>{/if}
+					</div>
+					<button type="button" class="text-xs text-gray-500 hover:text-gray-900 dark:hover:text-white" on:click={disconnectCodex}>
+						{$i18n.t('Déconnecter')}
+					</button>
+				</div>
+			{:else if codexLogin}
+				<div class="rounded-xl bg-gray-50 dark:bg-gray-900 p-3 text-sm">
+					<div class="text-xs text-gray-500">{$i18n.t('Ouvre le lien puis saisis ce code :')}</div>
+					<div class="mt-1 font-mono text-lg font-semibold tracking-wider">{codexLogin.userCode}</div>
+					<div class="mt-2 flex items-center gap-3">
+						<a class="text-xs text-sky-600 hover:underline" href={codexLogin.verificationUrl} target="_blank" rel="noreferrer">
+							{$i18n.t('Ouvrir la connexion OpenAI')}
+						</a>
+						<button type="button" class="text-xs text-gray-500" on:click={cancelCodex}>{$i18n.t('Annuler')}</button>
+						<button type="button" class="text-xs text-gray-500" on:click={loadStatus}>{$i18n.t('J’ai terminé')}</button>
+					</div>
+				</div>
+			{:else}
+				<button
+					type="button"
+					class="w-fit text-sm px-3.5 py-2 rounded-xl btn-premium bg-black text-white dark:bg-white dark:text-black hover:opacity-90 transition disabled:opacity-50 inline-flex items-center gap-2"
+					disabled={codexLoginBusy}
+					on:click={connectCodex}
+				>
+					{#if codexLoginBusy}<Spinner className="size-4" />{/if}
+					{$i18n.t('Connecter mon compte Codex')}
+				</button>
+			{/if}
+		{:else}
 		<div>
 			<div class="text-sm font-medium">{$i18n.t('Mise à jour du moteur')}</div>
 			<div class="text-xs text-gray-500 mt-0.5">
@@ -431,6 +508,7 @@
 					<pre class="mt-2 text-[11px] leading-relaxed bg-gray-50 dark:bg-gray-900 rounded-xl p-2.5 max-h-60 overflow-y-auto whitespace-pre-wrap">{updateLog}</pre>
 				{/if}
 			</details>
+		{/if}
 		{/if}
 	</div>
 {/if}

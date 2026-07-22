@@ -19,7 +19,20 @@ from open_webui.hermes_bridge.direct_response import (
 )
 
 from .client import CodexProtocolError
+from .opencodex_config import resolve_lunaria_selection
 from .runtime import get_client
+
+
+def _selected_model() -> tuple[str | None, str | None]:
+    configured_model, configured_provider = resolve_lunaria_selection(
+        os.path.join(
+            os.environ.get('HERMES_HOME', '/app/backend/data/hermes'),
+            'config.yaml',
+        )
+    )
+    model = os.environ.get('LUNARIA_CODEX_MODEL', '').strip() or configured_model
+    provider = os.environ.get('LUNARIA_CODEX_PROVIDER', '').strip() or configured_provider
+    return model, provider
 
 
 def _conversation(payload: dict, *, allow_tools: bool = False) -> tuple[str, str]:
@@ -70,8 +83,7 @@ async def stream_direct_events(payload: dict) -> AsyncIterator[DirectEvent]:
     """Transforme un tour App Server en événements déjà compris par le frontend."""
     started = time.perf_counter()
     developer, transcript = _conversation(payload)
-    model = os.environ.get('LUNARIA_CODEX_MODEL', '').strip() or None
-    provider = os.environ.get('LUNARIA_CODEX_PROVIDER', '').strip() or None
+    model, provider = _selected_model()
     effort = os.environ.get('LUNARIA_CODEX_EFFORT', 'low').strip() or None
 
     try:
@@ -143,8 +155,7 @@ async def stream_action_events(payload: dict, action: HermesAction) -> AsyncIter
         "Tu peux maintenant utiliser les MCP configurés. N'utilise le terminal que si aucun "
         "MCP adapté n'existe. Maximum trois appels d'outils."
     )
-    model = os.environ.get('LUNARIA_CODEX_MODEL', '').strip() or None
-    provider = os.environ.get('LUNARIA_CODEX_PROVIDER', '').strip() or None
+    model, provider = _selected_model()
     effort = os.environ.get('LUNARIA_CODEX_EFFORT', 'low').strip() or None
     answer: list[str] = []
     tool_count = 0

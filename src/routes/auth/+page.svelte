@@ -292,7 +292,7 @@
 										)}
 									</div>
 									<div class="mt-1 text-xs font-medium text-gray-500 dark:text-gray-500">
-										{$i18n.t('Propulsé par Hermes Agent')}
+										{$i18n.t('Propulsé par Codex')}
 									</div>
 
 									{#if $config?.onboarding ?? false}

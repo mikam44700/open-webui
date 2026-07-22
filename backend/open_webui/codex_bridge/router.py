@@ -44,12 +44,27 @@ async def _version() -> str | None:
 @router.get('/status')
 async def codex_status(_user=Depends(get_admin_user)) -> dict[str, Any]:
     version = await _version()
+    selected_engine = (
+        'codex' if os.environ.get('LUNARIA_ENGINE', 'hermes').strip().lower() == 'codex' else 'hermes'
+    )
+    common = {
+        'selected_engine': selected_engine,
+        'opencodex_enabled': os.environ.get('LUNARIA_OPENCODEX_ENABLED', '0').strip().lower()
+        in {'1', 'true', 'yes', 'on'},
+    }
     if version is None:
-        return {'installed': False, 'version': None, 'reachable': False, 'account': None}
+        return {
+            **common,
+            'installed': False,
+            'version': None,
+            'reachable': False,
+            'account': None,
+        }
     try:
         client = await get_client()
         account_result = await client.account_read(refresh_token=False)
         return {
+            **common,
             'installed': True,
             'version': version,
             'reachable': client.running,
@@ -58,6 +73,7 @@ async def codex_status(_user=Depends(get_admin_user)) -> dict[str, Any]:
         }
     except (CodexProtocolError, OSError, TimeoutError) as exc:
         return {
+            **common,
             'installed': True,
             'version': version,
             'reachable': False,

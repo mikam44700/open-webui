@@ -176,7 +176,7 @@
 			},
 			calendar: { label: 'Calendar', href: '/calendar', iconType: 'calendar' },
 			playground: { label: 'Playground', href: '/playground', iconType: 'playground' },
-			hermes: { label: 'Hermes', href: '/hermes', iconType: 'hermes' }
+			hermes: { label: 'Moteur', href: '/hermes', iconType: 'hermes' }
 		};
 		return items[id];
 	};

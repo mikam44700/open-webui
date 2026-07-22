@@ -405,3 +405,30 @@ export const getHermesStatus = (token: string) => hermesCall(token, 'GET', 'stat
 export const checkHermesUpdate = (token: string) => hermesCall(token, 'POST', 'update/check');
 export const startHermesUpdate = (token: string) => hermesCall(token, 'POST', 'update/start');
 export const getHermesUpdateStatus = (token: string) => hermesCall(token, 'GET', 'update/status');
+
+const codexCall = async (token: string, method: string, path: string) => {
+	let error = null;
+	const res = await fetch(`${WEBUI_API_BASE_URL}/providers/codex/${path}`, {
+		method,
+		headers: {
+			'Content-Type': 'application/json',
+			Authorization: `Bearer ${token}`
+		}
+	})
+		.then(async (res) => {
+			if (!res.ok) throw await res.json();
+			return res.json();
+		})
+		.catch((err) => {
+			error = err.detail ?? err;
+			return null;
+		});
+	if (error) throw error;
+	return res;
+};
+
+export const getCodexStatus = (token: string) => codexCall(token, 'GET', 'status');
+export const startCodexDeviceLogin = (token: string) => codexCall(token, 'POST', 'login/device');
+export const cancelCodexLogin = (token: string, loginId: string) =>
+	codexCall(token, 'POST', `login/cancel/${encodeURIComponent(loginId)}`);
+export const logoutCodex = (token: string) => codexCall(token, 'POST', 'logout');

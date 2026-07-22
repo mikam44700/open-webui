@@ -175,7 +175,7 @@
 </script>
 
 <svelte:head>
-	<title>Espace de travail · Hermes</title>
+	<title>Espace de travail · Moteur</title>
 </svelte:head>
 
 <div
@@ -204,7 +204,7 @@
 				>
 					Espace de travail
 				</div>
-				<h1 class="text-2xl font-semibold text-gray-900 dark:text-gray-50 mt-1">Hermes Agent</h1>
+				<h1 class="text-2xl font-semibold text-gray-900 dark:text-gray-50 mt-1">Moteur</h1>
 				<p class="text-sm text-gray-500 dark:text-gray-400 mt-1">
 					{sectionActive?.desc}
 				</p>

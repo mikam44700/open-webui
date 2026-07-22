@@ -39,6 +39,8 @@ if [ "${LUNARIA_OPENCODEX_ENABLED:-0}" = "1" ]; then
       done < "${provider_env}"
     fi
     export OCX_SERVICE=1
+    python -m open_webui.codex_bridge.opencodex_config \
+      >>"${OPENCODEX_HOME:-/app/backend/data/opencodex}/service.log" 2>&1
     while true; do
       set +e
       /usr/local/bin/bun run /opt/opencodex/src/cli/index.ts start --port 10100 \
