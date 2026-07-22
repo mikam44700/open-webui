@@ -27,11 +27,12 @@ services:
       # historique, sans rebuild et sans toucher aux conversations ni aux données.
       - LUNARIA_HERMES_DIRECT_MODE=${LUNARIA_HERMES_DIRECT_MODE:-1}
       - LUNARIA_HERMES_RUNTIME_URL=http://127.0.0.1:8643
-      # Codex est le moteur principal. `LUNARIA_ENGINE=hermes` conserve un retour arrière
-      # immédiat pendant la validation, sans toucher aux conversations ni aux données.
-      - LUNARIA_ENGINE=${LUNARIA_ENGINE:-codex}
+      # Hermes reste l'unique moteur du produit. La connexion ChatGPT/Codex est un
+      # provider de Hermes et profite de son parcours direct rapide dans le chat.
+      # Le prototype Codex autonome reste réversible via le .env, sans être démarré.
+      - LUNARIA_ENGINE=${LUNARIA_ENGINE:-hermes}
       - LUNARIA_CODEX_EFFORT=${LUNARIA_CODEX_EFFORT:-low}
-      - LUNARIA_OPENCODEX_ENABLED=${LUNARIA_OPENCODEX_ENABLED:-1}
+      - LUNARIA_OPENCODEX_ENABLED=${LUNARIA_OPENCODEX_ENABLED:-0}
       - LUNARIA_OPENCODEX_URL=http://127.0.0.1:10100
       # Pont Notes (SPEC-agents-mains-sur-app) : clé interne lue par les agents pour
       # écrire dans les Notes via l'API officielle. Absente = pont simplement inactif.

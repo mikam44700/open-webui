@@ -49,6 +49,7 @@ async def codex_status(_user=Depends(get_admin_user)) -> dict[str, Any]:
     )
     common = {
         'selected_engine': selected_engine,
+        'enabled': selected_engine == 'codex',
         'opencodex_enabled': os.environ.get('LUNARIA_OPENCODEX_ENABLED', '0').strip().lower()
         in {'1', 'true', 'yes', 'on'},
     }
@@ -59,6 +60,17 @@ async def codex_status(_user=Depends(get_admin_user)) -> dict[str, Any]:
             'version': None,
             'reachable': False,
             'account': None,
+        }
+    # Conserver Codex installé permet un retour arrière, mais consulter la page Moteur
+    # ne doit pas démarrer son App Server lorsque Hermes est le moteur sélectionné.
+    if selected_engine != 'codex':
+        return {
+            **common,
+            'installed': True,
+            'version': version,
+            'reachable': False,
+            'account': None,
+            'requires_openai_auth': False,
         }
     try:
         client = await get_client()
