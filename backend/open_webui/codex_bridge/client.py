@@ -292,6 +292,16 @@ class CodexAppServerClient:
             if event.type in {'done', 'error'}:
                 return
 
+    async def interrupt_turn(self, thread_id: str, turn_id: str) -> None:
+        """Interrompt explicitement un tour dont LunarIA refuse la suite."""
+        if not thread_id or not turn_id:
+            return
+        await self.request(
+            'turn/interrupt',
+            {'threadId': thread_id, 'turnId': turn_id},
+            timeout=10,
+        )
+
     async def request(self, method: str, params: Mapping[str, Any], *, timeout: float) -> dict[str, Any]:
         process = self._process
         if not process or not process.stdin or process.returncode is not None:

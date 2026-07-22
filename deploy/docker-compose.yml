@@ -27,6 +27,10 @@ services:
       # historique, sans rebuild et sans toucher aux conversations ni aux données.
       - LUNARIA_HERMES_DIRECT_MODE=${LUNARIA_HERMES_DIRECT_MODE:-1}
       - LUNARIA_HERMES_RUNTIME_URL=http://127.0.0.1:8643
+      # Migration progressive : `hermes` reste le défaut jusqu'à la porte humaine.
+      # Passer temporairement à `codex` ne change ni données ni connexion fournisseur.
+      - LUNARIA_ENGINE=${LUNARIA_ENGINE:-hermes}
+      - LUNARIA_CODEX_EFFORT=${LUNARIA_CODEX_EFFORT:-low}
       # Pont Notes (SPEC-agents-mains-sur-app) : clé interne lue par les agents pour
       # écrire dans les Notes via l'API officielle. Absente = pont simplement inactif.
       - LUNARIA_INTERNAL_API_KEY=${LUNARIA_INTERNAL_API_KEY:-}

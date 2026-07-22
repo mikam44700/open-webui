@@ -11,6 +11,11 @@
 # 3. exec du start.sh open-webui d'origine (PID 1 reste l'app, arrêt propre du conteneur).
 set -euo pipefail
 
+# Espace persistant propre au moteur Codex. Il reste vide tant que Codex n'est pas
+# connecté ; le créer ne touche ni au profil Hermes ni aux données de l'application.
+mkdir -p "${LUNARIA_CODEX_HOME:-/app/backend/data/codex}"
+chmod 700 "${LUNARIA_CODEX_HOME:-/app/backend/data/codex}"
+
 if [ -n "${HERMES_HOME:-}" ] && [ ! -f "${HERMES_HOME}/config.yaml" ] && [ -f /hermes-seed/config.yaml ]; then
   echo "entrypoint: premier démarrage — reprise de la config Hermes depuis le seed."
   mkdir -p "${HERMES_HOME}"

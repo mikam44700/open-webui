@@ -44,7 +44,7 @@ from open_webui.models.users import UserModel
 from open_webui.utils.access_control import check_model_access, has_connection_access, has_permission
 from open_webui.utils.anthropic import get_anthropic_models, is_anthropic_url
 from open_webui.hermes_bridge import pannes_fournisseur
-from open_webui.hermes_bridge import direct_response as hermes_direct
+from open_webui.engine_bridge import direct_response as engine_direct
 from open_webui.utils.auth import get_admin_user, get_verified_user
 from open_webui.utils.headers import get_custom_headers, include_user_info_headers
 from open_webui.utils.misc import (
@@ -1281,7 +1281,7 @@ async def generate_chat_completion(
     # outil au premier tour. S'il demande une action, le flux bascule mécaniquement vers
     # le serveur-agent Hermes actuel. L'interrupteur et tout échec du runner conservent le
     # parcours historique intact.
-    if is_hermes and not is_responses and hermes_direct.is_direct_candidate(payload_dict):
+    if is_hermes and not is_responses and engine_direct.is_direct_candidate(payload_dict):
         return StreamingResponse(
             _stream_hermes_direct_or_action(
                 payload=payload_dict,
@@ -1420,7 +1420,7 @@ async def _stream_hermes_direct_or_action(
 
     try:
         async with asyncio.timeout(45):
-            async for event in hermes_direct.stream_direct_events(payload):
+            async for event in engine_direct.stream_direct_events(payload):
                 if event.model:
                     direct_model = event.model
                 if event.type == 'error':
@@ -1430,25 +1430,25 @@ async def _stream_hermes_direct_or_action(
                     buffered.append(event.text)
                     combined = ''.join(buffered)
                     if direct_started:
-                        yield hermes_direct.openai_delta(event.text, direct_model, completion_id)
-                    elif not hermes_direct.looks_like_action_prefix(combined):
+                        yield engine_direct.openai_delta(event.text, direct_model, completion_id)
+                    elif not engine_direct.looks_like_action_prefix(combined):
                         direct_started = True
                         first_content_ms = round((time.perf_counter() - started) * 1000)
-                        yield hermes_direct.openai_delta(combined, direct_model, completion_id)
+                        yield engine_direct.openai_delta(combined, direct_model, completion_id)
                 elif event.type == 'done':
                     answer = event.answer or ''.join(buffered)
-                    action = hermes_direct.parse_action(answer)
+                    action = engine_direct.parse_action(answer)
                     if action is None and not direct_started:
                         # Un JSON qui ne respecte pas exactement le contrat ne doit jamais
                         # être montré au client. Il replie vers Hermes comme une ambiguïté.
-                        if hermes_direct.looks_like_action_prefix(answer):
+                        if engine_direct.looks_like_action_prefix(answer):
                             runner_error = 'invalid action contract'
                         else:
                             direct_started = True
                             first_content_ms = round((time.perf_counter() - started) * 1000)
-                            yield hermes_direct.openai_delta(answer, direct_model, completion_id)
+                            yield engine_direct.openai_delta(answer, direct_model, completion_id)
                     if action is None and direct_started:
-                        for ending in hermes_direct.openai_done(direct_model, completion_id):
+                        for ending in engine_direct.openai_done(direct_model, completion_id):
                             yield ending
                         log.info(
                             'lunaria_chat_route route=direct llm_calls=1 tools=0 '
@@ -1468,7 +1468,7 @@ async def _stream_hermes_direct_or_action(
     if direct_started:
         # Une panne après le début d'une réponse ne peut pas basculer vers un second agent
         # sans produire une réponse incohérente. On termine proprement le flux déjà visible.
-        for ending in hermes_direct.openai_done(direct_model, completion_id):
+        for ending in engine_direct.openai_done(direct_model, completion_id):
             yield ending
         log.warning(
             'lunaria_chat_route route=direct_partial tools=0 total_ms=%d reason=%s',
@@ -1480,27 +1480,27 @@ async def _stream_hermes_direct_or_action(
     # Les actions ordinaires connues passent par le runtime résident avec une surface
     # d'outils fermée. Une intégration inconnue ou une mission complexe conserve le
     # gateway Hermes complet, lui-même borné par la configuration LunarIA.
-    if action is not None and action.capacite in hermes_direct.BOUNDED_CAPABILITIES:
+    if action is not None and action.capacite in engine_direct.BOUNDED_CAPABILITIES:
         action_started = False
         action_model = direct_model
         try:
             async with asyncio.timeout(70):
-                async for event in hermes_direct.stream_action_events(payload, action):
+                async for event in engine_direct.stream_action_events(payload, action):
                     if event.model:
                         action_model = event.model
                     if event.type == 'started':
                         action_started = True
                     elif event.type == 'delta' and event.text:
-                        yield hermes_direct.openai_delta(event.text, action_model, completion_id)
+                        yield engine_direct.openai_delta(event.text, action_model, completion_id)
                     elif event.type in {'tool_started', 'tool_completed'}:
-                        yield hermes_direct.openai_tool_progress(event)
+                        yield engine_direct.openai_tool_progress(event)
                     elif event.type == 'budget':
                         message = (
                             "Je m'arrête ici pour éviter une attente anormale. "
                             "L'action n'est pas confirmée ; tu peux réessayer ou préciser la demande."
                         )
-                        yield hermes_direct.openai_delta(message, action_model, completion_id)
-                        for ending in hermes_direct.openai_done(action_model, completion_id):
+                        yield engine_direct.openai_delta(message, action_model, completion_id)
+                        for ending in engine_direct.openai_done(action_model, completion_id):
                             yield ending
                         log.warning(
                             'lunaria_chat_route route=action_bounded budget=%s total_ms=%d',
@@ -1509,7 +1509,7 @@ async def _stream_hermes_direct_or_action(
                         )
                         return
                     elif event.type == 'done':
-                        for ending in hermes_direct.openai_done(action_model, completion_id):
+                        for ending in engine_direct.openai_done(action_model, completion_id):
                             yield ending
                         log.info(
                             'lunaria_chat_route route=action_bounded capability=%s tools=%d '
@@ -1532,8 +1532,8 @@ async def _stream_hermes_direct_or_action(
                 "L'action s'est interrompue avant confirmation. Rien n'est annoncé comme "
                 "réussi ; réessaie dans un instant."
             )
-            yield hermes_direct.openai_delta(message, action_model, completion_id)
-            for ending in hermes_direct.openai_done(action_model, completion_id):
+            yield engine_direct.openai_delta(message, action_model, completion_id)
+            for ending in engine_direct.openai_done(action_model, completion_id):
                 yield ending
             log.warning(
                 'lunaria_chat_route route=action_bounded_failed capability=%s total_ms=%d reason=%s',
@@ -1547,7 +1547,7 @@ async def _stream_hermes_direct_or_action(
     route = 'action' if action is not None else 'fallback'
     if action is not None:
         messages = fallback_payload.setdefault('messages', [])
-        handoff = hermes_direct.action_handoff_policy(action.objectif, action.capacite)
+        handoff = engine_direct.action_handoff_policy(action.objectif, action.capacite)
         system_message = next(
             (message for message in messages if message.get('role') == 'system'),
             None,
@@ -1601,8 +1601,8 @@ async def _stream_hermes_direct_or_action(
                     "Je m'arrête pour éviter une boucle anormalement longue. "
                     "L'action n'est pas confirmée ; précise la demande avant de réessayer."
                 )
-                yield hermes_direct.openai_delta(message, direct_model, completion_id)
-                for ending in hermes_direct.openai_done(direct_model, completion_id):
+                yield engine_direct.openai_delta(message, direct_model, completion_id)
+                for ending in engine_direct.openai_done(direct_model, completion_id):
                     yield ending
                 log.warning(
                     'lunaria_chat_route route=%s budget=tool_limit tools=%d total_ms=%d',

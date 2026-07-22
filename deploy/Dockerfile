@@ -105,12 +105,40 @@ RUN set -eu; \
     rm -rf /tmp/typst.tar.xz "/tmp/typst-${ty_cible}"; \
     officecli --version && typst --version
 
+# Codex App Server, candidat moteur principal (SPEC-migration-hermes-vers-codex).
+# Le paquet natif officiel est épinglé et vérifié pour les deux architectures de la
+# stack : arm64 sur le Mac de Michael, amd64 sur les VPS. On garde tout le répertoire
+# vendor car Codex y résout aussi son shell isolé, rg et ses ressources de sandbox.
+ARG CODEX_VERSION=0.145.0
+ARG CODEX_SHA512_ARM64=f0e2dc3d7680a25fc53ab4680f15a12221c815aef7291b0ce3510aa1c8d164ec224f84dc7a5cc95a7ddd1f28ae49beed796176e6baec96f48fcaf8542d845109
+ARG CODEX_SHA512_AMD64=bbcc3c2cbbf70efb1fac30a8b302c87a66744a83445f28b9d755ac7c5b1289851ace4f6a32c07f36d53c37dbe101f37b9990312c5a0c7b1e2feba2631ee656c0
+RUN set -eu; \
+    if [ "${TARGETARCH}" = "arm64" ]; then \
+      codex_suffix=linux-arm64; codex_target=aarch64-unknown-linux-musl; codex_sha="${CODEX_SHA512_ARM64}"; \
+    else \
+      codex_suffix=linux-x64; codex_target=x86_64-unknown-linux-musl; codex_sha="${CODEX_SHA512_AMD64}"; \
+    fi; \
+    curl -fsSL --retry 3 -o /tmp/codex.tgz \
+      "https://registry.npmjs.org/@openai/codex/-/codex-${CODEX_VERSION}-${codex_suffix}.tgz"; \
+    echo "${codex_sha}  /tmp/codex.tgz" | sha512sum -c -; \
+    mkdir -p /opt/codex; \
+    tar -xzf /tmp/codex.tgz -C /opt/codex --strip-components=2 package/vendor; \
+    ln -s "/opt/codex/${codex_target}/bin/codex" /usr/local/bin/codex; \
+    rm -f /tmp/codex.tgz; \
+    codex --version
+
 # HERMES_HOME vit DANS le volume de données open-webui (/app/backend/data) :
 # config.yaml, .env (tokens) et mémoires survivent aux redémarrages et aux MAJ d'image.
 ENV HERMES_HOME=/app/backend/data/hermes \
     HERMES_INSTALL_DIR=/opt/hermes-agent \
     HERMES_PYTHON=/opt/hermes-agent/venv/bin/python \
     HERMES_BIN=/opt/hermes-agent/venv/bin/hermes
+
+# Codex conserve auth/config et sessions techniques dans le volume de données, séparé
+# d'Hermes. Aucun secret n'entre dans l'image. App Server est lancé à la demande en stdio.
+ENV LUNARIA_CODEX_BIN=/usr/local/bin/codex \
+    LUNARIA_CODEX_HOME=/app/backend/data/codex \
+    LUNARIA_CODEX_WORKDIR=/tmp
 
 # Le venv Hermes en FIN de PATH : hermes/uv/uvx trouvables partout, sans jamais masquer
 # le python/uvicorn de l'app (qui restent prioritaires en tête de PATH).
