@@ -276,6 +276,23 @@
 			} catch {
 				effort = 'medium';
 			}
+			// Bascule de secours (demande Michael 2026-07-22) : si le modèle actif n'est plus
+			// branché (clé déconnectée dans Modèles IA, compte expiré, mode « auto » résiduel)
+			// mais qu'un AUTRE fournisseur l'est encore, le chat se replace tout seul sur ce
+			// fournisseur au lieu de rester mort sur un modèle hors service. Cas vécu : clé
+			// Kimi déconnectée → l'en-tête affichait « k3 · plus connecté » à l'infini.
+			const encoreConnectes = (providers ?? []).filter(
+				(p) => p.state !== 'not_configured' && (p.models?.length ?? 0) > 0 && !isHiddenProvider(p.id)
+			);
+			if (
+				active?.provider_id &&
+				!encoreConnectes.some((p) => p.id === active?.provider_id) &&
+				encoreConnectes.length > 0
+			) {
+				const repli = encoreConnectes[0];
+				const mid = defaultModelId(repli);
+				if (mid) await chooseModel(repli.id, mid);
+			}
 			void loadCaps();
 		} catch (err) {
 			unavailable = true;
