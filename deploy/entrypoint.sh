@@ -28,6 +28,9 @@ python -m open_webui.codex_bridge.sync_mcp \
 # la clé interne LunarIA et les tokens de canaux restent hors de son processus.
 if [ "${LUNARIA_OPENCODEX_ENABLED:-0}" = "1" ]; then
   (
+    # OpenCodex et App Server doivent impérativement partager le même CODEX_HOME :
+    # la passerelle y injecte le catalogue multi-provider lu ensuite par Codex.
+    export CODEX_HOME="${LUNARIA_CODEX_HOME:-/app/backend/data/codex}"
     provider_env="${HERMES_HOME:-/app/backend/data/hermes}/.env"
     if [ -f "${provider_env}" ]; then
       while IFS='=' read -r key value; do
