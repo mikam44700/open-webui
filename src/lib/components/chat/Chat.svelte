@@ -168,7 +168,14 @@
 	let pendingWebSearchPrompt: string | null = null;
 	let webSearchConfirmed = false;
 
-	const getSavedWebSearchPreference = () => ($settings?.webSearch ?? null) === 'always';
+	const getSavedWebSearchPreference = () => {
+		const currentSettings = $settings ?? {};
+		if (!Object.prototype.hasOwnProperty.call(currentSettings, 'webSearch')) {
+			return true;
+		}
+
+		return currentSettings.webSearch === 'always';
+	};
 
 	$: {
 		const savedWebSearchPreference = getSavedWebSearchPreference();

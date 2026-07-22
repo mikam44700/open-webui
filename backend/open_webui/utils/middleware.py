@@ -128,6 +128,7 @@ from open_webui.utils.tools import (
     get_updated_tool_function,
 )
 from open_webui.utils.webhook import post_webhook
+from open_webui.utils.web_search_intent import classify_web_search_intent
 from starlette.responses import JSONResponse, Response, StreamingResponse
 
 logging.basicConfig(stream=sys.stdout, level=GLOBAL_LOG_LEVEL)
@@ -2457,7 +2458,18 @@ async def process_chat_payload(request, form_data, user, metadata, model):
         if 'web_search' in features and features['web_search']:
             # Skip forced RAG web search when native FC is enabled - model can use web_search tool
             if metadata.get('params', {}).get('function_calling') == 'legacy':
-                form_data = await chat_web_search_handler(request, form_data, extra_params, user)
+                web_search_decision = classify_web_search_intent(
+                    get_last_user_message(form_data.get('messages', []))
+                )
+                log.info(
+                    'lunaria_web_gate mode=legacy decision=%s reason=%s',
+                    'search' if web_search_decision.should_search else 'direct',
+                    web_search_decision.reason,
+                )
+                if web_search_decision.should_search:
+                    form_data = await chat_web_search_handler(request, form_data, extra_params, user)
+            else:
+                log.info('lunaria_web_gate mode=native decision=model')
 
         if 'image_generation' in features and features['image_generation']:
             # Skip forced image generation when native FC is enabled - model can use generate_image tool
