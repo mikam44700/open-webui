@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { getContext, onMount } from 'svelte';
+	import { page } from '$app/stores';
 	import { toast } from 'svelte-sonner';
 
 	import { getIntegrations } from '$lib/apis/integrations';
@@ -24,7 +25,15 @@
 	let bridgeDown = false;
 	let integrations: Integration[] = [];
 	let showBrowse = false;
-	const MAIN_IDS = ['google-workspace', 'microsoft-365', 'notion', 'airtable', 'obsidian', 'calendly'];
+	let focusedSearch = '';
+	const MAIN_IDS = [
+		'google-workspace',
+		'microsoft-365',
+		'notion',
+		'airtable',
+		'obsidian',
+		'calendly'
+	];
 
 	// Le client final ne voit que les intégrations visibles (les masquées restent gérées en admin).
 	$: visible = integrations.filter((i) => i.visible !== false);
@@ -64,7 +73,11 @@
 		}
 	};
 
-	onMount(() => load());
+	onMount(() => {
+		focusedSearch = $page.url.searchParams.get('search')?.trim() ?? '';
+		if (focusedSearch) showBrowse = true;
+		load();
+	});
 </script>
 
 <div class="w-full max-w-7xl mx-auto px-3 py-3">
@@ -113,7 +126,11 @@
 						stroke="currentColor"
 						class="size-4"
 					>
-						<path stroke-linecap="round" stroke-linejoin="round" d="M13.5 4.5 21 12m0 0-7.5 7.5M21 12H3" />
+						<path
+							stroke-linecap="round"
+							stroke-linejoin="round"
+							d="M13.5 4.5 21 12m0 0-7.5 7.5M21 12H3"
+						/>
 					</svg>
 				</button>
 			</div>
@@ -125,11 +142,18 @@
 			</div>
 		{/if}
 	{:else}
-		<div class="text-xs text-gray-500 text-center py-8">{$i18n.t('Aucune intégration disponible')}</div>
+		<div class="text-xs text-gray-500 text-center py-8">
+			{$i18n.t('Aucune intégration disponible')}
+		</div>
 	{/if}
 </div>
 
-<IntegrationsBrowseModal bind:open={showBrowse} integrations={visible} on:changed={load} />
+<IntegrationsBrowseModal
+	bind:open={showBrowse}
+	integrations={visible}
+	initialSearch={focusedSearch}
+	on:changed={load}
+/>
 
 <style>
 	.responsive-card-grid {
