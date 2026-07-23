@@ -3,8 +3,12 @@ import json
 
 import pytest
 from open_webui.hermes_bridge.mission_stream import (
+    INTERACTIVE_MAX_TOOL_CALLS,
+    MISSION_MAX_TOOL_CALLS,
     MissionIdleTimeout,
     MissionMaximumDuration,
+    ToolCallBudget,
+    is_long_mission_request,
     progress_event,
     stream_with_limits,
 )
@@ -111,3 +115,66 @@ def test_long_mission_progress_is_humanized_for_the_client():
     assert humanize_tool_progress('lunaria_long_mission', 'depuis 4 min') == (
         '⏳ Mission approfondie en cours depuis 4 min'
     )
+
+
+def tool_event(tool: str, call_id: str, label: str) -> bytes:
+    data = {
+        'tool': tool,
+        'toolCallId': call_id,
+        'status': 'running',
+        'label': label,
+    }
+    return f'event: hermes.tool.progress\ndata: {json.dumps(data)}\n\n'.encode()
+
+
+def test_long_mission_fallback_is_detected_when_the_llm_router_times_out():
+    payload = {
+        'messages': [
+            {
+                'role': 'user',
+                'content': (
+                    'Analyse mon marché, surveille cinq concurrents et génère '
+                    'un rapport PDF avec les sources.'
+                ),
+            }
+        ]
+    }
+    assert is_long_mission_request(payload) is True
+    assert is_long_mission_request(
+        {'messages': [{'role': 'user', 'content': 'Quel temps fait-il ?'}]}
+    ) is False
+    assert is_long_mission_request(
+        {'messages': []}, action_capability='complex'
+    ) is True
+
+
+def test_long_mission_accepts_more_than_the_interactive_tool_budget():
+    budget = ToolCallBudget(maximum_calls=MISSION_MAX_TOOL_CALLS)
+    for index in range(INTERACTIVE_MAX_TOOL_CALLS + 1):
+        assert budget.observe(
+            tool_event('web_search', f'call-{index}', f'requête différente {index}')
+        ) is None
+    assert budget.count == INTERACTIVE_MAX_TOOL_CALLS + 1
+
+
+def test_tool_budget_ignores_duplicate_sse_events_but_stops_a_real_loop():
+    budget = ToolCallBudget(maximum_calls=MISSION_MAX_TOOL_CALLS)
+    first = tool_event('web_search', 'same-call', 'même requête')
+    assert budget.observe(first) is None
+    assert budget.observe(first) is None
+    assert budget.count == 1
+
+    for index in range(1, 4):
+        reason = budget.observe(
+            tool_event('web_search', f'retry-{index}', 'même requête')
+        )
+    assert reason == 'repeated'
+
+
+def test_interactive_tool_budget_remains_strict():
+    budget = ToolCallBudget(maximum_calls=INTERACTIVE_MAX_TOOL_CALLS)
+    for index in range(INTERACTIVE_MAX_TOOL_CALLS):
+        assert budget.observe(
+            tool_event('integration', f'call-{index}', f'action {index}')
+        ) is None
+    assert budget.observe(tool_event('integration', 'too-many', 'action finale')) == 'total'

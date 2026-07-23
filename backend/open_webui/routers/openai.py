@@ -38,10 +38,14 @@ from open_webui.env import (
 from open_webui.engine_bridge import direct_response as engine_direct
 from open_webui.hermes_bridge import pannes_fournisseur
 from open_webui.hermes_bridge.mission_stream import (
+    INTERACTIVE_MAX_TOOL_CALLS,
     MISSION_IDLE_SECONDS,
     MISSION_MAX_SECONDS,
+    MISSION_MAX_TOOL_CALLS,
     MissionIdleTimeout,
     MissionMaximumDuration,
+    ToolCallBudget,
+    is_long_mission_request,
     progress_event as mission_progress_event,
     stream_with_limits as stream_mission_with_limits,
 )
@@ -1187,14 +1191,23 @@ async def generate_chat_completion(
     # updates cannot erase the product policy.
     is_hermes = bool(re.search(r'(?:127\.0\.0\.1|localhost):8642(?:/|$)', url))
     if is_hermes:
-        performance_policy = (
-            'LunarIA performance policy: For a current fact or public-web lookup, use at most '
-            '4 tool calls total. Never use terminal, code execution, or file tools to retrieve '
-            'public web information; use a web or public-source tool only. After one official '
-            'source confirms the answer, stop researching and answer. If a web tool fails, try '
-            'at most one different web tool, then state the limitation and answer with what is '
-            'verified. Never retry the same URL. Respect the requested response length.'
-        )
+        if is_long_mission_request(payload):
+            performance_policy = (
+                'LunarIA long-mission policy: This request intentionally requires several '
+                'verified sources and a final deliverable. Use only the tools needed for the '
+                'requested scope, never repeat an identical search or URL, and stop as soon as '
+                'the deliverable is complete. Prefer web/public-source tools over terminal or '
+                'code execution for public information.'
+            )
+        else:
+            performance_policy = (
+                'LunarIA performance policy: For a current fact or public-web lookup, use at most '
+                '4 tool calls total. Never use terminal, code execution, or file tools to retrieve '
+                'public web information; use a web or public-source tool only. After one official '
+                'source confirms the answer, stop researching and answer. If a web tool fails, try '
+                'at most one different web tool, then state the limitation and answer with what is '
+                'verified. Never retry the same URL. Respect the requested response length.'
+            )
         messages = payload.setdefault('messages', [])
         system_message = next(
             (message for message in messages if message.get('role') == 'system'),
@@ -1608,7 +1621,15 @@ async def _stream_hermes_direct_or_action(
             body = await response.read()
             yield body
             return
-        fallback_tool_count = 0
+        long_mission = is_long_mission_request(
+            fallback_payload,
+            action_capability=action.capacite if action is not None else '',
+        )
+        tool_budget = ToolCallBudget(
+            maximum_calls=(
+                MISSION_MAX_TOOL_CALLS if long_mission else INTERACTIVE_MAX_TOOL_CALLS
+            )
+        )
         mission_remaining = max(
             0.001,
             MISSION_MAX_SECONDS - (time.monotonic() - mission_started_at),
@@ -1619,20 +1640,29 @@ async def _stream_hermes_direct_or_action(
             ),
             maximum_seconds=mission_remaining,
         ):
-            chunk_text = chunk.decode('utf-8', errors='replace') if isinstance(chunk, bytes) else str(chunk)
-            fallback_tool_count += chunk_text.count('"status": "running"')
-            if fallback_tool_count > 8:
-                message = (
-                    "Je m'arrête pour éviter une boucle anormalement longue. "
-                    "L'action n'est pas confirmée ; précise la demande avant de réessayer."
-                )
+            budget_reason = tool_budget.observe(chunk)
+            if budget_reason:
+                if budget_reason == 'repeated':
+                    message = (
+                        "La mission s'arrête car le même appel d'outil s'est répété "
+                        "anormalement. Aucun résultat incomplet n'est présenté comme terminé."
+                    )
+                else:
+                    message = (
+                        f"La mission a atteint sa limite de {tool_budget.maximum_calls} étapes "
+                        "d'outils. Aucun résultat incomplet n'est présenté comme terminé."
+                    )
                 yield engine_direct.openai_delta(message, direct_model, completion_id)
                 for ending in engine_direct.openai_done(direct_model, completion_id):
                     yield ending
                 log.warning(
-                    'lunaria_chat_route route=%s budget=tool_limit tools=%d total_ms=%d',
+                    'lunaria_chat_route route=%s budget=tool_limit reason=%s '
+                    'tools=%d maximum=%d long_mission=%s total_ms=%d',
                     route,
-                    fallback_tool_count,
+                    budget_reason,
+                    tool_budget.count,
+                    tool_budget.maximum_calls,
+                    long_mission,
                     round((time.perf_counter() - started) * 1000),
                 )
                 return

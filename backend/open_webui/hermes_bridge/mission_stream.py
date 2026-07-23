@@ -10,14 +10,49 @@ from __future__ import annotations
 import asyncio
 import contextlib
 import json
+import re
 import time
+from collections import Counter
 from collections.abc import AsyncIterator
+from dataclasses import dataclass, field
 
 MISSION_MAX_SECONDS = 30 * 60
 MISSION_IDLE_SECONDS = 3 * 60
 MISSION_HEARTBEAT_SECONDS = 10
+INTERACTIVE_MAX_TOOL_CALLS = 8
+MISSION_MAX_TOOL_CALLS = 40
+MISSION_MAX_REPEATED_TOOL_CALLS = 3
 MISSION_PROGRESS_TOOL = 'lunaria_long_mission'
 MISSION_PROGRESS_CALL_ID = 'lunaria-long-mission'
+
+_RESEARCH_MARKERS = (
+    'analyse',
+    'analyze',
+    'concurrent',
+    'competitor',
+    'marché',
+    'market',
+    'recherche',
+    'research',
+    'source',
+    'surveille',
+    'monitor',
+    'tendance',
+    'trend',
+    'veille',
+)
+_DELIVERABLE_MARKERS = (
+    "plan d'action",
+    'action plan',
+    'document',
+    'dossier',
+    'pdf',
+    'présentation',
+    'presentation',
+    'rapport',
+    'report',
+    'tableau',
+)
 
 
 class MissionIdleTimeout(TimeoutError):
@@ -26,6 +61,84 @@ class MissionIdleTimeout(TimeoutError):
 
 class MissionMaximumDuration(TimeoutError):
     """La mission a atteint sa durée maximale autorisée."""
+
+
+def _latest_user_text(payload: dict) -> str:
+    for message in reversed(payload.get('messages') or []):
+        if not isinstance(message, dict) or message.get('role') != 'user':
+            continue
+        content = message.get('content')
+        if isinstance(content, str):
+            return content
+        if isinstance(content, list):
+            return ' '.join(
+                str(part.get('text') or '')
+                for part in content
+                if isinstance(part, dict) and part.get('type') in {'text', 'input_text'}
+            )
+    return ''
+
+
+def is_long_mission_request(payload: dict, *, action_capability: str = '') -> bool:
+    """Distingue une mission multi-étapes d'une action interactive ordinaire.
+
+    Le routeur LLM reste la source principale (`complex`). Les marqueurs textuels ne
+    servent que de repli lorsque ce premier routeur expire avant de rendre son contrat.
+    """
+
+    if action_capability == 'complex':
+        return True
+    text = re.sub(r'\s+', ' ', _latest_user_text(payload).lower()).strip()
+    return (
+        any(marker in text for marker in _RESEARCH_MARKERS)
+        and any(marker in text for marker in _DELIVERABLE_MARKERS)
+    )
+
+
+@dataclass(slots=True)
+class ToolCallBudget:
+    """Compte les appels réels sans confondre les doublons SSE avec de nouveaux outils."""
+
+    maximum_calls: int
+    maximum_repeated_calls: int = MISSION_MAX_REPEATED_TOOL_CALLS
+    count: int = 0
+    _seen_call_ids: set[str] = field(default_factory=set)
+    _signatures: Counter[str] = field(default_factory=Counter)
+
+    def observe(self, chunk: bytes | str) -> str | None:
+        """Retourne `total` ou `repeated` lorsque le garde-fou est dépassé."""
+
+        text = chunk.decode('utf-8', errors='replace') if isinstance(chunk, bytes) else str(chunk)
+        for line in text.splitlines():
+            if not line.startswith('data:'):
+                continue
+            raw = line.removeprefix('data:').strip()
+            if not raw or raw == '[DONE]':
+                continue
+            try:
+                data = json.loads(raw)
+            except json.JSONDecodeError:
+                continue
+            if not isinstance(data, dict) or data.get('status') != 'running':
+                continue
+
+            tool = str(data.get('tool') or '').strip()
+            call_id = str(data.get('toolCallId') or '').strip()
+            label = re.sub(r'\s+', ' ', str(data.get('label') or '')).strip().lower()
+            if not tool or (call_id and call_id in self._seen_call_ids):
+                continue
+            if call_id:
+                self._seen_call_ids.add(call_id)
+
+            self.count += 1
+            if label:
+                signature = f'{tool}\0{label}'
+                self._signatures[signature] += 1
+                if self._signatures[signature] > self.maximum_repeated_calls:
+                    return 'repeated'
+            if self.count > self.maximum_calls:
+                return 'total'
+        return None
 
 
 def progress_event(elapsed_seconds: float, *, done: bool = False) -> bytes:
