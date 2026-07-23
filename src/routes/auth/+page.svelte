@@ -21,11 +21,10 @@
 	import { WEBUI_NAME, config, user, socket } from '$lib/stores';
 
 	import { generateInitialsImage, canvasPixelTest, getUserTimezone } from '$lib/utils';
+	import { destinationAfterSignup, isFirstClientSetup } from '$lib/auth/first-client';
 
 	import Spinner from '$lib/components/common/Spinner.svelte';
-	import OnBoarding from '$lib/components/OnBoarding.svelte';
 	import SensitiveInput from '$lib/components/common/SensitiveInput.svelte';
-	import { redirect } from '@sveltejs/kit';
 
 	const i18n = getContext('i18n');
 
@@ -41,6 +40,7 @@
 	let confirmPassword = '';
 
 	let ldapUsername = '';
+	let firstClientSetup = false;
 
 	const setSessionUser = async (sessionUser, redirectPath: string | null = null) => {
 		if (sessionUser) {
@@ -92,7 +92,10 @@
 			}
 		);
 
-		await setSessionUser(sessionUser);
+		await setSessionUser(
+			sessionUser,
+			destinationAfterSignup(firstClientSetup, $page.url.searchParams.get('redirect'))
+		);
 	};
 
 	const ldapSignInHandler = async () => {
@@ -139,8 +142,6 @@
 		localStorage.token = token;
 		await setSessionUser(sessionUser, localStorage.getItem('redirectPath') || null);
 	};
-
-	let onboarding = false;
 
 	async function setLogoImage() {
 		await tick();
@@ -210,7 +211,10 @@
 		if (($config?.features?.auth_trusted_header ?? false) || $config?.features?.auth === false) {
 			await signInHandler();
 		} else {
-			onboarding = $config?.onboarding ?? false;
+			firstClientSetup = isFirstClientSetup($config);
+			if (firstClientSetup) {
+				mode = 'signup';
+			}
 		}
 	});
 </script>
@@ -220,14 +224,6 @@
 		{`${$WEBUI_NAME}`}
 	</title>
 </svelte:head>
-
-<OnBoarding
-	bind:show={onboarding}
-	getStartedHandler={() => {
-		onboarding = false;
-		mode = $config?.features.enable_ldap ? 'ldap' : 'signup';
-	}}
-/>
 
 <div class="w-full h-screen max-h-[100dvh] text-white relative" id="auth-page">
 	<div class="w-full h-full absolute top-0 left-0 bg-white dark:bg-black"></div>
@@ -275,8 +271,8 @@
 							>
 								<div class="mb-1">
 									<div class=" text-2xl font-medium">
-										{#if $config?.onboarding ?? false}
-											{$i18n.t(`Get started with {{WEBUI_NAME}}`, { WEBUI_NAME: $WEBUI_NAME })}
+										{#if firstClientSetup}
+											Créez votre espace {$WEBUI_NAME}
 										{:else if mode === 'ldap'}
 											{$i18n.t(`Sign in to {{WEBUI_NAME}} with LDAP`, { WEBUI_NAME: $WEBUI_NAME })}
 										{:else if mode === 'signin'}
@@ -287,20 +283,25 @@
 									</div>
 
 									<div class="mt-2 text-sm text-gray-600 dark:text-gray-400">
-										{$i18n.t(
-											'Votre assistant d’entreprise privé. Connectez vos outils, déléguez vos tâches, gardez la mémoire de votre activité.'
-										)}
+										{#if firstClientSetup}
+											Ce compte propriétaire sera le seul à pouvoir lancer la configuration de votre
+											AgentOS privé.
+										{:else}
+											{$i18n.t(
+												'Votre assistant d’entreprise privé. Connectez vos outils, déléguez vos tâches, gardez la mémoire de votre activité.'
+											)}
+										{/if}
 									</div>
 									<div class="mt-1 text-xs font-medium text-gray-500 dark:text-gray-500">
 										{$i18n.t('Propulsé par Codex')}
 									</div>
 
-									{#if $config?.onboarding ?? false}
-										<div class="mt-1 text-xs font-medium text-gray-600 dark:text-gray-500">
-											ⓘ {$WEBUI_NAME}
-											{$i18n.t(
-												'does not make any external connections, and your data stays securely on your locally hosted server.'
-											)}
+									{#if firstClientSetup}
+										<div
+											class="mt-3 rounded-xl border border-gray-200 bg-gray-50 px-3 py-2 text-left text-xs text-gray-600 dark:border-gray-800 dark:bg-gray-900 dark:text-gray-400"
+										>
+											Après la création de ce compte, l’inscription publique sera automatiquement
+											fermée et l’onboarding de votre entreprise commencera.
 										</div>
 									{/if}
 								</div>
@@ -415,12 +416,12 @@
 											>
 												{mode === 'signin'
 													? $i18n.t('Sign in')
-													: ($config?.onboarding ?? false)
-														? $i18n.t('Create Admin Account')
+													: firstClientSetup
+														? 'Créer mon espace et commencer'
 														: $i18n.t('Create Account')}
 											</button>
 
-											{#if $config?.features.enable_signup && !($config?.onboarding ?? false)}
+											{#if $config?.features.enable_signup && !firstClientSetup}
 												<div class=" mt-4 text-sm text-center">
 													{mode === 'signin'
 														? $i18n.t("Don't have an account?")
@@ -590,8 +591,7 @@
 										class="flex justify-center items-center text-xs w-full text-center underline"
 										type="button"
 										on:click={() => {
-											if (mode === 'ldap')
-												mode = ($config?.onboarding ?? false) ? 'signup' : 'signin';
+											if (mode === 'ldap') mode = firstClientSetup ? 'signup' : 'signin';
 											else mode = 'ldap';
 										}}
 									>
