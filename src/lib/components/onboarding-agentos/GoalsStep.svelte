@@ -7,8 +7,11 @@
 	export let goals: BusinessGoal[] = [];
 
 	let selectedGoals: BusinessGoal[] = [...goals];
+	let selectedGoalIds: string[] = [];
 	let customGoal = '';
 	let error = '';
+
+	$: selectedGoalIds = selectedGoals.map((goal) => goal.id);
 
 	const dispatch = createEventDispatcher<{
 		back: void;
@@ -77,8 +80,10 @@
 		{#each GOAL_CATALOG as goal}
 			<button
 				type="button"
-				aria-pressed={isSelected(goal.id)}
-				class="min-h-32 rounded-[1.5rem] border p-5 text-left transition {isSelected(goal.id)
+				aria-pressed={selectedGoalIds.includes(goal.id)}
+				class="min-h-32 rounded-[1.5rem] border p-5 text-left transition {selectedGoalIds.includes(
+					goal.id
+				)
 					? 'border-[#6b62f2] bg-[#6b62f2]/8 ring-2 ring-[#6b62f2]/10'
 					: 'border-black/6 bg-white hover:border-[#6b62f2]/35 dark:border-white/8 dark:bg-[#161616]'}"
 				on:click={() => toggleGoal(goal)}
@@ -86,7 +91,7 @@
 				<div class="flex items-start justify-between gap-3">
 					<div class="text-base font-medium">{goal.label}</div>
 					<div
-						class="flex size-6 shrink-0 items-center justify-center rounded-full border {isSelected(
+						class="flex size-6 shrink-0 items-center justify-center rounded-full border {selectedGoalIds.includes(
 							goal.id
 						)
 							? 'border-[#6b62f2] bg-[#6b62f2] text-white'
