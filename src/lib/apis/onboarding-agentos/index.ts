@@ -1,7 +1,17 @@
 import { WEBUI_API_BASE_URL } from '$lib/constants';
-import { buildExecutiveFacts, normalizeFacts, safeId } from '$lib/onboarding-agentos/logic';
+import {
+	buildExecutiveFacts,
+	buildExternalSearchQueries,
+	deduplicateSimilarFacts,
+	diversifyExternalFactsByDomain,
+	filterAndDiversifyExternalItems,
+	normalizeFacts,
+	safeId
+} from '$lib/onboarding-agentos/logic';
 import type {
+	BusinessGoal,
 	EvidenceFact,
+	ExternalBusinessSignal,
 	ExternalSearchItem,
 	OperationalMap,
 	WorkflowProposal
@@ -201,18 +211,17 @@ const serializeSearchItems = (data: any): ExternalSearchItem[] => {
 export const searchCompanyWeb = async (
 	token: string,
 	webProvider: string,
-	companyName: string,
-	siteUrl: string,
-	sectorHint: string
+	context: {
+		companyName: string;
+		siteUrl: string;
+		sectorHint?: string;
+		offerHint?: string;
+		icpHint?: string;
+		problemHint?: string;
+		goals?: BusinessGoal[];
+	}
 ): Promise<ExternalSearchItem[]> => {
-	const identity = companyName || new URL(siteUrl).hostname;
-	const queries = [
-		`"${identity}" avis clients`,
-		`"${identity}" concurrents alternatives`,
-		`"${identity}" actualités partenariat recrutement`,
-		`${sectorHint || identity} marché France tendances`,
-		`"${identity}" clients cas client`
-	];
+	const queries = buildExternalSearchQueries(context);
 	const response = await fetch(`${WEBUI_API_BASE_URL}/onboarding/web-search`, {
 		method: 'POST',
 		headers: {
@@ -223,29 +232,43 @@ export const searchCompanyWeb = async (
 	});
 	if (!response.ok)
 		throw new Error(String(await responseError(response, 'Recherche Web indisponible.')));
-	return serializeSearchItems(await response.json());
+	return filterAndDiversifyExternalItems(
+		serializeSearchItems(await response.json()),
+		context.siteUrl
+	);
 };
 
 const WEB_SYSTEM = `Tu analyses ce que le Web extérieur dit d'une entreprise. Réponds uniquement
 en JSON valide : {"facts":[{"id":"web-...","section":"...","label":"...","value":"...",
-"sourceUrl":"URL exacte fournie","sourceTitle":"titre exact","confidence":0.0}]}
+"sourceUrl":"URL exacte fournie","sourceTitle":"titre exact","confidence":0.0,
+"signalType":"opportunite|risque|besoin_client|mouvement_concurrent|signal_marche",
+"goalId":"identifiant exact d'une priorité fournie","whyItMatters":"...",
+"nextAction":"prochaine décision ou action préparatoire..."}]}
 
 Sections autorisées :
 - Clients et ICP
 - Concurrence et marché
 - Réputation et signaux
 
-Construis des faits utiles pour cinq blocs : ICP supposé, concurrents et alternatives,
-réputation extérieure, contexte marché, signaux récents. Chaque fait doit être soutenu par UNE
-URL exacte de la liste. Écris "supposé" ou "semble" pour toute déduction. Ne reprends pas un
-extrait qui parle d'une autre entreprise. Ne déduis jamais une santé financière. Ignore les
-résultats ambigus, les annuaires sans contenu et les agrégateurs qui ne prouvent rien.`;
+Construis au maximum douze faits utiles pour cinq axes : besoins clients supposés, concurrents
+directs ou indirects, réputation extérieure, contexte de marché et signaux récents. Chaque fait
+doit être soutenu par UNE URL exacte de la liste et relié à UNE priorité à 90 jours fournie.
+"whyItMatters" explique concrètement le lien avec cette priorité. "nextAction" propose une décision
+ou une action préparatoire réaliste, jamais une exécution automatique. Écris "hypothèse", "supposé"
+ou "semble" pour toute déduction. Ne reprends pas un extrait parlant d'une autre entreprise.
+N'invente jamais de gain financier, de chiffre, de client, de santé financière ou de capacité
+interne. Ignore les résultats ambigus, les annuaires sans contenu et les preuves faibles.`;
 
 export const synthesizeWebFacts = async (
 	token: string,
 	providerId: string,
 	modelId: string,
-	items: ExternalSearchItem[]
+	items: ExternalSearchItem[],
+	context: {
+		companyName: string;
+		siteUrl: string;
+		goals: BusinessGoal[];
+	}
 ): Promise<EvidenceFact[]> => {
 	if (!items.length) return [];
 	// Le moteur Web peut renvoyer plus de 30 résultats avec des extraits très longs.
@@ -263,10 +286,31 @@ export const synthesizeWebFacts = async (
 		providerId,
 		modelId,
 		WEB_SYSTEM,
-		JSON.stringify(sources)
+		JSON.stringify({
+			companyName: context.companyName,
+			companyDomain: new URL(context.siteUrl).hostname.replace(/^www\./, ''),
+			priorities90Days: context.goals,
+			externalSources: sources
+		})
 	);
 	const byUrl = new Map(sources.map((source) => [source.url, source]));
-	return normalizeFacts(Array.isArray(payload?.facts) ? payload.facts : [], 'web')
+	const allowedGoalIds = new Set(context.goals.map((goal) => goal.id));
+	const rawFacts = (Array.isArray(payload?.facts) ? payload.facts : []).map((fact: any) => {
+		const kind = String(fact?.signalType ?? '').trim() as ExternalBusinessSignal['kind'];
+		const goalId = String(fact?.goalId ?? '').trim();
+		return {
+			...fact,
+			businessSignal: allowedGoalIds.has(goalId)
+				? {
+						kind,
+						goalId,
+						whyItMatters: String(fact?.whyItMatters ?? '').trim(),
+						nextAction: String(fact?.nextAction ?? '').trim()
+					}
+				: undefined
+		};
+	});
+	const normalized = normalizeFacts(rawFacts, 'web')
 		.filter((fact) => byUrl.has(fact.sourceUrl ?? ''))
 		.map((fact, index) => {
 			const source = byUrl.get(fact.sourceUrl ?? '')!;
@@ -278,6 +322,13 @@ export const synthesizeWebFacts = async (
 				status: 'a_confirmer' as const
 			};
 		});
+	const diversified = diversifyExternalFactsByDomain(deduplicateSimilarFacts(normalized), 3, 12);
+	if (context.goals.length && !diversified.some((fact) => fact.businessSignal)) {
+		throw new Error(
+			"Le Web extérieur n'a produit aucun signal exploitable pour vos priorités. Relancez l'analyse."
+		);
+	}
+	return diversified;
 };
 
 const WORKFLOW_SYSTEM = `Tu es le concepteur opérationnel de LunarIA. À partir d'une carte

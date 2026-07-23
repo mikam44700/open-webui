@@ -1,13 +1,7 @@
 export type FactSourceType = 'site' | 'web' | 'dirigeant' | 'document' | 'integration';
 export type FactStatus = 'confirme' | 'a_confirmer' | 'corrige' | 'non_recherche';
 export type BusinessOutcomeId =
-	| 'revenus'
-	| 'clients'
-	| 'efficacite'
-	| 'qualite'
-	| 'risques'
-	| 'connaissance'
-	| 'personnalise';
+	'revenus' | 'clients' | 'efficacite' | 'qualite' | 'risques' | 'connaissance' | 'personnalise';
 
 export type BusinessGoal = {
 	id: string;
@@ -25,6 +19,16 @@ export type FactUtility = {
 	priority: number;
 };
 
+export type ExternalSignalKind =
+	'opportunite' | 'risque' | 'besoin_client' | 'mouvement_concurrent' | 'signal_marche';
+
+export type ExternalBusinessSignal = {
+	kind: ExternalSignalKind;
+	goalId: string;
+	whyItMatters: string;
+	nextAction: string;
+};
+
 export type EvidenceFact = {
 	id: string;
 	section: string;
@@ -37,6 +41,7 @@ export type EvidenceFact = {
 	status: FactStatus;
 	confidence: number;
 	utility?: FactUtility;
+	businessSignal?: ExternalBusinessSignal;
 };
 
 export type OperationalMap = {

@@ -2,6 +2,8 @@ import type {
 	BusinessGoal,
 	BusinessOutcomeId,
 	EvidenceFact,
+	ExternalBusinessSignal,
+	ExternalSearchItem,
 	InterviewAnswer,
 	InterviewQuestion,
 	OperationalMap,
@@ -103,6 +105,147 @@ export const safeId = (value: string) =>
 		.replace(/^-|-$/g, '')
 		.slice(0, 80);
 
+export const sourceDomain = (url: string) => {
+	try {
+		return new URL(url).hostname.toLowerCase().replace(/^www\./, '');
+	} catch {
+		return '';
+	}
+};
+
+const canonicalExternalUrl = (url: string) => {
+	try {
+		const parsed = new URL(url);
+		parsed.hash = '';
+		for (const key of [...parsed.searchParams.keys()]) {
+			if (/^(utm_|gclid$|fbclid$|ref$|source$)/i.test(key)) parsed.searchParams.delete(key);
+		}
+		parsed.pathname = parsed.pathname.replace(/\/+$/, '') || '/';
+		return parsed.toString();
+	} catch {
+		return '';
+	}
+};
+
+const belongsToCompanyDomain = (candidateUrl: string, companySiteUrl: string) => {
+	const candidate = sourceDomain(candidateUrl);
+	const company = sourceDomain(companySiteUrl);
+	if (!candidate || !company) return false;
+	return (
+		candidate === company || candidate.endsWith(`.${company}`) || company.endsWith(`.${candidate}`)
+	);
+};
+
+export const filterAndDiversifyExternalItems = (
+	items: ExternalSearchItem[],
+	companySiteUrl: string,
+	maxPerDomain = 3,
+	limit = 30
+) => {
+	const seenUrls = new Set<string>();
+	const byDomain = new Map<string, ExternalSearchItem[]>();
+	for (const item of items) {
+		const link = canonicalExternalUrl(item.link);
+		const domain = sourceDomain(link);
+		if (!link || !domain || seenUrls.has(link) || belongsToCompanyDomain(link, companySiteUrl)) {
+			continue;
+		}
+		seenUrls.add(link);
+		const domainItems = byDomain.get(domain) ?? [];
+		if (domainItems.length < Math.max(1, maxPerDomain)) {
+			domainItems.push({ ...item, link });
+			byDomain.set(domain, domainItems);
+		}
+	}
+
+	const output: ExternalSearchItem[] = [];
+	const queues = [...byDomain.values()];
+	while (queues.some((queue) => queue.length) && output.length < limit) {
+		for (const queue of queues) {
+			const item = queue.shift();
+			if (item) output.push(item);
+			if (output.length >= limit) break;
+		}
+	}
+	return output;
+};
+
+const searchHint = (value: string, fallback: string, maxWords = 12) => {
+	const cleaned = compact(value)
+		.replace(/https?:\/\/\S+/gi, '')
+		.replace(/[«»"'()[\]{}]/g, ' ')
+		.split(/\s+/)
+		.filter(Boolean)
+		.slice(0, maxWords)
+		.join(' ');
+	return cleaned || fallback;
+};
+
+export type ExternalSearchContext = {
+	companyName: string;
+	siteUrl: string;
+	sectorHint?: string;
+	offerHint?: string;
+	icpHint?: string;
+	problemHint?: string;
+	goals?: BusinessGoal[];
+};
+
+export const buildExternalSearchQueries = ({
+	companyName,
+	siteUrl,
+	sectorHint = '',
+	offerHint = '',
+	icpHint = '',
+	problemHint = '',
+	goals = []
+}: ExternalSearchContext) => {
+	const identity = compact(companyName) || sourceDomain(siteUrl);
+	const sector = searchHint(sectorHint, 'marché entreprise');
+	const offer = searchHint(offerHint, sector);
+	const icp = searchHint(icpHint, `clients ${sector}`);
+	const problem = searchHint(problemHint, `problèmes besoins ${sector}`);
+	const priorities = searchHint(
+		goals.map((goal) => goal.label).join(' '),
+		'opportunités croissance efficacité clients'
+	);
+
+	return [
+		`"${identity}" avis clients critiques indépendantes`,
+		`"${identity}" concurrents alternatives comparatif`,
+		`"${identity}" actualités partenariat recrutement lancement`,
+		`${sector} tendances problèmes marché France`,
+		`${icp} besoins irritants attentes`,
+		`${offer} alternatives fournisseurs comparatif`,
+		`${problem} solutions retours expérience`,
+		`${sector} ${priorities} opportunités risques`
+	].filter((query, index, queries) => query && queries.indexOf(query) === index);
+};
+
+const SIGNAL_KINDS = new Set([
+	'opportunite',
+	'risque',
+	'besoin_client',
+	'mouvement_concurrent',
+	'signal_marche'
+]);
+
+const normalizeBusinessSignal = (value: unknown): ExternalBusinessSignal | undefined => {
+	if (!value || typeof value !== 'object') return undefined;
+	const signal = value as Record<string, unknown>;
+	const kind = String(signal.kind ?? '').trim();
+	const goalId = String(signal.goalId ?? '').trim();
+	const whyItMatters = compact(String(signal.whyItMatters ?? ''));
+	const nextAction = compact(String(signal.nextAction ?? ''));
+	if (!SIGNAL_KINDS.has(kind) || !goalId || !whyItMatters || !nextAction) return undefined;
+	return {
+		kind: kind as ExternalBusinessSignal['kind'],
+		goalId,
+		whyItMatters,
+		nextAction
+	};
+};
+
 export const normalizeFacts = (
 	input: Partial<EvidenceFact>[],
 	fallbackSource: 'site' | 'web'
@@ -133,7 +276,8 @@ export const normalizeFacts = (
 			sourceTitle: String(raw.sourceTitle ?? '').trim() || undefined,
 			observedAt: String(raw.observedAt ?? '').slice(0, 10) || today(),
 			status,
-			confidence: Math.max(0, Math.min(1, Number(raw.confidence ?? 0.6)))
+			confidence: Math.max(0, Math.min(1, Number(raw.confidence ?? 0.6))),
+			businessSignal: normalizeBusinessSignal(raw.businessSignal)
 		});
 	}
 	return output;
@@ -219,7 +363,8 @@ const SECTION_UTILITY: Record<
 	},
 	'Outils et sources de vérité': {
 		outcomes: ['efficacite', 'connaissance', 'qualite'],
-		purpose: 'Savoir où lire la bonne donnée et éviter les réponses fondées sur une source obsolète.',
+		purpose:
+			'Savoir où lire la bonne donnée et éviter les réponses fondées sur une source obsolète.',
 		decision: 'Choisir la source fiable et l’intégration nécessaire.',
 		workflow: 'Lire la source de vérité avant de préparer une action.',
 		metric: 'Erreurs de données ou temps de recherche.'
@@ -304,6 +449,74 @@ const similarEnough = (first: EvidenceFact, second: EvidenceFact) => {
 	return overlap / Math.min(a.size, b.size) >= 0.65;
 };
 
+export const deduplicateSimilarFacts = (facts: EvidenceFact[]) => {
+	const output: EvidenceFact[] = [];
+	for (const fact of facts) {
+		if (output.some((candidate) => similarEnough(candidate, fact))) continue;
+		output.push(fact);
+	}
+	return output;
+};
+
+export const diversifyExternalFactsByDomain = (
+	facts: EvidenceFact[],
+	maxPerDomain = 3,
+	limit = 12
+) => {
+	const byDomain = new Map<string, EvidenceFact[]>();
+	for (const fact of facts) {
+		const domain = sourceDomain(fact.sourceUrl ?? '');
+		if (!domain) continue;
+		const domainFacts = byDomain.get(domain) ?? [];
+		if (domainFacts.length < Math.max(1, maxPerDomain)) {
+			domainFacts.push(fact);
+			byDomain.set(domain, domainFacts);
+		}
+	}
+
+	const output: EvidenceFact[] = [];
+	const queues = [...byDomain.values()];
+	while (queues.some((queue) => queue.length) && output.length < limit) {
+		for (const queue of queues) {
+			const fact = queue.shift();
+			if (fact) output.push(fact);
+			if (output.length >= limit) break;
+		}
+	}
+	return output;
+};
+
+export const buildExternalBusinessSignals = (
+	facts: EvidenceFact[],
+	goals: BusinessGoal[] = [],
+	limit = 5
+) => {
+	const goalsById = new Map(goals.map((goal) => [goal.id, goal]));
+	const enriched = enrichFactsWithUtility(facts, goals)
+		.filter(
+			(fact) =>
+				fact.sourceType === 'web' &&
+				Boolean(fact.sourceUrl) &&
+				Boolean(fact.businessSignal) &&
+				goalsById.has(fact.businessSignal?.goalId ?? '')
+		)
+		.sort(
+			(a, b) =>
+				(b.utility?.priority ?? 0) - (a.utility?.priority ?? 0) || b.confidence - a.confidence
+		);
+	const selected: EvidenceFact[] = [];
+	const domainCounts = new Map<string, number>();
+	for (const fact of enriched) {
+		if (selected.length >= Math.max(1, Math.min(5, limit))) break;
+		if (selected.some((candidate) => similarEnough(candidate, fact))) continue;
+		const domain = sourceDomain(fact.sourceUrl ?? '');
+		if (!domain || (domainCounts.get(domain) ?? 0) >= 2) continue;
+		domainCounts.set(domain, (domainCounts.get(domain) ?? 0) + 1);
+		selected.push(fact);
+	}
+	return selected;
+};
+
 export const buildExecutiveFacts = (
 	facts: EvidenceFact[],
 	goals: BusinessGoal[] = [],
@@ -316,13 +529,13 @@ export const buildExecutiveFacts = (
 			.filter((fact) => group.sections.includes(fact.section))
 			.sort(
 				(a, b) =>
-					(b.utility?.priority ?? 0) - (a.utility?.priority ?? 0) ||
-					b.confidence - a.confidence
+					(b.utility?.priority ?? 0) - (a.utility?.priority ?? 0) || b.confidence - a.confidence
 			);
 		const groupFacts: EvidenceFact[] = [];
 		for (const fact of candidates) {
 			if (groupFacts.length >= 3) break;
-			if ([...selected, ...groupFacts].some((candidate) => similarEnough(candidate, fact))) continue;
+			if ([...selected, ...groupFacts].some((candidate) => similarEnough(candidate, fact)))
+				continue;
 			groupFacts.push(fact);
 		}
 		selected.push(...groupFacts);
@@ -476,7 +689,8 @@ export const buildInterviewQuestions = (
 			section: 'Outils et sources de vérité',
 			label: 'Outils du quotidien',
 			prompt: 'Où se trouvent vos informations importantes et quelle source fait foi ?',
-			helper: 'Citez les outils, fichiers ou personnes, puis indiquez la source fiable en cas de conflit.',
+			helper:
+				'Citez les outils, fichiers ou personnes, puis indiquez la source fiable en cas de conflit.',
 			placeholder: 'Information → outil ou source de vérité',
 			optional: false
 		},
@@ -633,7 +847,9 @@ export const buildMapMarkdown = (map: OperationalMap): string => {
 			fact.sourceType === 'integration' ||
 			fact.status === 'corrige'
 	);
-	const evidenceOnly = map.facts.filter((fact) => !operationalFacts.some((item) => item.id === fact.id));
+	const evidenceOnly = map.facts.filter(
+		(fact) => !operationalFacts.some((item) => item.id === fact.id)
+	);
 	const lines = [
 		'# Carte opérationnelle de l’entreprise',
 		'',
@@ -660,6 +876,10 @@ export const buildMapMarkdown = (map: OperationalMap): string => {
 				lines.push(`- Décision concernée : ${fact.utility.decision}`);
 				lines.push(`- Workflow possible : ${fact.utility.workflowHint}`);
 				lines.push(`- Mesure possible : ${fact.utility.metricHint}`);
+			}
+			if (fact.businessSignal) {
+				lines.push(`- Pourquoi ce signal compte : ${fact.businessSignal.whyItMatters}`);
+				lines.push(`- Prochaine décision ou action : ${fact.businessSignal.nextAction}`);
 			}
 			lines.push(`- Dernière vérification : ${fact.observedAt}`);
 			if (fact.sourceTitle) lines.push(`- Source : ${fact.sourceTitle}`);

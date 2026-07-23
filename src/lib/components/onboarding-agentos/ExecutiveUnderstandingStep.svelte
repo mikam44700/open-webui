@@ -3,8 +3,10 @@
 
 	import {
 		EXECUTIVE_GROUPS,
+		buildExternalBusinessSignals,
 		factsBySection,
 		provenanceLabel,
+		sourceDomain,
 		sourceQualityLabel,
 		statusLabel
 	} from '$lib/onboarding-agentos/logic';
@@ -14,6 +16,7 @@
 	export let executiveFacts: EvidenceFact[] = [];
 	export let pagesRead = 0;
 	export let externalSourcesRetained = 0;
+	export let webProvider = '';
 	export let questionCount = 0;
 
 	let understandingConfirmed = false;
@@ -33,6 +36,25 @@
 	})).filter((group) => group.facts.length);
 	$: siteFacts = map.facts.filter((fact) => fact.sourceType === 'site').length;
 	$: webFacts = map.facts.filter((fact) => fact.sourceType === 'web').length;
+	$: businessSignals = buildExternalBusinessSignals(map.facts, map.goals ?? [], 5);
+	$: webProviderLabel =
+		({ exa: 'Exa', brave: 'Brave Search', tavily: 'Tavily' } as Record<string, string>)[
+			webProvider.toLowerCase()
+		] ||
+		webProvider ||
+		'la recherche Web';
+	const signalLabel = (kind = '') =>
+		(
+			({
+				opportunite: 'Opportunité',
+				risque: 'Risque',
+				besoin_client: 'Besoin client',
+				mouvement_concurrent: 'Mouvement concurrent',
+				signal_marche: 'Signal marché'
+			}) as Record<string, string>
+		)[kind] ?? 'Signal extérieur';
+	const goalLabel = (goalId = '') =>
+		map.goals?.find((goal) => goal.id === goalId)?.label ?? 'Priorité à préciser';
 </script>
 
 <section class="w-full py-8">
@@ -44,8 +66,8 @@
 			Voici l’essentiel pour {map.companyName || 'votre entreprise'}.
 		</h1>
 		<p class="mx-auto mt-4 max-w-2xl text-sm leading-6 text-gray-500 dark:text-gray-400">
-			Luna conserve toutes les preuves, mais vous montre d’abord ce qui peut réellement éclairer
-			une décision, alimenter un workflow ou mesurer un progrès.
+			Luna conserve toutes les preuves, mais vous montre d’abord ce qui peut réellement éclairer une
+			décision, alimenter un workflow ou mesurer un progrès.
 		</p>
 		{#if map.goals?.length}
 			<div class="mt-5 flex flex-wrap justify-center gap-2">
@@ -61,11 +83,15 @@
 	</div>
 
 	<div class="mx-auto mt-7 grid max-w-4xl gap-3 sm:grid-cols-3">
-		<div class="rounded-2xl border border-black/6 bg-white p-4 dark:border-white/8 dark:bg-[#161616]">
+		<div
+			class="rounded-2xl border border-black/6 bg-white p-4 dark:border-white/8 dark:bg-[#161616]"
+		>
 			<div class="text-2xl font-medium">{pagesRead}</div>
 			<div class="mt-1 text-xs text-gray-500">pages utiles lues</div>
 		</div>
-		<div class="rounded-2xl border border-black/6 bg-white p-4 dark:border-white/8 dark:bg-[#161616]">
+		<div
+			class="rounded-2xl border border-black/6 bg-white p-4 dark:border-white/8 dark:bg-[#161616]"
+		>
 			<div class="text-2xl font-medium">{map.facts.length}</div>
 			<div class="mt-1 text-xs text-gray-500">preuves conservées en profondeur</div>
 		</div>
@@ -76,6 +102,108 @@
 			<div class="mt-1 text-xs text-gray-500">conclusions prioritaires</div>
 		</div>
 	</div>
+
+	{#if businessSignals.length}
+		<section
+			class="mx-auto mt-7 max-w-5xl overflow-hidden rounded-[2rem] border border-[#6b62f2]/30 bg-gradient-to-br from-[#6b62f2]/12 via-white to-white dark:from-[#6b62f2]/18 dark:via-[#161616] dark:to-[#111]"
+		>
+			<div class="border-b border-[#6b62f2]/15 px-5 py-5 md:px-7">
+				<div class="text-xs font-semibold uppercase tracking-[0.16em] text-[#6b62f2]">
+					Intelligence extérieure
+				</div>
+				<div class="mt-2 flex flex-col gap-2 md:flex-row md:items-end md:justify-between">
+					<div>
+						<h2 class="text-2xl font-medium tracking-[-0.03em]">
+							Ce que {webProviderLabel} apporte à votre entreprise
+						</h2>
+						<p class="mt-2 max-w-2xl text-sm leading-6 text-gray-500 dark:text-gray-400">
+							Des signaux extérieurs reliés à vos priorités, avec la décision suivante déjà cadrée.
+							Ce sont des hypothèses à vérifier, pas encore des vérités internes.
+						</p>
+					</div>
+					<div class="text-xs text-gray-400">
+						{externalSourcesRetained} domaine(s) extérieur(s) retenu(s)
+					</div>
+				</div>
+			</div>
+
+			<div class="grid gap-3 p-4 md:p-6 lg:grid-cols-2">
+				{#each businessSignals as fact, index}
+					<article
+						class="rounded-2xl border border-black/6 bg-white/85 p-4 shadow-sm dark:border-white/8 dark:bg-[#101010]/90"
+					>
+						<div class="flex flex-wrap items-center justify-between gap-2">
+							<div class="flex items-center gap-2">
+								<span
+									class="flex size-6 items-center justify-center rounded-full bg-[#6b62f2] text-[11px] font-semibold text-white"
+								>
+									{index + 1}
+								</span>
+								<span
+									class="rounded-full bg-[#6b62f2]/10 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wide text-[#5b52dd] dark:text-[#aaa4ff]"
+								>
+									{signalLabel(fact.businessSignal?.kind)}
+								</span>
+							</div>
+							<span class="text-[11px] text-gray-400">
+								Fiabilité {Math.round(fact.confidence * 100)} %
+							</span>
+						</div>
+
+						<h3 class="mt-4 text-base font-medium">{fact.label}</h3>
+						<p class="mt-2 text-sm leading-6 text-gray-700 dark:text-gray-200">{fact.value}</p>
+
+						<div class="mt-4 grid gap-2">
+							<div class="rounded-xl bg-gray-50 p-3 dark:bg-[#181818]">
+								<div class="text-[10px] font-semibold uppercase tracking-wide text-gray-400">
+									Priorité à 90 jours
+								</div>
+								<div class="mt-1 text-xs font-medium">
+									{goalLabel(fact.businessSignal?.goalId)}
+								</div>
+							</div>
+							<div class="rounded-xl bg-gray-50 p-3 dark:bg-[#181818]">
+								<div class="text-[10px] font-semibold uppercase tracking-wide text-gray-400">
+									Pourquoi cela compte
+								</div>
+								<div class="mt-1 text-xs leading-5 text-gray-700 dark:text-gray-200">
+									{fact.businessSignal?.whyItMatters}
+								</div>
+							</div>
+							<div class="rounded-xl border border-[#6b62f2]/15 bg-[#6b62f2]/5 p-3">
+								<div
+									class="text-[10px] font-semibold uppercase tracking-wide text-[#5b52dd] dark:text-[#aaa4ff]"
+								>
+									Prochaine décision ou action
+								</div>
+								<div class="mt-1 text-xs leading-5 text-gray-700 dark:text-gray-200">
+									{fact.businessSignal?.nextAction}
+								</div>
+							</div>
+						</div>
+
+						{#if fact.sourceUrl}
+							<div class="mt-4 flex min-w-0 items-center gap-2 text-[11px]">
+								<span
+									class="shrink-0 rounded-full bg-gray-100 px-2 py-1 text-gray-500 dark:bg-gray-800"
+								>
+									{sourceDomain(fact.sourceUrl)}
+								</span>
+								<a
+									href={fact.sourceUrl}
+									target="_blank"
+									rel="noreferrer"
+									class="min-w-0 truncate text-[#5b52dd] hover:underline dark:text-[#aaa4ff]"
+								>
+									{fact.sourceTitle || 'Voir la preuve'}
+								</a>
+							</div>
+						{/if}
+					</article>
+				{/each}
+			</div>
+		</section>
+	{/if}
 
 	<div class="mx-auto mt-7 max-w-5xl space-y-5">
 		{#each executiveGroups as group}
@@ -107,7 +235,8 @@
 									Pourquoi c’est utile
 								</div>
 								<div class="mt-1 text-gray-600 dark:text-gray-300">
-									{fact.utility?.purpose ?? 'Cette information aide Luna à mieux contextualiser ses actions.'}
+									{fact.utility?.purpose ??
+										'Cette information aide Luna à mieux contextualiser ses actions.'}
 								</div>
 							</div>
 							<div class="mt-3 text-[11px] text-gray-400">
@@ -200,6 +329,12 @@
 								{/if}
 								<div class="mt-3 flex flex-wrap gap-2 text-[11px] text-gray-400">
 									<span>{sourceQualityLabel(fact, map.siteUrl)}</span>
+									{#if fact.sourceUrl}
+										<span>·</span>
+										<span class="font-medium text-gray-500 dark:text-gray-300">
+											{sourceDomain(fact.sourceUrl)}
+										</span>
+									{/if}
 									<span>·</span>
 									<span>Consulté le {fact.observedAt}</span>
 									{#if fact.sourceUrl}
@@ -229,8 +364,8 @@
 			Ce que le Web ne peut pas savoir
 		</div>
 		<p class="mt-2 text-sm leading-6 text-amber-800/80 dark:text-amber-100/70">
-			Vos vrais résultats, processus internes, pertes, responsabilités, sources de vérité et
-			limites d’autonomie. Luna vous posera seulement {questionCount} questions pour les apprendre.
+			Vos vrais résultats, processus internes, pertes, responsabilités, sources de vérité et limites
+			d’autonomie. Luna vous posera seulement {questionCount} questions pour les apprendre.
 		</p>
 	</div>
 

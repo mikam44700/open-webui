@@ -38,6 +38,7 @@
 		mergeFacts,
 		provenanceLabel,
 		SKIP_ONCE_KEY,
+		sourceDomain,
 		statusLabel
 	} from '$lib/onboarding-agentos/logic';
 	import type {
@@ -242,7 +243,7 @@
 				step !== 'foundation' &&
 				step !== 'model' &&
 				step !== 'goals' &&
-				!(map.goals?.length)
+				!map.goals?.length
 			)
 				step = 'goals';
 			documents = draft.documents ?? [];
@@ -292,7 +293,7 @@
 
 	const startWithoutSite = () => {
 		siteUrl = '';
-		if (!(map.goals?.length)) {
+		if (!map.goals?.length) {
 			toast.error('Choisissez d’abord les résultats que Luna doit améliorer.');
 			step = 'goals';
 			return;
@@ -375,27 +376,56 @@
 			};
 
 			analysisStage = 2;
-			analysisDetails = `${selectedWebProvider} cherche les clients, concurrents, avis et signaux récents.`;
-			const sectorHint =
-				siteFacts.find((fact) => fact.label.toLowerCase().includes('secteur'))?.value ?? '';
-			const items = await searchCompanyWeb(
-				localStorage.token,
-				selectedWebProvider,
+			analysisDetails = `${selectedWebProvider} cherche les besoins clients, concurrents, risques, opportunités et signaux récents.`;
+			const findHint = (section: string, labels: string[]) =>
+				siteFacts.find(
+					(fact) =>
+						fact.section === section &&
+						labels.some((label) => fact.label.toLowerCase().includes(label))
+				)?.value ??
+				siteFacts.find((fact) => fact.section === section)?.value ??
+				'';
+			const sectorHint = findHint('Identité et modèle économique', [
+				'secteur',
+				'activité',
+				'marché'
+			]);
+			const offerHint = findHint('Offres et positionnement', [
+				'offre',
+				'service',
+				'produit',
+				'activité'
+			]);
+			const icpHint = findHint('Clients et ICP', ['icp', 'client', 'cible', 'segment']);
+			const problemHint = findHint('Offres et positionnement', [
+				'problème',
+				'besoin',
+				'objectif',
+				'valeur'
+			]);
+			const items = await searchCompanyWeb(localStorage.token, selectedWebProvider, {
 				companyName,
-				url,
-				sectorHint
-			);
+				siteUrl: url,
+				sectorHint,
+				offerHint,
+				icpHint,
+				problemHint,
+				goals: map.goals ?? []
+			});
 			const webFacts = await synthesizeWebFacts(
 				localStorage.token,
 				selectedProviderId,
 				selectedModelId,
-				items
+				items,
+				{ companyName, siteUrl: url, goals: map.goals ?? [] }
 			);
 			if (!webFacts.length) {
 				throw new Error('La recherche Web n’a produit aucun fait extérieur suffisamment fiable.');
 			}
 			externalSourcesRetained = new Set(
-				webFacts.map((fact) => fact.sourceUrl).filter((source): source is string => Boolean(source))
+				webFacts
+					.map((fact) => sourceDomain(fact.sourceUrl ?? ''))
+					.filter((domain): domain is string => Boolean(domain))
 			).size;
 			map = {
 				...map,
@@ -826,6 +856,7 @@
 			{executiveFacts}
 			{pagesRead}
 			{externalSourcesRetained}
+			webProvider={selectedWebProvider}
 			questionCount={questions.length}
 			on:update={(event) => updateFact(event.detail.id, event.detail.value)}
 			on:remove={(event) => removeFact(event.detail.id)}
@@ -913,17 +944,17 @@
 					Voici comment LunarIA comprend votre entreprise.
 				</h1>
 				<p class="mx-auto mt-4 max-w-2xl text-sm leading-6 text-gray-500 dark:text-gray-400">
-					Voici la mémoire opérationnelle retenue : vos objectifs, les conclusions prioritaires
-					et vos réponses internes. Toutes les preuves restent conservées en profondeur.
+					Voici la mémoire opérationnelle retenue : vos objectifs, les conclusions prioritaires et
+					vos réponses internes. Toutes les preuves restent conservées en profondeur.
 				</p>
 			</div>
 
 			<div class="mx-auto mt-8 max-w-5xl space-y-5">
 				{#if map.goals?.length}
-					<div
-						class="rounded-[2rem] border border-[#6b62f2]/20 bg-[#6b62f2]/6 p-5 md:p-7"
-					>
-						<div class="text-xs font-semibold uppercase tracking-[0.14em] text-[#5b52dd] dark:text-[#aaa4ff]">
+					<div class="rounded-[2rem] border border-[#6b62f2]/20 bg-[#6b62f2]/6 p-5 md:p-7">
+						<div
+							class="text-xs font-semibold uppercase tracking-[0.14em] text-[#5b52dd] dark:text-[#aaa4ff]"
+						>
 							Résultats prioritaires à 90 jours
 						</div>
 						<div class="mt-4 grid gap-3 md:grid-cols-3">
