@@ -75,6 +75,7 @@ export type OnboardingDraft = {
 	version: 1;
 	step:
 		| 'welcome'
+		| 'foundation'
 		| 'model'
 		| 'site'
 		| 'analysis'
@@ -87,6 +88,10 @@ export type OnboardingDraft = {
 	map: OperationalMap;
 	answers: InterviewAnswer[];
 	questionIndex: number;
+	foundationConfirmed?: boolean;
+	selectedProviderId?: string;
+	selectedModelId?: string;
+	selectedWebProvider?: string;
 	documents?: OnboardingDocument[];
 	knowledgeBaseId?: string;
 	workflows: WorkflowProposal[];

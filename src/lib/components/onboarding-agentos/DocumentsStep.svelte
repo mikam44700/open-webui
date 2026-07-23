@@ -118,7 +118,7 @@
 	<div class="grid gap-6 lg:grid-cols-[0.8fr_1.2fr]">
 		<div>
 			<div class="text-xs font-semibold uppercase tracking-[0.16em] text-[#6b62f2]">
-				Étape 3 · Sources internes
+				Étape 4 · Sources internes
 			</div>
 			<h1 class="mt-3 text-3xl font-medium tracking-[-0.03em] md:text-5xl">
 				Donnez à Luna ce que votre site ne raconte pas.

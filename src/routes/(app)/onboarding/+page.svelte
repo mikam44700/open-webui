@@ -4,9 +4,10 @@
 	import { toast } from 'svelte-sonner';
 
 	import { getModels } from '$lib/apis';
-	import BrainGateStep from '$lib/components/onboarding-agentos/BrainGateStep.svelte';
+	import { getActiveProvider } from '$lib/apis/providers';
 	import DocumentsStep from '$lib/components/onboarding-agentos/DocumentsStep.svelte';
 	import FinalProofStep from '$lib/components/onboarding-agentos/FinalProofStep.svelte';
+	import FoundationSetupStep from '$lib/components/onboarding-agentos/FoundationSetupStep.svelte';
 	import OnboardingShell from '$lib/components/onboarding-agentos/OnboardingShell.svelte';
 	import WelcomeStep from '$lib/components/onboarding-agentos/WelcomeStep.svelte';
 	import {
@@ -56,6 +57,10 @@
 	let answers: InterviewAnswer[] = [];
 	let questionIndex = 0;
 	let answerText = '';
+	let foundationConfirmed = false;
+	let selectedProviderId = '';
+	let selectedModelId = '';
+	let selectedWebProvider = '';
 	let documents: OnboardingDocument[] = [];
 	let knowledgeBaseId = '';
 	let workflows: WorkflowProposal[] = [];
@@ -63,7 +68,6 @@
 
 	let model = '';
 	let modelError = '';
-	let checkingModel = false;
 	let analysisError = '';
 	let analysisStage = 0;
 	let analysisDetails = '';
@@ -96,6 +100,10 @@
 		currentMap: OperationalMap,
 		currentAnswers: InterviewAnswer[],
 		currentQuestionIndex: number,
+		currentFoundationConfirmed: boolean,
+		currentSelectedProviderId: string,
+		currentSelectedModelId: string,
+		currentSelectedWebProvider: string,
 		currentDocuments: OnboardingDocument[],
 		currentKnowledgeBaseId: string,
 		currentWorkflows: WorkflowProposal[],
@@ -110,6 +118,10 @@
 			map: currentMap,
 			answers: currentAnswers,
 			questionIndex: currentQuestionIndex,
+			foundationConfirmed: currentFoundationConfirmed,
+			selectedProviderId: currentSelectedProviderId,
+			selectedModelId: currentSelectedModelId,
+			selectedWebProvider: currentSelectedWebProvider,
 			documents: currentDocuments,
 			knowledgeBaseId: currentKnowledgeBaseId,
 			workflows: currentWorkflows,
@@ -130,6 +142,10 @@
 		map,
 		answers,
 		questionIndex,
+		foundationConfirmed,
+		selectedProviderId,
+		selectedModelId,
+		selectedWebProvider,
 		documents,
 		knowledgeBaseId,
 		workflows,
@@ -151,11 +167,18 @@
 	const refreshModel = async () => {
 		modelError = '';
 		try {
-			const response = await getModels(localStorage.token);
-			const list = response?.data ?? response ?? [];
-			model = list?.[0]?.id ?? '';
+			const active = await getActiveProvider(localStorage.token);
+			model = active?.model_id ?? '';
+			selectedProviderId = active?.provider_id ?? selectedProviderId;
+			selectedModelId = active?.model_id ?? selectedModelId;
 		} catch {
-			model = '';
+			try {
+				const response = await getModels(localStorage.token);
+				const list = response?.data ?? response ?? [];
+				model = list?.[0]?.id ?? '';
+			} catch {
+				model = '';
+			}
 		}
 		if (!model) {
 			modelError =
@@ -176,6 +199,11 @@
 				draft.questionIndex ?? 0,
 				buildInterviewQuestions(map.facts).length - 1
 			);
+			foundationConfirmed = draft.foundationConfirmed ?? false;
+			selectedProviderId = draft.selectedProviderId ?? '';
+			selectedModelId = draft.selectedModelId ?? '';
+			selectedWebProvider = draft.selectedWebProvider ?? '';
+			if (!foundationConfirmed && step !== 'welcome') step = 'foundation';
 			documents = draft.documents ?? [];
 			knowledgeBaseId = draft.knowledgeBaseId ?? '';
 			workflows = draft.workflows ?? [];
@@ -213,18 +241,20 @@
 		);
 	};
 
-	const begin = async () => {
-		if (!(await refreshModel())) {
-			step = 'model';
-			return;
-		}
-		step = 'site';
+	const begin = () => {
+		step = 'foundation';
 	};
 
-	const checkModel = async () => {
-		checkingModel = true;
-		if (await refreshModel()) step = 'site';
-		checkingModel = false;
+	const completeFoundation = (
+		event: CustomEvent<{ providerId: string; modelId: string; webProvider: string }>
+	) => {
+		foundationConfirmed = true;
+		selectedProviderId = event.detail.providerId;
+		selectedModelId = event.detail.modelId;
+		selectedWebProvider = event.detail.webProvider;
+		model = event.detail.modelId;
+		modelError = '';
+		step = 'site';
 	};
 
 	const startWithoutSite = () => {
@@ -516,6 +546,10 @@
 		answers = [];
 		questionIndex = 0;
 		answerText = '';
+		foundationConfirmed = false;
+		selectedProviderId = '';
+		selectedModelId = '';
+		selectedWebProvider = '';
 		documents = [];
 		knowledgeBaseId = '';
 		workflows = [];
@@ -541,13 +575,13 @@
 >
 	{#if step === 'welcome'}
 		<WelcomeStep {alreadyDone} on:begin={begin} on:memory={() => goto('/memoire')} />
-	{:else if step === 'model'}
-		<BrainGateStep checking={checkingModel} error={modelError} on:check={checkModel} />
+	{:else if step === 'foundation' || step === 'model'}
+		<FoundationSetupStep on:complete={completeFoundation} />
 	{:else if step === 'site'}
 		<section class="m-auto w-full max-w-3xl py-10">
 			<div class="text-center">
 				<div class="text-xs font-semibold uppercase tracking-[0.16em] text-[#6b62f2]">
-					Étape 1 · Découverte
+					Étape 2 · Découverte
 				</div>
 				<h1 class="mt-4 text-3xl font-medium tracking-[-0.03em] md:text-5xl">
 					Commençons par votre entreprise.
@@ -663,7 +697,7 @@
 			<div class="mb-6 flex items-center justify-between">
 				<div>
 					<div class="text-xs font-semibold uppercase tracking-[0.16em] text-[#6b62f2]">
-						Étape 2 · Entretien
+						Étape 3 · Entretien
 					</div>
 					<div class="mt-2 text-xs text-gray-500">
 						Question {questionIndex + 1} sur {questions.length}
@@ -733,7 +767,7 @@
 		<section class="w-full py-8">
 			<div class="mx-auto max-w-4xl text-center">
 				<div class="text-xs font-semibold uppercase tracking-[0.16em] text-[#6b62f2]">
-					Étape 4 · Porte humaine
+					Étape 5 · Porte humaine
 				</div>
 				<h1 class="mt-3 text-3xl font-medium tracking-[-0.03em] md:text-5xl">
 					Voici comment LunarIA comprend votre entreprise.
@@ -855,7 +889,7 @@
 		<section class="w-full py-8">
 			<div class="mx-auto max-w-4xl text-center">
 				<div class="text-xs font-semibold uppercase tracking-[0.16em] text-[#6b62f2]">
-					Étape 5 · Votre AgentOS
+					Étape 6 · Votre AgentOS
 				</div>
 				<h1 class="mt-3 text-3xl font-medium tracking-[-0.03em] md:text-5xl">
 					Les premières boucles utiles à votre entreprise.
