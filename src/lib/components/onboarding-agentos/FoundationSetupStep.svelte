@@ -28,7 +28,11 @@
 	$: activeBrainProvider = brainProviders.find(
 		(provider) => provider.id === activeBrain?.provider_id
 	);
-	$: brainReady = Boolean(activeBrain?.provider_id && activeBrain?.model_id);
+	// « auto » est un ancien repli du moteur, pas un choix explicite du client. L'onboarding
+	// reste bloqué jusqu'à ce qu'une carte fournisseur ait réellement activé son modèle.
+	$: brainReady = Boolean(
+		activeBrain?.provider_id && activeBrain.provider_id !== 'auto' && activeBrain?.model_id
+	);
 	$: activeWebProvider =
 		webProviders.find(
 			(provider) =>

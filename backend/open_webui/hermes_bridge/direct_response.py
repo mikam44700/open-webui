@@ -193,6 +193,51 @@ async def _stream_resident(request_payload: dict) -> AsyncIterator[DirectEvent]:
                         continue
 
 
+async def complete_without_tools(
+    messages: list[dict],
+    *,
+    max_tokens: int = 4_000,
+    timeout_seconds: int = 90,
+) -> tuple[str, str]:
+    """Exécute une complétion structurée avec le cerveau Hermes réellement actif.
+
+    Contrairement au endpoint OpenAI générique, ce chemin n'attend pas qu'un modèle
+    fournisseur (Codex, Anthropic, etc.) soit aussi déclaré comme modèle Open WebUI.
+    Il passe directement par le runtime résident qui relit ``model.provider`` et
+    ``model.default`` dans la configuration Hermes. Aucun outil n'est exposé.
+    """
+    chunks: list[str] = []
+    answer = ''
+    model = ''
+    request_payload = {
+        'mode': 'direct',
+        'messages': messages,
+        'max_tokens': max(256, min(int(max_tokens), 8_000)),
+        'policy': (
+            'Tu exécutes une transformation de données interne à LunarIA. '
+            "Respecte exactement le format demandé. N'appelle aucun outil et n'ajoute aucun commentaire."
+        ),
+        'timeout_seconds': max(10, min(int(timeout_seconds), 120)),
+        'max_iterations': 1,
+        'max_tools': 0,
+    }
+    async for event in _stream_resident(request_payload):
+        if event.model:
+            model = event.model
+        if event.type == 'error':
+            raise RuntimeError(event.message or event.error_type or 'Le cerveau IA a échoué.')
+        if event.type == 'budget':
+            raise TimeoutError('Le cerveau IA a dépassé le temps autorisé.')
+        if event.type == 'delta' and event.text:
+            chunks.append(event.text)
+        if event.type == 'done':
+            answer = event.answer or ''.join(chunks)
+    answer = (answer or ''.join(chunks)).strip()
+    if not answer:
+        raise RuntimeError("Le cerveau IA n'a renvoyé aucun résultat.")
+    return answer, model
+
+
 async def stream_direct_events(payload: dict) -> AsyncIterator[DirectEvent]:
     """Utilise le runtime résident ; replie sur le subprocess historique si nécessaire."""
     request_payload = {

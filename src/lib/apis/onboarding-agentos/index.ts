@@ -1,5 +1,4 @@
-import { WEBUI_API_BASE_URL, RETRIEVAL_API_BASE_URL } from '$lib/constants';
-import { generateOpenAIChatCompletion } from '$lib/apis/openai';
+import { WEBUI_API_BASE_URL } from '$lib/constants';
 import { normalizeFacts, safeId } from '$lib/onboarding-agentos/logic';
 import type {
 	EvidenceFact,
@@ -42,27 +41,32 @@ const jsonFromText = (text: string): any => {
 	return JSON.parse(trimmed.slice(start, end + 1));
 };
 
-const completionText = (response: any): string => {
-	const content = response?.choices?.[0]?.message?.content ?? '';
-	if (typeof content === 'string') return content;
-	if (Array.isArray(content)) {
-		return content.map((item) => (typeof item === 'string' ? item : (item?.text ?? ''))).join('\n');
-	}
-	return '';
-};
-
-const callStructuredModel = async (token: string, model: string, system: string, user: string) => {
-	if (!model) throw new Error("Aucun modèle IA n'est actif.");
-	const response = await generateOpenAIChatCompletion(token, {
-		model,
-		stream: false,
-		temperature: 0.15,
-		messages: [
-			{ role: 'system', content: system },
-			{ role: 'user', content: user }
-		]
+const callStructuredModel = async (
+	token: string,
+	providerId: string,
+	modelId: string,
+	system: string,
+	user: string
+) => {
+	if (!providerId || !modelId) throw new Error("Aucun modèle IA n'est actif.");
+	const response = await fetch(`${WEBUI_API_BASE_URL}/onboarding/structured`, {
+		method: 'POST',
+		headers: {
+			'Content-Type': 'application/json',
+			Authorization: `Bearer ${token}`
+		},
+		body: JSON.stringify({
+			provider_id: providerId,
+			model_id: modelId,
+			system,
+			user
+		})
 	});
-	return jsonFromText(completionText(response));
+	if (!response.ok) {
+		throw new Error(String(await responseError(response, "Le cerveau IA n'a pas répondu.")));
+	}
+	const payload = await response.json();
+	return jsonFromText(String(payload?.content ?? ''));
 };
 
 export const crawlCompanySite = async (token: string, url: string): Promise<CrawlResult> => {
@@ -117,13 +121,15 @@ seront ajoutés par le produit.`;
 
 export const synthesizeSiteFacts = async (
 	token: string,
-	model: string,
+	providerId: string,
+	modelId: string,
 	crawl: CrawlResult
 ): Promise<{ companyName: string; facts: EvidenceFact[] }> => {
 	const pages = crawl.pages?.length ? crawl.pages : [crawl.url];
 	const payload = await callStructuredModel(
 		token,
-		model,
+		providerId,
+		modelId,
 		SITE_SYSTEM,
 		`Pages autorisées :\n${pages.map((page) => `- ${page}`).join('\n')}\n\nContenu :\n${crawl.markdown.slice(0, 32000)}`
 	);
@@ -175,6 +181,7 @@ const serializeSearchItems = (data: any): ExternalSearchItem[] => {
 
 export const searchCompanyWeb = async (
 	token: string,
+	webProvider: string,
 	companyName: string,
 	siteUrl: string,
 	sectorHint: string
@@ -187,13 +194,13 @@ export const searchCompanyWeb = async (
 		`${sectorHint || identity} marché France tendances`,
 		`"${identity}" clients cas client`
 	];
-	const response = await fetch(`${RETRIEVAL_API_BASE_URL}/process/web/search`, {
+	const response = await fetch(`${WEBUI_API_BASE_URL}/onboarding/web-search`, {
 		method: 'POST',
 		headers: {
 			'Content-Type': 'application/json',
 			Authorization: `Bearer ${token}`
 		},
-		body: JSON.stringify({ queries })
+		body: JSON.stringify({ provider: webProvider, queries })
 	});
 	if (!response.ok)
 		throw new Error(String(await responseError(response, 'Recherche Web indisponible.')));
@@ -217,7 +224,8 @@ résultats ambigus, les annuaires sans contenu et les agrégateurs qui ne prouve
 
 export const synthesizeWebFacts = async (
 	token: string,
-	model: string,
+	providerId: string,
+	modelId: string,
 	items: ExternalSearchItem[]
 ): Promise<EvidenceFact[]> => {
 	if (!items.length) return [];
@@ -228,7 +236,13 @@ export const synthesizeWebFacts = async (
 		snippet: item.snippet,
 		publishedDate: item.publishedDate
 	}));
-	const payload = await callStructuredModel(token, model, WEB_SYSTEM, JSON.stringify(sources));
+	const payload = await callStructuredModel(
+		token,
+		providerId,
+		modelId,
+		WEB_SYSTEM,
+		JSON.stringify(sources)
+	);
 	const byUrl = new Map(sources.map((source) => [source.url, source]));
 	return normalizeFacts(Array.isArray(payload?.facts) ? payload.facts : [], 'web')
 		.filter((fact) => byUrl.has(fact.sourceUrl ?? ''))
@@ -277,12 +291,14 @@ const stringList = (value: unknown, fallback: string[] = []) =>
 
 export const generateWorkflowProposals = async (
 	token: string,
-	model: string,
+	providerId: string,
+	modelId: string,
 	map: OperationalMap
 ): Promise<WorkflowProposal[]> => {
 	const payload = await callStructuredModel(
 		token,
-		model,
+		providerId,
+		modelId,
 		WORKFLOW_SYSTEM,
 		JSON.stringify({
 			companyName: map.companyName,

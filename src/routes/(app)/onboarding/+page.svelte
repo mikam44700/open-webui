@@ -3,7 +3,6 @@
 	import { goto } from '$app/navigation';
 	import { toast } from 'svelte-sonner';
 
-	import { getModels } from '$lib/apis';
 	import { getActiveProvider } from '$lib/apis/providers';
 	import DocumentsStep from '$lib/components/onboarding-agentos/DocumentsStep.svelte';
 	import FinalProofStep from '$lib/components/onboarding-agentos/FinalProofStep.svelte';
@@ -71,6 +70,7 @@
 	let analysisError = '';
 	let analysisStage = 0;
 	let analysisDetails = '';
+	let analysisFailed = false;
 	let reviewError = '';
 	let savingMap = false;
 	let workflowLoading = false;
@@ -168,21 +168,28 @@
 		modelError = '';
 		try {
 			const active = await getActiveProvider(localStorage.token);
-			model = active?.model_id ?? '';
-			selectedProviderId = active?.provider_id ?? selectedProviderId;
-			selectedModelId = active?.model_id ?? selectedModelId;
-		} catch {
-			try {
-				const response = await getModels(localStorage.token);
-				const list = response?.data ?? response ?? [];
-				model = list?.[0]?.id ?? '';
-			} catch {
+			if (!active?.provider_id || active.provider_id === 'auto' || !active?.model_id) {
 				model = '';
+			} else if (
+				foundationConfirmed &&
+				selectedProviderId &&
+				selectedModelId &&
+				(active.provider_id !== selectedProviderId || active.model_id !== selectedModelId)
+			) {
+				model = '';
+				modelError =
+					'Le cerveau IA actif a changé depuis votre confirmation. Revenez à la configuration pour le confirmer.';
+			} else {
+				model = active.model_id;
+				selectedProviderId = active.provider_id;
+				selectedModelId = active.model_id;
 			}
+		} catch {
+			model = '';
 		}
-		if (!model) {
+		if (!model && !modelError) {
 			modelError =
-				"Votre modèle IA n'est pas encore prêt. Connectez-en un pour que LunarIA puisse comprendre votre entreprise.";
+				'Choisissez explicitement un provider et son modèle avant de confier votre entreprise à LunarIA.';
 		}
 		return Boolean(model);
 	};
@@ -210,7 +217,11 @@
 			selectedWorkflowId = draft.selectedWorkflowId ?? '';
 			answerText = draft.pendingAnswer ?? '';
 		}
-		await refreshModel();
+		const brainIsReady = await refreshModel();
+		if (!brainIsReady && step !== 'welcome') {
+			foundationConfirmed = false;
+			step = 'foundation';
+		}
 		mounted = true;
 	});
 
@@ -218,27 +229,6 @@
 		const candidate = value.trim();
 		if (!candidate) return '';
 		return /^https?:\/\//i.test(candidate) ? candidate : `https://${candidate}`;
-	};
-
-	const unavailableWebFacts = (message: string): EvidenceFact[] => {
-		const date = new Date().toISOString().slice(0, 10);
-		return ['ICP extérieur', 'Concurrence et marché', 'Réputation et signaux'].map(
-			(label, index) => ({
-				id: `web-non-recherche-${index + 1}`,
-				section:
-					index === 0
-						? 'Clients et ICP'
-						: index === 1
-							? 'Concurrence et marché'
-							: 'Réputation et signaux',
-				label,
-				value: message,
-				sourceType: 'web',
-				observedAt: date,
-				status: 'non_recherche',
-				confidence: 0
-			})
-		);
 	};
 
 	const begin = () => {
@@ -268,6 +258,7 @@
 
 	const analyze = async () => {
 		analysisError = '';
+		analysisFailed = false;
 		const url = normaliseUrl(siteUrl);
 		if (!url) {
 			analysisError = "Indiquez l'adresse du site ou choisissez « Je n'ai pas de site ».";
@@ -288,54 +279,64 @@
 		let companyName = '';
 		let siteFacts: EvidenceFact[] = [];
 
-		const crawl = await crawlCompanySite(localStorage.token, url);
-		if (crawl.status !== 'echec' && crawl.markdown.trim()) {
-			analysisStage = 1;
-			analysisDetails = `${crawl.pages?.length ?? 1} page(s) utile(s) lue(s).`;
-			try {
-				const synthesis = await synthesizeSiteFacts(localStorage.token, model, crawl);
-				companyName = synthesis.companyName;
-				siteFacts = synthesis.facts;
-			} catch (error) {
-				analysisError =
-					error instanceof Error
-						? error.message
-						: "Le site a été lu mais sa synthèse n'a pas abouti.";
-			}
-		} else {
-			analysisError = crawl.message || "Le site n'a pas pu être lu. L'entretien prendra le relais.";
-		}
-
-		map = {
-			companyName,
-			siteUrl: url,
-			facts: mergeFacts(map.facts, siteFacts)
-		};
-
-		analysisStage = 2;
-		analysisDetails = 'LunarIA cherche les clients, concurrents, avis et signaux récents.';
 		try {
+			const crawl = await crawlCompanySite(localStorage.token, url);
+			if (crawl.status !== 'reussi' || !crawl.markdown.trim()) {
+				throw new Error(
+					crawl.message ||
+						"Le site n'a pas été lu complètement. L'analyse est arrêtée pour éviter une Carte incomplète."
+				);
+			}
+
+			analysisStage = 1;
+			analysisDetails = `${crawl.pages?.length ?? 1} page(s) utile(s) lue(s). Le cerveau IA structure les informations.`;
+			const synthesis = await synthesizeSiteFacts(
+				localStorage.token,
+				selectedProviderId,
+				selectedModelId,
+				crawl
+			);
+			companyName = synthesis.companyName;
+			siteFacts = synthesis.facts;
+			if (!companyName || !siteFacts.length) {
+				throw new Error(
+					'Le cerveau IA n’a pas produit assez d’éléments vérifiables à partir du site.'
+				);
+			}
+
+			map = {
+				companyName,
+				siteUrl: url,
+				facts: mergeFacts(map.facts, siteFacts)
+			};
+
+			analysisStage = 2;
+			analysisDetails = `${selectedWebProvider} cherche les clients, concurrents, avis et signaux récents.`;
 			const sectorHint =
 				siteFacts.find((fact) => fact.label.toLowerCase().includes('secteur'))?.value ?? '';
-			const items = await searchCompanyWeb(localStorage.token, companyName, url, sectorHint);
-			const webFacts = await synthesizeWebFacts(localStorage.token, model, items);
-			map = { ...map, facts: mergeFacts(map.facts, webFacts) };
+			const items = await searchCompanyWeb(
+				localStorage.token,
+				selectedWebProvider,
+				companyName,
+				url,
+				sectorHint
+			);
+			const webFacts = await synthesizeWebFacts(
+				localStorage.token,
+				selectedProviderId,
+				selectedModelId,
+				items
+			);
 			if (!webFacts.length) {
-				map = {
-					...map,
-					facts: mergeFacts(
-						map.facts,
-						unavailableWebFacts('Aucun élément extérieur suffisamment fiable n’a été retenu.')
-					)
-				};
+				throw new Error('La recherche Web n’a produit aucun fait extérieur suffisamment fiable.');
 			}
+			map = { ...map, facts: mergeFacts(map.facts, webFacts) };
 		} catch (error) {
-			const message =
-				error instanceof Error ? error.message : 'La recherche Web extérieure est indisponible.';
-			map = {
-				...map,
-				facts: mergeFacts(map.facts, unavailableWebFacts(message))
-			};
+			analysisError =
+				error instanceof Error ? error.message : "L'analyse de l'entreprise a échoué.";
+			analysisDetails = 'Analyse interrompue : aucune donnée incomplète ne sera validée.';
+			analysisFailed = true;
+			return;
 		}
 
 		analysisStage = 3;
@@ -497,7 +498,12 @@
 		workflowLoading = true;
 		try {
 			if (!(await refreshModel())) throw new Error(modelError);
-			workflows = await generateWorkflowProposals(localStorage.token, model, map);
+			workflows = await generateWorkflowProposals(
+				localStorage.token,
+				selectedProviderId,
+				selectedModelId,
+				map
+			);
 			if (!workflows.length) {
 				throw new Error(
 					"LunarIA n'a pas encore assez d'éléments fiables pour proposer un workflow précis."
@@ -646,17 +652,38 @@
 			<div
 				class="mx-auto flex size-20 items-center justify-center rounded-[1.75rem] bg-[#6b62f2]/10"
 			>
-				<div
-					class="size-8 animate-spin rounded-full border-[3px] border-[#6b62f2]/20 border-t-[#6b62f2]"
-				></div>
+				{#if analysisFailed}
+					<span class="text-3xl text-red-500">!</span>
+				{:else}
+					<div
+						class="size-8 animate-spin rounded-full border-[3px] border-[#6b62f2]/20 border-t-[#6b62f2]"
+					></div>
+				{/if}
 			</div>
 			<div class="mt-7 text-xs font-semibold uppercase tracking-[0.16em] text-[#6b62f2]">
-				Analyse en cours
+				{analysisFailed ? 'Analyse interrompue' : 'Analyse en cours'}
 			</div>
 			<h1 class="mt-3 text-3xl font-medium tracking-[-0.03em]">
 				LunarIA apprend votre entreprise.
 			</h1>
 			<p class="mt-3 text-sm text-gray-500 dark:text-gray-400">{analysisDetails}</p>
+			{#if analysisFailed}
+				<div
+					class="mx-auto mt-6 max-w-xl rounded-2xl border border-red-200 bg-red-50 p-4 text-left text-sm text-red-800 dark:border-red-900/50 dark:bg-red-950/30 dark:text-red-200"
+				>
+					{analysisError}
+				</div>
+				<div class="mt-5 flex flex-wrap justify-center gap-3">
+					<button
+						class="rounded-full px-5 py-2.5 text-sm text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-800"
+						on:click={() => (step = 'site')}>Revenir au site</button
+					>
+					<button
+						class="rounded-full bg-[#6b62f2] px-6 py-2.5 text-sm font-medium text-white"
+						on:click={analyze}>Réessayer l’analyse complète</button
+					>
+				</div>
+			{/if}
 			<div
 				class="mx-auto mt-9 max-w-xl rounded-[2rem] border border-black/6 bg-white p-5 text-left dark:border-white/8 dark:bg-[#161616]"
 			>
