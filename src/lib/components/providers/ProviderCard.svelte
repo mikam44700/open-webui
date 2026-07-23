@@ -57,6 +57,7 @@
 	// 1er exposé). Même source que le sélecteur du chat → cohérent et honnête.
 	const RECOMMENDED_MODEL: Record<string, string> = {
 		anthropic: 'claude-sonnet-4-6',
+		'openai-codex': 'gpt-5.5',
 		'openai-api': 'gpt-5.5',
 		gemini: 'gemini-3.5-flash',
 		mistral: 'mistral-large-latest',
@@ -220,7 +221,9 @@
 			else if (r?.reason === 'no_credit')
 				// La clé est bonne, il manque juste du crédit chez le fournisseur.
 				toast.warning(
-					$i18n.t('Clé valide, mais compte sans crédit — ajoutez du crédit chez le fournisseur pour l’utiliser.')
+					$i18n.t(
+						'Clé valide, mais compte sans crédit — ajoutez du crédit chez le fournisseur pour l’utiliser.'
+					)
 				);
 			else toast.error($i18n.t('Clé invalide') + (r?.reason ? ` (${r.reason})` : ''));
 		} catch {
@@ -262,10 +265,12 @@
 
 	// --- Choix du modèle dans la carte (onboarding : showModelPicker) ---
 	// Modèle « courant » à afficher : celui réellement actif si CE fournisseur est le cerveau
-	// actif, sinon le recommandé (repère par défaut, jamais présenté comme actif — cf. ActiveBadge).
+	// actif, sinon le recommandé. En onboarding, le recommandé reste une suggestion tant que le
+	// client ne l'a pas explicitement activé.
 	$: currentModelId = activeModelId || repModelId || '';
 	$: currentModelLabel =
 		provider.models?.find((m) => m.id === currentModelId)?.label ?? currentModelId ?? '';
+	$: modelNeedsActivation = showModelPicker && configured && !activeModelId;
 	let pickerOpen = false;
 	let switching = false;
 
@@ -310,7 +315,9 @@
 		<div class="flex-1 min-w-0">
 			<div class="text-sm font-medium">{info.name ?? provider.label}</div>
 			<div class="text-xs text-gray-500">
-				{info.desc ?? presentation.humanLabel ?? `${provider.models?.length ?? 0} ${$i18n.t('modèles')}`}
+				{info.desc ??
+					presentation.humanLabel ??
+					`${provider.models?.length ?? 0} ${$i18n.t('modèles')}`}
 			</div>
 		</div>
 		<div class="flex-none flex items-center gap-1.5">
@@ -361,257 +368,281 @@
 	<!-- Bloc de connexion collé en bas : aligne champ + Tester/Enregistrer entre les cartes,
 	     quels que soient les badges/description au-dessus. -->
 	<div class="mt-auto flex flex-col gap-2.5">
-	<!-- Action de connexion selon la catégorie -->
-	{#if provider.category === 'oauth'}
-		<ProviderOAuth
-			{provider}
-			on:connected={() => dispatch('changed')}
-			on:changed={() => dispatch('changed')}
-			on:help={() => (codexHelpOpen = true)}
-		/>
-		{#if info.usageUrl && provider.state !== 'not_configured'}
-			<a
-				href={info.usageUrl}
-				target="_blank"
-				rel="noopener"
-				class="self-start text-xs text-sky-600 dark:text-sky-400 hover:underline"
-			>
-				{$i18n.t('Voir mon usage')} ›
-			</a>
-		{/if}
-	{:else if provider.id === 'moa'}
-		<!-- Mixture of Agents : technique interne du moteur, AUCUNE clé propre — il combine
+		<!-- Action de connexion selon la catégorie -->
+		{#if provider.category === 'oauth'}
+			<ProviderOAuth
+				{provider}
+				on:connected={() => dispatch('changed')}
+				on:changed={() => dispatch('changed')}
+				on:help={() => (codexHelpOpen = true)}
+			/>
+			{#if info.usageUrl && provider.state !== 'not_configured'}
+				<a
+					href={info.usageUrl}
+					target="_blank"
+					rel="noopener"
+					class="self-start text-xs text-sky-600 dark:text-sky-400 hover:underline"
+				>
+					{$i18n.t('Voir mon usage')} ›
+				</a>
+			{/if}
+		{:else if provider.id === 'moa'}
+			<!-- Mixture of Agents : technique interne du moteur, AUCUNE clé propre — il combine
 		     les modèles déjà connectés. Ni champ clé ni texte : l'explication est dans la
 		     popup « Voir ce que ça fait » (SPEC-cartes-modeles-ia). -->
-	{:else if provider.category === 'api' || provider.category === 'local'}
-		{#if configured && !replacing}
-			<!-- Carte CALME (connectée) : on cache la mécanique, on montre juste l'état. -->
-			<!-- « ✓ Clé connectée » toujours affiché : rassure le dirigeant que sa clé marche. -->
-			<div class="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-300">
-				<svg class="size-4 flex-none text-green-600 dark:text-green-500" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
-					<path fill-rule="evenodd" d="M16.7 5.3a1 1 0 0 1 0 1.4l-7.5 7.5a1 1 0 0 1-1.4 0L3.3 10.7a1 1 0 1 1 1.4-1.4l3.1 3.1 6.8-6.8a1 1 0 0 1 1.4 0Z" clip-rule="evenodd" />
-				</svg>
-				<span>{$i18n.t('Clé connectée')}</span>
-			</div>
-			<div class="flex flex-wrap items-center justify-between gap-2">
-				<!-- Voir sa conso / son quota chez le fournisseur (facturation à l'usage). -->
-				{#if info.usageUrl}
-					<a
-						href={info.usageUrl}
-						target="_blank"
-						rel="noopener"
-						class="text-xs text-sky-600 dark:text-sky-400 hover:underline"
+		{:else if provider.category === 'api' || provider.category === 'local'}
+			{#if configured && !replacing}
+				<!-- Carte CALME (connectée) : on cache la mécanique, on montre juste l'état. -->
+				<!-- « ✓ Clé connectée » toujours affiché : rassure le dirigeant que sa clé marche. -->
+				<div class="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-300">
+					<svg
+						class="size-4 flex-none text-green-600 dark:text-green-500"
+						viewBox="0 0 20 20"
+						fill="currentColor"
+						aria-hidden="true"
 					>
-						{$i18n.t('Voir mon usage')} ›
-					</a>
-				{:else}
-					<span></span>
-				{/if}
-				<div class="flex flex-wrap items-center justify-end gap-3">
-					{#if confirmingDelete}
-						<span class="text-xs text-gray-500">{$i18n.t('Retirer cette clé ?')}</span>
-						<button
-							type="button"
-							class="text-xs text-gray-500 hover:text-gray-800 dark:hover:text-gray-200 transition"
-							on:click={() => (confirmingDelete = false)}
-							disabled={deleting}
+						<path
+							fill-rule="evenodd"
+							d="M16.7 5.3a1 1 0 0 1 0 1.4l-7.5 7.5a1 1 0 0 1-1.4 0L3.3 10.7a1 1 0 1 1 1.4-1.4l3.1 3.1 6.8-6.8a1 1 0 0 1 1.4 0Z"
+							clip-rule="evenodd"
+						/>
+					</svg>
+					<span>{$i18n.t('Clé connectée')}</span>
+				</div>
+				<div class="flex flex-wrap items-center justify-between gap-2">
+					<!-- Voir sa conso / son quota chez le fournisseur (facturation à l'usage). -->
+					{#if info.usageUrl}
+						<a
+							href={info.usageUrl}
+							target="_blank"
+							rel="noopener"
+							class="text-xs text-sky-600 dark:text-sky-400 hover:underline"
 						>
-							{$i18n.t('Annuler')}
-						</button>
-						<button
-							type="button"
-							class="text-xs px-3 py-1.5 rounded-lg bg-red-600 text-white hover:bg-red-700 transition disabled:opacity-40"
-							on:click={disconnect}
-							disabled={deleting}
-						>
-							{#if deleting}<Spinner className="size-3.5" />{:else}{$i18n.t('Confirmer')}{/if}
-						</button>
+							{$i18n.t('Voir mon usage')} ›
+						</a>
 					{:else}
-						<button
-							type="button"
-							class="text-xs text-gray-500 hover:text-gray-800 dark:hover:text-gray-200 transition"
-							on:click={() => {
-								replacing = true;
-								value = '';
-							}}
-						>
-							{$i18n.t('Remplacer la clé')}
-						</button>
-						<button
-							type="button"
-							class="text-xs text-gray-400 hover:text-red-600 dark:hover:text-red-400 transition"
-							on:click={() => (confirmingDelete = true)}
-						>
-							{$i18n.t('Déconnecter')}
-						</button>
+						<span></span>
 					{/if}
+					<div class="flex flex-wrap items-center justify-end gap-3">
+						{#if confirmingDelete}
+							<span class="text-xs text-gray-500">{$i18n.t('Retirer cette clé ?')}</span>
+							<button
+								type="button"
+								class="text-xs text-gray-500 hover:text-gray-800 dark:hover:text-gray-200 transition"
+								on:click={() => (confirmingDelete = false)}
+								disabled={deleting}
+							>
+								{$i18n.t('Annuler')}
+							</button>
+							<button
+								type="button"
+								class="text-xs px-3 py-1.5 rounded-lg bg-red-600 text-white hover:bg-red-700 transition disabled:opacity-40"
+								on:click={disconnect}
+								disabled={deleting}
+							>
+								{#if deleting}<Spinner className="size-3.5" />{:else}{$i18n.t('Confirmer')}{/if}
+							</button>
+						{:else}
+							<button
+								type="button"
+								class="text-xs text-gray-500 hover:text-gray-800 dark:hover:text-gray-200 transition"
+								on:click={() => {
+									replacing = true;
+									value = '';
+								}}
+							>
+								{$i18n.t('Remplacer la clé')}
+							</button>
+							<button
+								type="button"
+								class="text-xs text-gray-400 hover:text-red-600 dark:hover:text-red-400 transition"
+								on:click={() => (confirmingDelete = true)}
+							>
+								{$i18n.t('Déconnecter')}
+							</button>
+						{/if}
+					</div>
 				</div>
-			</div>
-		{:else}
-			<!-- Saisie : provider non connecté, OU on remplace une clé existante. -->
-			<div class="flex items-center gap-2">
-				<input
-					class="flex-1 min-w-0 text-sm bg-transparent border border-gray-100 dark:border-gray-850 rounded-xl px-3 py-2 outline-none"
-					type={show ? 'text' : 'password'}
-					placeholder={replacing
-						? $i18n.t('Coller la nouvelle clé')
-						: (info.name ?? provider.label) + ' — ' + $i18n.t('clé API')}
-					bind:value
-					autocomplete="off"
-					on:keydown={(e) => e.key === 'Enter' && saveKey()}
-				/>
-				<!-- Afficher : seulement s'il y a quelque chose à révéler (l'utilisateur tape). -->
-				{#if value}
-					<button
-						type="button"
-						class="flex-none text-xs px-2 py-2 rounded-xl hover:bg-gray-100 dark:hover:bg-gray-850 transition"
-						on:click={() => (show = !show)}
-					>
-						{show ? $i18n.t('Masquer') : $i18n.t('Afficher')}
-					</button>
-				{/if}
-			</div>
-			<div class="flex flex-wrap items-center justify-between gap-2">
-				{#if info.keyUrl}
-					<a
-						href={info.keyUrl}
-						target="_blank"
-						rel="noopener"
-						class="text-xs text-sky-600 dark:text-sky-400 hover:underline"
-					>
-						{$i18n.t('Obtenir la clé')} ›
-					</a>
-				{:else}
-					<span></span>
-				{/if}
+			{:else}
+				<!-- Saisie : provider non connecté, OU on remplace une clé existante. -->
 				<div class="flex items-center gap-2">
-					{#if replacing}
+					<input
+						class="flex-1 min-w-0 text-sm bg-transparent border border-gray-100 dark:border-gray-850 rounded-xl px-3 py-2 outline-none"
+						type={show ? 'text' : 'password'}
+						placeholder={replacing
+							? $i18n.t('Coller la nouvelle clé')
+							: (info.name ?? provider.label) + ' — ' + $i18n.t('clé API')}
+						bind:value
+						autocomplete="off"
+						on:keydown={(e) => e.key === 'Enter' && saveKey()}
+					/>
+					<!-- Afficher : seulement s'il y a quelque chose à révéler (l'utilisateur tape). -->
+					{#if value}
 						<button
 							type="button"
-							class="text-xs px-2 py-1 rounded-lg text-gray-500 hover:text-gray-800 dark:hover:text-gray-200 transition"
-							on:click={() => {
-								replacing = false;
-								value = '';
-							}}
+							class="flex-none text-xs px-2 py-2 rounded-xl hover:bg-gray-100 dark:hover:bg-gray-850 transition"
+							on:click={() => (show = !show)}
 						>
-							{$i18n.t('Annuler')}
+							{show ? $i18n.t('Masquer') : $i18n.t('Afficher')}
 						</button>
 					{/if}
-					<button
-						type="button"
-						class="text-xs px-2 py-1 rounded-lg text-gray-500 hover:text-gray-800 dark:hover:text-gray-200 transition disabled:opacity-40"
-						disabled={!value || busy}
-						on:click={testKey}
-					>
-						{#if testing}<Spinner className="size-3.5" />{:else}{$i18n.t('Tester')}{/if}
-					</button>
-					<button
-						type="button"
-						class="text-xs px-3 py-1.5 rounded-lg btn-premium bg-black text-white dark:bg-white dark:text-black transition disabled:opacity-40"
-						disabled={!value || busy}
-						on:click={saveKey}
-					>
-						{#if saving}<Spinner className="size-3.5" />{:else}{$i18n.t('Enregistrer')}{/if}
-					</button>
 				</div>
-			</div>
-		{/if}
-	{:else if provider.id === 'bedrock'}
-		<!-- AWS Bedrock : credentials AWS (lus par le SDK de Hermes), repliés derrière
+				<div class="flex flex-wrap items-center justify-between gap-2">
+					{#if info.keyUrl}
+						<a
+							href={info.keyUrl}
+							target="_blank"
+							rel="noopener"
+							class="text-xs text-sky-600 dark:text-sky-400 hover:underline"
+						>
+							{$i18n.t('Obtenir la clé')} ›
+						</a>
+					{:else}
+						<span></span>
+					{/if}
+					<div class="flex items-center gap-2">
+						{#if replacing}
+							<button
+								type="button"
+								class="text-xs px-2 py-1 rounded-lg text-gray-500 hover:text-gray-800 dark:hover:text-gray-200 transition"
+								on:click={() => {
+									replacing = false;
+									value = '';
+								}}
+							>
+								{$i18n.t('Annuler')}
+							</button>
+						{/if}
+						<button
+							type="button"
+							class="text-xs px-2 py-1 rounded-lg text-gray-500 hover:text-gray-800 dark:hover:text-gray-200 transition disabled:opacity-40"
+							disabled={!value || busy}
+							on:click={testKey}
+						>
+							{#if testing}<Spinner className="size-3.5" />{:else}{$i18n.t('Tester')}{/if}
+						</button>
+						<button
+							type="button"
+							class="text-xs px-3 py-1.5 rounded-lg btn-premium bg-black text-white dark:bg-white dark:text-black transition disabled:opacity-40"
+							disabled={!value || busy}
+							on:click={saveKey}
+						>
+							{#if saving}<Spinner className="size-3.5" />{:else}{$i18n.t('Enregistrer')}{/if}
+						</button>
+					</div>
+				</div>
+			{/if}
+		{:else if provider.id === 'bedrock'}
+			<!-- AWS Bedrock : credentials AWS (lus par le SDK de Hermes), repliés derrière
 		     une flèche pour garder des cartes de même hauteur. -->
-		<button
-			type="button"
-			class="self-start inline-flex items-center gap-1 text-xs font-medium text-sky-600 dark:text-sky-400 hover:underline"
-			on:click={() => (awsOpen = !awsOpen)}
-			aria-expanded={awsOpen}
-		>
-			{$i18n.t('Clés AWS')}
-			<svg
-				xmlns="http://www.w3.org/2000/svg"
-				fill="none"
-				viewBox="0 0 24 24"
-				stroke-width="2"
-				stroke="currentColor"
-				class="size-3.5 transition-transform {awsOpen ? 'rotate-180' : ''}"
+			<button
+				type="button"
+				class="self-start inline-flex items-center gap-1 text-xs font-medium text-sky-600 dark:text-sky-400 hover:underline"
+				on:click={() => (awsOpen = !awsOpen)}
+				aria-expanded={awsOpen}
 			>
-				<path stroke-linecap="round" stroke-linejoin="round" d="m19.5 8.25-7.5 7.5-7.5-7.5" />
-			</svg>
-		</button>
-		{#if awsOpen}
-		<div class="flex flex-col gap-2">
-			<input
-				class="text-sm bg-transparent border border-gray-100 dark:border-gray-850 rounded-xl px-3 py-2 outline-none"
-				type="text"
-				placeholder={configured ? '••••••••  ' + $i18n.t('(remplacer)') : 'AWS Access Key ID'}
-				bind:value={awsKeyId}
-				autocomplete="off"
-			/>
-			<input
-				class="text-sm bg-transparent border border-gray-100 dark:border-gray-850 rounded-xl px-3 py-2 outline-none"
-				type="password"
-				placeholder="AWS Secret Access Key"
-				bind:value={awsSecret}
-				autocomplete="off"
-			/>
-			<input
-				class="text-sm bg-transparent border border-gray-100 dark:border-gray-850 rounded-xl px-3 py-2 outline-none"
-				type="text"
-				placeholder={$i18n.t('Région') + ' (ex : us-east-1)'}
-				bind:value={awsRegion}
-				autocomplete="off"
-			/>
-			<div class="flex items-center justify-end">
-				<button
-					type="button"
-					class="text-xs px-3 py-1.5 rounded-lg btn-premium bg-black text-white dark:bg-white dark:text-black transition disabled:opacity-40"
-					disabled={!awsKeyId || !awsSecret || savingAws}
-					on:click={saveAws}
+				{$i18n.t('Clés AWS')}
+				<svg
+					xmlns="http://www.w3.org/2000/svg"
+					fill="none"
+					viewBox="0 0 24 24"
+					stroke-width="2"
+					stroke="currentColor"
+					class="size-3.5 transition-transform {awsOpen ? 'rotate-180' : ''}"
 				>
-					{#if savingAws}<Spinner className="size-3.5" />{:else}{$i18n.t('Enregistrer')}{/if}
-				</button>
-			</div>
-		</div>
+					<path stroke-linecap="round" stroke-linejoin="round" d="m19.5 8.25-7.5 7.5-7.5-7.5" />
+				</svg>
+			</button>
+			{#if awsOpen}
+				<div class="flex flex-col gap-2">
+					<input
+						class="text-sm bg-transparent border border-gray-100 dark:border-gray-850 rounded-xl px-3 py-2 outline-none"
+						type="text"
+						placeholder={configured ? '••••••••  ' + $i18n.t('(remplacer)') : 'AWS Access Key ID'}
+						bind:value={awsKeyId}
+						autocomplete="off"
+					/>
+					<input
+						class="text-sm bg-transparent border border-gray-100 dark:border-gray-850 rounded-xl px-3 py-2 outline-none"
+						type="password"
+						placeholder="AWS Secret Access Key"
+						bind:value={awsSecret}
+						autocomplete="off"
+					/>
+					<input
+						class="text-sm bg-transparent border border-gray-100 dark:border-gray-850 rounded-xl px-3 py-2 outline-none"
+						type="text"
+						placeholder={$i18n.t('Région') + ' (ex : us-east-1)'}
+						bind:value={awsRegion}
+						autocomplete="off"
+					/>
+					<div class="flex items-center justify-end">
+						<button
+							type="button"
+							class="text-xs px-3 py-1.5 rounded-lg btn-premium bg-black text-white dark:bg-white dark:text-black transition disabled:opacity-40"
+							disabled={!awsKeyId || !awsSecret || savingAws}
+							on:click={saveAws}
+						>
+							{#if savingAws}<Spinner className="size-3.5" />{:else}{$i18n.t('Enregistrer')}{/if}
+						</button>
+					</div>
+				</div>
+			{/if}
 		{/if}
-	{/if}
-	<!-- Fournisseurs CLI (Copilot) : rien à configurer ici — l'explication est dans la
+		<!-- Fournisseurs CLI (Copilot) : rien à configurer ici — l'explication est dans la
 	     popup « Voir ce que ça fait » (SPEC-cartes-modeles-ia). -->
 
-	{#if configured}
-		{#if showModelPicker && provider.models?.length}
-			<!-- Onboarding : le client voit et choisit son modèle ICI, sans passer par le chat. -->
-			<div class="pt-2 border-t border-gray-100 dark:border-gray-850 flex flex-col gap-2">
-				<div class="flex flex-wrap items-center justify-between gap-2">
-					<div class="min-w-0">
-						<div class="text-[11px] font-semibold uppercase tracking-wide text-gray-400 dark:text-gray-500">
-							{$i18n.t('Modèle')}
+		{#if configured}
+			{#if showModelPicker && provider.models?.length}
+				<!-- Onboarding : le client voit et choisit son modèle ICI, sans passer par le chat. -->
+				<div class="pt-2 border-t border-gray-100 dark:border-gray-850 flex flex-col gap-2">
+					<div class="flex flex-wrap items-center justify-between gap-2">
+						<div class="min-w-0">
+							<div
+								class="text-[11px] font-semibold uppercase tracking-wide text-gray-400 dark:text-gray-500"
+							>
+								{modelNeedsActivation ? $i18n.t('Modèle recommandé') : $i18n.t('Modèle actif')}
+							</div>
+							<div class="text-sm text-gray-800 dark:text-gray-100 truncate">
+								{currentModelLabel || $i18n.t('Non défini')}
+							</div>
 						</div>
-						<div class="text-sm text-gray-800 dark:text-gray-100 truncate">
-							{currentModelLabel || $i18n.t('Non défini')}
+						<div class="flex flex-wrap items-center justify-end gap-2">
+							{#if modelNeedsActivation && currentModelId}
+								<button
+									type="button"
+									class="flex-none rounded-lg bg-[#6b62f2] px-3 py-1.5 text-xs font-medium text-white transition hover:bg-[#5b52e8] disabled:opacity-40"
+									on:click={() => chooseModel(currentModelId)}
+									disabled={switching}
+								>
+									{#if switching}
+										<Spinner className="size-3.5" />
+									{:else}
+										{$i18n.t('Utiliser {{name}}', { name: currentModelLabel })}
+									{/if}
+								</button>
+							{/if}
+							<button
+								type="button"
+								class="flex-none text-xs px-2.5 py-1.5 rounded-lg text-sky-600 dark:text-sky-400 hover:bg-gray-100 dark:hover:bg-gray-850 transition disabled:opacity-40"
+								on:click={() => (pickerOpen = !pickerOpen)}
+								disabled={switching}
+							>
+								{pickerOpen ? $i18n.t('Fermer') : $i18n.t('Choisir un autre modèle')} ({provider
+									.models.length})
+							</button>
 						</div>
 					</div>
-					<button
-						type="button"
-						class="flex-none text-xs px-2.5 py-1.5 rounded-lg text-sky-600 dark:text-sky-400 hover:bg-gray-100 dark:hover:bg-gray-850 transition disabled:opacity-40"
-						on:click={() => (pickerOpen = !pickerOpen)}
-						disabled={switching}
-					>
-						{#if switching}
-							<Spinner className="size-3.5" />
-						{:else}
-							{pickerOpen ? $i18n.t('Fermer') : $i18n.t('Choisir le modèle')} ({provider.models.length})
-						{/if}
-					</button>
+					{#if pickerOpen}
+						<ModelSelect
+							models={provider.models}
+							value={currentModelId}
+							on:change={(e) => chooseModel(e.detail)}
+						/>
+					{/if}
 				</div>
-				{#if pickerOpen}
-					<ModelSelect
-						models={provider.models}
-						value={currentModelId}
-						on:change={(e) => chooseModel(e.detail)}
-					/>
-				{/if}
-			</div>
+			{/if}
 		{/if}
-	{/if}
 	</div>
 </div>
 
