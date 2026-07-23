@@ -56,6 +56,22 @@ describe('onboarding AgentOS', () => {
 		expect(fact?.sourceType).toBe('dirigeant');
 	});
 
+	it('ne redemande pas le nom déjà trouvé sur le site', () => {
+		const facts = normalizeFacts(
+			[
+				{
+					section: 'Identité et modèle économique',
+					label: "Nom de l'entreprise",
+					value: 'Zelty'
+				}
+			],
+			'site'
+		);
+		expect(
+			buildInterviewQuestions(facts).some((question) => question.id === 'nom-entreprise')
+		).toBe(false);
+	});
+
 	it('génère une carte avec provenance', () => {
 		const facts = normalizeFacts(
 			[

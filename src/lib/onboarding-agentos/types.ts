@@ -79,6 +79,7 @@ export type OnboardingDraft = {
 		| 'model'
 		| 'site'
 		| 'analysis'
+		| 'understanding'
 		| 'interview'
 		| 'documents'
 		| 'review'
@@ -92,6 +93,8 @@ export type OnboardingDraft = {
 	selectedProviderId?: string;
 	selectedModelId?: string;
 	selectedWebProvider?: string;
+	pagesRead?: number;
+	externalSourcesRetained?: number;
 	documents?: OnboardingDocument[];
 	knowledgeBaseId?: string;
 	workflows: WorkflowProposal[];

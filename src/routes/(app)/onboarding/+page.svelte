@@ -8,6 +8,7 @@
 	import FinalProofStep from '$lib/components/onboarding-agentos/FinalProofStep.svelte';
 	import FoundationSetupStep from '$lib/components/onboarding-agentos/FoundationSetupStep.svelte';
 	import OnboardingShell from '$lib/components/onboarding-agentos/OnboardingShell.svelte';
+	import UnderstandingStep from '$lib/components/onboarding-agentos/UnderstandingStep.svelte';
 	import WelcomeStep from '$lib/components/onboarding-agentos/WelcomeStep.svelte';
 	import {
 		crawlCompanySite,
@@ -60,6 +61,8 @@
 	let selectedProviderId = '';
 	let selectedModelId = '';
 	let selectedWebProvider = '';
+	let pagesRead = 0;
+	let externalSourcesRetained = 0;
 	let documents: OnboardingDocument[] = [];
 	let knowledgeBaseId = '';
 	let workflows: WorkflowProposal[] = [];
@@ -104,6 +107,8 @@
 		currentSelectedProviderId: string,
 		currentSelectedModelId: string,
 		currentSelectedWebProvider: string,
+		currentPagesRead: number,
+		currentExternalSourcesRetained: number,
 		currentDocuments: OnboardingDocument[],
 		currentKnowledgeBaseId: string,
 		currentWorkflows: WorkflowProposal[],
@@ -122,6 +127,8 @@
 			selectedProviderId: currentSelectedProviderId,
 			selectedModelId: currentSelectedModelId,
 			selectedWebProvider: currentSelectedWebProvider,
+			pagesRead: currentPagesRead,
+			externalSourcesRetained: currentExternalSourcesRetained,
 			documents: currentDocuments,
 			knowledgeBaseId: currentKnowledgeBaseId,
 			workflows: currentWorkflows,
@@ -146,6 +153,8 @@
 		selectedProviderId,
 		selectedModelId,
 		selectedWebProvider,
+		pagesRead,
+		externalSourcesRetained,
 		documents,
 		knowledgeBaseId,
 		workflows,
@@ -210,6 +219,8 @@
 			selectedProviderId = draft.selectedProviderId ?? '';
 			selectedModelId = draft.selectedModelId ?? '';
 			selectedWebProvider = draft.selectedWebProvider ?? '';
+			pagesRead = draft.pagesRead ?? 0;
+			externalSourcesRetained = draft.externalSourcesRetained ?? 0;
 			if (!foundationConfirmed && step !== 'welcome') step = 'foundation';
 			documents = draft.documents ?? [];
 			knowledgeBaseId = draft.knowledgeBaseId ?? '';
@@ -276,6 +287,8 @@
 		step = 'analysis';
 		analysisStage = 0;
 		analysisDetails = 'LunarIA découvre les pages réellement utiles.';
+		pagesRead = 0;
+		externalSourcesRetained = 0;
 		let companyName = '';
 		let siteFacts: EvidenceFact[] = [];
 
@@ -289,7 +302,8 @@
 			}
 
 			analysisStage = 1;
-			analysisDetails = `${crawl.pages?.length ?? 1} page(s) utile(s) lue(s). Le cerveau IA structure les informations.`;
+			pagesRead = crawl.pages?.length ?? 1;
+			analysisDetails = `${pagesRead} page(s) utile(s) lue(s). Le cerveau IA structure les informations.`;
 			const synthesis = await synthesizeSiteFacts(
 				localStorage.token,
 				selectedProviderId,
@@ -297,7 +311,19 @@
 				crawl
 			);
 			companyName = synthesis.companyName;
-			siteFacts = synthesis.facts;
+			siteFacts = mergeFacts(synthesis.facts, [
+				{
+					id: 'site-identite-nom',
+					section: 'Identité et modèle économique',
+					label: "Nom de l'entreprise",
+					value: companyName,
+					sourceType: 'site',
+					sourceUrl: url,
+					observedAt: new Date().toISOString().slice(0, 10),
+					status: 'a_confirmer',
+					confidence: 0.95
+				}
+			]);
 			if (!companyName || !siteFacts.length) {
 				throw new Error(
 					'Le cerveau IA n’a pas produit assez d’éléments vérifiables à partir du site.'
@@ -330,6 +356,9 @@
 			if (!webFacts.length) {
 				throw new Error('La recherche Web n’a produit aucun fait extérieur suffisamment fiable.');
 			}
+			externalSourcesRetained = new Set(
+				webFacts.map((fact) => fact.sourceUrl).filter((source): source is string => Boolean(source))
+			).size;
 			map = { ...map, facts: mergeFacts(map.facts, webFacts) };
 		} catch (error) {
 			analysisError =
@@ -340,10 +369,10 @@
 		}
 
 		analysisStage = 3;
-		analysisDetails = 'Les questions sont adaptées à ce qui manque ou reste à confirmer.';
+		analysisDetails = 'La compréhension est prête à être vérifiée avec vous.';
 		questionIndex = 0;
 		answerText = '';
-		step = 'interview';
+		step = 'understanding';
 	};
 
 	const existingAnswer = (questionId: string) =>
@@ -398,7 +427,7 @@
 
 	const previousQuestion = () => {
 		if (questionIndex === 0) {
-			step = siteUrl ? 'site' : 'welcome';
+			step = siteUrl ? 'understanding' : 'welcome';
 			return;
 		}
 		questionIndex -= 1;
@@ -427,10 +456,12 @@
 	};
 
 	const updateFact = (id: string, value: string) => {
+		const correctedValue = value.trimStart();
 		map = {
 			...map,
+			companyName: id === 'site-identite-nom' ? correctedValue : map.companyName,
 			facts: map.facts.map((fact) =>
-				fact.id === id ? { ...fact, value, status: 'corrige', confidence: 1 } : fact
+				fact.id === id ? { ...fact, value: correctedValue, status: 'corrige', confidence: 1 } : fact
 			)
 		};
 	};
@@ -459,6 +490,13 @@
 					: fact
 			)
 		};
+	};
+
+	const continueFromUnderstanding = () => {
+		confirmAllRemaining();
+		questionIndex = 0;
+		answerText = '';
+		step = 'interview';
 	};
 
 	const saveMapAndGenerate = async () => {
@@ -556,6 +594,8 @@
 		selectedProviderId = '';
 		selectedModelId = '';
 		selectedWebProvider = '';
+		pagesRead = 0;
+		externalSourcesRetained = 0;
 		documents = [];
 		knowledgeBaseId = '';
 		workflows = [];
@@ -719,12 +759,23 @@
 				{/each}
 			</div>
 		</section>
+	{:else if step === 'understanding'}
+		<UnderstandingStep
+			{map}
+			{pagesRead}
+			{externalSourcesRetained}
+			questionCount={questions.length}
+			on:update={(event) => updateFact(event.detail.id, event.detail.value)}
+			on:remove={(event) => removeFact(event.detail.id)}
+			on:back={() => (step = 'site')}
+			on:continue={continueFromUnderstanding}
+		/>
 	{:else if step === 'interview' && currentQuestion}
 		<section class="m-auto w-full max-w-3xl py-8">
 			<div class="mb-6 flex items-center justify-between">
 				<div>
 					<div class="text-xs font-semibold uppercase tracking-[0.16em] text-[#6b62f2]">
-						Étape 3 · Entretien
+						Étape 4 · Entretien
 					</div>
 					<div class="mt-2 text-xs text-gray-500">
 						Question {questionIndex + 1} sur {questions.length}
@@ -794,7 +845,7 @@
 		<section class="w-full py-8">
 			<div class="mx-auto max-w-4xl text-center">
 				<div class="text-xs font-semibold uppercase tracking-[0.16em] text-[#6b62f2]">
-					Étape 5 · Porte humaine
+					Étape 6 · Porte humaine
 				</div>
 				<h1 class="mt-3 text-3xl font-medium tracking-[-0.03em] md:text-5xl">
 					Voici comment LunarIA comprend votre entreprise.
@@ -916,7 +967,7 @@
 		<section class="w-full py-8">
 			<div class="mx-auto max-w-4xl text-center">
 				<div class="text-xs font-semibold uppercase tracking-[0.16em] text-[#6b62f2]">
-					Étape 6 · Votre AgentOS
+					Étape 7 · Votre AgentOS
 				</div>
 				<h1 class="mt-3 text-3xl font-medium tracking-[-0.03em] md:text-5xl">
 					Les premières boucles utiles à votre entreprise.

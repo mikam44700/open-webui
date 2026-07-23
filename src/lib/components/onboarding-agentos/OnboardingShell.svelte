@@ -12,6 +12,7 @@
 		{ id: 'welcome', label: 'Bienvenue' },
 		{ id: 'foundation', label: 'Configuration' },
 		{ id: 'discovery', label: 'Découverte' },
+		{ id: 'understanding', label: 'Compréhension' },
 		{ id: 'interview', label: 'Entretien' },
 		{ id: 'documents', label: 'Documents' },
 		{ id: 'review', label: 'Carte' },
@@ -22,10 +23,11 @@
 		if (value === 'welcome') return 0;
 		if (value === 'foundation' || value === 'model') return 1;
 		if (value === 'site' || value === 'analysis') return 2;
-		if (value === 'interview') return 3;
-		if (value === 'documents') return 4;
-		if (value === 'review') return 5;
-		return 6;
+		if (value === 'understanding') return 3;
+		if (value === 'interview') return 4;
+		if (value === 'documents') return 5;
+		if (value === 'review') return 6;
+		return 7;
 	};
 
 	$: activeIndex = phaseIndex(step);
@@ -64,7 +66,7 @@
 			</div>
 		</div>
 
-		<div class="mx-auto mt-4 grid w-full max-w-6xl grid-cols-7 gap-1.5">
+		<div class="mx-auto mt-4 grid w-full max-w-6xl grid-cols-8 gap-1.5">
 			{#each phases as phase, index}
 				<div>
 					<div
