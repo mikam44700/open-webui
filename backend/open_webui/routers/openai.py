@@ -35,6 +35,16 @@ from open_webui.env import (
     FORWARD_SESSION_INFO_HEADER_CHAT_ID,
     MODELS_CACHE_TTL,
 )
+from open_webui.engine_bridge import direct_response as engine_direct
+from open_webui.hermes_bridge import pannes_fournisseur
+from open_webui.hermes_bridge.mission_stream import (
+    MISSION_IDLE_SECONDS,
+    MISSION_MAX_SECONDS,
+    MissionIdleTimeout,
+    MissionMaximumDuration,
+    progress_event as mission_progress_event,
+    stream_with_limits as stream_mission_with_limits,
+)
 from open_webui.internal.db import get_async_session
 from open_webui.models.access_grants import AccessGrants
 from open_webui.models.config import Config
@@ -43,8 +53,6 @@ from open_webui.models.models import Models
 from open_webui.models.users import UserModel
 from open_webui.utils.access_control import check_model_access, has_connection_access, has_permission
 from open_webui.utils.anthropic import get_anthropic_models, is_anthropic_url
-from open_webui.hermes_bridge import pannes_fournisseur
-from open_webui.engine_bridge import direct_response as engine_direct
 from open_webui.utils.auth import get_admin_user, get_verified_user
 from open_webui.utils.headers import get_custom_headers, include_user_info_headers
 from open_webui.utils.misc import (
@@ -1564,17 +1572,27 @@ async def _stream_hermes_direct_or_action(
         'llm_requested_action' if action is not None else (runner_error or 'no terminal event'),
     )
     response = None
+    mission_started_at = time.monotonic()
     try:
         session = await get_session()
-        response = await session.request(
-            method='POST',
-            url=request_url,
-            data=json.dumps(fallback_payload),
-            headers=headers,
-            cookies=cookies,
-            ssl=AIOHTTP_CLIENT_SESSION_SSL,
-            timeout=aiohttp.ClientTimeout(total=120),
-        )
+        try:
+            async with asyncio.timeout(MISSION_IDLE_SECONDS):
+                response = await session.request(
+                    method='POST',
+                    url=request_url,
+                    data=json.dumps(fallback_payload),
+                    headers=headers,
+                    cookies=cookies,
+                    ssl=AIOHTTP_CLIENT_SESSION_SSL,
+                    timeout=aiohttp.ClientTimeout(
+                        total=None,
+                        connect=30,
+                        sock_connect=30,
+                        sock_read=None,
+                    ),
+                )
+        except TimeoutError as exc:
+            raise MissionIdleTimeout from exc
         if response.status >= 400:
             body = await response.text()
             error = {
@@ -1591,8 +1609,15 @@ async def _stream_hermes_direct_or_action(
             yield body
             return
         fallback_tool_count = 0
-        async for chunk in _traduire_pannes_en_flux(
-            stream_wrapper(response, content_handler=stream_chunks_handler)
+        mission_remaining = max(
+            0.001,
+            MISSION_MAX_SECONDS - (time.monotonic() - mission_started_at),
+        )
+        async for chunk in stream_mission_with_limits(
+            _traduire_pannes_en_flux(
+                stream_wrapper(response, content_handler=stream_chunks_handler)
+            ),
+            maximum_seconds=mission_remaining,
         ):
             chunk_text = chunk.decode('utf-8', errors='replace') if isinstance(chunk, bytes) else str(chunk)
             fallback_tool_count += chunk_text.count('"status": "running"')
@@ -1617,6 +1642,34 @@ async def _stream_hermes_direct_or_action(
             route,
             round((time.perf_counter() - started) * 1000),
         )
+    except MissionIdleTimeout:
+        log.warning(
+            'lunaria_chat_route route=%s budget=idle_timeout total_ms=%d',
+            route,
+            round((time.perf_counter() - started) * 1000),
+        )
+        yield mission_progress_event(time.perf_counter() - started, done=True)
+        message = (
+            "La mission s'est arrêtée car le moteur n'a envoyé aucune progression "
+            "pendant 3 minutes. Aucun résultat incomplet n'est présenté comme terminé."
+        )
+        yield engine_direct.openai_delta(message, direct_model, completion_id)
+        for ending in engine_direct.openai_done(direct_model, completion_id):
+            yield ending
+    except MissionMaximumDuration:
+        log.warning(
+            'lunaria_chat_route route=%s budget=maximum_duration total_ms=%d',
+            route,
+            round((time.perf_counter() - started) * 1000),
+        )
+        yield mission_progress_event(time.perf_counter() - started, done=True)
+        message = (
+            "La mission a atteint la durée maximale de 30 minutes et a été arrêtée "
+            "proprement. Aucun résultat incomplet n'est présenté comme terminé."
+        )
+        yield engine_direct.openai_delta(message, direct_model, completion_id)
+        for ending in engine_direct.openai_done(direct_model, completion_id):
+            yield ending
     except Exception as exc:  # noqa: BLE001 — le flux doit exposer une erreur lisible
         log.exception('Hermes %s stream failed', route)
         error = {'error': {'message': pannes_fournisseur.message_panne(str(exc)), 'code': 500}}

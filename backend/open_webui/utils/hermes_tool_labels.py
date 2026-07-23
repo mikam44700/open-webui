@@ -54,6 +54,7 @@ _TOOL_TEMPLATES: dict[str, tuple[str, str]] = {
     "todo": ("📋", "J'organise mes tâches"),
     "clarify": ("❓", "Je réfléchis à ta demande"),
     "delegate_task": ("🔀", "Je délègue à un agent spécialisé"),
+    "lunaria_long_mission": ("⏳", "Mission approfondie en cours {ctx}"),
     "mixture_of_agents": ("🧠", "Je fais réfléchir plusieurs modèles"),
     "cronjob": ("⏰", "Je programme une automatisation"),
     # Compétences
