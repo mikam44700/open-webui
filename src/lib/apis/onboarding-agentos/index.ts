@@ -16,10 +16,29 @@ export type CrawlResult = {
 	pages?: string[];
 };
 
+const readableErrorDetail = (detail: unknown): string => {
+	if (typeof detail === 'string' && detail.trim()) return detail.trim();
+	if (Array.isArray(detail)) {
+		const messages = detail
+			.map((item) =>
+				typeof item === 'object' && item !== null && 'msg' in item
+					? String((item as { msg?: unknown }).msg ?? '')
+					: readableErrorDetail(item)
+			)
+			.filter(Boolean);
+		return messages.join(' ');
+	}
+	if (typeof detail === 'object' && detail !== null) {
+		const record = detail as Record<string, unknown>;
+		return readableErrorDetail(record.message ?? record.error ?? '');
+	}
+	return '';
+};
+
 const responseError = async (response: Response, fallback: string) => {
 	try {
 		const body = await response.json();
-		return body?.detail?.error?.message ?? body?.detail?.message ?? body?.detail ?? fallback;
+		return readableErrorDetail(body?.detail) || readableErrorDetail(body) || fallback;
 	} catch {
 		return fallback;
 	}
@@ -229,11 +248,14 @@ export const synthesizeWebFacts = async (
 	items: ExternalSearchItem[]
 ): Promise<EvidenceFact[]> => {
 	if (!items.length) return [];
-	const sources = items.slice(0, 35).map((item, index) => ({
+	// Le moteur Web peut renvoyer plus de 30 résultats avec des extraits très longs.
+	// On conserve un échantillon diversifié et compact pour rester sous la limite stricte
+	// de l'endpoint de synthèse sans sacrifier les URLs de preuve.
+	const sources = items.slice(0, 20).map((item, index) => ({
 		index: index + 1,
-		title: item.title,
-		url: item.link,
-		snippet: item.snippet,
+		title: item.title.slice(0, 250),
+		url: item.link.slice(0, 1_000),
+		snippet: item.snippet.slice(0, 1_100),
 		publishedDate: item.publishedDate
 	}));
 	const payload = await callStructuredModel(
