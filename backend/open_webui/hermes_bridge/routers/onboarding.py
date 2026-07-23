@@ -30,6 +30,8 @@ from ..deps import require_bridge_key
 
 router = APIRouter(dependencies=[Depends(require_bridge_key)])
 
+ONBOARDING_STRUCTURED_TIMEOUT_SECONDS = 240
+
 
 class CrawlRequest(BaseModel):
     url: str
@@ -89,7 +91,8 @@ async def post_onboarding_structured(body: StructuredRequest) -> dict:
             [
                 {'role': 'system', 'content': body.system},
                 {'role': 'user', 'content': body.user},
-            ]
+            ],
+            timeout_seconds=ONBOARDING_STRUCTURED_TIMEOUT_SECONDS,
         )
     except Exception as exc:  # runtime local : erreurs aiohttp, modèle et délais normalisées ici
         raise HTTPException(

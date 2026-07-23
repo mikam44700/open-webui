@@ -217,7 +217,10 @@ async def complete_without_tools(
             'Tu exécutes une transformation de données interne à LunarIA. '
             "Respecte exactement le format demandé. N'appelle aucun outil et n'ajoute aucun commentaire."
         ),
-        'timeout_seconds': max(10, min(int(timeout_seconds), 120)),
+        # Les transformations d'onboarding peuvent agréger plusieurs pages et
+        # recherches. Le plafond reste borné, mais leur appelant peut disposer
+        # d'un budget plus long que le chat interactif.
+        'timeout_seconds': max(10, min(int(timeout_seconds), 300)),
         'max_iterations': 1,
         'max_tools': 0,
     }
