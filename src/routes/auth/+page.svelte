@@ -168,7 +168,10 @@
 
 	onMount(async () => {
 		const redirectPath = $page.url.searchParams.get('redirect');
-		if ($user !== undefined) {
+		// `null` signifie que la session a été explicitement invalidée. Ne surtout
+		// pas le traiter comme un utilisateur connecté, sinon /auth et la route
+		// protégée se renvoient mutuellement la navigation (écran noir/clignotement).
+		if ($user) {
 			goto(redirectPath || '/');
 		} else {
 			if (redirectPath) {
