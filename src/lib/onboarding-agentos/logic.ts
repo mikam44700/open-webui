@@ -1,4 +1,6 @@
 import type {
+	BusinessGoal,
+	BusinessOutcomeId,
 	EvidenceFact,
 	InterviewAnswer,
 	InterviewQuestion,
@@ -26,6 +28,66 @@ export const SECTION_ORDER = [
 	'Pertes, risques et priorités',
 	'Objectifs et indicateurs',
 	'Règles et permissions'
+];
+
+export const GOAL_CATALOG: BusinessGoal[] = [
+	{
+		id: 'objectif-revenus',
+		outcomeId: 'revenus',
+		label: 'Développer les revenus',
+		detail: 'Vendre davantage, mieux convertir ou protéger la marge.'
+	},
+	{
+		id: 'objectif-clients',
+		outcomeId: 'clients',
+		label: 'Mieux servir et fidéliser les clients',
+		detail: 'Améliorer l’expérience, la satisfaction ou la rétention.'
+	},
+	{
+		id: 'objectif-efficacite',
+		outcomeId: 'efficacite',
+		label: 'Gagner du temps et réduire les coûts',
+		detail: 'Simplifier les tâches, processus et coordinations répétitives.'
+	},
+	{
+		id: 'objectif-qualite',
+		outcomeId: 'qualite',
+		label: 'Améliorer la qualité',
+		detail: 'Rendre la production ou le service plus fiable et plus constant.'
+	},
+	{
+		id: 'objectif-risques',
+		outcomeId: 'risques',
+		label: 'Réduire les risques et les erreurs',
+		detail: 'Mieux contrôler les décisions sensibles, anomalies et obligations.'
+	},
+	{
+		id: 'objectif-connaissance',
+		outcomeId: 'connaissance',
+		label: 'Mieux partager la connaissance',
+		detail: 'Retrouver le savoir, fluidifier les décisions et moins dépendre des personnes.'
+	}
+];
+
+export const EXECUTIVE_GROUPS = [
+	{
+		label: 'Entreprise et valeur',
+		sections: ['Identité et modèle économique', 'Offres et positionnement']
+	},
+	{
+		label: 'Clients et développement',
+		sections: ['Clients et ICP', 'Concurrence et marché', 'Réputation et signaux']
+	},
+	{
+		label: 'Organisation et opérations',
+		sections: ['Organisation et responsabilités', 'Processus et tâches']
+	},
+	{ label: 'Outils et connaissance', sections: ['Outils et sources de vérité'] },
+	{ label: 'Problèmes et priorités', sections: ['Pertes, risques et priorités'] },
+	{
+		label: 'Résultats et garde-fous',
+		sections: ['Objectifs et indicateurs', 'Règles et permissions']
+	}
 ];
 
 const today = () => new Date().toISOString().slice(0, 10);
@@ -96,6 +158,183 @@ export const mergeFacts = (existing: EvidenceFact[], incoming: EvidenceFact[]): 
 	return result;
 };
 
+const SECTION_UTILITY: Record<
+	string,
+	{
+		outcomes: BusinessOutcomeId[];
+		purpose: string;
+		decision: string;
+		workflow: string;
+		metric: string;
+	}
+> = {
+	'Identité et modèle économique': {
+		outcomes: ['revenus', 'connaissance'],
+		purpose: 'Aligner les recommandations sur la manière dont l’entreprise crée ses revenus.',
+		decision: 'Choisir les activités et revenus à prioriser.',
+		workflow: 'Qualifier une demande selon le modèle économique réel.',
+		metric: 'Revenu ou marge par activité.'
+	},
+	'Offres et positionnement': {
+		outcomes: ['revenus', 'clients'],
+		purpose: 'Personnaliser les argumentaires, réponses et contenus autour de la valeur vendue.',
+		decision: 'Choisir quelle offre proposer et comment la présenter.',
+		workflow: 'Préparer une réponse commerciale ou un contenu adapté.',
+		metric: 'Taux de conversion par offre.'
+	},
+	'Clients et ICP': {
+		outcomes: ['revenus', 'clients'],
+		purpose: 'Reconnaître les clients à privilégier et adapter les actions à leurs besoins.',
+		decision: 'Prioriser un prospect, un segment ou une action de fidélisation.',
+		workflow: 'Qualifier, personnaliser puis préparer la prochaine action client.',
+		metric: 'Conversion, rétention ou valeur client.'
+	},
+	'Concurrence et marché': {
+		outcomes: ['revenus', 'risques'],
+		purpose: 'Éclairer le positionnement et détecter les changements qui appellent une réaction.',
+		decision: 'Ajuster une offre, un discours ou une priorité de veille.',
+		workflow: 'Détecter un changement, évaluer son impact et préparer une réponse.',
+		metric: 'Opportunités ou menaces traitées.'
+	},
+	'Réputation et signaux': {
+		outcomes: ['clients', 'risques'],
+		purpose: 'Repérer les forces, irritants et signaux susceptibles d’affecter la confiance.',
+		decision: 'Traiter un irritant client ou amplifier une preuve utile.',
+		workflow: 'Surveiller un signal puis préparer une action de réponse.',
+		metric: 'Satisfaction, avis ou incidents traités.'
+	},
+	'Organisation et responsabilités': {
+		outcomes: ['efficacite', 'connaissance'],
+		purpose: 'Acheminer chaque information et validation vers la bonne personne.',
+		decision: 'Attribuer une responsabilité ou une validation.',
+		workflow: 'Router une demande vers le responsable concerné.',
+		metric: 'Délai de décision ou de traitement.'
+	},
+	'Processus et tâches': {
+		outcomes: ['efficacite', 'qualite'],
+		purpose: 'Identifier les étapes répétitives à assister, fiabiliser ou automatiser.',
+		decision: 'Choisir le prochain processus à améliorer.',
+		workflow: 'Détecter, préparer, faire valider, agir puis mesurer.',
+		metric: 'Temps économisé, coût ou taux d’erreur.'
+	},
+	'Outils et sources de vérité': {
+		outcomes: ['efficacite', 'connaissance', 'qualite'],
+		purpose: 'Savoir où lire la bonne donnée et éviter les réponses fondées sur une source obsolète.',
+		decision: 'Choisir la source fiable et l’intégration nécessaire.',
+		workflow: 'Lire la source de vérité avant de préparer une action.',
+		metric: 'Erreurs de données ou temps de recherche.'
+	},
+	'Pertes, risques et priorités': {
+		outcomes: ['revenus', 'efficacite', 'risques'],
+		purpose: 'Concentrer LunarIA sur les problèmes qui ont le plus d’impact.',
+		decision: 'Prioriser le premier problème ou risque à traiter.',
+		workflow: 'Détecter la perte, alerter et préparer une correction.',
+		metric: 'Montant, temps ou incidents évités.'
+	},
+	'Objectifs et indicateurs': {
+		outcomes: ['revenus', 'clients', 'efficacite', 'qualite', 'risques'],
+		purpose: 'Mesurer si les actions de LunarIA produisent réellement un résultat.',
+		decision: 'Poursuivre, corriger ou arrêter une action.',
+		workflow: 'Mesurer le résultat après chaque action validée.',
+		metric: 'Indicateur choisi par l’entreprise.'
+	},
+	'Règles et permissions': {
+		outcomes: ['risques', 'qualite'],
+		purpose: 'Encadrer l’autonomie de LunarIA et éviter une action non autorisée.',
+		decision: 'Déterminer ce qui exige une validation humaine.',
+		workflow: 'Bloquer, demander validation puis journaliser l’action.',
+		metric: 'Actions sensibles validées et incidents évités.'
+	}
+};
+
+const selectedOutcomeIds = (goals: BusinessGoal[]) =>
+	new Set<BusinessOutcomeId>(goals.map((goal) => goal.outcomeId));
+
+export const enrichFactsWithUtility = (
+	facts: EvidenceFact[],
+	goals: BusinessGoal[] = []
+): EvidenceFact[] => {
+	const selected = selectedOutcomeIds(goals);
+	return facts.map((fact) => {
+		const base = SECTION_UTILITY[fact.section] ?? SECTION_UTILITY['Processus et tâches'];
+		const goalMatch = base.outcomes.some((outcome) => selected.has(outcome));
+		const sourceWeight =
+			fact.sourceType === 'dirigeant' || fact.sourceType === 'integration'
+				? 0.14
+				: fact.sourceType === 'document'
+					? 0.12
+					: fact.sourceType === 'site'
+						? 0.08
+						: 0;
+		const concreteWeight = /\d|%|€|euro|heure|jour|client|revenu|coût|risque/i.test(fact.value)
+			? 0.07
+			: 0;
+		const priority = Math.min(
+			1,
+			0.46 + (goalMatch ? 0.24 : 0) + sourceWeight + concreteWeight + fact.confidence * 0.08
+		);
+		return {
+			...fact,
+			utility: {
+				outcomeIds: base.outcomes,
+				purpose: base.purpose,
+				decision: base.decision,
+				workflowHint: base.workflow,
+				metricHint: base.metric,
+				priority
+			}
+		};
+	});
+};
+
+const similarEnough = (first: EvidenceFact, second: EvidenceFact) => {
+	const words = (value: string) =>
+		new Set(
+			value
+				.toLowerCase()
+				.normalize('NFD')
+				.replace(/[\u0300-\u036f]/g, '')
+				.split(/[^a-z0-9]+/)
+				.filter((word) => word.length >= 5)
+		);
+	const a = words(`${first.label} ${first.value}`);
+	const b = words(`${second.label} ${second.value}`);
+	if (!a.size || !b.size) return false;
+	const overlap = [...a].filter((word) => b.has(word)).length;
+	return overlap / Math.min(a.size, b.size) >= 0.65;
+};
+
+export const buildExecutiveFacts = (
+	facts: EvidenceFact[],
+	goals: BusinessGoal[] = [],
+	limit = 15
+) => {
+	const enriched = enrichFactsWithUtility(facts, goals);
+	const selected: EvidenceFact[] = [];
+	for (const group of EXECUTIVE_GROUPS) {
+		const candidates = enriched
+			.filter((fact) => group.sections.includes(fact.section))
+			.sort(
+				(a, b) =>
+					(b.utility?.priority ?? 0) - (a.utility?.priority ?? 0) ||
+					b.confidence - a.confidence
+			);
+		const groupFacts: EvidenceFact[] = [];
+		for (const fact of candidates) {
+			if (groupFacts.length >= 3) break;
+			if ([...selected, ...groupFacts].some((candidate) => similarEnough(candidate, fact))) continue;
+			groupFacts.push(fact);
+		}
+		selected.push(...groupFacts);
+	}
+	return selected
+		.sort(
+			(a, b) =>
+				(b.utility?.priority ?? 0) - (a.utility?.priority ?? 0) || b.confidence - a.confidence
+		)
+		.slice(0, Math.max(1, Math.min(15, limit)));
+};
+
 const publicHypothesis = (facts: EvidenceFact[], section: string, labels: string[]) =>
 	facts.find(
 		(fact) =>
@@ -103,7 +342,10 @@ const publicHypothesis = (facts: EvidenceFact[], section: string, labels: string
 			labels.some((label) => fact.label.toLowerCase().includes(label.toLowerCase()))
 	)?.value ?? '';
 
-export const buildInterviewQuestions = (facts: EvidenceFact[]): InterviewQuestion[] => {
+export const buildInterviewQuestions = (
+	facts: EvidenceFact[],
+	goals: BusinessGoal[] = []
+): InterviewQuestion[] => {
 	const icp = publicHypothesis(facts, 'Clients et ICP', ['client', 'icp', 'cible']);
 	const offer = publicHypothesis(facts, 'Offres et positionnement', [
 		'offre',
@@ -116,6 +358,7 @@ export const buildInterviewQuestions = (facts: EvidenceFact[]): InterviewQuestio
 	]);
 	const tools = publicHypothesis(facts, 'Outils et sources de vérité', ['outils du quotidien']);
 	const knownName = publicHypothesis(facts, 'Identité et modèle économique', ['nom', 'entreprise']);
+	const goalSummary = goals.map((goal) => goal.label).join(' · ');
 	const questions: InterviewQuestion[] = [
 		...(knownName
 			? []
@@ -155,10 +398,12 @@ export const buildInterviewQuestions = (facts: EvidenceFact[]): InterviewQuestio
 		{
 			id: 'priorite',
 			section: 'Pertes, risques et priorités',
-			label: 'Priorité actuelle',
-			prompt: 'Quelle est votre priorité numéro 1 pour les trois prochains mois ?',
-			helper: 'Une seule priorité, formulée comme un résultat concret.',
-			placeholder: 'Ex. réduire les impayés de 30 %, signer 10 nouveaux clients…',
+			label: 'Résultat attendu à 90 jours',
+			prompt: 'À quoi verrez-vous, dans 90 jours, que LunarIA vous a réellement aidé ?',
+			helper: goalSummary
+				? `Vous avez choisi : « ${goalSummary} ». Donnez maintenant un résultat concret et observable.`
+				: 'Formulez un résultat concret et observable, pas une technologie.',
+			placeholder: 'Ex. délai réduit, opportunités traitées, qualité stabilisée…',
 			optional: false
 		},
 		{
@@ -182,8 +427,8 @@ export const buildInterviewQuestions = (facts: EvidenceFact[]): InterviewQuestio
 		{
 			id: 'taches-recurrentes',
 			section: 'Processus et tâches',
-			label: 'Tâches récurrentes',
-			prompt: 'Quelles sont les trois à cinq tâches que vous répétez le plus souvent ?',
+			label: 'Processus et tâches récurrents',
+			prompt: 'Quels processus ou tâches répétitives pèsent le plus sur vos objectifs ?',
 			helper: timeLoss
 				? `Vous venez d’identifier cette perte de temps : « ${timeLoss} ». Quelles tâches concrètes l’alimentent ?`
 				: 'Une tâche par ligne. Pensez au quotidien et à l’hebdomadaire.',
@@ -230,9 +475,9 @@ export const buildInterviewQuestions = (facts: EvidenceFact[]): InterviewQuestio
 			id: 'outils',
 			section: 'Outils et sources de vérité',
 			label: 'Outils du quotidien',
-			prompt: 'Quels outils contiennent aujourd’hui vos informations importantes ?',
-			helper: 'Comptabilité, CRM, email, agenda, fichiers, support, facturation…',
-			placeholder: 'Un outil par ligne, avec ce qu’il contient.',
+			prompt: 'Où se trouvent vos informations importantes et quelle source fait foi ?',
+			helper: 'Citez les outils, fichiers ou personnes, puis indiquez la source fiable en cas de conflit.',
+			placeholder: 'Information → outil ou source de vérité',
 			optional: false
 		},
 		{
@@ -303,7 +548,21 @@ export const buildInterviewQuestions = (facts: EvidenceFact[]): InterviewQuestio
 			optional: false
 		}
 	];
-	return questions;
+	const usefulQuestionIds = new Set([
+		'nom-entreprise',
+		'modele-economique',
+		'clients-reels',
+		'priorite',
+		'perte-temps',
+		'taches-recurrentes',
+		'outils',
+		'responsables',
+		'indicateurs',
+		'validation',
+		'interdictions',
+		'premiere-delegation'
+	]);
+	return questions.filter((question) => usefulQuestionIds.has(question.id)).slice(0, 12);
 };
 
 export const answerToFact = (
@@ -326,10 +585,25 @@ export const answerToFact = (
 
 export const provenanceLabel = (fact: EvidenceFact) => {
 	if (fact.sourceType === 'dirigeant') return 'Confirmé par le dirigeant';
-	if (fact.sourceType === 'site') return 'Trouvé sur le site';
-	if (fact.sourceType === 'web') return 'Source Web extérieure';
+	if (fact.sourceType === 'site') return 'Déclaré sur le site de l’entreprise';
+	if (fact.sourceType === 'web') return 'Source extérieure — à vérifier';
 	if (fact.sourceType === 'document') return 'Document interne';
 	return 'Donnée connectée';
+};
+
+export const sourceQualityLabel = (fact: EvidenceFact, companySiteUrl = '') => {
+	if (fact.sourceType === 'dirigeant') return 'Source directe';
+	if (fact.sourceType === 'document') return 'Source interne';
+	if (fact.sourceType === 'integration') return 'Donnée opérationnelle';
+	if (fact.sourceType === 'site') return 'Déclaration de l’entreprise';
+	try {
+		const sourceHost = new URL(fact.sourceUrl ?? '').hostname.replace(/^www\./, '');
+		const companyHost = new URL(companySiteUrl).hostname.replace(/^www\./, '');
+		if (sourceHost && companyHost && sourceHost === companyHost) return 'Source directe extérieure';
+	} catch {
+		// Une URL absente ou invalide reste une source tierce à vérifier.
+	}
+	return 'Source tierce — à recouper';
 };
 
 export const statusLabel = (fact: EvidenceFact) => {
@@ -348,6 +622,18 @@ export const factsBySection = (facts: EvidenceFact[]) =>
 const markdownValue = (value: string) => value.replace(/\r/g, '').trim();
 
 export const buildMapMarkdown = (map: OperationalMap): string => {
+	const executiveIds = new Set(
+		buildExecutiveFacts(map.facts, map.goals ?? []).map((fact) => fact.id)
+	);
+	const operationalFacts = map.facts.filter(
+		(fact) =>
+			executiveIds.has(fact.id) ||
+			fact.sourceType === 'dirigeant' ||
+			fact.sourceType === 'document' ||
+			fact.sourceType === 'integration' ||
+			fact.status === 'corrige'
+	);
+	const evidenceOnly = map.facts.filter((fact) => !operationalFacts.some((item) => item.id === fact.id));
 	const lines = [
 		'# Carte opérationnelle de l’entreprise',
 		'',
@@ -356,17 +642,43 @@ export const buildMapMarkdown = (map: OperationalMap): string => {
 		`- Validée le : ${map.validatedAt || today()}`,
 		''
 	];
-	for (const group of factsBySection(map.facts)) {
+	if (map.goals?.length) {
+		lines.push('## Résultats prioritaires à 90 jours', '');
+		for (const goal of map.goals) {
+			lines.push(`- ${goal.label}${goal.detail ? ` — ${goal.detail}` : ''}`);
+		}
+		lines.push('');
+	}
+	for (const group of factsBySection(operationalFacts)) {
 		lines.push(`## ${group.section}`, '');
 		for (const fact of group.facts) {
 			lines.push(`### ${fact.label}`, '', markdownValue(fact.value), '');
 			lines.push(`- Statut : ${statusLabel(fact)}`);
 			lines.push(`- Provenance : ${provenanceLabel(fact)}`);
+			if (fact.utility) {
+				lines.push(`- Utilité : ${fact.utility.purpose}`);
+				lines.push(`- Décision concernée : ${fact.utility.decision}`);
+				lines.push(`- Workflow possible : ${fact.utility.workflowHint}`);
+				lines.push(`- Mesure possible : ${fact.utility.metricHint}`);
+			}
 			lines.push(`- Dernière vérification : ${fact.observedAt}`);
 			if (fact.sourceTitle) lines.push(`- Source : ${fact.sourceTitle}`);
 			if (fact.sourceUrl) lines.push(`- URL : ${fact.sourceUrl}`);
 			lines.push('');
 		}
+	}
+	if (evidenceOnly.length) {
+		lines.push('## Annexe — preuves conservées en profondeur', '');
+		lines.push(
+			'Ces éléments restent consultables avec leur provenance mais ne pilotent pas directement les actions.',
+			''
+		);
+		for (const fact of evidenceOnly) {
+			lines.push(`- **${fact.label}** — ${markdownValue(fact.value)}`);
+			lines.push(`  - Provenance : ${provenanceLabel(fact)} · ${fact.observedAt}`);
+			if (fact.sourceUrl) lines.push(`  - URL : ${fact.sourceUrl}`);
+		}
+		lines.push('');
 	}
 	return lines.join('\n').trim() + '\n';
 };

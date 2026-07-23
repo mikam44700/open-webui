@@ -1,5 +1,5 @@
 import { WEBUI_API_BASE_URL } from '$lib/constants';
-import { normalizeFacts, safeId } from '$lib/onboarding-agentos/logic';
+import { buildExecutiveFacts, normalizeFacts, safeId } from '$lib/onboarding-agentos/logic';
 import type {
 	EvidenceFact,
 	ExternalSearchItem,
@@ -317,6 +317,17 @@ export const generateWorkflowProposals = async (
 	modelId: string,
 	map: OperationalMap
 ): Promise<WorkflowProposal[]> => {
+	const executiveIds = new Set(
+		buildExecutiveFacts(map.facts, map.goals ?? []).map((fact) => fact.id)
+	);
+	const operationalFacts = map.facts.filter(
+		(fact) =>
+			executiveIds.has(fact.id) ||
+			fact.sourceType === 'dirigeant' ||
+			fact.sourceType === 'document' ||
+			fact.sourceType === 'integration' ||
+			fact.status === 'corrige'
+	);
 	const payload = await callStructuredModel(
 		token,
 		providerId,
@@ -324,16 +335,18 @@ export const generateWorkflowProposals = async (
 		WORKFLOW_SYSTEM,
 		JSON.stringify({
 			companyName: map.companyName,
-			facts: map.facts.map((fact) => ({
+			goals: map.goals ?? [],
+			facts: operationalFacts.map((fact) => ({
 				id: fact.id,
 				section: fact.section,
 				label: fact.label,
 				value: fact.value,
-				status: fact.status
+				status: fact.status,
+				utility: fact.utility
 			}))
 		})
 	);
-	const allowedFactIds = new Set(map.facts.map((fact) => fact.id));
+	const allowedFactIds = new Set(operationalFacts.map((fact) => fact.id));
 	const raw = Array.isArray(payload?.workflows) ? payload.workflows.slice(0, 3) : [];
 	return raw
 		.map((workflow: any, index: number): WorkflowProposal => {

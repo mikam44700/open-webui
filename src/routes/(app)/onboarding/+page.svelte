@@ -7,8 +7,9 @@
 	import DocumentsStep from '$lib/components/onboarding-agentos/DocumentsStep.svelte';
 	import FinalProofStep from '$lib/components/onboarding-agentos/FinalProofStep.svelte';
 	import FoundationSetupStep from '$lib/components/onboarding-agentos/FoundationSetupStep.svelte';
+	import GoalsStep from '$lib/components/onboarding-agentos/GoalsStep.svelte';
 	import OnboardingShell from '$lib/components/onboarding-agentos/OnboardingShell.svelte';
-	import UnderstandingStep from '$lib/components/onboarding-agentos/UnderstandingStep.svelte';
+	import UnderstandingStep from '$lib/components/onboarding-agentos/ExecutiveUnderstandingStep.svelte';
 	import WelcomeStep from '$lib/components/onboarding-agentos/WelcomeStep.svelte';
 	import {
 		crawlCompanySite,
@@ -28,8 +29,10 @@
 		WORKFLOW_NOTE_TITLE,
 		answerToFact,
 		buildInterviewQuestions,
+		buildExecutiveFacts,
 		buildMapMarkdown,
 		buildWorkflowMarkdown,
+		enrichFactsWithUtility,
 		factsBySection,
 		integrationSearchTerm,
 		mergeFacts,
@@ -39,6 +42,7 @@
 	} from '$lib/onboarding-agentos/logic';
 	import type {
 		EvidenceFact,
+		BusinessGoal,
 		InterviewAnswer,
 		InterviewQuestion,
 		OnboardingDocument,
@@ -53,7 +57,7 @@
 	let alreadyDone = false;
 	let step: Step = 'welcome';
 	let siteUrl = '';
-	let map: OperationalMap = { companyName: '', siteUrl: '', facts: [] };
+	let map: OperationalMap = { companyName: '', siteUrl: '', facts: [], goals: [] };
 	let answers: InterviewAnswer[] = [];
 	let questionIndex = 0;
 	let answerText = '';
@@ -85,13 +89,23 @@
 		'Cartographie du site',
 		'Compréhension de l’activité',
 		'Recherche de l’environnement extérieur',
-		'Préparation de votre entretien'
+		'Préparation de votre synthèse'
 	];
 
-	$: questions = buildInterviewQuestions(map.facts);
+	$: questions = buildInterviewQuestions(map.facts, map.goals ?? []);
+	$: executiveFacts = buildExecutiveFacts(map.facts, map.goals ?? []);
 	$: currentQuestion = questions[questionIndex] as InterviewQuestion | undefined;
-	$: groupedFacts = factsBySection(map.facts);
-	$: unconfirmedCount = map.facts.filter((fact) => fact.status === 'a_confirmer').length;
+	$: operationalFactIds = new Set(executiveFacts.map((fact) => fact.id));
+	$: operationalFacts = map.facts.filter(
+		(fact) =>
+			operationalFactIds.has(fact.id) ||
+			fact.sourceType === 'dirigeant' ||
+			fact.sourceType === 'document' ||
+			fact.sourceType === 'integration' ||
+			fact.status === 'corrige'
+	);
+	$: groupedFacts = factsBySection(operationalFacts);
+	$: unconfirmedCount = executiveFacts.filter((fact) => fact.status === 'a_confirmer').length;
 	$: selectedWorkflow = workflows.find((workflow) => workflow.id === selectedWorkflowId) ?? null;
 	$: integrationNames = Array.from(new Set(workflows.flatMap((workflow) => workflow.integrations)));
 	const evidenceLabel = (id: string) =>
@@ -209,11 +223,11 @@
 		if (draft) {
 			step = draft.step === 'analysis' ? 'site' : draft.step;
 			siteUrl = draft.siteUrl ?? '';
-			map = draft.map ?? map;
+			map = { ...(draft.map ?? map), goals: draft.map?.goals ?? [] };
 			answers = draft.answers ?? [];
 			questionIndex = Math.min(
 				draft.questionIndex ?? 0,
-				buildInterviewQuestions(map.facts).length - 1
+				buildInterviewQuestions(map.facts, map.goals ?? []).length - 1
 			);
 			foundationConfirmed = draft.foundationConfirmed ?? false;
 			selectedProviderId = draft.selectedProviderId ?? '';
@@ -222,6 +236,15 @@
 			pagesRead = draft.pagesRead ?? 0;
 			externalSourcesRetained = draft.externalSourcesRetained ?? 0;
 			if (!foundationConfirmed && step !== 'welcome') step = 'foundation';
+			if (
+				foundationConfirmed &&
+				step !== 'welcome' &&
+				step !== 'foundation' &&
+				step !== 'model' &&
+				step !== 'goals' &&
+				!(map.goals?.length)
+			)
+				step = 'goals';
 			documents = draft.documents ?? [];
 			knowledgeBaseId = draft.knowledgeBaseId ?? '';
 			workflows = draft.workflows ?? [];
@@ -255,12 +278,26 @@
 		selectedWebProvider = event.detail.webProvider;
 		model = event.detail.modelId;
 		modelError = '';
+		step = 'goals';
+	};
+
+	const completeGoals = (event: CustomEvent<{ goals: BusinessGoal[] }>) => {
+		map = {
+			...map,
+			goals: event.detail.goals,
+			facts: enrichFactsWithUtility(map.facts, event.detail.goals)
+		};
 		step = 'site';
 	};
 
 	const startWithoutSite = () => {
 		siteUrl = '';
-		map = { companyName: '', siteUrl: '', facts: [] };
+		if (!(map.goals?.length)) {
+			toast.error('Choisissez d’abord les résultats que Luna doit améliorer.');
+			step = 'goals';
+			return;
+		}
+		map = { companyName: '', siteUrl: '', facts: [], goals: map.goals };
 		answers = [];
 		questionIndex = 0;
 		answerText = '';
@@ -333,7 +370,8 @@
 			map = {
 				companyName,
 				siteUrl: url,
-				facts: mergeFacts(map.facts, siteFacts)
+				facts: enrichFactsWithUtility(mergeFacts(map.facts, siteFacts), map.goals ?? []),
+				goals: map.goals ?? []
 			};
 
 			analysisStage = 2;
@@ -359,7 +397,10 @@
 			externalSourcesRetained = new Set(
 				webFacts.map((fact) => fact.sourceUrl).filter((source): source is string => Boolean(source))
 			).size;
-			map = { ...map, facts: mergeFacts(map.facts, webFacts) };
+			map = {
+				...map,
+				facts: enrichFactsWithUtility(mergeFacts(map.facts, webFacts), map.goals ?? [])
+			};
 		} catch (error) {
 			analysisError =
 				error instanceof Error ? error.message : "L'analyse de l'entreprise a échoué.";
@@ -392,7 +433,10 @@
 		answers = [...answers.filter((item) => item.questionId !== question.id), answer];
 		const fact = answerToFact(question, answer);
 		if (fact) {
-			map = { ...map, facts: mergeFacts(map.facts, [fact]) };
+			map = {
+				...map,
+				facts: enrichFactsWithUtility(mergeFacts(map.facts, [fact]), map.goals ?? [])
+			};
 			if (question.id === 'nom-entreprise') map = { ...map, companyName: fact.value };
 		}
 	};
@@ -452,7 +496,10 @@
 				status: 'confirme',
 				confidence: 1
 			}));
-		map = { ...map, facts: mergeFacts(map.facts, documentFacts) };
+		map = {
+			...map,
+			facts: enrichFactsWithUtility(mergeFacts(map.facts, documentFacts), map.goals ?? [])
+		};
 	};
 
 	const updateFact = (id: string, value: string) => {
@@ -493,7 +540,15 @@
 	};
 
 	const continueFromUnderstanding = () => {
-		confirmAllRemaining();
+		const executiveIds = new Set(executiveFacts.map((fact) => fact.id));
+		map = {
+			...map,
+			facts: map.facts.map((fact) =>
+				executiveIds.has(fact.id) && fact.status === 'a_confirmer'
+					? { ...fact, status: 'confirme', confidence: Math.max(fact.confidence, 0.8) }
+					: fact
+			)
+		};
 		questionIndex = 0;
 		answerText = '';
 		step = 'interview';
@@ -586,7 +641,7 @@
 		localStorage.removeItem(DRAFT_KEY);
 		step = 'welcome';
 		siteUrl = '';
-		map = { companyName: '', siteUrl: '', facts: [] };
+		map = { companyName: '', siteUrl: '', facts: [], goals: [] };
 		answers = [];
 		questionIndex = 0;
 		answerText = '';
@@ -623,11 +678,17 @@
 		<WelcomeStep {alreadyDone} on:begin={begin} on:memory={() => goto('/memoire')} />
 	{:else if step === 'foundation' || step === 'model'}
 		<FoundationSetupStep on:complete={completeFoundation} />
+	{:else if step === 'goals'}
+		<GoalsStep
+			goals={map.goals ?? []}
+			on:back={() => (step = 'foundation')}
+			on:continue={completeGoals}
+		/>
 	{:else if step === 'site'}
 		<section class="m-auto w-full max-w-3xl py-10">
 			<div class="text-center">
 				<div class="text-xs font-semibold uppercase tracking-[0.16em] text-[#6b62f2]">
-					Étape 2 · Découverte
+					Étape 3 · Découverte
 				</div>
 				<h1 class="mt-4 text-3xl font-medium tracking-[-0.03em] md:text-5xl">
 					Commençons par votre entreprise.
@@ -678,7 +739,7 @@
 				>
 					<button
 						class="text-sm text-gray-500 hover:text-gray-900 dark:hover:text-white"
-						on:click={() => (step = 'welcome')}>Retour</button
+						on:click={() => (step = 'goals')}>Retour</button
 					>
 					<button
 						class="text-sm font-medium text-[#5b52dd] dark:text-[#aaa4ff]"
@@ -762,6 +823,7 @@
 	{:else if step === 'understanding'}
 		<UnderstandingStep
 			{map}
+			{executiveFacts}
 			{pagesRead}
 			{externalSourcesRetained}
 			questionCount={questions.length}
@@ -775,7 +837,7 @@
 			<div class="mb-6 flex items-center justify-between">
 				<div>
 					<div class="text-xs font-semibold uppercase tracking-[0.16em] text-[#6b62f2]">
-						Étape 4 · Entretien
+						Étape 5 · Entretien
 					</div>
 					<div class="mt-2 text-xs text-gray-500">
 						Question {questionIndex + 1} sur {questions.length}
@@ -845,18 +907,37 @@
 		<section class="w-full py-8">
 			<div class="mx-auto max-w-4xl text-center">
 				<div class="text-xs font-semibold uppercase tracking-[0.16em] text-[#6b62f2]">
-					Étape 6 · Porte humaine
+					Étape 7 · Porte humaine
 				</div>
 				<h1 class="mt-3 text-3xl font-medium tracking-[-0.03em] md:text-5xl">
 					Voici comment LunarIA comprend votre entreprise.
 				</h1>
 				<p class="mx-auto mt-4 max-w-2xl text-sm leading-6 text-gray-500 dark:text-gray-400">
-					Confirmez, corrigez ou retirez chaque information publique. Vos réponses directes sont
-					déjà confirmées.
+					Voici la mémoire opérationnelle retenue : vos objectifs, les conclusions prioritaires
+					et vos réponses internes. Toutes les preuves restent conservées en profondeur.
 				</p>
 			</div>
 
 			<div class="mx-auto mt-8 max-w-5xl space-y-5">
+				{#if map.goals?.length}
+					<div
+						class="rounded-[2rem] border border-[#6b62f2]/20 bg-[#6b62f2]/6 p-5 md:p-7"
+					>
+						<div class="text-xs font-semibold uppercase tracking-[0.14em] text-[#5b52dd] dark:text-[#aaa4ff]">
+							Résultats prioritaires à 90 jours
+						</div>
+						<div class="mt-4 grid gap-3 md:grid-cols-3">
+							{#each map.goals as goal}
+								<div class="rounded-2xl bg-white/80 p-4 dark:bg-[#161616]">
+									<div class="text-sm font-medium">{goal.label}</div>
+									{#if goal.detail}
+										<div class="mt-2 text-xs leading-5 text-gray-500">{goal.detail}</div>
+									{/if}
+								</div>
+							{/each}
+						</div>
+					</div>
+				{/if}
 				{#each groupedFacts as group}
 					<div
 						class="rounded-[2rem] border border-black/6 bg-white p-5 dark:border-white/8 dark:bg-[#161616] md:p-7"
@@ -900,6 +981,24 @@
 										class="mt-3 w-full resize-y rounded-xl border border-transparent bg-white px-3 py-2 text-sm leading-6 outline-none focus:border-[#6b62f2] dark:bg-[#161616]"
 										on:input={(event) => updateFact(fact.id, event.currentTarget.value)}
 									></textarea>
+									{#if fact.utility}
+										<div
+											class="mt-2 grid gap-2 rounded-xl bg-[#6b62f2]/5 p-3 text-[11px] leading-5 md:grid-cols-3"
+										>
+											<div>
+												<span class="font-medium">Décision</span>
+												<div class="text-gray-500">{fact.utility.decision}</div>
+											</div>
+											<div>
+												<span class="font-medium">Workflow possible</span>
+												<div class="text-gray-500">{fact.utility.workflowHint}</div>
+											</div>
+											<div>
+												<span class="font-medium">Mesure</span>
+												<div class="text-gray-500">{fact.utility.metricHint}</div>
+											</div>
+										</div>
+									{/if}
 									<div class="mt-2 flex flex-wrap items-center justify-between gap-2">
 										<div class="min-w-0 truncate text-[11px] text-gray-400">
 											{#if fact.sourceUrl}
@@ -967,7 +1066,7 @@
 		<section class="w-full py-8">
 			<div class="mx-auto max-w-4xl text-center">
 				<div class="text-xs font-semibold uppercase tracking-[0.16em] text-[#6b62f2]">
-					Étape 7 · Votre AgentOS
+					Étape 8 · Votre AgentOS
 				</div>
 				<h1 class="mt-3 text-3xl font-medium tracking-[-0.03em] md:text-5xl">
 					Les premières boucles utiles à votre entreprise.

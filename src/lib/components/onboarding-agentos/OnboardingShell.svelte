@@ -11,6 +11,7 @@
 	const phases = [
 		{ id: 'welcome', label: 'Bienvenue' },
 		{ id: 'foundation', label: 'Configuration' },
+		{ id: 'goals', label: 'Priorités' },
 		{ id: 'discovery', label: 'Découverte' },
 		{ id: 'understanding', label: 'Compréhension' },
 		{ id: 'interview', label: 'Entretien' },
@@ -22,12 +23,13 @@
 	const phaseIndex = (value: OnboardingDraft['step']) => {
 		if (value === 'welcome') return 0;
 		if (value === 'foundation' || value === 'model') return 1;
-		if (value === 'site' || value === 'analysis') return 2;
-		if (value === 'understanding') return 3;
-		if (value === 'interview') return 4;
-		if (value === 'documents') return 5;
-		if (value === 'review') return 6;
-		return 7;
+		if (value === 'goals') return 2;
+		if (value === 'site' || value === 'analysis') return 3;
+		if (value === 'understanding') return 4;
+		if (value === 'interview') return 5;
+		if (value === 'documents') return 6;
+		if (value === 'review') return 7;
+		return 8;
 	};
 
 	$: activeIndex = phaseIndex(step);
@@ -66,7 +68,7 @@
 			</div>
 		</div>
 
-		<div class="mx-auto mt-4 grid w-full max-w-6xl grid-cols-8 gap-1.5">
+		<div class="mx-auto mt-4 grid w-full max-w-6xl grid-cols-9 gap-1.5">
 			{#each phases as phase, index}
 				<div>
 					<div

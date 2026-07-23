@@ -1,5 +1,29 @@
 export type FactSourceType = 'site' | 'web' | 'dirigeant' | 'document' | 'integration';
 export type FactStatus = 'confirme' | 'a_confirmer' | 'corrige' | 'non_recherche';
+export type BusinessOutcomeId =
+	| 'revenus'
+	| 'clients'
+	| 'efficacite'
+	| 'qualite'
+	| 'risques'
+	| 'connaissance'
+	| 'personnalise';
+
+export type BusinessGoal = {
+	id: string;
+	outcomeId: BusinessOutcomeId;
+	label: string;
+	detail?: string;
+};
+
+export type FactUtility = {
+	outcomeIds: BusinessOutcomeId[];
+	purpose: string;
+	decision: string;
+	workflowHint: string;
+	metricHint: string;
+	priority: number;
+};
 
 export type EvidenceFact = {
 	id: string;
@@ -12,12 +36,14 @@ export type EvidenceFact = {
 	observedAt: string;
 	status: FactStatus;
 	confidence: number;
+	utility?: FactUtility;
 };
 
 export type OperationalMap = {
 	companyName: string;
 	siteUrl: string;
 	facts: EvidenceFact[];
+	goals?: BusinessGoal[];
 	validatedAt?: string;
 };
 
@@ -77,6 +103,7 @@ export type OnboardingDraft = {
 		| 'welcome'
 		| 'foundation'
 		| 'model'
+		| 'goals'
 		| 'site'
 		| 'analysis'
 		| 'understanding'
