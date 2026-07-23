@@ -251,17 +251,71 @@
 						</div>
 					</div>
 				{:else}
-					<div class="my-auto flex flex-col justify-center items-center">
-						<div id="auth-login-card" class=" sm:max-w-md my-auto pb-10 w-full dark:text-gray-100">
-							<div class="flex justify-center mb-6">
+					<div
+						class="my-auto w-full {firstClientSetup
+							? 'mx-auto grid max-w-6xl items-center gap-10 py-10 lg:grid-cols-[1.05fr_0.95fr]'
+							: 'flex flex-col items-center justify-center'}"
+					>
+						{#if firstClientSetup}
+							<section
+								class="relative hidden min-h-[650px] overflow-hidden rounded-[2.5rem] border border-[#6b62f2]/20 bg-gradient-to-br from-[#6b62f2]/20 via-white to-indigo-100 p-10 text-left dark:from-[#6b62f2]/30 dark:via-[#151515] dark:to-indigo-950/40 lg:block"
+							>
+								<div
+									class="absolute -right-24 -top-24 size-80 rounded-full bg-[#6b62f2]/25 blur-3xl"
+								></div>
+								<div class="relative z-10">
+									<div
+										class="text-xs font-semibold uppercase tracking-[0.16em] text-[#5b52dd] dark:text-[#aaa4ff]"
+									>
+										Bienvenue chez vous
+									</div>
+									<h1 class="mt-4 max-w-xl text-5xl font-medium leading-[1.04] tracking-[-0.045em]">
+										Bonjour, je suis Luna.
+									</h1>
+									<p class="mt-5 max-w-xl text-base leading-7 text-gray-600 dark:text-gray-300">
+										Créez d’abord votre accès propriétaire. Ensuite, je vais apprendre votre
+										entreprise avec vous pour construire son AgentOS privé.
+									</p>
+									<div class="mt-8 grid max-w-lg grid-cols-2 gap-3">
+										{#each [['01', 'Lire votre site'], ['02', 'Vous poser les bonnes questions'], ['03', 'Mémoriser vos sources internes'], ['04', 'Préparer vos premiers workflows']] as promise}
+											<div
+												class="rounded-2xl border border-black/6 bg-white/65 p-4 backdrop-blur dark:border-white/8 dark:bg-white/5"
+											>
+												<div class="text-[11px] font-semibold text-[#6b62f2]">{promise[0]}</div>
+												<div class="mt-2 text-sm font-medium">{promise[1]}</div>
+											</div>
+										{/each}
+									</div>
+								</div>
 								<img
-									id="logo"
-									crossorigin="anonymous"
-									src="{WEBUI_BASE_URL}/static/favicon.png"
-									class="size-28 rounded-full"
-									alt="{$WEBUI_NAME} logo"
+									src="{WEBUI_BASE_URL}/static/agents/luna.png"
+									alt="Luna, orchestratrice de LunarIA"
+									class="absolute bottom-0 right-4 h-[38%] object-contain object-bottom drop-shadow-[0_20px_35px_rgba(0,0,0,0.22)]"
 								/>
-							</div>
+								<div
+									class="absolute bottom-8 left-10 rounded-full border border-black/8 bg-white/75 px-4 py-2 text-xs text-gray-600 backdrop-blur dark:border-white/10 dark:bg-black/30 dark:text-gray-300"
+								>
+									AgentOS privé · mémoire contrôlée par votre entreprise
+								</div>
+							</section>
+						{/if}
+						<div
+							id="auth-login-card"
+							class="my-auto w-full pb-10 dark:text-gray-100 {firstClientSetup
+								? 'max-w-lg rounded-[2rem] border border-gray-200 bg-white p-6 text-left shadow-sm dark:border-gray-800 dark:bg-[#111] md:p-8'
+								: 'sm:max-w-md'}"
+						>
+							{#if !firstClientSetup}
+								<div class="flex justify-center mb-6">
+									<img
+										id="logo"
+										crossorigin="anonymous"
+										src="{WEBUI_BASE_URL}/static/favicon.png"
+										class="size-28 rounded-full"
+										alt="{$WEBUI_NAME} logo"
+									/>
+								</div>
+							{/if}
 							<form
 								class=" flex flex-col justify-center"
 								on:submit={(e) => {
@@ -293,7 +347,9 @@
 										{/if}
 									</div>
 									<div class="mt-1 text-xs font-medium text-gray-500 dark:text-gray-500">
-										{$i18n.t('Propulsé par Codex')}
+										{firstClientSetup
+											? 'AgentOS privé · Données sur votre serveur'
+											: $i18n.t('Propulsé par Hermes Agent')}
 									</div>
 
 									{#if firstClientSetup}

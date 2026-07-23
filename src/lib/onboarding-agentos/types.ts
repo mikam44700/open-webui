@@ -63,13 +63,32 @@ export type ExternalSearchItem = {
 	publishedDate?: string | null;
 };
 
+export type OnboardingDocument = {
+	id: string;
+	name: string;
+	size: number;
+	status: 'uploading' | 'done' | 'error';
+	message?: string;
+};
+
 export type OnboardingDraft = {
 	version: 1;
-	step: 'welcome' | 'site' | 'analysis' | 'interview' | 'review' | 'workflows' | 'done';
+	step:
+		| 'welcome'
+		| 'model'
+		| 'site'
+		| 'analysis'
+		| 'interview'
+		| 'documents'
+		| 'review'
+		| 'workflows'
+		| 'done';
 	siteUrl: string;
 	map: OperationalMap;
 	answers: InterviewAnswer[];
 	questionIndex: number;
+	documents?: OnboardingDocument[];
+	knowledgeBaseId?: string;
 	workflows: WorkflowProposal[];
 	selectedWorkflowId: string;
 	pendingAnswer: string;
