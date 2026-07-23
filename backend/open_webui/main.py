@@ -801,6 +801,8 @@ from open_webui.hermes_bridge.routers import guardrails as hermes_guardrails
 from open_webui.hermes_bridge.routers import hermes as hermes_engine
 from open_webui.hermes_bridge.routers import integrations as hermes_integrations
 from open_webui.hermes_bridge.routers import mcp as hermes_mcp
+from open_webui.hermes_bridge.routers import memory as hermes_memory
+from open_webui.hermes_bridge.routers import onboarding as hermes_onboarding
 from open_webui.hermes_bridge.routers import oauth as hermes_oauth
 
 app.include_router(hermes_gateway.router, prefix='/api/v1', tags=['gateway'])
@@ -809,6 +811,8 @@ app.include_router(hermes_engine.router, prefix='/api/v1/providers', tags=['herm
 app.include_router(hermes_integrations.router, prefix='/api/v1', tags=['integrations'])
 app.include_router(hermes_oauth.router, prefix='/api/v1', tags=['integrations'])
 app.include_router(hermes_mcp.router, prefix='/api/v1', tags=['mcp'])
+app.include_router(hermes_memory.router, prefix='/api/v1', tags=['memory'])
+app.include_router(hermes_onboarding.router, prefix='/api/v1', tags=['onboarding'])
 app.include_router(hermes_guardrails.router, prefix='/api/v1', tags=['guardrails'])
 app.include_router(hermes_capabilities.router, prefix='/api/v1/capabilities', tags=['capabilities'])
 app.include_router(hermes_crawl4ai.router, prefix='/api/v1/capabilities', tags=['crawl4ai'])
