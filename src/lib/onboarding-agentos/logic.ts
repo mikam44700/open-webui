@@ -900,8 +900,8 @@ export const buildInterviewQuestions = (
 			id: 'validation',
 			section: 'Règles et permissions',
 			label: 'Actions soumises à validation',
-			prompt: 'Quelles actions LunarIA devra-t-elle toujours vous faire valider ?',
-			helper: 'Pensez aux actions coûteuses, sensibles ou difficiles à annuler.',
+			prompt: 'Qu’est-ce que vos agents IA ne doivent jamais faire sans votre accord ?',
+			helper: 'Les actions coûteuses, sensibles ou difficiles à annuler.',
 			placeholder: 'Envoyer un email externe, accorder une remise, modifier une facture…',
 			optional: false
 		},
@@ -909,8 +909,8 @@ export const buildInterviewQuestions = (
 			id: 'interdictions',
 			section: 'Règles et permissions',
 			label: 'Interdictions absolues',
-			prompt: 'Qu’est-ce que LunarIA n’aura jamais le droit de faire ?',
-			helper: 'Ces règles deviendront les limites écrites de votre AgentOS.',
+			prompt: 'Qu’est-ce que vos agents IA ne doivent jamais faire, même avec votre accord ?',
+			helper: 'Vos lignes rouges, non négociables.',
 			placeholder: 'Ex. payer, supprimer, publier ou envoyer sans autorisation…',
 			optional: false
 		},
