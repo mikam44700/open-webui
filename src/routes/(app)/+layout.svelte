@@ -57,6 +57,7 @@
 	let localDBChats = [];
 
 	let version;
+	$: isOnboarding = $page.url.pathname === '/onboarding';
 
 	const clearChatInputStorage = () => {
 		const chatInputKeys = Object.keys(localStorage).filter((key) => key.startsWith('chat-input'));
@@ -456,15 +457,19 @@
 					</div>
 				{/if}
 
-				<Sidebar />
+				{#if !isOnboarding}
+					<Sidebar />
+				{/if}
 
 				{#if loaded}
 					<slot />
 				{:else}
 					<div
-						class="w-full flex-1 h-full flex items-center justify-center {$showSidebar
-							? '  md:max-w-[calc(100%-var(--sidebar-width))]'
-							: ' '}"
+						class="w-full flex-1 h-full flex items-center justify-center {isOnboarding
+							? 'bg-[#08080a]'
+							: $showSidebar
+								? '  md:max-w-[calc(100%-var(--sidebar-width))]'
+								: ' '}"
 					>
 						<Spinner className="size-5" />
 					</div>

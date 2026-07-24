@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { onMount } from 'svelte';
+	import { onMount, tick } from 'svelte';
 	import { goto } from '$app/navigation';
 	import { toast } from 'svelte-sonner';
 
@@ -9,7 +9,7 @@
 	import FoundationSetupStep from '$lib/components/onboarding-agentos/FoundationSetupStep.svelte';
 	import GoalsStep from '$lib/components/onboarding-agentos/GoalsStep.svelte';
 	import OnboardingShell from '$lib/components/onboarding-agentos/OnboardingShell.svelte';
-	import UnderstandingStep from '$lib/components/onboarding-agentos/ExecutiveUnderstandingStep.svelte';
+	import UnderstandingStep from '$lib/components/onboarding-agentos/PriorityUnderstandingStep.svelte';
 	import WelcomeStep from '$lib/components/onboarding-agentos/WelcomeStep.svelte';
 	import {
 		crawlCompanySite,
@@ -36,6 +36,7 @@
 		factsBySection,
 		integrationSearchTerm,
 		mergeFacts,
+		prepareActionDraft,
 		provenanceLabel,
 		SKIP_ONCE_KEY,
 		sourceDomain,
@@ -49,6 +50,8 @@
 		OnboardingDocument,
 		OnboardingDraft,
 		OperationalMap,
+		PreparedActionDraft,
+		PriorityInsight,
 		WorkflowProposal
 	} from '$lib/onboarding-agentos/types';
 
@@ -70,6 +73,7 @@
 	let externalSourcesRetained = 0;
 	let documents: OnboardingDocument[] = [];
 	let knowledgeBaseId = '';
+	let preparedActions: PreparedActionDraft[] = [];
 	let workflows: WorkflowProposal[] = [];
 	let selectedWorkflowId = '';
 
@@ -126,6 +130,7 @@
 		currentExternalSourcesRetained: number,
 		currentDocuments: OnboardingDocument[],
 		currentKnowledgeBaseId: string,
+		currentPreparedActions: PreparedActionDraft[],
 		currentWorkflows: WorkflowProposal[],
 		currentSelectedWorkflowId: string,
 		currentPendingAnswer: string
@@ -146,6 +151,7 @@
 			externalSourcesRetained: currentExternalSourcesRetained,
 			documents: currentDocuments,
 			knowledgeBaseId: currentKnowledgeBaseId,
+			preparedActions: currentPreparedActions,
 			workflows: currentWorkflows,
 			selectedWorkflowId: currentSelectedWorkflowId,
 			pendingAnswer: currentPendingAnswer,
@@ -172,6 +178,7 @@
 		externalSourcesRetained,
 		documents,
 		knowledgeBaseId,
+		preparedActions,
 		workflows,
 		selectedWorkflowId,
 		answerText
@@ -248,6 +255,7 @@
 				step = 'goals';
 			documents = draft.documents ?? [];
 			knowledgeBaseId = draft.knowledgeBaseId ?? '';
+			preparedActions = draft.preparedActions ?? [];
 			workflows = draft.workflows ?? [];
 			selectedWorkflowId = draft.selectedWorkflowId ?? '';
 			answerText = draft.pendingAnswer ?? '';
@@ -349,6 +357,10 @@
 				crawl
 			);
 			companyName = synthesis.companyName;
+			if (synthesis.degraded) {
+				analysisDetails =
+					'Le modèle IA a tardé. LunarIA continue avec les éléments exacts du site, à confirmer avec vous.';
+			}
 			siteFacts = mergeFacts(synthesis.facts, [
 				{
 					id: 'site-identite-nom',
@@ -403,34 +415,53 @@
 				'objectif',
 				'valeur'
 			]);
-			const items = await searchCompanyWeb(localStorage.token, selectedWebProvider, {
-				companyName,
-				siteUrl: url,
-				sectorHint,
-				offerHint,
-				icpHint,
-				problemHint,
-				goals: map.goals ?? []
-			});
-			const webFacts = await synthesizeWebFacts(
-				localStorage.token,
-				selectedProviderId,
-				selectedModelId,
-				items,
-				{ companyName, siteUrl: url, goals: map.goals ?? [] }
-			);
-			if (!webFacts.length) {
-				throw new Error('La recherche Web n’a produit aucun fait extérieur suffisamment fiable.');
-			}
-			externalSourcesRetained = new Set(
-				webFacts
-					.map((fact) => sourceDomain(fact.sourceUrl ?? ''))
-					.filter((domain): domain is string => Boolean(domain))
-			).size;
-			map = {
-				...map,
-				facts: enrichFactsWithUtility(mergeFacts(map.facts, webFacts), map.goals ?? [])
-			};
+
+			// Le crawl du site suffit pour ouvrir l'étape de compréhension. EXA enrichit ensuite
+			// les cartes en arrière-plan et ne contrôle jamais la navigation de l'onboarding.
+			analysisStage = 3;
+			analysisDetails = 'La compréhension est prête à être vérifiée avec vous.';
+			questionIndex = 0;
+			answerText = '';
+			step = 'understanding';
+
+			// Laisser Svelte peindre l'écran de compréhension avant de démarrer EXA.
+			// Sans ce cycle explicite, le navigateur pouvait conserver visuellement
+			// l'écran d'analyse alors que toute la chaîne serveur avait déjà terminé.
+			await tick();
+
+			window.setTimeout(() => {
+				void (async () => {
+				try {
+					const items = await searchCompanyWeb(localStorage.token, selectedWebProvider, {
+						companyName,
+						siteUrl: url,
+						sectorHint,
+						offerHint,
+						icpHint,
+						problemHint,
+						goals: map.goals ?? []
+					});
+					const webFacts = await synthesizeWebFacts(
+						localStorage.token,
+						selectedProviderId,
+						selectedModelId,
+						items,
+						{ companyName, siteUrl: url, goals: map.goals ?? [] }
+					);
+					externalSourcesRetained = new Set(
+						webFacts
+							.map((fact) => sourceDomain(fact.sourceUrl ?? ''))
+							.filter((domain): domain is string => Boolean(domain))
+					).size;
+					map = {
+						...map,
+						facts: enrichFactsWithUtility(mergeFacts(map.facts, webFacts), map.goals ?? [])
+					};
+				} catch {
+					externalSourcesRetained = 0;
+				}
+				})();
+			}, 0);
 		} catch (error) {
 			analysisError =
 				error instanceof Error ? error.message : "L'analyse de l'entreprise a échoué.";
@@ -558,6 +589,19 @@
 		map = { ...map, facts: map.facts.filter((fact) => fact.id !== id) };
 	};
 
+	const prepareInsightAction = (insight: PriorityInsight) => {
+		const existing = preparedActions.find((draft) => draft.insightId === insight.id);
+		if (existing) return;
+		preparedActions = [...preparedActions, prepareActionDraft(insight)];
+	};
+
+	const updatePreparedAction = (id: string, field: keyof PreparedActionDraft, value: string) => {
+		if (!['deliverable', 'owner', 'deadline', 'successMetric'].includes(field)) return;
+		preparedActions = preparedActions.map((draft) =>
+			draft.id === id ? { ...draft, [field]: value, updatedAt: new Date().toISOString() } : draft
+		);
+	};
+
 	const confirmAllRemaining = () => {
 		map = {
 			...map,
@@ -683,6 +727,7 @@
 		externalSourcesRetained = 0;
 		documents = [];
 		knowledgeBaseId = '';
+		preparedActions = [];
 		workflows = [];
 		selectedWorkflowId = '';
 		finishedWithWorkflow = null;
@@ -853,13 +898,13 @@
 	{:else if step === 'understanding'}
 		<UnderstandingStep
 			{map}
-			{executiveFacts}
 			{pagesRead}
 			{externalSourcesRetained}
-			webProvider={selectedWebProvider}
+			{preparedActions}
 			questionCount={questions.length}
-			on:update={(event) => updateFact(event.detail.id, event.detail.value)}
-			on:remove={(event) => removeFact(event.detail.id)}
+			on:prepare={(event) => prepareInsightAction(event.detail.insight)}
+			on:updateDraft={(event) =>
+				updatePreparedAction(event.detail.id, event.detail.field, event.detail.value)}
 			on:back={() => (step = 'site')}
 			on:continue={continueFromUnderstanding}
 		/>

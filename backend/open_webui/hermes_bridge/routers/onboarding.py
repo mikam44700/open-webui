@@ -43,6 +43,8 @@ class StructuredRequest(BaseModel):
     model_id: str
     system: str = Field(min_length=1, max_length=10_000)
     user: str = Field(min_length=1, max_length=60_000)
+    max_tokens: int = Field(default=4_000, ge=256, le=8_000)
+    timeout_seconds: int = Field(default=90, ge=10, le=240)
 
 
 class WebSearchRequest(BaseModel):
@@ -92,7 +94,11 @@ async def post_onboarding_structured(body: StructuredRequest) -> dict:
                 {'role': 'system', 'content': body.system},
                 {'role': 'user', 'content': body.user},
             ],
-            timeout_seconds=ONBOARDING_STRUCTURED_TIMEOUT_SECONDS,
+            max_tokens=body.max_tokens,
+            timeout_seconds=min(
+                body.timeout_seconds,
+                ONBOARDING_STRUCTURED_TIMEOUT_SECONDS,
+            ),
         )
     except Exception as exc:  # runtime local : erreurs aiohttp, modèle et délais normalisées ici
         raise HTTPException(

@@ -44,6 +44,36 @@ export type EvidenceFact = {
 	businessSignal?: ExternalBusinessSignal;
 };
 
+export type PriorityUrgency = 'haute' | 'moyenne' | 'faible';
+
+export type PriorityInsight = {
+	id: string;
+	goalId: string;
+	title: string;
+	finding: string;
+	whyItMatters: string;
+	impact: string;
+	urgency: PriorityUrgency;
+	confidence: number;
+	evidenceFactIds: string[];
+	contradictionFactIds: string[];
+	nextAction: string;
+	actionLabel: string;
+};
+
+export type PreparedActionDraft = {
+	id: string;
+	insightId: string;
+	title: string;
+	deliverable: string;
+	owner: string;
+	deadline: string;
+	successMetric: string;
+	evidenceFactIds: string[];
+	status: 'À valider';
+	updatedAt: string;
+};
+
 export type OperationalMap = {
 	companyName: string;
 	siteUrl: string;
@@ -129,6 +159,7 @@ export type OnboardingDraft = {
 	externalSourcesRetained?: number;
 	documents?: OnboardingDocument[];
 	knowledgeBaseId?: string;
+	preparedActions?: PreparedActionDraft[];
 	workflows: WorkflowProposal[];
 	selectedWorkflowId: string;
 	pendingAnswer: string;

@@ -6,11 +6,13 @@ import {
 	buildExternalSearchQueries,
 	buildInterviewQuestions,
 	buildMapMarkdown,
+	buildPriorityInsights,
 	diversifyExternalFactsByDomain,
 	enrichFactsWithUtility,
 	filterAndDiversifyExternalItems,
 	mergeFacts,
 	normalizeFacts,
+	prepareActionDraft,
 	sourceDomain
 } from './logic';
 
@@ -130,12 +132,12 @@ describe('onboarding AgentOS', () => {
 		expect(buildExecutiveFacts(facts, [], 15).length).toBeLessThanOrEqual(15);
 	});
 
-	it('limite l’entretien à douze questions et tient compte des objectifs', () => {
+	it('limite l’entretien à cinq questions et tient compte des objectifs', () => {
 		const questions = buildInterviewQuestions(
 			[],
 			[{ id: 'qualite', outcomeId: 'qualite', label: 'Améliorer la qualité' }]
 		);
-		expect(questions).toHaveLength(12);
+		expect(questions).toHaveLength(5);
 		expect(questions.find((question) => question.id === 'priorite')?.helper).toContain(
 			'Améliorer la qualité'
 		);
@@ -172,13 +174,10 @@ describe('onboarding AgentOS', () => {
 			problemHint: 'temps perdu dans les tâches administratives',
 			goals: [{ id: 'revenus', outcomeId: 'revenus', label: 'Développer les revenus' }]
 		});
-		expect(queries).toHaveLength(8);
+		expect(queries).toHaveLength(4);
 		expect(queries.filter((query) => query.includes('Entreprise Exemple'))).toHaveLength(3);
-		expect(
-			queries.filter((query) => !query.includes('Entreprise Exemple')).length
-		).toBeGreaterThanOrEqual(4);
-		expect(queries.join(' ')).toContain('directeurs de cliniques privées');
-		expect(queries.join(' ')).toContain('opportunités risques');
+		expect(queries.filter((query) => !query.includes('Entreprise Exemple'))).toHaveLength(1);
+		expect(queries.join(' ')).toContain('tendances risques marché France');
 	});
 
 	it('exclut le domaine du client, déduplique les URL et diversifie les domaines', () => {
@@ -366,5 +365,85 @@ describe('onboarding AgentOS', () => {
 		expect(
 			signals.every((fact) => goals.some((goal) => goal.id === fact.businessSignal?.goalId))
 		).toBe(true);
+	});
+
+	it('fusionne les doublons prioritaires, conserve les preuves et signale les contradictions', () => {
+		const goals = [
+			{ id: 'objectif-revenus', outcomeId: 'revenus' as const, label: 'Développer les revenus' }
+		];
+		const facts = normalizeFacts(
+			[
+				{
+					id: 'source-a',
+					section: 'Concurrence et marché',
+					label: 'Tarif du concurrent Alpha',
+					value: 'Le tarif annoncé est de 49 € par mois.',
+					sourceUrl: 'https://source-a.test/prix',
+					confidence: 0.9,
+					businessSignal: {
+						kind: 'mouvement_concurrent',
+						goalId: 'objectif-revenus',
+						whyItMatters: 'Ce tarif change la comparaison commerciale.',
+						nextAction: 'Préparer un argumentaire de différenciation.'
+					}
+				},
+				{
+					id: 'source-b',
+					section: 'Concurrence et marché',
+					label: 'Prix du concurrent Alpha',
+					value: 'Le tarif observé est de 79 € par mois.',
+					sourceUrl: 'https://source-b.test/alpha',
+					confidence: 0.8,
+					businessSignal: {
+						kind: 'mouvement_concurrent',
+						goalId: 'objectif-revenus',
+						whyItMatters: 'Ce tarif change la comparaison commerciale.',
+						nextAction: 'Préparer un argumentaire de différenciation.'
+					}
+				}
+			],
+			'web'
+		);
+		const insights = buildPriorityInsights(facts, goals);
+		expect(insights).toHaveLength(1);
+		expect(insights[0].evidenceFactIds).toHaveLength(2);
+		expect(insights[0].contradictionFactIds).toEqual(['source-b']);
+		expect(insights[0].goalId).toBe('objectif-revenus');
+	});
+
+	it('plafonne la vue à huit cartes et prépare un brouillon idempotent sans exécution', () => {
+		const goals = [
+			{ id: 'objectif-clients', outcomeId: 'clients' as const, label: 'Mieux servir les clients' }
+		];
+		const subjects = [
+			'Délai de réponse commerciale',
+			'Qualité du support technique',
+			'Clarté des contrats annuels',
+			'Disponibilité de la documentation',
+			'Simplicité de la facturation',
+			'Personnalisation de l’accompagnement',
+			'Fréquence des comptes rendus',
+			'Continuité du service',
+			'Formation des nouveaux utilisateurs',
+			'Suivi des demandes urgentes',
+			'Accessibilité des équipes',
+			'Mesure de la satisfaction'
+		];
+		const facts = normalizeFacts(
+			subjects.map((label, index) => ({
+				id: `fact-${index}`,
+				section: 'Clients et ICP',
+				label,
+				value: `Attente spécifique numéro ${index}`,
+				confidence: 0.8
+			})),
+			'site'
+		);
+		const insights = buildPriorityInsights(facts, goals);
+		expect(insights.length).toBeLessThanOrEqual(5);
+		const first = prepareActionDraft(insights[0]);
+		expect(prepareActionDraft(insights[0], first)).toBe(first);
+		expect(first.status).toBe('À valider');
+		expect(first.evidenceFactIds.length).toBeGreaterThan(0);
 	});
 });

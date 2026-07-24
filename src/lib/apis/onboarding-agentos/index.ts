@@ -2,9 +2,6 @@ import { WEBUI_API_BASE_URL } from '$lib/constants';
 import {
 	buildExecutiveFacts,
 	buildExternalSearchQueries,
-	deduplicateSimilarFacts,
-	diversifyExternalFactsByDomain,
-	filterAndDiversifyExternalItems,
 	normalizeFacts,
 	safeId
 } from '$lib/onboarding-agentos/logic';
@@ -75,22 +72,35 @@ const callStructuredModel = async (
 	providerId: string,
 	modelId: string,
 	system: string,
-	user: string
+	user: string,
+	options: { maxTokens?: number; timeoutSeconds?: number } = {}
 ) => {
 	if (!providerId || !modelId) throw new Error("Aucun modèle IA n'est actif.");
-	const response = await fetch(`${WEBUI_API_BASE_URL}/onboarding/structured`, {
-		method: 'POST',
-		headers: {
-			'Content-Type': 'application/json',
-			Authorization: `Bearer ${token}`
-		},
-		body: JSON.stringify({
-			provider_id: providerId,
-			model_id: modelId,
-			system,
-			user
-		})
-	});
+	const timeoutSeconds = options.timeoutSeconds ?? 90;
+	let response: Response;
+	try {
+		response = await fetch(`${WEBUI_API_BASE_URL}/onboarding/structured`, {
+			method: 'POST',
+			headers: {
+				'Content-Type': 'application/json',
+				Authorization: `Bearer ${token}`
+			},
+			body: JSON.stringify({
+				provider_id: providerId,
+				model_id: modelId,
+				system,
+				user,
+				max_tokens: options.maxTokens ?? 4_000,
+				timeout_seconds: timeoutSeconds
+			}),
+			signal: AbortSignal.timeout((timeoutSeconds + 10) * 1_000)
+		});
+	} catch (error) {
+		if (error instanceof DOMException && error.name === 'TimeoutError') {
+			throw new Error("Le modèle IA n'a pas répondu dans le temps prévu.");
+		}
+		throw error;
+	}
 	if (!response.ok) {
 		throw new Error(String(await responseError(response, "Le cerveau IA n'a pas répondu.")));
 	}
@@ -131,8 +141,9 @@ export const crawlCompanySite = async (token: string, url: string): Promise<Craw
 	}
 };
 
-const SITE_SYSTEM = `Tu construis la carte opérationnelle factuelle d'une entreprise à partir
-du contenu de SON site. Réponds uniquement en JSON valide :
+const SITE_SYSTEM = `Tu construis une fiche d'identité commerciale universelle à partir du site
+public d'une entreprise. Ce n'est ni un inventaire du site, ni une analyse stratégique.
+Réponds uniquement en JSON valide :
 {"companyName":"...","facts":[{"id":"site-...","section":"...","label":"...","value":"...",
 "sourceUrl":"URL exacte parmi les pages autorisées","confidence":0.0}]}
 
@@ -142,37 +153,121 @@ Sections autorisées :
 - Clients et ICP
 - Réputation et signaux
 
-Extrais uniquement ce que le site affirme : identité, activité, modèle économique visible,
-offres, services, prix, clientèle annoncée, problèmes résolus, vocabulaire, ton, preuves,
-coordonnées, équipe et implantations. Une idée par fait. Ne transforme jamais une hypothèse
-en certitude. N'invente ni chiffre, ni client, ni revenu, ni concurrent. Le statut et la date
-seront ajoutés par le produit.`;
+Retourne au maximum 10 faits courts, uniquement sur ces sept besoins :
+1. identité : métier, secteur, zone géographique et B2B/B2C/mixte ;
+2. offre : offres principales, mode de vente, prix publics et offre mise en avant ;
+3. ICP supposé : types de clients, taille/secteur/profil et cas clients visibles ;
+4. problème résolu : douleur ou besoin client explicitement mentionné ;
+5. promesse et différenciation : résultat promis et raisons revendiquées de choisir l'entreprise ;
+6. preuves : chiffres, témoignages, références ou certifications réellement visibles ;
+7. inconnues : ambiguïtés, contradictions entre pages et informations commerciales essentielles absentes.
+
+Ignore absolument les coordonnées, téléphones, listes exhaustives de catégories ou produits,
+nombres de références, variantes, accessoires, menus de navigation, articles de blog individuels
+et détails sans effet sur la compréhension commerciale. Résume une gamme en un seul fait utile.
+Une idée par fait. Ne transforme jamais une hypothèse en certitude. N'invente ni chiffre, ni
+client, ni revenu, ni concurrent. Le statut et la date seront ajoutés par le produit.`;
 
 export const synthesizeSiteFacts = async (
 	token: string,
 	providerId: string,
 	modelId: string,
 	crawl: CrawlResult
-): Promise<{ companyName: string; facts: EvidenceFact[] }> => {
+): Promise<{ companyName: string; facts: EvidenceFact[]; degraded: boolean }> => {
 	const pages = crawl.pages?.length ? crawl.pages : [crawl.url];
-	const payload = await callStructuredModel(
-		token,
-		providerId,
-		modelId,
-		SITE_SYSTEM,
-		`Pages autorisées :\n${pages.map((page) => `- ${page}`).join('\n')}\n\nContenu :\n${crawl.markdown.slice(0, 32000)}`
-	);
+	let payload: any;
+	try {
+		payload = await callStructuredModel(
+			token,
+			providerId,
+			modelId,
+			SITE_SYSTEM,
+			`Pages autorisées :\n${pages.map((page) => `- ${page}`).join('\n')}\n\nContenu :\n${crawl.markdown.slice(0, 14000)}`,
+			{ maxTokens: 1_800, timeoutSeconds: 75 }
+		);
+	} catch {
+		const hostname = new URL(crawl.url).hostname.replace(/^www\./, '').split('.')[0];
+		const heading =
+			crawl.markdown
+				.split('\n')
+				.find((line) => /^#\s+\S/.test(line))
+				?.replace(/^#\s+/, '')
+				.trim() ?? '';
+		const companyName =
+			heading && heading.length <= 80
+				? heading
+				: hostname
+						.split(/[-_]/)
+						.filter(Boolean)
+						.map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+						.join(' ');
+		const observedAt = new Date().toISOString().slice(0, 10);
+		const lines = crawl.markdown
+			.split('\n')
+			.map((line) =>
+				line
+					.replace(/!\[[^\]]*\]\([^)]*\)/g, '')
+					.replace(/\[([^\]]+)\]\([^)]*\)/g, '$1')
+					.replace(/^#{1,6}\s+/, '')
+					.replace(/[*_`>|]/g, '')
+					.replace(/\s+/g, ' ')
+					.trim()
+			)
+			.filter((line) => line.length >= 35 && line.length <= 280);
+		const used = new Set<string>();
+		const fallbackFacts: EvidenceFact[] = [];
+		const addExactFact = (section: string, label: string, pattern: RegExp) => {
+			const value = lines.find((line) => !used.has(line) && pattern.test(line));
+			if (!value) return;
+			used.add(value);
+			fallbackFacts.push({
+				id: `site-secours-${safeId(label)}`,
+				section,
+				label,
+				value,
+				sourceType: 'site',
+				sourceUrl: crawl.url,
+				observedAt,
+				status: 'a_confirmer',
+				confidence: 0.55
+			});
+		};
+		addExactFact(
+			'Identité et modèle économique',
+			'Activité visible sur le site',
+			/\b(service|solution|plateforme|spécialis|entreprise|activité)\b/i
+		);
+		addExactFact(
+			'Offres et positionnement',
+			'Offre visible sur le site',
+			/\b(offre|produit|service|livraison|abonnement|tarif|prix)\b/i
+		);
+		addExactFact(
+			'Clients et ICP',
+			'Clientèle évoquée sur le site',
+			/\b(client|entreprise|professionnel|particulier|équipe|famille|restaurant)\b/i
+		);
+		addExactFact(
+			'Offres et positionnement',
+			'Promesse visible sur le site',
+			/\b(permet|simplifi|rédui|amélior|gagner|sans déchet|avantage)\b/i
+		);
+		return { companyName, facts: fallbackFacts, degraded: true };
+	}
 	const allowed = new Set(pages);
-	const facts = normalizeFacts(Array.isArray(payload?.facts) ? payload.facts : [], 'site').map(
-		(fact, index) => ({
+	const onboardingNoise =
+		/\b(téléphone|adresse|contact|accessoires?|exemples? de|segments?|catégorie .*produits?|article de blog)\b/i;
+	const facts = normalizeFacts(Array.isArray(payload?.facts) ? payload.facts : [], 'site')
+		.filter((fact) => !onboardingNoise.test(`${fact.label} ${fact.value}`))
+		.slice(0, 10)
+		.map((fact, index) => ({
 			...fact,
 			id: fact.id.startsWith('site-') ? fact.id : `site-${safeId(fact.label)}-${index + 1}`,
 			sourceType: 'site' as const,
 			sourceUrl: allowed.has(fact.sourceUrl ?? '') ? fact.sourceUrl : crawl.url,
 			status: 'a_confirmer' as const
-		})
-	);
-	return { companyName: String(payload?.companyName ?? '').trim(), facts };
+		}));
+	return { companyName: String(payload?.companyName ?? '').trim(), facts, degraded: false };
 };
 
 const serializeSearchItems = (data: any): ExternalSearchItem[] => {
@@ -228,36 +323,23 @@ export const searchCompanyWeb = async (
 			'Content-Type': 'application/json',
 			Authorization: `Bearer ${token}`
 		},
-		body: JSON.stringify({ provider: webProvider, queries })
+		body: JSON.stringify({ provider: webProvider, queries }),
+		signal: AbortSignal.timeout(30_000)
 	});
 	if (!response.ok)
 		throw new Error(String(await responseError(response, 'Recherche Web indisponible.')));
-	return filterAndDiversifyExternalItems(
-		serializeSearchItems(await response.json()),
-		context.siteUrl
-	);
+	const companyDomain = new URL(context.siteUrl).hostname.replace(/^www\./, '');
+	return serializeSearchItems(await response.json())
+		.filter((item) => {
+			try {
+				const domain = new URL(item.link).hostname.replace(/^www\./, '');
+				return domain !== companyDomain && !domain.endsWith(`.${companyDomain}`);
+			} catch {
+				return false;
+			}
+		})
+		.slice(0, 12);
 };
-
-const WEB_SYSTEM = `Tu analyses ce que le Web extérieur dit d'une entreprise. Réponds uniquement
-en JSON valide : {"facts":[{"id":"web-...","section":"...","label":"...","value":"...",
-"sourceUrl":"URL exacte fournie","sourceTitle":"titre exact","confidence":0.0,
-"signalType":"opportunite|risque|besoin_client|mouvement_concurrent|signal_marche",
-"goalId":"identifiant exact d'une priorité fournie","whyItMatters":"...",
-"nextAction":"prochaine décision ou action préparatoire..."}]}
-
-Sections autorisées :
-- Clients et ICP
-- Concurrence et marché
-- Réputation et signaux
-
-Construis au maximum douze faits utiles pour cinq axes : besoins clients supposés, concurrents
-directs ou indirects, réputation extérieure, contexte de marché et signaux récents. Chaque fait
-doit être soutenu par UNE URL exacte de la liste et relié à UNE priorité à 90 jours fournie.
-"whyItMatters" explique concrètement le lien avec cette priorité. "nextAction" propose une décision
-ou une action préparatoire réaliste, jamais une exécution automatique. Écris "hypothèse", "supposé"
-ou "semble" pour toute déduction. Ne reprends pas un extrait parlant d'une autre entreprise.
-N'invente jamais de gain financier, de chiffre, de client, de santé financière ou de capacité
-interne. Ignore les résultats ambigus, les annuaires sans contenu et les preuves faibles.`;
 
 export const synthesizeWebFacts = async (
 	token: string,
@@ -271,64 +353,83 @@ export const synthesizeWebFacts = async (
 	}
 ): Promise<EvidenceFact[]> => {
 	if (!items.length) return [];
-	// Le moteur Web peut renvoyer plus de 30 résultats avec des extraits très longs.
-	// On conserve un échantillon diversifié et compact pour rester sous la limite stricte
-	// de l'endpoint de synthèse sans sacrifier les URLs de preuve.
-	const sources = items.slice(0, 20).map((item, index) => ({
-		index: index + 1,
-		title: item.title.slice(0, 250),
-		url: item.link.slice(0, 1_000),
-		snippet: item.snippet.slice(0, 1_100),
-		publishedDate: item.publishedDate
-	}));
-	const payload = await callStructuredModel(
-		token,
-		providerId,
-		modelId,
-		WEB_SYSTEM,
-		JSON.stringify({
-			companyName: context.companyName,
-			companyDomain: new URL(context.siteUrl).hostname.replace(/^www\./, ''),
-			priorities90Days: context.goals,
-			externalSources: sources
-		})
-	);
-	const byUrl = new Map(sources.map((source) => [source.url, source]));
-	const allowedGoalIds = new Set(context.goals.map((goal) => goal.id));
-	const rawFacts = (Array.isArray(payload?.facts) ? payload.facts : []).map((fact: any) => {
-		const kind = String(fact?.signalType ?? '').trim() as ExternalBusinessSignal['kind'];
-		const goalId = String(fact?.goalId ?? '').trim();
-		return {
-			...fact,
-			businessSignal: allowedGoalIds.has(goalId)
-				? {
-						kind,
-						goalId,
-						whyItMatters: String(fact?.whyItMatters ?? '').trim(),
-						nextAction: String(fact?.nextAction ?? '').trim()
-					}
-				: undefined
-		};
-	});
-	const normalized = normalizeFacts(rawFacts, 'web')
-		.filter((fact) => byUrl.has(fact.sourceUrl ?? ''))
-		.map((fact, index) => {
-			const source = byUrl.get(fact.sourceUrl ?? '')!;
+	// EXA fournit déjà le titre, l'extrait et l'URL de preuve. Une seconde requête LLM
+	// ajoutait plusieurs minutes et pouvait laisser le navigateur dans un état d'attente
+	// après la réponse. L'onboarding transforme donc ces résultats localement ; le Big Crawl
+	// pourra enrichir et recouper ces signaux plus tard.
+	void token;
+	void providerId;
+	void modelId;
+	void context.siteUrl;
+	const compact = (value: string, limit: number) => value.trim().slice(0, limit);
+	const goalFor = (kind: ExternalBusinessSignal['kind']) => {
+		const preferredOutcomes =
+			kind === 'besoin_client'
+				? ['clients', 'revenus']
+				: kind === 'risque'
+					? ['risques', 'qualite']
+					: kind === 'mouvement_concurrent'
+						? ['revenus', 'risques']
+						: ['revenus', 'connaissance', 'risques'];
+		return (
+			context.goals.find((goal) => preferredOutcomes.includes(goal.outcomeId)) ??
+			context.goals[0]
+		);
+	};
+	const normalized: EvidenceFact[] = items.slice(0, 5).map((item, index) => {
+			const text = `${item.title} ${item.snippet}`.toLowerCase();
+			const kind: ExternalBusinessSignal['kind'] =
+				/avis|client|trustpilot|satisfaction|critique|témoignage/.test(text)
+					? 'besoin_client'
+					: /concurrent|alternative|comparatif|rachat|acquisition/.test(text)
+						? 'mouvement_concurrent'
+						: /risque|baisse|plainte|litige|difficulté|menace/.test(text)
+							? 'risque'
+							: /lancement|partenariat|recrutement|déploiement|expansion|levée/.test(text)
+								? 'opportunite'
+								: 'signal_marche';
+			const goal = goalFor(kind);
+			const section =
+				kind === 'besoin_client'
+					? 'Réputation et signaux'
+					: kind === 'mouvement_concurrent' || kind === 'signal_marche'
+						? 'Concurrence et marché'
+						: 'Réputation et signaux';
+			const whyItMatters =
+				kind === 'besoin_client'
+					? 'Ce signal extérieur peut modifier la confiance, la fidélisation ou le discours client.'
+					: kind === 'mouvement_concurrent'
+						? 'Ce mouvement peut modifier le positionnement ou les priorités commerciales.'
+						: kind === 'risque'
+							? 'Ce risque mérite une vérification avant toute décision.'
+							: 'Ce signal peut révéler une évolution du marché à surveiller.';
 			return {
-				...fact,
-				id: fact.id.startsWith('web-') ? fact.id : `web-${safeId(fact.label)}-${index + 1}`,
+				id: `web-${safeId(item.title)}-${index + 1}`,
+				section,
+				label: compact(item.title, 120) || `Signal extérieur ${index + 1}`,
+				value: compact(item.snippet || item.title, 320),
 				sourceType: 'web' as const,
-				sourceTitle: source.title,
-				status: 'a_confirmer' as const
+				sourceUrl: item.link,
+				sourceTitle: compact(item.title, 160),
+				observedAt: String(item.publishedDate ?? '').slice(0, 10) || undefined,
+				status: 'a_confirmer' as const,
+				confidence: 0.72,
+				businessSignal: goal
+					? {
+							kind,
+							goalId: goal.id,
+							whyItMatters,
+							nextAction: 'Vérifier la source puis décider si ce signal mérite une action.'
+						}
+					: undefined
 			};
 		});
-	const diversified = diversifyExternalFactsByDomain(deduplicateSimilarFacts(normalized), 3, 12);
-	if (context.goals.length && !diversified.some((fact) => fact.businessSignal)) {
+	if (context.goals.length && !normalized.some((fact) => fact.businessSignal)) {
 		throw new Error(
 			"Le Web extérieur n'a produit aucun signal exploitable pour vos priorités. Relancez l'analyse."
 		);
 	}
-	return diversified;
+	return normalized;
 };
 
 const WORKFLOW_SYSTEM = `Tu es le concepteur opérationnel de LunarIA. À partir d'une carte

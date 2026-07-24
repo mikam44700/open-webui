@@ -7,6 +7,8 @@ import type {
 	InterviewAnswer,
 	InterviewQuestion,
 	OperationalMap,
+	PreparedActionDraft,
+	PriorityInsight,
 	WorkflowProposal
 } from './types';
 
@@ -202,23 +204,11 @@ export const buildExternalSearchQueries = ({
 }: ExternalSearchContext) => {
 	const identity = compact(companyName) || sourceDomain(siteUrl);
 	const sector = searchHint(sectorHint, 'marché entreprise');
-	const offer = searchHint(offerHint, sector);
-	const icp = searchHint(icpHint, `clients ${sector}`);
-	const problem = searchHint(problemHint, `problèmes besoins ${sector}`);
-	const priorities = searchHint(
-		goals.map((goal) => goal.label).join(' '),
-		'opportunités croissance efficacité clients'
-	);
-
 	return [
 		`"${identity}" avis clients critiques indépendantes`,
 		`"${identity}" concurrents alternatives comparatif`,
 		`"${identity}" actualités partenariat recrutement lancement`,
-		`${sector} tendances problèmes marché France`,
-		`${icp} besoins irritants attentes`,
-		`${offer} alternatives fournisseurs comparatif`,
-		`${problem} solutions retours expérience`,
-		`${sector} ${priorities} opportunités risques`
+		`${sector} tendances risques marché France`
 	].filter((query, index, queries) => query && queries.indexOf(query) === index);
 };
 
@@ -548,6 +538,168 @@ export const buildExecutiveFacts = (
 		.slice(0, Math.max(1, Math.min(15, limit)));
 };
 
+const labelWords = (value: string) =>
+	new Set(
+		value
+			.toLowerCase()
+			.normalize('NFD')
+			.replace(/[\u0300-\u036f]/g, '')
+			.split(/[^a-z0-9]+/)
+			.filter((word) => word.length >= 4)
+	);
+
+const labelsDescribeSameSubject = (first: EvidenceFact, second: EvidenceFact) => {
+	const a = labelWords(first.label);
+	const b = labelWords(second.label);
+	if (!a.size || !b.size) return false;
+	const overlap = [...a].filter((word) => b.has(word)).length;
+	return overlap / Math.min(a.size, b.size) >= 0.6;
+};
+
+const valuesConflict = (first: string, second: string) => {
+	const normalize = (value: string) =>
+		value
+			.toLowerCase()
+			.normalize('NFD')
+			.replace(/[\u0300-\u036f]/g, '');
+	const a = normalize(first);
+	const b = normalize(second);
+	if (a === b) return false;
+	const negation = /\b(ne|pas|aucun|sans|jamais|non)\b/;
+	const numbers = (value: string) => value.match(/\d+(?:[.,]\d+)?/g) ?? [];
+	const differentNumbers =
+		numbers(a).length > 0 && numbers(b).length > 0 && numbers(a).join('|') !== numbers(b).join('|');
+	return negation.test(a) !== negation.test(b) || differentNumbers;
+};
+
+const urgencyFor = (fact: EvidenceFact): PriorityInsight['urgency'] => {
+	if (
+		fact.businessSignal?.kind === 'risque' ||
+		fact.businessSignal?.kind === 'mouvement_concurrent'
+	)
+		return 'haute';
+	if (fact.businessSignal?.kind || (fact.utility?.priority ?? 0) >= 0.75) return 'moyenne';
+	return 'faible';
+};
+
+const actionLabelFor = (action: string) => {
+	if (/argument|différenci|offre|commercial/i.test(action)) return 'Préparer l’argumentaire';
+	if (/veille|surveill|suivre|alerte/i.test(action)) return 'Ajouter à la veille';
+	if (/plan|prioris|déploi|étapes/i.test(action)) return 'Créer le plan d’action';
+	if (/compar|analys|mesur|vérif|qualif/i.test(action)) return 'Préparer l’analyse';
+	return 'Préparer l’action';
+};
+
+export const buildPriorityInsights = (
+	facts: EvidenceFact[],
+	goals: BusinessGoal[] = [],
+	limit = 5
+): PriorityInsight[] => {
+	const lowDecisionValue =
+		/\b(blog|actualité éditoriale|téléphone|adresse|contact|accessoires?|exemples? de|segments?|catégorie|produits? affichés?|univers (marché|épicerie|boisson|maison)|nom de l'entreprise)\b/i;
+	const goalsById = new Map(goals.map((goal) => [goal.id, goal]));
+	const enriched = enrichFactsWithUtility(facts, goals)
+		.filter((fact) => fact.value.trim() && fact.confidence >= 0.45)
+		.filter(
+			(fact) =>
+				!lowDecisionValue.test(`${fact.label} ${fact.value}`) &&
+				(Boolean(fact.businessSignal?.kind) || (fact.utility?.priority ?? 0) >= 0.68)
+		)
+		.map((fact) => {
+			const explicitGoal = fact.businessSignal?.goalId;
+			const inferredGoal = goals.find((goal) =>
+				fact.utility?.outcomeIds.includes(goal.outcomeId)
+			)?.id;
+			return { fact, goalId: explicitGoal || inferredGoal || '' };
+		})
+		.filter(({ goalId }) => goalsById.has(goalId))
+		.sort(
+			(a, b) =>
+				(b.fact.utility?.priority ?? 0) - (a.fact.utility?.priority ?? 0) ||
+				b.fact.confidence - a.fact.confidence
+		);
+
+	const groups: Array<{ goalId: string; facts: EvidenceFact[] }> = [];
+	for (const candidate of enriched) {
+		const group = groups.find(
+			(item) =>
+				item.goalId === candidate.goalId &&
+				item.facts.some(
+					(existing) =>
+						similarEnough(existing, candidate.fact) ||
+						labelsDescribeSameSubject(existing, candidate.fact)
+				)
+		);
+		if (group) group.facts.push(candidate.fact);
+		else groups.push({ goalId: candidate.goalId, facts: [candidate.fact] });
+	}
+
+	return groups
+		.map(({ goalId, facts: groupFacts }, index): PriorityInsight => {
+			const lead = groupFacts[0];
+			const contradictions = groupFacts
+				.slice(1)
+				.filter((fact) => valuesConflict(lead.value, fact.value))
+				.map((fact) => fact.id);
+			const nextAction =
+				lead.businessSignal?.nextAction ||
+				lead.utility?.workflowHint ||
+				'Qualifier ce point avec le responsable concerné.';
+			return {
+				id: `priority-${safeId(goalId)}-${safeId(lead.label)}-${index + 1}`,
+				goalId,
+				title: lead.label,
+				finding: lead.value,
+				whyItMatters:
+					lead.businessSignal?.whyItMatters ||
+					lead.utility?.purpose ||
+					'Cette conclusion peut modifier une décision opérationnelle.',
+				impact:
+					lead.businessSignal?.whyItMatters ||
+					lead.utility?.decision ||
+					'Décision à préciser avec le responsable.',
+				urgency: urgencyFor(lead),
+				confidence: Math.min(
+					contradictions.length ? 0.7 : lead.status === 'a_confirmer' ? 0.8 : 1,
+					Math.max(
+					0,
+					Math.min(
+						1,
+						groupFacts.reduce((total, fact) => total + fact.confidence, 0) / groupFacts.length
+					)
+					)
+					),
+				evidenceFactIds: groupFacts.map((fact) => fact.id),
+				contradictionFactIds: contradictions,
+				nextAction,
+				actionLabel: actionLabelFor(nextAction)
+			};
+		})
+		.sort(
+			(a, b) =>
+				({ haute: 3, moyenne: 2, faible: 1 })[b.urgency] -
+					{ haute: 3, moyenne: 2, faible: 1 }[a.urgency] || b.confidence - a.confidence
+		)
+		.slice(0, Math.max(1, Math.min(5, limit)));
+};
+
+export const prepareActionDraft = (
+	insight: PriorityInsight,
+	existing?: PreparedActionDraft
+): PreparedActionDraft =>
+	existing ?? {
+		id: `action-${insight.id}`,
+		insightId: insight.id,
+		title: insight.actionLabel,
+		deliverable: insight.nextAction,
+		owner: 'Responsable à désigner',
+		deadline: 'Échéance à confirmer',
+		successMetric: `Décision prise et résultat mesurable pour « ${insight.title} »`,
+		evidenceFactIds: insight.evidenceFactIds,
+		status: 'À valider',
+		updatedAt: new Date().toISOString()
+	};
+
 const publicHypothesis = (facts: EvidenceFact[], section: string, labels: string[]) =>
 	facts.find(
 		(fact) =>
@@ -768,15 +920,9 @@ export const buildInterviewQuestions = (
 		'clients-reels',
 		'priorite',
 		'perte-temps',
-		'taches-recurrentes',
-		'outils',
-		'responsables',
-		'indicateurs',
 		'validation',
-		'interdictions',
-		'premiere-delegation'
 	]);
-	return questions.filter((question) => usefulQuestionIds.has(question.id)).slice(0, 12);
+	return questions.filter((question) => usefulQuestionIds.has(question.id)).slice(0, 5);
 };
 
 export const answerToFact = (
