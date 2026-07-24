@@ -376,7 +376,34 @@ export const synthesizeWebFacts = async (
 			context.goals[0]
 		);
 	};
-	const normalized: EvidenceFact[] = items.slice(0, 5).map((item, index) => {
+	// Un résultat Web est du BRUIT (pas une conclusion sur l'entreprise) quand son titre est une
+	// page d'agrégateur de news ou un flux de plusieurs articles datés — ex. « … Business Ambition
+	// News Ticker - [16 juillet 2026] … - [12 juillet 2026] … ». On l'écarte avant d'en faire une carte.
+	const isNoisyTitle = (raw: string) => {
+		const t = (raw || '').toLowerCase();
+		if (/news\s?ticker/.test(t)) return true;
+		if ((raw.match(/\[\s*\d/g) || []).length >= 2) return true;
+		return false;
+	};
+	// Nettoie la queue d'agrégateur d'un titre qui passe : « Titre - [16 juillet 2026] … » ou « Titre | Site ».
+	const cleanTitle = (raw: string) => {
+		let t = (raw || '').split(/\s[-|–]\s*\[/)[0];
+		t = t.split(/\s[|–]\s/)[0];
+		return t.trim();
+	};
+	// « Impact attendu » : distinct de « Pourquoi cela compte » (whyItMatters), jamais le même texte.
+	const impactFor = (kind: ExternalBusinessSignal['kind']) =>
+		kind === 'besoin_client'
+			? 'Ajuster le discours ou traiter un irritant client avant qu’il ne coûte.'
+			: kind === 'mouvement_concurrent'
+				? 'Réévaluer une offre ou une priorité commerciale face à ce concurrent.'
+				: kind === 'risque'
+					? 'Vérifier puis décider s’il faut une action de prévention.'
+					: 'Décider si cette évolution ouvre une opportunité à saisir.';
+	const normalized: EvidenceFact[] = items
+		.filter((item) => !isNoisyTitle(item.title))
+		.slice(0, 5)
+		.map((item, index) => {
 			const text = `${item.title} ${item.snippet}`.toLowerCase();
 			const kind: ExternalBusinessSignal['kind'] =
 				/avis|client|trustpilot|satisfaction|critique|témoignage/.test(text)
@@ -403,15 +430,16 @@ export const synthesizeWebFacts = async (
 						: kind === 'risque'
 							? 'Ce risque mérite une vérification avant toute décision.'
 							: 'Ce signal peut révéler une évolution du marché à surveiller.';
+			const cleanLabel = cleanTitle(item.title);
 			return {
 				id: `web-${safeId(item.title)}-${index + 1}`,
 				section,
-				label: compact(item.title, 120) || `Signal extérieur ${index + 1}`,
-				value: compact(item.snippet || item.title, 320),
+				label: compact(cleanLabel, 120) || `Signal extérieur ${index + 1}`,
+				value: compact(item.snippet || cleanLabel, 320),
 				sourceType: 'web' as const,
 				sourceUrl: item.link,
-				sourceTitle: compact(item.title, 160),
-				observedAt: String(item.publishedDate ?? '').slice(0, 10) || undefined,
+				sourceTitle: compact(cleanLabel, 160),
+				observedAt: String(item.publishedDate ?? '').slice(0, 10) || '',
 				status: 'a_confirmer' as const,
 				confidence: 0.72,
 				businessSignal: goal
@@ -419,6 +447,7 @@ export const synthesizeWebFacts = async (
 							kind,
 							goalId: goal.id,
 							whyItMatters,
+							impact: impactFor(kind),
 							nextAction: 'Vérifier la source puis décider si ce signal mérite une action.'
 						}
 					: undefined

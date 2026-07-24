@@ -26,6 +26,7 @@ export type ExternalBusinessSignal = {
 	kind: ExternalSignalKind;
 	goalId: string;
 	whyItMatters: string;
+	impact: string;
 	nextAction: string;
 };
 

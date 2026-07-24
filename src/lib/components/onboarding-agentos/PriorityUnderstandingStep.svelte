@@ -241,20 +241,43 @@
 	</div>
 
 	<div
-		class="mx-auto mt-6 flex max-w-5xl items-center justify-between gap-4 rounded-[1.75rem] border border-black/6 bg-white p-5 dark:border-white/8 dark:bg-[#161616] md:px-6"
+		class="mx-auto mt-6 max-w-5xl rounded-[1.75rem] border border-black/6 bg-white p-5 dark:border-white/8 dark:bg-[#161616] md:px-6"
 	>
-			<div>
-				<h2 class="text-base font-medium">Mémoire profonde · {map.facts.length} preuves</h2>
-				<div class="mt-1 text-xs text-gray-400">
-					Éléments faibles conservés · {externalSourcesRetained} domaine(s) extérieur(s)
+		<details>
+			<summary class="flex cursor-pointer list-none items-center justify-between gap-4">
+				<div>
+					<h2 class="text-base font-medium">Toutes les preuves retenues · {map.facts.length}</h2>
+					<div class="mt-1 text-xs text-gray-400">
+						{externalSourcesRetained} source(s) extérieure(s) · rien n’est gardé sans que vous puissiez
+						le voir
+					</div>
 				</div>
+				<span
+					class="shrink-0 rounded-full border border-black/10 px-4 py-2 text-xs font-medium dark:border-white/10"
+				>
+					Voir les preuves
+				</span>
+			</summary>
+			<div class="mt-4 grid gap-2 sm:grid-cols-2">
+				{#each map.facts as fact}
+					<div class="rounded-xl border border-black/6 p-3 text-xs dark:border-white/8">
+						<div class="flex items-start justify-between gap-2">
+							<span class="font-medium">{fact.label}</span>
+							<span class="shrink-0 text-[11px] text-gray-400">{provenanceLabel(fact)}</span>
+						</div>
+						<div class="mt-1 text-gray-600 dark:text-gray-300">{fact.value}</div>
+						{#if fact.sourceUrl}
+							<a
+								class="mt-1 inline-block text-[11px] text-[#5b52dd] hover:underline"
+								href={fact.sourceUrl}
+								target="_blank"
+								rel="noreferrer">{fact.sourceTitle || sourceDomain(fact.sourceUrl)}</a
+							>
+						{/if}
+					</div>
+				{/each}
 			</div>
-			<a
-				href="/memoire"
-				class="shrink-0 rounded-full border border-black/10 px-4 py-2 text-xs font-medium hover:bg-gray-50 dark:border-white/10 dark:hover:bg-gray-800"
-			>
-				Consulter la mémoire
-			</a>
+		</details>
 	</div>
 
 	<div

@@ -226,12 +226,14 @@ const normalizeBusinessSignal = (value: unknown): ExternalBusinessSignal | undef
 	const kind = String(signal.kind ?? '').trim();
 	const goalId = String(signal.goalId ?? '').trim();
 	const whyItMatters = compact(String(signal.whyItMatters ?? ''));
+	const impact = compact(String(signal.impact ?? ''));
 	const nextAction = compact(String(signal.nextAction ?? ''));
 	if (!SIGNAL_KINDS.has(kind) || !goalId || !whyItMatters || !nextAction) return undefined;
 	return {
 		kind: kind as ExternalBusinessSignal['kind'],
 		goalId,
 		whyItMatters,
+		impact: impact || 'Décider de l’action à mener sur ce point avec le responsable.',
 		nextAction
 	};
 };
@@ -603,6 +605,8 @@ export const buildPriorityInsights = (
 		.filter(
 			(fact) =>
 				!lowDecisionValue.test(`${fact.label} ${fact.value}`) &&
+				(fact.label.match(/\[\s*\d/g) || []).length < 2 &&
+				!/news\s?ticker/i.test(fact.label) &&
 				(Boolean(fact.businessSignal?.kind) || (fact.utility?.priority ?? 0) >= 0.68)
 		)
 		.map((fact) => {
@@ -645,19 +649,25 @@ export const buildPriorityInsights = (
 				lead.businessSignal?.nextAction ||
 				lead.utility?.workflowHint ||
 				'Qualifier ce point avec le responsable concerné.';
+			const whyItMatters =
+				lead.businessSignal?.whyItMatters ||
+				lead.utility?.purpose ||
+				'Cette conclusion peut modifier une décision opérationnelle.';
+			let impact =
+				lead.businessSignal?.impact ||
+				lead.utility?.decision ||
+				'Décision à préciser avec le responsable.';
+			// « Impact attendu » et « Pourquoi cela compte » ne doivent jamais afficher le même texte.
+			if (impact.trim() === whyItMatters.trim()) {
+				impact = 'Décider de l’action à mener sur ce point avec le responsable.';
+			}
 			return {
 				id: `priority-${safeId(goalId)}-${safeId(lead.label)}-${index + 1}`,
 				goalId,
 				title: lead.label,
 				finding: lead.value,
-				whyItMatters:
-					lead.businessSignal?.whyItMatters ||
-					lead.utility?.purpose ||
-					'Cette conclusion peut modifier une décision opérationnelle.',
-				impact:
-					lead.businessSignal?.whyItMatters ||
-					lead.utility?.decision ||
-					'Décision à préciser avec le responsable.',
+				whyItMatters,
+				impact,
 				urgency: urgencyFor(lead),
 				confidence: Math.min(
 					contradictions.length ? 0.7 : lead.status === 'a_confirmer' ? 0.8 : 1,
@@ -763,12 +773,12 @@ export const buildInterviewQuestions = (
 		{
 			id: 'priorite',
 			section: 'Pertes, risques et priorités',
-			label: 'Résultat attendu à 90 jours',
-			prompt: 'À quoi verrez-vous, dans 90 jours, que LunarIA vous a réellement aidé ?',
+			label: 'Façon de faire actuelle',
+			prompt: 'Aujourd’hui, comment gérez-vous ça — à la main, avec un outil, ou pas du tout ?',
 			helper: goalSummary
-				? `Vous avez choisi : « ${goalSummary} ». Donnez maintenant un résultat concret et observable.`
-				: 'Formulez un résultat concret et observable, pas une technologie.',
-			placeholder: 'Ex. délai réduit, opportunités traitées, qualité stabilisée…',
+				? `Vous visez : « ${goalSummary} ». Dites-moi comment vous vous y prenez aujourd’hui.`
+				: 'Décrivez votre façon de faire actuelle sur ce qui compte le plus pour vous.',
+			placeholder: 'Ex. je relance mes impayés à la main sur Excel quand j’y pense…',
 			optional: false
 		},
 		{

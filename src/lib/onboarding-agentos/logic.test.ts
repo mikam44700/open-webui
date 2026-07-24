@@ -263,6 +263,7 @@ describe('onboarding AgentOS', () => {
 						kind: 'besoin_client',
 						goalId: 'clients',
 						whyItMatters: 'Cette attente peut modifier la qualité de la réponse client.',
+						impact: 'Décider de l’action à mener sur ce point.',
 						nextAction: 'Comparer cette attente au délai de réponse actuel.'
 					}
 				},
@@ -276,6 +277,7 @@ describe('onboarding AgentOS', () => {
 						kind: 'besoin_client',
 						goalId: 'clients',
 						whyItMatters: 'Le libre-service peut améliorer l’expérience avant contact.',
+						impact: 'Décider de l’action à mener sur ce point.',
 						nextAction: 'Identifier les trois questions client les plus fréquentes.'
 					}
 				},
@@ -289,6 +291,7 @@ describe('onboarding AgentOS', () => {
 						kind: 'besoin_client',
 						goalId: 'clients',
 						whyItMatters: 'La souplesse peut peser dans le choix du fournisseur.',
+						impact: 'Décider de l’action à mener sur ce point.',
 						nextAction: 'Vérifier les objections contractuelles dans les ventes perdues.'
 					}
 				},
@@ -302,6 +305,7 @@ describe('onboarding AgentOS', () => {
 						kind: 'opportunite',
 						goalId: 'revenus',
 						whyItMatters: 'Ce segment peut soutenir la priorité de développement.',
+						impact: 'Décider de l’action à mener sur ce point.',
 						nextAction: 'Comparer ces zones avec les clients qui convertissent déjà.'
 					}
 				},
@@ -315,6 +319,7 @@ describe('onboarding AgentOS', () => {
 						kind: 'mouvement_concurrent',
 						goalId: 'revenus',
 						whyItMatters: 'Cette offre peut changer les critères de comparaison.',
+						impact: 'Décider de l’action à mener sur ce point.',
 						nextAction: 'Préparer une fiche de différenciation à faire valider.'
 					}
 				},
@@ -328,6 +333,7 @@ describe('onboarding AgentOS', () => {
 						kind: 'opportunite',
 						goalId: 'revenus',
 						whyItMatters: 'Ce canal pourrait élargir l’accès aux prospects.',
+						impact: 'Décider de l’action à mener sur ce point.',
 						nextAction: 'Évaluer le recouvrement avec le profil client prioritaire.'
 					}
 				},
@@ -341,6 +347,7 @@ describe('onboarding AgentOS', () => {
 						kind: 'risque',
 						goalId: 'clients',
 						whyItMatters: 'Cette exigence peut créer de nouvelles questions clients.',
+						impact: 'Décider de l’action à mener sur ce point.',
 						nextAction: 'Faire qualifier la portée par le responsable concerné.'
 					}
 				},
@@ -353,6 +360,7 @@ describe('onboarding AgentOS', () => {
 						kind: 'risque',
 						goalId: 'risques',
 						whyItMatters: 'Risque extérieur.',
+						impact: 'Décider de l’action à mener sur ce point.',
 						nextAction: 'Analyser le risque.'
 					}
 				}
@@ -384,6 +392,7 @@ describe('onboarding AgentOS', () => {
 						kind: 'mouvement_concurrent',
 						goalId: 'objectif-revenus',
 						whyItMatters: 'Ce tarif change la comparaison commerciale.',
+						impact: 'Décider de l’action à mener sur ce point.',
 						nextAction: 'Préparer un argumentaire de différenciation.'
 					}
 				},
@@ -398,6 +407,7 @@ describe('onboarding AgentOS', () => {
 						kind: 'mouvement_concurrent',
 						goalId: 'objectif-revenus',
 						whyItMatters: 'Ce tarif change la comparaison commerciale.',
+						impact: 'Décider de l’action à mener sur ce point.',
 						nextAction: 'Préparer un argumentaire de différenciation.'
 					}
 				}
