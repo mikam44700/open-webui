@@ -18,7 +18,7 @@
 	} from '$lib/apis/auths';
 
 	import { WEBUI_API_BASE_URL, WEBUI_BASE_URL } from '$lib/constants';
-	import { WEBUI_NAME, config, user, socket } from '$lib/stores';
+	import { WEBUI_NAME, config, user, socket, theme } from '$lib/stores';
 
 	import { generateInitialsImage, canvasPixelTest, getUserTimezone } from '$lib/utils';
 
@@ -43,6 +43,28 @@
 	let ldapUsername = '';
 
 	let submitting = false;
+	let isDarkTheme = false;
+
+	const applyAuthTheme = (useDarkTheme: boolean) => {
+		const selectedTheme = useDarkTheme ? 'dark' : 'light';
+		const root = document.documentElement;
+
+		localStorage.setItem('theme', selectedTheme);
+		theme.set(selectedTheme);
+
+		root.classList.remove('dark', 'light', 'oled-dark', 'her');
+		root.classList.add(selectedTheme);
+		root.style.removeProperty('--color-gray-800');
+		root.style.removeProperty('--color-gray-850');
+		root.style.removeProperty('--color-gray-900');
+		root.style.removeProperty('--color-gray-950');
+
+		document
+			.querySelector('meta[name="theme-color"]')
+			?.setAttribute('content', useDarkTheme ? '#171717' : '#ffffff');
+
+		isDarkTheme = useDarkTheme;
+	};
 
 	const setSessionUser = async (sessionUser, redirectPath: string | null = null) => {
 		if (sessionUser) {
@@ -154,6 +176,8 @@
 	let onboarding = false;
 
 	onMount(async () => {
+		isDarkTheme = document.documentElement.classList.contains('dark');
+
 		const redirectPath = $page.url.searchParams.get('redirect');
 		if ($user) {
 			goto(redirectPath || '/');
@@ -216,17 +240,17 @@
 	}}
 />
 
-<div class="w-full h-screen max-h-[100dvh] text-white relative" id="auth-page">
-	<div class="w-full h-full absolute top-0 left-0 bg-white dark:bg-black"></div>
+<div class="relative h-screen max-h-[100dvh] w-full text-white" id="auth-page">
+	<div class="absolute left-0 top-0 h-full w-full bg-gray-100 dark:bg-black"></div>
 
 	<div class="w-full absolute top-0 left-0 right-0 h-8 drag-region" />
 
-	{#if loaded}
+	{#if loaded && !onboarding}
 		<div
-			class="fixed bg-transparent min-h-screen w-full flex justify-center z-50 text-black dark:text-white"
+			class="fixed inset-0 z-50 flex min-h-screen w-full justify-center overflow-y-auto bg-transparent text-black dark:text-white"
 			id="auth-container"
 		>
-			<div class="w-full px-10 min-h-screen flex flex-col text-center">
+			<div class="flex min-h-screen w-full flex-col px-5 py-8 text-center sm:px-10">
 				{#if ($config?.features.auth_trusted_header ?? false) || $config?.features.auth === false}
 					<div class=" my-auto pb-10 w-full sm:max-w-md">
 						<div
@@ -242,8 +266,11 @@
 						</div>
 					</div>
 				{:else}
-					<div class="my-auto flex flex-col justify-center items-center">
-						<div id="auth-login-card" class=" sm:max-w-md my-auto pb-10 w-full dark:text-gray-100">
+					<div class="my-auto flex flex-col items-center justify-center py-6">
+						<div
+							id="auth-login-card"
+							class="my-auto w-full max-w-md rounded-3xl border border-gray-200 bg-white p-6 text-gray-900 shadow-xl shadow-black/5 dark:border-white/15 dark:bg-gray-950 dark:text-gray-100 dark:shadow-black/40 sm:p-8"
+						>
 							{#if $config?.metadata?.auth_logo_position === 'center'}
 								<div class="flex justify-center mb-6">
 									<img
@@ -256,14 +283,14 @@
 								</div>
 							{/if}
 							<form
-								class=" flex flex-col justify-center"
+								class="flex flex-col justify-center"
 								on:submit={(e) => {
 									e.preventDefault();
 									submitHandler();
 								}}
 							>
-								<div class="mb-1">
-									<div class=" text-2xl font-normal">
+								<div class="mb-2">
+									<div class="text-2xl font-semibold tracking-tight sm:text-3xl">
 										{#if $config?.onboarding ?? false}
 											{$i18n.t(`Get started with {{WEBUI_NAME}}`, { WEBUI_NAME: $WEBUI_NAME })}
 										{:else if mode === 'ldap'}
@@ -276,7 +303,9 @@
 									</div>
 
 									{#if $config?.onboarding ?? false}
-										<div class="mt-1 text-xs font-normal text-gray-600 dark:text-gray-500">
+										<div
+											class="mt-2 text-sm font-normal leading-5 text-gray-600 dark:text-gray-400"
+										>
 											ⓘ {$WEBUI_NAME}
 											{$i18n.t(
 												'does not make any external connections, and your data stays securely on your locally hosted server.'
@@ -286,17 +315,17 @@
 								</div>
 
 								{#if $config?.features.enable_login_form || $config?.features.enable_ldap || form}
-									<div class="flex flex-col mt-4">
+									<div class="mt-6 flex flex-col gap-4">
 										{#if mode === 'signup'}
-											<div class="mb-2">
-												<label for="name" class="text-sm font-normal text-left mb-1 block"
+											<div>
+												<label for="name" class="mb-2 block text-left text-sm font-medium"
 													>{$i18n.t('Name')}</label
 												>
 												<input
 													bind:value={name}
 													type="text"
 													id="name"
-													class="my-0.5 w-full text-sm outline-hidden bg-transparent placeholder:text-gray-300 dark:placeholder:text-gray-600"
+													class="w-full rounded-xl border border-gray-300 bg-gray-50 px-4 py-3 text-base text-gray-900 outline-hidden transition placeholder:text-gray-500 hover:border-gray-400 focus:border-gray-600 focus:ring-2 focus:ring-gray-200 dark:border-white/20 dark:bg-white/[0.07] dark:text-white dark:placeholder:text-gray-400 dark:hover:border-white/30 dark:focus:border-white/50 dark:focus:ring-white/10"
 													autocomplete="name"
 													placeholder={$i18n.t('Enter Your Full Name')}
 													required
@@ -305,14 +334,14 @@
 										{/if}
 
 										{#if mode === 'ldap'}
-											<div class="mb-2">
-												<label for="username" class="text-sm font-normal text-left mb-1 block"
+											<div>
+												<label for="username" class="mb-2 block text-left text-sm font-medium"
 													>{$i18n.t('Username')}</label
 												>
 												<input
 													bind:value={ldapUsername}
 													type="text"
-													class="my-0.5 w-full text-sm outline-hidden bg-transparent placeholder:text-gray-300 dark:placeholder:text-gray-600"
+													class="w-full rounded-xl border border-gray-300 bg-gray-50 px-4 py-3 text-base text-gray-900 outline-hidden transition placeholder:text-gray-500 hover:border-gray-400 focus:border-gray-600 focus:ring-2 focus:ring-gray-200 dark:border-white/20 dark:bg-white/[0.07] dark:text-white dark:placeholder:text-gray-400 dark:hover:border-white/30 dark:focus:border-white/50 dark:focus:ring-white/10"
 													autocomplete="username"
 													name="username"
 													id="username"
@@ -321,15 +350,15 @@
 												/>
 											</div>
 										{:else}
-											<div class="mb-2">
-												<label for="email" class="text-sm font-normal text-left mb-1 block"
+											<div>
+												<label for="email" class="mb-2 block text-left text-sm font-medium"
 													>{$i18n.t('Email')}</label
 												>
 												<input
 													bind:value={email}
 													type="email"
 													id="email"
-													class="my-0.5 w-full text-sm outline-hidden bg-transparent placeholder:text-gray-300 dark:placeholder:text-gray-600"
+													class="w-full rounded-xl border border-gray-300 bg-gray-50 px-4 py-3 text-base text-gray-900 outline-hidden transition placeholder:text-gray-500 hover:border-gray-400 focus:border-gray-600 focus:ring-2 focus:ring-gray-200 dark:border-white/20 dark:bg-white/[0.07] dark:text-white dark:placeholder:text-gray-400 dark:hover:border-white/30 dark:focus:border-white/50 dark:focus:ring-white/10"
 													autocomplete="email"
 													name="email"
 													placeholder={$i18n.t('Enter Your Email')}
@@ -339,14 +368,16 @@
 										{/if}
 
 										<div>
-											<label for="password" class="text-sm font-normal text-left mb-1 block"
+											<label for="password" class="mb-2 block text-left text-sm font-medium"
 												>{$i18n.t('Password')}</label
 											>
 											<SensitiveInput
 												bind:value={password}
 												type="password"
 												id="password"
-												class="my-0.5 w-full text-sm outline-hidden bg-transparent placeholder:text-gray-300 dark:placeholder:text-gray-600"
+												outerClassName="flex w-full items-center rounded-xl border border-gray-300 bg-gray-50 px-4 transition hover:border-gray-400 focus-within:border-gray-600 focus-within:ring-2 focus-within:ring-gray-200 dark:border-white/20 dark:bg-white/[0.07] dark:hover:border-white/30 dark:focus-within:border-white/50 dark:focus-within:ring-white/10"
+												class="min-w-0 flex-1 py-3 text-base text-gray-900 placeholder:text-gray-500 dark:text-white dark:placeholder:text-gray-400"
+												showButtonClassName="text-gray-500 hover:text-gray-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gray-400 dark:text-gray-400 dark:hover:text-white"
 												placeholder={$i18n.t('Enter Your Password')}
 												autocomplete={mode === 'signup' ? 'new-password' : 'current-password'}
 												name="password"
@@ -357,17 +388,19 @@
 										</div>
 
 										{#if mode === 'signup' && $config?.features?.enable_signup_password_confirmation}
-											<div class="mt-2">
+											<div>
 												<label
 													for="confirm-password"
-													class="text-sm font-normal text-left mb-1 block"
+													class="mb-2 block text-left text-sm font-medium"
 													>{$i18n.t('Confirm Password')}</label
 												>
 												<SensitiveInput
 													bind:value={confirmPassword}
 													type="password"
 													id="confirm-password"
-													class="my-0.5 w-full text-sm outline-hidden bg-transparent"
+													outerClassName="flex w-full items-center rounded-xl border border-gray-300 bg-gray-50 px-4 transition hover:border-gray-400 focus-within:border-gray-600 focus-within:ring-2 focus-within:ring-gray-200 dark:border-white/20 dark:bg-white/[0.07] dark:hover:border-white/30 dark:focus-within:border-white/50 dark:focus-within:ring-white/10"
+													class="min-w-0 flex-1 py-3 text-base text-gray-900 placeholder:text-gray-500 dark:text-white dark:placeholder:text-gray-400"
+													showButtonClassName="text-gray-500 hover:text-gray-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gray-400 dark:text-gray-400 dark:hover:text-white"
 													placeholder={$i18n.t('Confirm Your Password')}
 													autocomplete="new-password"
 													name="confirm-password"
@@ -377,11 +410,11 @@
 										{/if}
 									</div>
 								{/if}
-								<div class="mt-5">
+								<div class="mt-6">
 									{#if $config?.features.enable_login_form || $config?.features.enable_ldap || form}
 										{#if mode === 'ldap'}
 											<button
-												class="bg-gray-700/5 hover:bg-gray-700/10 dark:bg-gray-100/5 dark:hover:bg-gray-100/10 dark:text-gray-300 dark:hover:text-white transition w-full rounded-full font-normal text-sm py-2.5 disabled:opacity-50 flex justify-center"
+												class="flex w-full justify-center rounded-xl bg-gray-900 px-4 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-black focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gray-500 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 dark:bg-white dark:text-gray-950 dark:hover:bg-gray-200 dark:focus-visible:ring-white dark:focus-visible:ring-offset-gray-950"
 												type="submit"
 												disabled={submitting}
 											>
@@ -395,7 +428,7 @@
 											</button>
 										{:else}
 											<button
-												class="bg-gray-700/5 hover:bg-gray-700/10 dark:bg-gray-100/5 dark:hover:bg-gray-100/10 dark:text-gray-300 dark:hover:text-white transition w-full rounded-full font-normal text-sm py-2.5 disabled:opacity-50 flex justify-center"
+												class="flex w-full justify-center rounded-xl bg-gray-900 px-4 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-black focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gray-500 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 dark:bg-white dark:text-gray-950 dark:hover:bg-gray-200 dark:focus-visible:ring-white dark:focus-visible:ring-offset-gray-950"
 												type="submit"
 												disabled={submitting}
 											>
@@ -627,3 +660,40 @@
 		{/if}
 	{/if}
 </div>
+
+<button
+	type="button"
+	class="fixed top-6 right-6 z-50 inline-flex size-11 items-center justify-center rounded-full border border-gray-300 bg-white text-gray-800 shadow-sm hover:bg-gray-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gray-500 focus-visible:ring-offset-2 dark:border-white/20 dark:bg-gray-900 dark:text-white dark:hover:bg-gray-800 dark:focus-visible:ring-white dark:focus-visible:ring-offset-black sm:top-10 sm:right-10"
+	aria-label={`${$i18n.t('Theme')}: ${$i18n.t(isDarkTheme ? 'Light' : 'Dark')}`}
+	title={`${$i18n.t('Theme')}: ${$i18n.t(isDarkTheme ? 'Light' : 'Dark')}`}
+	on:click={() => applyAuthTheme(!isDarkTheme)}
+>
+	{#if isDarkTheme}
+		<svg
+			class="size-5"
+			viewBox="0 0 24 24"
+			fill="none"
+			stroke="currentColor"
+			stroke-width="1.8"
+			aria-hidden="true"
+		>
+			<circle cx="12" cy="12" r="4" />
+			<path
+				d="M12 2v2M12 20v2M4.93 4.93l1.42 1.42M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.42-1.42M17.66 6.34l1.41-1.41"
+			/>
+		</svg>
+	{:else}
+		<svg
+			class="size-5"
+			viewBox="0 0 24 24"
+			fill="none"
+			stroke="currentColor"
+			stroke-width="1.8"
+			stroke-linecap="round"
+			stroke-linejoin="round"
+			aria-hidden="true"
+		>
+			<path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79Z" />
+		</svg>
+	{/if}
+</button>

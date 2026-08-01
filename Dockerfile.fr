@@ -1,0 +1,26 @@
+# syntax=docker/dockerfile:1
+
+ARG OPEN_WEBUI_BASE_IMAGE=ghcr.io/open-webui/open-webui:v0.11.0@sha256:72c0ba641ba75e7aa52655cb242570906ececd09b1140fb736483038a22b3228
+
+FROM --platform=$BUILDPLATFORM node:22-alpine3.20 AS frontend
+
+WORKDIR /app
+
+RUN apk add --no-cache git
+
+COPY package.json package-lock.json ./
+RUN npm ci --force
+
+COPY . .
+ARG BUILD_HASH=fr-local
+ENV APP_BUILD_HASH=${BUILD_HASH}
+ENV NODE_OPTIONS=--max-old-space-size=4096
+RUN npm run pyodide:fetch
+RUN npx vite build
+
+FROM ${OPEN_WEBUI_BASE_IMAGE}
+
+COPY --from=frontend /app/build /app/build
+
+ARG BUILD_HASH=fr-local
+ENV WEBUI_BUILD_VERSION=${BUILD_HASH}

@@ -89,7 +89,6 @@
 
 	// Admin - Show Update Available Toast
 	let showUpdateToast = true;
-	let showChangelog = true;
 
 	// File
 	let defaultUploadContext: 'full' | 'focused' = 'focused';
@@ -220,7 +219,6 @@
 
 		showUsername = $settings?.showUsername ?? false;
 		showUpdateToast = $settings?.showUpdateToast ?? true;
-		showChangelog = $settings?.showChangelog ?? true;
 
 		showEmojiInCall = $settings?.showEmojiInCall ?? false;
 		voiceInterruption = $settings?.voiceInterruption ?? false;
@@ -561,28 +559,6 @@
 					</div>
 					<p class={settingDescriptionClass}>
 						{$i18n.t('Show update toasts to admins when new versions are available.')}
-					</p>
-				</div>
-
-				<div>
-					<div class={settingRowClass}>
-						<div id="whats-new-label" class={settingLabelClass}>
-							{$i18n.t(`Show "What's New" Modal on Login`)}
-						</div>
-
-						<div class={settingControlClass}>
-							<Switch
-								ariaLabelledbyId="whats-new-label"
-								tooltip={true}
-								bind:state={showChangelog}
-								on:change={() => {
-									saveSettings({ showChangelog });
-								}}
-							/>
-						</div>
-					</div>
-					<p class={settingDescriptionClass}>
-						{$i18n.t('Open the changelog modal after sign-in when enabled.')}
 					</p>
 				</div>
 			{/if}
