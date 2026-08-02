@@ -15,6 +15,7 @@
 	import { etatDeConnexion } from '$lib/composio/etat';
 	import { nomAffiche } from '$lib/composio/categories';
 	import { ficheDe } from '$lib/composio/fiches';
+	import { descriptionFr } from '$lib/composio/descriptions';
 
 	const i18n = getContext('i18n');
 	const dispatch = createEventDispatcher();
@@ -43,7 +44,11 @@
 	// entrees. Sa phrase et son nombre d'actions valent mieux qu'une carte nue,
 	// et restent justes quand son catalogue bouge. Ces textes sont en anglais —
 	// les vingt-trois de la vitrine ont leur fiche francaise, qui passe devant.
-	$: description = fiche?.desc ?? application.description ?? null;
+	// Trois sources, dans cet ordre : la fiche redigee de la vitrine, le libelle
+	// francais du catalogue recommande, puis le texte anglais de Composio pour le
+	// fourre-tout. On ne descend d'un cran que faute de mieux.
+	$: description =
+		fiche?.desc ?? descriptionFr(application.slug) ?? application.description ?? null;
 	$: etiquettes = fiche
 		? fiche.tags
 		: [
@@ -56,6 +61,7 @@
 	$: actionsAPropos = fiche
 		? fiche.actions
 		: [
+				// Le texte long de Composio a sa place ici, pas sur la carte.
 				...(application.description ? [application.description] : []),
 				...(application.actions
 					? [$i18n.t('{{n}} actions disponibles pour l’assistant.', { n: application.actions })]
