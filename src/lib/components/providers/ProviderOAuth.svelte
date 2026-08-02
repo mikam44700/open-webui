@@ -8,6 +8,7 @@
 		logoutProviderOAuth
 	} from '$lib/apis/providers';
 	import Spinner from '$lib/components/common/Spinner.svelte';
+	import CopyField from '$lib/components/common/CopyField.svelte';
 
 	const i18n = getContext('i18n');
 	const dispatch = createEventDispatcher();
@@ -16,9 +17,22 @@
 		id: string;
 		label: string;
 		state: 'active' | 'configured' | 'not_configured';
+		disconnectable?: boolean;
+		disconnect_hint?: string | null;
+		disconnect_command?: string | null;
+		source_label?: string | null;
 	};
 
 	$: isCodex = provider.id === 'openai-codex';
+	// Un compte garde hors de Hermes ne peut pas etre retire depuis cet ecran.
+	$: detachable = provider.disconnectable !== false;
+
+	// Le code d'autorisation arrive dans le journal sous la forme « Code : XXXX-YYYY ».
+	// On l'en extrait pour le presenter en grand, avec un bouton copier : c'est la
+	// seule chose que l'utilisateur doit reporter a la main, et une erreur de saisie
+	// oblige a tout recommencer.
+	$: codeAutorisation = (log.match(/Code\s*:\s*([A-Z0-9-]+)/i) ?? [])[1] ?? '';
+	$: journalRestant = codeAutorisation ? log.replace(/Code\s*:\s*[A-Z0-9-]+/i, '').trim() : log;
 
 	let status: 'idle' | 'running' | 'success' | 'error' = 'idle';
 	let log = '';
@@ -113,7 +127,7 @@
 			{/if}
 		</button>
 
-		{#if connected && !confirming}
+		{#if connected && detachable && !confirming}
 			<button
 				type="button"
 				class="text-sm px-3 py-1.5 rounded-xl border border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-850 transition"
@@ -123,6 +137,26 @@
 			</button>
 		{/if}
 	</div>
+
+	{#if connected && !detachable}
+		<div
+			class="flex flex-col gap-2 rounded-xl border border-gray-200 bg-gray-50 p-3 dark:border-gray-800 dark:bg-gray-900"
+		>
+			<div class="text-xs text-gray-600 dark:text-gray-300">
+				{$i18n.t('Ce compte est géré en dehors de Hermes : il ne peut pas être déconnecté ici.')}
+				{#if provider.source_label}
+					<span class="text-gray-400"> ({provider.source_label})</span>
+				{/if}
+			</div>
+			{#if provider.disconnect_command}
+				<CopyField
+					value={provider.disconnect_command}
+					label={$i18n.t('Commande à lancer dans le Terminal pour le retirer')}
+					variant="command"
+				/>
+			{/if}
+		</div>
+	{/if}
 
 	{#if confirming}
 		<div class="flex items-center gap-2 flex-wrap text-xs">
@@ -159,8 +193,12 @@
 		</div>
 	{/if}
 
-	{#if log}
+	{#if codeAutorisation}
+		<CopyField value={codeAutorisation} label={$i18n.t('Code à saisir sur la page ouverte')} />
+	{/if}
+
+	{#if journalRestant}
 		<pre
-			class="text-[11px] leading-relaxed bg-gray-50 dark:bg-gray-900 rounded-xl p-2 max-h-40 overflow-y-auto whitespace-pre-wrap">{log}</pre>
+			class="text-[11px] leading-relaxed bg-gray-50 dark:bg-gray-900 rounded-xl p-2 max-h-40 overflow-y-auto whitespace-pre-wrap">{journalRestant}</pre>
 	{/if}
 </div>

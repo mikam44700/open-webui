@@ -33,6 +33,13 @@ type ProviderView = {
 	endpoint_id?: string | null;
 	models: { id: string; label: string }[];
 	unavailable_reason?: string | null;
+	/** Faux quand le compte est gere hors de Hermes et ne peut pas etre retire d'ici. */
+	disconnectable?: boolean;
+	disconnect_hint?: string | null;
+	/** Commande a lancer soi-meme pour retirer un compte gere ailleurs. */
+	disconnect_command?: string | null;
+	/** Ou vit reellement la session : fichier, trousseau du systeme. */
+	source_label?: string | null;
 };
 
 type ProviderMeta = {
@@ -376,7 +383,15 @@ export const getProviders = async (token: string) => {
 			logo: meta.logo,
 			category: meta.category,
 			state: account.status?.logged_in ? 'configured' : 'not_configured',
-			models: []
+			models: [],
+			// Certains comptes sont reconnus par Hermes mais gardes ailleurs — la
+			// session de Claude Code, par exemple, vit dans le trousseau du systeme.
+			// Hermes le signale ; sans ces trois champs, l'ecran proposait un bouton
+			// « Deconnecter » qui ne pouvait qu'echouer, sans dire quoi faire.
+			disconnectable: account.disconnectable !== false,
+			disconnect_hint: account.disconnect_hint ?? null,
+			disconnect_command: account.disconnect_command ?? null,
+			source_label: account.status?.source_label ?? null
 		});
 	}
 
@@ -409,9 +424,7 @@ export const getProviders = async (token: string) => {
 		const isUsable = (id: string) => {
 			const dependency = providers.get(id);
 			return Boolean(
-				dependency &&
-					dependency.state !== 'not_configured' &&
-					(dependency.models?.length ?? 0) > 0
+				dependency && dependency.state !== 'not_configured' && (dependency.models?.length ?? 0) > 0
 			);
 		};
 		const missingIds = dependencyIds.filter((id) => !isUsable(id));
@@ -461,8 +474,7 @@ export const getModelCapabilities = async (token: string, providerId: string, mo
 		// Hermes accepte ces quatre efforts par requête via model_options. Les exposer ici
 		// restaure exactement les quatre niveaux du chat LunarIA V1, tout en laissant le
 		// runtime fournisseur appliquer son équivalent natif.
-		supported_efforts:
-			caps.reasoning === false ? [] : ['low', 'medium', 'high', 'xhigh'],
+		supported_efforts: caps.reasoning === false ? [] : ['low', 'medium', 'high', 'xhigh'],
 		effort_confidence: 'hermes_runtime'
 	};
 };
@@ -637,7 +649,13 @@ export const getHermesUpdateStatus = async (token: string) => {
 	const demarree = enCours || lignes.length > 0;
 
 	if (enCours || !demarree) {
-		return { running: enCours, started: demarree, success: false, rolled_back: false, log: journal };
+		return {
+			running: enCours,
+			started: demarree,
+			success: false,
+			rolled_back: false,
+			log: journal
+		};
 	}
 
 	// La mise a jour est terminee. Une mise a jour REUSSIE redemarre les services
