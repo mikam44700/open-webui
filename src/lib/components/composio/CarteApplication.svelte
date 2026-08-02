@@ -8,10 +8,13 @@
 	import { toast } from 'svelte-sonner';
 
 	import Spinner from '$lib/components/common/Spinner.svelte';
+	import ActiveBadge from '$lib/components/common/ActiveBadge.svelte';
+	import ConnectorAboutModal from '$lib/components/connectors/ConnectorAboutModal.svelte';
 	import { connecterApplication, retirerConnexion, suivreConnexion } from '$lib/apis/composio';
 	import type { ApplicationAffichee } from '$lib/composio/etat';
 	import { etatDeConnexion } from '$lib/composio/etat';
 	import { nomAffiche } from '$lib/composio/categories';
+	import { ficheDe } from '$lib/composio/fiches';
 
 	const i18n = getContext('i18n');
 	const dispatch = createEventDispatcher();
@@ -29,6 +32,12 @@
 	// masquerait celui de la suivante.
 	let logoCasse = false;
 	$: if (application.slug) logoCasse = false;
+
+	// Seules les applications de la vitrine ont une fiche redigee. Les mille du
+	// reste du catalogue gardent une carte compacte : inventer leur description
+	// serait faux, et en ecrire mille a la main serait obsolete dans six mois.
+	$: fiche = ficheDe(application.slug);
+	let aProposOuvert = false;
 
 	let connexion = false;
 	let confirmationRetrait = false;
@@ -104,80 +113,131 @@
 	};
 </script>
 
+<!-- `h-full` + grille : toutes les cartes d'une meme rangee prennent la hauteur
+     de la plus haute. C'est ce qui les aligne, comme les cartes natives. -->
 <div
-	class="flex items-center gap-3 p-3 rounded-2xl border border-gray-100 dark:border-gray-850 card-lift hover:border-gray-200 dark:hover:border-gray-700"
+	class="flex h-full flex-col gap-2.5 rounded-2xl border border-gray-100 p-4 card-lift hover:border-gray-200 dark:border-gray-850 dark:hover:border-gray-700"
 >
-	<div
-		class="flex-none size-10 rounded-xl border border-gray-100 dark:border-gray-700 bg-white overflow-hidden flex items-center justify-center"
-	>
-		{#if application.logo && !logoCasse}
-			<img
-				src={application.logo}
-				alt={nom}
-				class="max-w-full max-h-full object-contain"
-				draggable="false"
-				on:error={() => (logoCasse = true)}
-			/>
-		{:else}
-			<!-- Repli sur les initiales : plusieurs logos du catalogue Composio
-			     repondent sans image affichable, ce qui laissait un carre vide. -->
-			<span class="text-xs font-medium text-gray-400">{initiales}</span>
-		{/if}
-	</div>
-
-	<div class="flex-1 min-w-0">
-		<!-- Deux lignes plutot qu'une coupe seche : le catalogue compte une
-		     quinzaine d'applications Google, toutes reduites a « Google … » sur
-		     une seule ligne, donc impossibles a distinguer. -->
-		<div class="text-sm font-medium leading-tight line-clamp-2 wrap-break-word" title={nom}>
-			{nom}
+	<div class="flex items-start gap-2.5">
+		<div
+			class="flex size-12 flex-none items-center justify-center overflow-hidden rounded-xl border border-gray-100 bg-white dark:border-gray-700"
+		>
+			{#if application.logo && !logoCasse}
+				<img
+					src={application.logo}
+					alt={nom}
+					class="max-h-full max-w-full object-contain"
+					draggable="false"
+					on:error={() => (logoCasse = true)}
+				/>
+			{:else}
+				<!-- Repli sur les initiales : plusieurs logos du catalogue Composio
+				     repondent sans image affichable, ce qui laissait un carre vide. -->
+				<span class="text-xs font-medium text-gray-400">{initiales}</span>
+			{/if}
 		</div>
+
+		<div class="flex min-w-0 flex-1 flex-col gap-1">
+			<!-- Deux lignes plutot qu'une coupe seche : le catalogue compte une
+			     quinzaine d'applications Google, toutes reduites a « Google … » sur
+			     une seule ligne, donc impossibles a distinguer. -->
+			<div class="text-sm font-medium leading-tight line-clamp-2 wrap-break-word" title={nom}>
+				{nom}
+			</div>
+			{#if fiche}
+				<div class="text-xs leading-snug text-gray-500">{fiche.desc}</div>
+			{/if}
+		</div>
+
 		{#if application.etat === 'connectee'}
-			<div class="text-xs text-green-600 dark:text-green-500">{$i18n.t('Connecté')}</div>
-		{:else if application.etat === 'en_cours'}
-			<div class="text-xs text-gray-500">{$i18n.t('Autorisation en cours…')}</div>
-		{:else if application.etat === 'echouee'}
-			<div class="text-xs text-gray-500">{$i18n.t('Connexion à refaire')}</div>
+			<span class="flex-none"><ActiveBadge /></span>
 		{/if}
 	</div>
 
-	<div class="flex-none flex items-center gap-2">
-		{#if application.etat === 'connectee'}
-			{#if confirmationRetrait}
-				<button
-					type="button"
-					class="text-xs text-gray-500 hover:text-gray-800 dark:hover:text-gray-200 transition"
-					on:click={() => (confirmationRetrait = false)}
-					disabled={retrait}
+	{#if fiche}
+		<!-- Trois etiquettes au plus : au-dela elles passent a la ligne et les
+		     cartes cessent d'avoir la meme hauteur (verifie par fiches.test.ts). -->
+		<div class="flex flex-wrap gap-1">
+			{#each fiche.tags as tag (tag)}
+				<span
+					class="rounded-full bg-gray-100 px-2 py-0.5 text-[11px] text-gray-600 dark:bg-gray-850 dark:text-gray-300"
 				>
-					{$i18n.t('Annuler')}
-				</button>
-				<button
-					type="button"
-					class="text-xs px-3 py-1.5 rounded-lg bg-red-600 text-white hover:bg-red-700 transition disabled:opacity-40"
-					on:click={retirer}
-					disabled={retrait}
-				>
-					{#if retrait}<Spinner className="size-3.5" />{:else}{$i18n.t('Confirmer')}{/if}
-				</button>
+					{$i18n.t(tag)}
+				</span>
+			{/each}
+		</div>
+
+		<button
+			type="button"
+			class="self-start text-xs font-medium text-sky-600 hover:underline dark:text-sky-400"
+			on:click={() => (aProposOuvert = true)}
+		>
+			{$i18n.t('Voir ce que ça fait')} ›
+		</button>
+	{/if}
+
+	<div class="mt-auto flex items-center justify-between gap-2 pt-1">
+		<span class="text-[11px] text-gray-500 dark:text-gray-400">
+			{#if application.etat === 'connectee'}
+				{$i18n.t('Connecté')}
+			{:else if application.etat === 'en_cours'}
+				{$i18n.t('Autorisation en cours…')}
+			{:else if application.etat === 'echouee'}
+				{$i18n.t('Connexion à refaire')}
+			{:else}
+				{$i18n.t('Connexion par compte')}
+			{/if}
+		</span>
+
+		<div class="flex flex-none items-center gap-2">
+			{#if application.etat === 'connectee'}
+				{#if confirmationRetrait}
+					<button
+						type="button"
+						class="text-xs text-gray-500 hover:text-gray-800 dark:hover:text-gray-200 transition"
+						on:click={() => (confirmationRetrait = false)}
+						disabled={retrait}
+					>
+						{$i18n.t('Annuler')}
+					</button>
+					<button
+						type="button"
+						class="text-xs px-3 py-1.5 rounded-lg bg-red-600 text-white hover:bg-red-700 transition disabled:opacity-40"
+						on:click={retirer}
+						disabled={retrait}
+					>
+						{#if retrait}<Spinner className="size-3.5" />{:else}{$i18n.t('Confirmer')}{/if}
+					</button>
+				{:else}
+					<button
+						type="button"
+						class="text-xs text-gray-400 hover:text-red-600 dark:hover:text-red-400 transition"
+						on:click={() => (confirmationRetrait = true)}
+					>
+						{$i18n.t('Déconnecter')}
+					</button>
+				{/if}
 			{:else}
 				<button
 					type="button"
-					class="text-xs text-gray-400 hover:text-red-600 dark:hover:text-red-400 transition"
-					on:click={() => (confirmationRetrait = true)}
+					class="text-xs px-3 py-1.5 rounded-lg btn-premium bg-black text-white dark:bg-white dark:text-black transition disabled:opacity-40"
+					on:click={connecter}
+					disabled={connexion}
 				>
-					{$i18n.t('Déconnecter')}
+					{#if connexion}<Spinner className="size-3.5" />{:else}{$i18n.t('Connecter')}{/if}
 				</button>
 			{/if}
-		{:else}
-			<button
-				type="button"
-				class="text-xs px-3 py-1.5 rounded-lg btn-premium bg-black text-white dark:bg-white dark:text-black transition disabled:opacity-40"
-				on:click={connecter}
-				disabled={connexion}
-			>
-				{#if connexion}<Spinner className="size-3.5" />{:else}{$i18n.t('Connecter')}{/if}
-			</button>
-		{/if}
+		</div>
 	</div>
 </div>
+
+{#if fiche}
+	<ConnectorAboutModal
+		bind:open={aProposOuvert}
+		name={nom}
+		desc={fiche.desc}
+		logoSrc={logoCasse ? '' : (application.logo ?? '')}
+		actions={fiche.actions}
+		tags={fiche.tags}
+	/>
+{/if}
