@@ -12,8 +12,19 @@ services:
       - "3000:8080"
     environment:
       DEFAULT_LOCALE: fr-FR
+      HERMES_API_URL: ${HERMES_API_URL:-http://host.docker.internal:8642}
+      HERMES_API_KEY: ${HERMES_API_KEY:-}
+      HERMES_CONFIG_FILE: /run/secrets/hermes-config.yaml
+      HERMES_REQUEST_TIMEOUT: ${HERMES_REQUEST_TIMEOUT:-15}
+      # Tableau de bord de Hermes : il tourne sur la machine hote, pas dans un
+      # conteneur voisin. Sans lui, les onglets Modeles IA, Comptes et Outils
+      # restent vides. Se demarre par : hermes dashboard --port 9119
+      HERMES_DASHBOARD_URL: ${HERMES_DASHBOARD_URL:-http://host.docker.internal:9119}
+      HERMES_DASHBOARD_USER: ${HERMES_DASHBOARD_USER:-}
+      HERMES_DASHBOARD_PASSWORD: ${HERMES_DASHBOARD_PASSWORD:-}
     volumes:
       - open-webui:/app/backend/data
+      - ${HERMES_CONFIG_PATH:-/Users/michaelm/.hermes/config.yaml}:/run/secrets/hermes-config.yaml:ro
 
 volumes:
   open-webui:

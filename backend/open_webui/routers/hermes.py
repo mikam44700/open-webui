@@ -37,7 +37,36 @@ router = APIRouter()
 #
 # Aucun des deux n'est publie vers la machine. Seul ce backend les atteint.
 HERMES_API_URL = os.environ.get("HERMES_API_URL", "http://hermes:8642").rstrip("/")
-HERMES_API_KEY = os.environ.get("HERMES_API_KEY", "")
+def _lire_cle_api() -> str:
+    """Cle d'acces au moteur.
+
+    La variable d'environnement prime. A defaut, on relit le fichier de
+    configuration de Hermes, deja monte en lecture seule dans le conteneur :
+    la cle n'a alors pas a etre recopiee a la main dans un second endroit,
+    ou elle finirait par diverger.
+    """
+    cle = os.environ.get("HERMES_API_KEY", "")
+    chemin = os.environ.get("HERMES_CONFIG_FILE", "")
+    if cle or not chemin:
+        return cle
+
+    try:
+        import yaml
+
+        with open(chemin, encoding="utf-8") as fichier:
+            config = yaml.safe_load(fichier) or {}
+        return str(
+            config.get("platforms", {})
+            .get("api_server", {})
+            .get("extra", {})
+            .get("key", "")
+        )
+    except (OSError, AttributeError, TypeError, ValueError) as erreur:
+        log.warning("Cle du moteur illisible dans %s : %s", chemin, erreur)
+        return ""
+
+
+HERMES_API_KEY = _lire_cle_api()
 
 HERMES_DASHBOARD_URL = os.environ.get(
     "HERMES_DASHBOARD_URL", "http://hermes-dashboard:9119"
