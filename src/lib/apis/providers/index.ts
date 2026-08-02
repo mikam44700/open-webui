@@ -21,6 +21,7 @@ import {
 	demarrerMiseAJour,
 	suivreMiseAJour
 } from '$lib/apis/hermes';
+import { deriverEtat } from '$lib/providers/etat';
 
 type ProviderView = {
 	id: string;
@@ -28,6 +29,8 @@ type ProviderView = {
 	logo: string;
 	category: 'oauth' | 'api' | 'local' | 'other';
 	state: 'active' | 'configured' | 'not_configured';
+	/** Une cle API est reellement enregistree — jamais une session ouverte ailleurs. */
+	has_key?: boolean;
 	env_key?: string | null;
 	base_url?: string | null;
 	endpoint_id?: string | null;
@@ -322,19 +325,23 @@ export const getProviders = async (token: string) => {
 			meta.envKeys?.find((key) => Boolean(keys?.[key]?.is_set)) ?? meta.envKeys?.[0] ?? null;
 		if (envKey) envByProvider.set(id, envKey);
 		const hasStoredKey = Boolean(meta.envKeys?.some((key) => keys?.[key]?.is_set));
-		const loggedIn = Boolean(account?.status?.logged_in);
-		const authenticated = hasStoredKey || loggedIn || Boolean(option.authenticated);
+		// Une carte de l'onglet « Cles API » ne doit se dire connectee que sur une
+		// vraie cle : une session ouverte ailleurs sur la machine ne se saisit pas
+		// ici et ne se retire pas d'ici. Regle et cas limites : lib/providers/etat.ts.
+		const { etat, cle } = deriverEtat({
+			aCle: meta.category === 'api' && (meta.envKeys?.length ?? 0) > 0,
+			cleEnregistree: hasStoredKey,
+			compteConnecte: Boolean(account?.status?.logged_in),
+			joignable: Boolean(option.authenticated),
+			courant: currentProvider === id || Boolean(option.is_current)
+		});
 		providers.set(id, {
 			id,
 			label: `${option.label ?? option.name ?? meta.label}`,
 			logo: meta.logo,
 			category: meta.category,
-			state:
-				authenticated && (currentProvider === id || option.is_current)
-					? 'active'
-					: authenticated
-						? 'configured'
-						: 'not_configured',
+			state: etat,
+			has_key: cle,
 			env_key: envKey,
 			base_url: option.base_url ?? null,
 			models: modelsOf(option)

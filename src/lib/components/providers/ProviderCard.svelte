@@ -34,6 +34,7 @@
 		logo: string;
 		category: 'oauth' | 'api' | 'local' | 'other';
 		state: 'active' | 'configured' | 'not_configured';
+		has_key?: boolean;
 		env_key?: string | null;
 		base_url?: string | null;
 		models?: { id: string; label: string }[];
@@ -44,6 +45,11 @@
 	export let showModelPicker = false;
 
 	$: configured = provider.state !== 'not_configured';
+	// Le bloc « clé » ne se fie qu'à une clé réellement enregistrée : une session ouverte
+	// ailleurs sur la machine ne se saisit pas ici et ne se retire pas d'ici (règle et cas
+	// limites dans lib/providers/etat.ts). Repli sur `configured` pour les cartes qui n'ont
+	// aucune clé à saisir, comme un serveur local branché par son adresse.
+	$: keyConnected = provider.has_key ?? configured;
 	// Présentation métier curée (libellé humain + badges) — repli neutre si inconnu (D27).
 	$: presentation = getModelPresentation(provider.id);
 	// Infos client : phrase grise courte, « Voir ce que ça fait », lien « Obtenir la clé ».
@@ -197,8 +203,15 @@
 			}
 			confirmingDelete = false;
 			dispatch('changed');
-		} catch {
-			toast.error($i18n.t('Impossible de retirer la clé'));
+		} catch (err) {
+			// Sans le motif, un échec ressemblait à une panne de l'écran. Hermes dit
+			// pourquoi il refuse (clé absente, moteur injoignable) : on le répète.
+			const motif = `${err ?? ''}`.trim();
+			toast.error(
+				motif
+					? `${$i18n.t('Impossible de retirer la clé')} — ${motif}`
+					: $i18n.t('Impossible de retirer la clé')
+			);
 		} finally {
 			deleting = false;
 		}
@@ -374,7 +387,7 @@
 		{:else if provider.id === 'moa'}
 			<!-- Aucune clé propre : l'explication est dans « Voir ce que ça fait ». -->
 		{:else if provider.category === 'api' || provider.category === 'local'}
-			{#if configured && !replacing}
+			{#if keyConnected && !replacing}
 				<!-- Carte CALME (connectée) : on cache la mécanique, on montre juste l'état. -->
 				<!-- « ✓ Clé connectée » toujours affiché : rassure le dirigeant que sa clé marche. -->
 				<div class="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-300">
