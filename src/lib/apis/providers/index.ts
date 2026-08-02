@@ -508,8 +508,12 @@ export const setAwsCredentials = async (
 export const startProviderOAuth = async (token: string, providerId: string) => {
 	const result = await demarrerOAuth(token, providerId);
 	const sessionId = `${result?.session_id ?? result?.id ?? ''}`;
+	// Meme oubli que dans PanneauComptes : `verification_url` est le nom
+	// qu'emploie Hermes pour le flux « device code ». Sans lui, aucune fenetre
+	// d'autorisation ne s'ouvre et la connexion ne peut jamais aboutir.
 	const url =
 		result?.verification_uri_complete ??
+		result?.verification_url ??
 		result?.verification_uri ??
 		result?.authorization_url ??
 		result?.auth_url ??

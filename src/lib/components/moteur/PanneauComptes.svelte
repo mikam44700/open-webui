@@ -91,8 +91,14 @@
 	const resultatConnexion = async (resultat: any) => {
 		sessionId = `${resultat?.session_id ?? resultat?.id ?? ''}`;
 		codeUtilisateur = `${resultat?.user_code ?? resultat?.device_code ?? ''}`;
+		// `verification_url` est le nom qu'emploie Hermes pour le flux « device
+		// code » (OpenAI Codex, Nous). Il manquait ici : l'URL restait vide, la
+		// fenetre d'autorisation ne s'ouvrait jamais et la connexion tournait
+		// indefiniment sur « Connexion en cours… ». Les autres noms couvrent les
+		// variantes de la norme OAuth et restent acceptes.
 		urlConnexion = `${
 			resultat?.verification_uri_complete ??
+			resultat?.verification_url ??
 			resultat?.verification_uri ??
 			resultat?.authorization_url ??
 			resultat?.auth_url ??

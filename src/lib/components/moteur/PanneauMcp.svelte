@@ -237,7 +237,13 @@
 		messageAction = null;
 		try {
 			const resultat = await authentifierServeurMcp(localStorage.token, selectionServeur.id);
-			const urlAuth = resultat?.authorization_url || resultat?.auth_url || resultat?.url;
+			// `verification_url` en repli : c'est le nom employe par Hermes pour les
+			// flux « device code ». Son absence ailleurs empechait toute connexion.
+			const urlAuth =
+				resultat?.authorization_url ||
+				resultat?.verification_url ||
+				resultat?.auth_url ||
+				resultat?.url;
 			flowId = `${resultat?.flow_id ?? resultat?.id ?? ''}`;
 			if (urlAuth) window.open(urlAuth, '_blank', 'noopener,noreferrer');
 			if (flowId) {
