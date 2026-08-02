@@ -16,6 +16,7 @@
 	import { nomAffiche } from '$lib/composio/categories';
 	import { ficheDe } from '$lib/composio/fiches';
 	import { descriptionFr } from '$lib/composio/descriptions';
+	import { ficheCatalogueDe } from '$lib/composio/fiches-catalogue';
 
 	const i18n = getContext('i18n');
 	const dispatch = createEventDispatcher();
@@ -38,6 +39,7 @@
 	// reste du catalogue gardent une carte compacte : inventer leur description
 	// serait faux, et en ecrire mille a la main serait obsolete dans six mois.
 	$: fiche = ficheDe(application.slug);
+	$: ficheCat = ficheCatalogueDe(application.slug);
 	let aProposOuvert = false;
 
 	// Hors vitrine, on n'invente rien : Composio decrit lui-meme chacune de ses
@@ -51,22 +53,22 @@
 		fiche?.desc ?? descriptionFr(application.slug) ?? application.description ?? null;
 	$: etiquettes = fiche
 		? fiche.tags
-		: [
+		: (ficheCat?.tags ?? [
 				...(application.actions ? [$i18n.t('{{n}} actions', { n: application.actions })] : []),
 				...(application.categories ?? []).slice(0, 2)
-			];
+			]);
 	// Il faut quelque chose a montrer : sans description ni site, la fenetre
 	// n'apprendrait rien de plus que la carte.
-	$: aProposPossible = Boolean(fiche || application.description || application.site);
+	$: aProposPossible = Boolean(fiche || ficheCat || application.description || application.site);
 	$: actionsAPropos = fiche
 		? fiche.actions
-		: [
+		: (ficheCat?.actions ?? [
 				// Le texte long de Composio a sa place ici, pas sur la carte.
 				...(application.description ? [application.description] : []),
 				...(application.actions
 					? [$i18n.t('{{n}} actions disponibles pour l’assistant.', { n: application.actions })]
 					: [])
-			];
+			]);
 
 	let connexion = false;
 	let confirmationRetrait = false;
