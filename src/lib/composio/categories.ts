@@ -33,7 +33,14 @@ export const CATEGORIES: Categorie[] = [
 	{
 		id: 'google',
 		libelle: 'Espace Google',
-		applications: ['gmail', 'googlecalendar', 'googledrive', 'googledocs', 'googlesheets']
+		applications: [
+			'gmail',
+			'googlecalendar',
+			'googledrive',
+			'googledocs',
+			'googlesheets',
+			'googlemeet'
+		]
 	},
 	{
 		id: 'microsoft',
@@ -44,7 +51,9 @@ export const CATEGORIES: Categorie[] = [
 	{
 		id: 'discussion',
 		libelle: 'Discussions & réunions',
-		applications: ['zoom']
+		// Slack est le chat d'equipe de reference en entreprise ; sans lui, un
+		// client qui ne tourne pas sur Microsoft n'a aucune discussion branchee.
+		applications: ['slack', 'zoom']
 	},
 	{
 		id: 'agenda',

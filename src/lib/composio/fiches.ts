@@ -73,6 +73,16 @@ export const FICHES: Record<string, Fiche> = {
 		]
 	},
 
+	googlemeet: {
+		desc: 'Vos réunions Google Meet.',
+		tags: ['Planifier', 'Inviter', 'Résumer'],
+		actions: [
+			'Créer une réunion et envoyer le lien aux participants',
+			'Lister vos réunions à venir',
+			'Récupérer le compte rendu d’une réunion passée'
+		]
+	},
+
 	// ── Espace Microsoft ─────────────────────────────────────
 	outlook: {
 		desc: 'Votre messagerie Outlook et son agenda.',
@@ -103,6 +113,16 @@ export const FICHES: Record<string, Fiche> = {
 	},
 
 	// ── Discussions & réunions ───────────────────────────────
+	slack: {
+		desc: 'Vos canaux et messages Slack.',
+		tags: ['Lire', 'Écrire', 'Résumer'],
+		actions: [
+			'Résumer ce qui s’est dit dans un canal pendant votre absence',
+			'Envoyer un message à une personne ou à un canal',
+			'Retrouver une décision prise dans une conversation',
+			'Vous alerter quand votre nom est cité'
+		]
+	},
 	zoom: {
 		desc: 'Vos réunions Zoom.',
 		tags: ['Planifier', 'Inviter', 'Enregistrer'],
