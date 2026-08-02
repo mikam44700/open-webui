@@ -627,14 +627,28 @@ export const startHermesUpdate = async (token: string) => {
 export const getHermesUpdateStatus = async (token: string) => {
 	const r = await suivreMiseAJour(token);
 	const enCours = Boolean(r?.running);
+	const lignes = r?.lines ?? [];
 	const code = r?.exit_code;
-	const termine = !enCours && (code !== null && code !== undefined);
+	const journal = lignes.join('\n');
+	const demarree = enCours || lignes.length > 0;
 
-	return {
-		running: enCours,
-		started: enCours || termine,
-		success: termine && code === 0,
-		rolled_back: false,
-		log: (r?.lines ?? []).join('\n')
-	};
+	if (enCours || !demarree) {
+		return { running: enCours, started: demarree, success: false, rolled_back: false, log: journal };
+	}
+
+	// La mise a jour est terminee. Une mise a jour REUSSIE redemarre les services
+	// de Hermes — le suivi perd alors le code de sortie du processus et renvoie
+	// `null`. S'y fier ferait tourner la page en boucle sans jamais annoncer la
+	// fin. On tranche donc sur un fait verifiable : reste-t-il quelque chose a
+	// installer ?
+	const succes =
+		code === 0
+			? true
+			: code === null || code === undefined
+				? await verifierMiseAJour(token)
+						.then((v) => v?.update_available === false)
+						.catch(() => false)
+				: false;
+
+	return { running: false, started: true, success: succes, rolled_back: false, log: journal };
 };
