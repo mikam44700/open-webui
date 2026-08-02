@@ -95,11 +95,6 @@ const PROVIDER_META: Record<string, ProviderMeta> = {
 		envKeys: ['ANTHROPIC_API_KEY']
 	},
 	'openai-codex': { label: 'OpenAI Codex', logo: 'codex', category: 'oauth' },
-	// Hermes nomme cette entree d'apres un message d'erreur d'Anthropic
-	// (« Required Extra Usage Credits… »), illisible sur une carte. Ce n'est pas
-	// un fournisseur a part : c'est la session de l'outil Claude Code, detectee
-	// sur la machine.
-	'claude-code': { label: 'Claude (via Claude Code)', logo: 'claude-color', category: 'oauth' },
 	'openai-api': {
 		label: 'OpenAI',
 		logo: 'openai',
@@ -273,6 +268,18 @@ const PROVIDER_META: Record<string, ProviderMeta> = {
 	}
 };
 
+/**
+ * Fournisseurs que Hermes propose mais que l'on n'affiche pas.
+ *
+ * `claude-code` : cette voie ne donne PAS acces a un abonnement Claude. Hermes
+ * l'ecrit lui-meme — elle « ne fonctionne qu'avec des credits d'usage
+ * supplementaires, en plus d'un forfait Claude Max », d'ou le nom-avertissement
+ * qu'il lui donne. La montrer comme un moyen de brancher son abonnement
+ * induirait le client en erreur sur ce qu'il va payer. La connexion par cle
+ * API Anthropic, elle, reste proposee : c'est la voie claire et sans surprise.
+ */
+const MASQUES = new Set(['claude-code']);
+
 const envByProvider = new Map<string, string>();
 let lastOptions: any = null;
 const oauthSessions = new Map<string, { sessionId: string; started: boolean; log: string }>();
@@ -379,7 +386,7 @@ export const getProviders = async (token: string) => {
 	// fournisse des options. On conserve donc aussi ces cartes, sans doublon.
 	for (const account of oauth?.providers ?? []) {
 		const id = `${account.id}`;
-		if (providers.has(id)) continue;
+		if (providers.has(id) || MASQUES.has(id)) continue;
 		const meta = PROVIDER_META[id] ?? {
 			label: `${account.name ?? id}`,
 			logo: 'api',
