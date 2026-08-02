@@ -10,6 +10,7 @@
 	import CarteApplication from './CarteApplication.svelte';
 	import type { ApplicationAffichee } from '$lib/composio/etat';
 	import { filtrer } from '$lib/composio/grouper';
+	import { estRecommandee } from '$lib/composio/catalogue';
 
 	const i18n = getContext('i18n');
 	const dispatch = createEventDispatcher();
@@ -18,12 +19,20 @@
 	export let applications: ApplicationAffichee[] = [];
 
 	let recherche = '';
+	// Le reste du catalogue : sept cent cinquante micro-services d'API, montres
+	// seulement a la demande. Rien n'est masque — c'est un clic de plus, et la
+	// recherche les traverse de toute facon.
+	let toutMontrer = false;
 
-	$: resultats = filtrer(applications, recherche);
+	$: recommandees = applications.filter((a) => estRecommandee(a.slug));
+	$: autres = applications.filter((a) => !estRecommandee(a.slug));
+	// La recherche porte sur le catalogue ENTIER : ranger ne doit pas cacher.
+	$: resultats = recherche.trim() ? filtrer(applications, recherche) : [];
 
 	const fermer = () => {
 		open = false;
 		recherche = '';
+		toutMontrer = false;
 	};
 </script>
 
@@ -68,16 +77,49 @@
 					autocomplete="off"
 				/>
 
-				{#if resultats.length > 0}
+				{#if recherche.trim()}
+					{#if resultats.length > 0}
+						<div class="grid grid-cols-1 gap-3 sm:grid-cols-2">
+							{#each resultats as application (application.slug)}
+								<CarteApplication {application} on:changed={() => dispatch('changed')} />
+							{/each}
+						</div>
+					{:else}
+						<div class="py-10 text-center text-xs text-gray-500">
+							{$i18n.t('Aucune application ne correspond à « {{terme}} ».', { terme: recherche })}
+						</div>
+					{/if}
+				{:else}
 					<div class="grid grid-cols-1 gap-3 sm:grid-cols-2">
-						{#each resultats as application (application.slug)}
+						{#each recommandees as application (application.slug)}
 							<CarteApplication {application} on:changed={() => dispatch('changed')} />
 						{/each}
 					</div>
-				{:else}
-					<div class="py-10 text-center text-xs text-gray-500">
-						{$i18n.t('Aucune application ne correspond à « {{terme}} ».', { terme: recherche })}
-					</div>
+
+					{#if autres.length > 0}
+						{#if toutMontrer}
+							<h3 class="mb-2.5 mt-6 text-sm font-medium">
+								{$i18n.t('Le reste du catalogue')}
+								<span class="text-gray-400">({autres.length})</span>
+							</h3>
+							<div class="grid grid-cols-1 gap-3 sm:grid-cols-2">
+								{#each autres as application (application.slug)}
+									<CarteApplication {application} on:changed={() => dispatch('changed')} />
+								{/each}
+							</div>
+						{:else}
+							<!-- Rien n'est masque : ces sept cent cinquante entrees sont des
+							     micro-services d'API sans usage pour une entreprise. Elles
+							     restent a un clic, et la recherche les atteint deja. -->
+							<button
+								type="button"
+								class="mt-6 w-full rounded-xl border border-dashed border-gray-200 py-3 text-sm text-gray-500 transition hover:border-gray-300 hover:text-gray-900 dark:border-gray-800 dark:hover:border-gray-700 dark:hover:text-white"
+								on:click={() => (toutMontrer = true)}
+							>
+								+ {$i18n.t("d'intégrations")} ({autres.length})
+							</button>
+						{/if}
+					{/if}
 				{/if}
 			</div>
 		</div>
