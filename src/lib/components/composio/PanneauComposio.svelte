@@ -10,6 +10,7 @@
 	import BlocCle from './BlocCle.svelte';
 	import BlocMoteur from './BlocMoteur.svelte';
 	import CarteApplication from './CarteApplication.svelte';
+	import CatalogueModal from './CatalogueModal.svelte';
 	import {
 		getApplicationsComposio,
 		getConnexionsComposio,
@@ -119,15 +120,15 @@
 				<!-- La porte vers le reste du catalogue tient sa PROPRE ligne, au-dessus
 				     de la premiere section. Sur la ligne du titre, elle se confondait
 				     avec le « Tout parcourir » des integrations natives, plus bas.
-				     C'est aussi le SEUL endroit qui ouvre `toutVoir` : sans ce bouton,
-				     le reste du catalogue devient inatteignable. -->
+				     C'est aussi le SEUL endroit qui ouvre le catalogue : sans ce bouton,
+				     le reste des applications devient inatteignable. -->
 				<div class="flex justify-end">
 					<button
 						type="button"
 						class="inline-flex items-center gap-1.5 rounded-xl border border-gray-100 px-3 py-1.5 text-sm text-gray-600 transition hover:border-gray-300 hover:text-gray-900 dark:border-gray-850 dark:text-gray-300 dark:hover:border-gray-700 dark:hover:text-white"
-						on:click={() => (toutVoir = !toutVoir)}
+						on:click={() => (toutVoir = true)}
 					>
-						{toutVoir ? $i18n.t('Replier') : `${$i18n.t('Tout parcourir')} (${reste.length})`}
+						{`${$i18n.t('Tout parcourir')} (${reste.length})`}
 						<svg
 							xmlns="http://www.w3.org/2000/svg"
 							fill="none"
@@ -159,20 +160,6 @@
 					</div>
 				</section>
 			{/each}
-
-			{#if toutVoir && reste.length > 0}
-				<section class="border-t border-gray-100 pt-4 dark:border-gray-850">
-					<h3 class="mb-2.5 text-sm font-medium">
-						{$i18n.t('Le reste du catalogue')}
-						<span class="text-gray-400">({reste.length})</span>
-					</h3>
-					<div class="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
-						{#each reste as application (application.slug)}
-							<CarteApplication {application} on:changed={charger} />
-						{/each}
-					</div>
-				</section>
-			{/if}
 		{:else}
 			<div class="py-8 text-center text-xs text-gray-500">
 				{$i18n.t('Aucune application disponible sur ce projet Composio.')}
@@ -180,3 +167,5 @@
 		{/if}
 	{/if}
 </div>
+
+<CatalogueModal bind:open={toutVoir} applications={reste} on:changed={charger} />
