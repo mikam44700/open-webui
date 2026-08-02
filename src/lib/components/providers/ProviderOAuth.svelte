@@ -21,11 +21,16 @@
 		disconnect_hint?: string | null;
 		disconnect_command?: string | null;
 		source_label?: string | null;
+		flow?: string;
+		cli_command?: string | null;
 	};
 
 	$: isCodex = provider.id === 'openai-codex';
 	// Un compte garde hors de Hermes ne peut pas etre retire depuis cet ecran.
 	$: detachable = provider.disconnectable !== false;
+	// `external` : la connexion passe par une commande sur la machine, pas par un
+	// bouton. Proposer quand meme un bouton ne menerait nulle part.
+	$: externe = provider.flow === 'external';
 
 	// Le code d'autorisation arrive dans le journal sous la forme « Code : XXXX-YYYY ».
 	// On l'en extrait pour le presenter en grand, avec un bouton copier : c'est la
@@ -113,19 +118,21 @@
 	{/if}
 
 	<div class="flex items-center gap-2 flex-wrap">
-		<button
-			type="button"
-			class="text-sm px-3 py-1.5 rounded-xl btn-premium bg-black text-white dark:bg-white dark:text-black transition disabled:opacity-50 inline-flex items-center gap-2"
-			disabled={status === 'running'}
-			on:click={connect}
-		>
-			{#if status === 'running'}
-				<Spinner className="size-4" />
-				{$i18n.t('Connexion en cours…')}
-			{:else}
-				{connected ? $i18n.t('Se reconnecter') : $i18n.t('Se connecter')}
-			{/if}
-		</button>
+		{#if !externe}
+			<button
+				type="button"
+				class="text-sm px-3 py-1.5 rounded-xl btn-premium bg-black text-white dark:bg-white dark:text-black transition disabled:opacity-50 inline-flex items-center gap-2"
+				disabled={status === 'running'}
+				on:click={connect}
+			>
+				{#if status === 'running'}
+					<Spinner className="size-4" />
+					{$i18n.t('Connexion en cours…')}
+				{:else}
+					{connected ? $i18n.t('Se reconnecter') : $i18n.t('Se connecter')}
+				{/if}
+			</button>
+		{/if}
 
 		{#if connected && detachable && !confirming}
 			<button
@@ -137,6 +144,24 @@
 			</button>
 		{/if}
 	</div>
+
+	{#if externe && !connected && provider.cli_command}
+		<div
+			class="flex flex-col gap-2 rounded-xl border border-gray-200 bg-gray-50 p-3 dark:border-gray-800 dark:bg-gray-900"
+		>
+			<div class="text-xs text-gray-600 dark:text-gray-300">
+				{$i18n.t('Ce compte se connecte depuis votre machine, pas depuis cet écran.')}
+			</div>
+			<CopyField
+				value={provider.cli_command}
+				label={$i18n.t('Commande à lancer dans le Terminal pour le connecter')}
+				variant="command"
+			/>
+			<div class="text-xs text-gray-500 dark:text-gray-400">
+				{$i18n.t('Rechargez ensuite cette page : le compte sera reconnu automatiquement.')}
+			</div>
+		</div>
+	{/if}
 
 	{#if connected && !detachable}
 		<div

@@ -40,6 +40,9 @@ type ProviderView = {
 	disconnect_command?: string | null;
 	/** Ou vit reellement la session : fichier, trousseau du systeme. */
 	source_label?: string | null;
+	/** 'device_code' | 'pkce' | 'external'. `external` se connecte par une commande. */
+	flow?: string;
+	cli_command?: string | null;
 };
 
 type ProviderMeta = {
@@ -92,6 +95,11 @@ const PROVIDER_META: Record<string, ProviderMeta> = {
 		envKeys: ['ANTHROPIC_API_KEY']
 	},
 	'openai-codex': { label: 'OpenAI Codex', logo: 'codex', category: 'oauth' },
+	// Hermes nomme cette entree d'apres un message d'erreur d'Anthropic
+	// (« Required Extra Usage Credits… »), illisible sur une carte. Ce n'est pas
+	// un fournisseur a part : c'est la session de l'outil Claude Code, detectee
+	// sur la machine.
+	'claude-code': { label: 'Claude (via Claude Code)', logo: 'claude-color', category: 'oauth' },
 	'openai-api': {
 		label: 'OpenAI',
 		logo: 'openai',
@@ -379,7 +387,9 @@ export const getProviders = async (token: string) => {
 		};
 		providers.set(id, {
 			id,
-			label: `${account.name ?? meta.label}`,
+			// Le libelle du catalogue prime quand on en a un : les noms renvoyes par
+			// Hermes sont parfois des phrases entieres, illisibles sur une carte.
+			label: PROVIDER_META[id] ? meta.label : `${account.name ?? meta.label}`,
 			logo: meta.logo,
 			category: meta.category,
 			state: account.status?.logged_in ? 'configured' : 'not_configured',
@@ -391,7 +401,12 @@ export const getProviders = async (token: string) => {
 			disconnectable: account.disconnectable !== false,
 			disconnect_hint: account.disconnect_hint ?? null,
 			disconnect_command: account.disconnect_command ?? null,
-			source_label: account.status?.source_label ?? null
+			source_label: account.status?.source_label ?? null,
+			// `external` = la connexion se fait par une commande, hors de cet ecran.
+			// Sans cette information, on affichait un bouton « Se connecter » qui ne
+			// pouvait rien declencher.
+			flow: `${account.flow ?? ''}`,
+			cli_command: account.cli_command ?? null
 		});
 	}
 
