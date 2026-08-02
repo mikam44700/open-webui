@@ -3146,5 +3146,15 @@
 	"Messagerie": "Mail",
 	"Agenda": "Calendar",
 	"Fichiers et documents": "Files and documents",
-	"Projets et tâches": "Projects and tasks"
+	"Projets et tâches": "Projects and tasks",
+	"Espace Google": "Google workspace",
+	"Espace Microsoft": "Microsoft workspace",
+	"Discussion & réunions": "Chat & meetings",
+	"Rendez-vous": "Appointments",
+	"Fichiers": "Files",
+	"Support client": "Customer support",
+	"Vente en ligne & automatisation": "Online sales & automation",
+	"RH & services internes": "HR & internal services",
+	"Signature électronique": "Electronic signature",
+	"Développement": "Development"
 }

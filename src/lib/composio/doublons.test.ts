@@ -1,7 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
 import { COUVERTURE_COMPOSIO, couvertParComposio, filtrerNatives } from './doublons';
-import { CATEGORIES } from './categories';
 
 const native = (id: string, state = 'not_connected') => ({ id, state });
 
@@ -86,15 +85,19 @@ describe('coherence du recouvrement', () => {
 		}
 	});
 
-	// Le recouvrement et la vitrine sont deux choses distinctes : Composio sait
-	// faire Google Docs, Teams ou Salesforce, donc leurs cartes natives doivent
-	// disparaitre — meme si Mike a choisi de ne pas les mettre en vitrine. Lier
-	// les deux effacerait le recouvrement a chaque fois qu'on raccourcit la
-	// liste visible, et les doublons reviendraient sans qu'on comprenne pourquoi.
-	it('couvre plus large que la vitrine', () => {
-		const vitrine = new Set(CATEGORIES.flatMap((c) => c.applications));
-		const couverts = new Set(Object.values(COUVERTURE_COMPOSIO).flat());
-		const horsVitrine = [...couverts].filter((slug) => !vitrine.has(slug));
-		expect(horsVitrine.length).toBeGreaterThan(0);
+	// Le recouvrement et la vitrine sont deux listes independantes. La vitrine
+	// change au gre des choix produit ; le recouvrement, lui, decrit ce que
+	// Composio sait faire. Les lier ferait revenir des doublons a chaque fois
+	// qu'on raccourcit la liste visible, sans qu'on comprenne pourquoi — d'ou ces
+	// deux ancrages, qui doivent tenir quelle que soit la vitrine du moment.
+	it('couvre Microsoft 365 jusqu a Teams, meme si la vitrine change', () => {
+		expect(COUVERTURE_COMPOSIO['microsoft-365']).toContain('microsoft_teams');
+	});
+
+	it('couvre Google Workspace au-dela de la seule messagerie', () => {
+		const google = COUVERTURE_COMPOSIO['google-workspace'];
+		expect(google).toContain('gmail');
+		expect(google).toContain('googledrive');
+		expect(google).toContain('googlecalendar');
 	});
 });
