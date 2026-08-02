@@ -1,0 +1,102 @@
+# Deploiement VPS — LunarIA
+#
+# Les trois services tournent en conteneurs sur un reseau commun. C'est la
+# configuration pour laquelle le code de la page Moteur a ete ecrit : ses
+# adresses par defaut sont deja `http://hermes:8642` et
+# `http://hermes-dashboard:9119`, c'est-a-dire les noms de services ci-dessous.
+#
+# `restart: unless-stopped` remplace le service macOS utilise en local : apres
+# un redemarrage du serveur, une coupure ou un plantage, Docker relance tout
+# seul. Rien a maintenir en plus.
+#
+# Une seule URL exposee : le port 3000. Ni le moteur ni son tableau de bord ne
+# sont publies — ils ne sont joignables que depuis le reseau interne, par
+# Open WebUI. Le navigateur ne parle jamais directement a Hermes.
+#
+# AVANT LE PREMIER DEPLOIEMENT, verifier :
+#   1. HERMES_REPO pointe vers une copie du depot hermes-agent sur le serveur.
+#   2. Le compose officiel de hermes-agent utilise `network_mode: host` ; ici on
+#      passe par un reseau bridge pour que la resolution par nom fonctionne. Si
+#      une passerelle de messagerie a besoin d'un port entrant (webhook), il
+#      faudra le publier explicitement sur le service `hermes`.
+#   3. Le fichier ~/.hermes/config.yaml du serveur contient bien la section
+#      dashboard.basic_auth, sinon Hermes refusera de s'ouvrir au reseau.
+#   4. Les identifiants du compte de service sont dans un fichier .env a cote
+#      de ce compose (jamais commite).
+
+services:
+  hermes:
+    build:
+      context: ${HERMES_REPO:-../../Repos/hermes-agent}
+    image: hermes-agent:local
+    container_name: hermes
+    restart: unless-stopped
+    command: ['gateway', 'run']
+    volumes:
+      - hermes-data:/opt/data
+    environment:
+      HERMES_UID: ${HERMES_UID:-10000}
+      HERMES_GID: ${HERMES_GID:-10000}
+      # Le moteur doit ecouter au-dela de localhost pour etre joignable depuis
+      # les autres conteneurs. La cle est obligatoire des lors qu'il est expose.
+      API_SERVER_HOST: 0.0.0.0
+      API_SERVER_KEY: ${HERMES_API_KEY:?la cle du moteur est obligatoire}
+    networks:
+      - lunaria
+
+  hermes-dashboard:
+    image: hermes-agent:local
+    container_name: hermes-dashboard
+    restart: unless-stopped
+    depends_on:
+      - hermes
+    # 0.0.0.0 dans un conteneur = joignable par ses voisins uniquement, aucun
+    # port n'etant publie vers l'exterieur. L'acces reste protege par le compte
+    # de service defini dans config.yaml.
+    command: ['dashboard', '--host', '0.0.0.0', '--port', '9119', '--no-open', '--skip-build']
+    volumes:
+      - hermes-data:/opt/data
+    environment:
+      HERMES_UID: ${HERMES_UID:-10000}
+      HERMES_GID: ${HERMES_GID:-10000}
+    networks:
+      - lunaria
+
+  open-webui:
+    build:
+      context: .
+      dockerfile: Dockerfile.fr
+      args:
+        BUILD_HASH: ${BUILD_HASH:-vps}
+    image: open-webui-fr:vps
+    container_name: open-webui
+    restart: unless-stopped
+    depends_on:
+      - hermes
+      - hermes-dashboard
+    ports:
+      - '3000:8080'
+    environment:
+      DEFAULT_LOCALE: fr-FR
+      # Noms de services, resolus par le DNS interne de Docker.
+      HERMES_API_URL: http://hermes:8642
+      HERMES_API_KEY: ${HERMES_API_KEY:?la cle du moteur est obligatoire}
+      HERMES_REQUEST_TIMEOUT: ${HERMES_REQUEST_TIMEOUT:-15}
+      HERMES_DASHBOARD_URL: http://hermes-dashboard:9119
+      HERMES_DASHBOARD_USER: ${HERMES_DASHBOARD_USER:?compte de service manquant}
+      HERMES_DASHBOARD_PASSWORD: ${HERMES_DASHBOARD_PASSWORD:?mot de passe du compte de service manquant}
+      WEBUI_SECRET_KEY: ${WEBUI_SECRET_KEY:?secret Open WebUI manquant}
+    volumes:
+      - open-webui:/app/backend/data
+    networks:
+      - lunaria
+
+networks:
+  lunaria:
+    name: lunaria
+
+volumes:
+  open-webui:
+    name: open-webui
+  hermes-data:
+    name: hermes-data
