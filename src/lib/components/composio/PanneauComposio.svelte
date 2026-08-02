@@ -178,9 +178,13 @@
 
 			{#each sections as section (section.id)}
 				<section>
-					<h3 class="mb-2.5 text-sm font-medium">
+					<!-- Meme traitement que dans la fenetre : un titre franc, sinon les
+					     familles se confondent avec les cartes. -->
+					<h3
+						class="mb-3 flex items-baseline gap-2 text-[15px] font-semibold text-gray-900 dark:text-white"
+					>
 						{$i18n.t(section.libelle)}
-						<span class="text-gray-400">({section.applications.length})</span>
+						<span class="text-xs font-normal text-gray-400">{section.applications.length}</span>
 					</h3>
 					<div class="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
 						{#each section.applications as application (application.slug)}

@@ -248,6 +248,37 @@ async def retirer_cle(user=Depends(get_admin_user)):
 # --------------------------------------------------------------------------
 
 
+def _presenter(app: dict) -> dict:
+    """Ce qu'une carte a besoin de savoir sur une application.
+
+    Composio decrit lui-meme chacune de ses entrees : une phrase, le nombre
+    d'actions disponibles, ses categories, son site. On reprend ces champs tels
+    quels plutot que d'ecrire mille fiches a la main — elles seraient fausses
+    dans six mois, et les inventer serait pire.
+
+    Ces textes sont en anglais. Les applications mises en vitrine ont, elles,
+    une fiche redigee en francais (`lib/composio/fiches.ts`) qui passe devant.
+    """
+    meta = app.get("meta") if isinstance(app.get("meta"), dict) else {}
+    categories = [
+        f"{c.get('name') or ''}".strip()
+        for c in (meta.get("categories") or [])
+        if isinstance(c, dict) and c.get("name")
+    ]
+    return {
+        "slug": f"{app.get('slug') or app.get('name') or ''}".lower(),
+        "nom": app.get("name") or app.get("slug") or "",
+        "logo": app.get("logo") or meta.get("logo"),
+        "description": f"{meta.get('description') or ''}".strip() or None,
+        "actions": meta.get("tools_count"),
+        "categories": categories,
+        "site": meta.get("app_url"),
+        # `no_auth` : l'application n'a rien a autoriser. Le dire evite un bouton
+        # « Connecter » qui ouvrirait une fenetre vide.
+        "sans_compte": bool(app.get("no_auth")),
+    }
+
+
 # Le catalogue compte plus de mille entrees et ne bouge quasiment pas. Le garder
 # en memoire evite un aller-retour a chaque ouverture de l'onglet, et surtout : il
 # reste servi quand Composio devient injoignable. Sans lui, une coupure de trois
@@ -277,16 +308,7 @@ async def applications(user=Depends(get_admin_user)):
             return {"applications": _CACHE_APPLICATIONS["donnees"], "frais": False}
         raise
 
-    liste = [
-        {
-            "slug": f"{app.get('slug') or app.get('name') or ''}".lower(),
-            "nom": app.get("name") or app.get("slug") or "",
-            "logo": app.get("logo") or app.get("meta", {}).get("logo"),
-            "categories": app.get("categories") or [],
-        }
-        for app in _liste(charge)
-        if app.get("slug") or app.get("name")
-    ]
+    liste = [_presenter(app) for app in _liste(charge) if app.get("slug") or app.get("name")]
     _CACHE_APPLICATIONS["donnees"] = liste
     _CACHE_APPLICATIONS["quand"] = time.monotonic()
     return {"applications": liste, "frais": True}

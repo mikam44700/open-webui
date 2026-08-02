@@ -39,6 +39,29 @@
 	$: fiche = ficheDe(application.slug);
 	let aProposOuvert = false;
 
+	// Hors vitrine, on n'invente rien : Composio decrit lui-meme chacune de ses
+	// entrees. Sa phrase et son nombre d'actions valent mieux qu'une carte nue,
+	// et restent justes quand son catalogue bouge. Ces textes sont en anglais —
+	// les vingt-trois de la vitrine ont leur fiche francaise, qui passe devant.
+	$: description = fiche?.desc ?? application.description ?? null;
+	$: etiquettes = fiche
+		? fiche.tags
+		: [
+				...(application.actions ? [$i18n.t('{{n}} actions', { n: application.actions })] : []),
+				...(application.categories ?? []).slice(0, 2)
+			];
+	// Il faut quelque chose a montrer : sans description ni site, la fenetre
+	// n'apprendrait rien de plus que la carte.
+	$: aProposPossible = Boolean(fiche || application.description || application.site);
+	$: actionsAPropos = fiche
+		? fiche.actions
+		: [
+				...(application.description ? [application.description] : []),
+				...(application.actions
+					? [$i18n.t('{{n}} actions disponibles pour l’assistant.', { n: application.actions })]
+					: [])
+			];
+
 	let connexion = false;
 	let confirmationRetrait = false;
 	let retrait = false;
@@ -144,8 +167,8 @@
 			<div class="text-sm font-medium leading-tight line-clamp-2 wrap-break-word" title={nom}>
 				{nom}
 			</div>
-			{#if fiche}
-				<div class="text-xs leading-snug text-gray-500">{fiche.desc}</div>
+			{#if description}
+				<div class="text-xs leading-snug text-gray-500 line-clamp-3">{description}</div>
 			{/if}
 		</div>
 
@@ -154,11 +177,11 @@
 		{/if}
 	</div>
 
-	{#if fiche}
+	{#if etiquettes.length > 0}
 		<!-- Trois etiquettes au plus : au-dela elles passent a la ligne et les
 		     cartes cessent d'avoir la meme hauteur (verifie par fiches.test.ts). -->
 		<div class="flex flex-wrap gap-1">
-			{#each fiche.tags as tag (tag)}
+			{#each etiquettes.slice(0, 3) as tag (tag)}
 				<span
 					class="rounded-full bg-gray-100 px-2 py-0.5 text-[11px] text-gray-600 dark:bg-gray-850 dark:text-gray-300"
 				>
@@ -166,7 +189,9 @@
 				</span>
 			{/each}
 		</div>
+	{/if}
 
+	{#if aProposPossible}
 		<button
 			type="button"
 			class="self-start text-xs font-medium text-sky-600 hover:underline dark:text-sky-400"
@@ -231,13 +256,13 @@
 	</div>
 </div>
 
-{#if fiche}
+{#if aProposPossible}
 	<ConnectorAboutModal
 		bind:open={aProposOuvert}
 		name={nom}
-		desc={fiche.desc}
+		desc={description ?? ''}
 		logoSrc={logoCasse ? '' : (application.logo ?? '')}
-		actions={fiche.actions}
-		tags={fiche.tags}
+		actions={actionsAPropos}
+		tags={etiquettes.slice(0, 3)}
 	/>
 {/if}

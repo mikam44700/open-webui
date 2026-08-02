@@ -3218,5 +3218,7 @@
 	"Recherche & extraction web": "Recherche & extraction web",
 	"Mémoire & bases vectorielles": "Mémoire & bases vectorielles",
 	"Bac à sable de code": "Bac à sable de code",
-	"Modèles IA": "Modèles IA"
+	"Modèles IA": "Modèles IA",
+	"{{n}} actions": "{{n}} actions",
+	"{{n}} actions disponibles pour l’assistant.": "{{n}} actions disponibles pour l’assistant."
 }

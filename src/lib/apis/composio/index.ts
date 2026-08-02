@@ -45,7 +45,13 @@ export type ApplicationComposio = {
 	slug: string;
 	nom: string;
 	logo?: string | null;
+	/** Phrase fournie par Composio, en anglais. */
+	description?: string | null;
+	/** Nombre d'actions que l'assistant pourra declencher. */
+	actions?: number | null;
 	categories?: string[];
+	site?: string | null;
+	sans_compte?: boolean;
 };
 
 export type ConnexionComposio = {

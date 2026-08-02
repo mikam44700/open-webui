@@ -100,11 +100,21 @@
 						</div>
 					{/if}
 				{:else}
-					{#each sections as section (section.id)}
-						<section class="mb-6">
-							<h3 class="mb-2.5 text-sm font-medium">
+					{#each sections as section, rang (section.id)}
+						<section class="mb-7">
+							<!-- Titre franc et separe : en gris leger et de la meme taille que
+							     le reste, les familles se noyaient dans la grille et on ne
+							     voyait plus ou l'une finissait et l'autre commencait. -->
+							<h3
+								class="mb-3 flex items-baseline gap-2 border-t border-gray-100 pt-4 text-[15px] font-semibold text-gray-900 dark:border-gray-800 dark:text-white {rang ===
+								0
+									? 'border-t-0 pt-0'
+									: ''}"
+							>
 								{$i18n.t(section.libelle)}
-								<span class="text-gray-400">({section.contenu.length})</span>
+								<span class="text-xs font-normal text-gray-400">
+									{section.contenu.length}
+								</span>
 							</h3>
 							<div class="grid grid-cols-1 gap-3 sm:grid-cols-2">
 								{#each section.contenu as application (application.slug)}

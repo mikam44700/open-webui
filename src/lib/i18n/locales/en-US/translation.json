@@ -3204,5 +3204,7 @@
 	"Recherche & extraction web": "Web search & extraction",
 	"Mémoire & bases vectorielles": "Memory & vector stores",
 	"Bac à sable de code": "Code sandbox",
-	"Modèles IA": "AI models"
+	"Modèles IA": "AI models",
+	"{{n}} actions": "{{n}} actions",
+	"{{n}} actions disponibles pour l’assistant.": "{{n}} actions available to the assistant."
 }
