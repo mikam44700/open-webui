@@ -129,39 +129,18 @@
 				</section>
 			{/each}
 
-			{#if reste.length > 0}
-				<!-- Le reste du catalogue n'est pas cache, il est range derriere une
-				     porte : mille cartes en vrac ne servent personne. -->
-				<div class="border-t border-gray-100 pt-4 dark:border-gray-850">
-					{#if toutVoir}
-						<div class="mb-2.5 flex items-center justify-between">
-							<h3 class="text-sm font-medium">
-								{$i18n.t('Le reste du catalogue')}
-								<span class="text-gray-400">({reste.length})</span>
-							</h3>
-							<button
-								type="button"
-								class="text-sm text-gray-500 transition hover:text-gray-900 dark:hover:text-white"
-								on:click={() => (toutVoir = false)}
-							>
-								{$i18n.t('Replier')}
-							</button>
-						</div>
-						<div class="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
-							{#each reste as application (application.slug)}
-								<CarteApplication {application} on:changed={charger} />
-							{/each}
-						</div>
-					{:else}
-						<button
-							type="button"
-							class="w-full rounded-xl border border-dashed border-gray-200 py-3 text-sm text-gray-500 transition hover:border-gray-300 hover:text-gray-900 dark:border-gray-800 dark:hover:border-gray-700 dark:hover:text-white"
-							on:click={() => (toutVoir = true)}
-						>
-							{$i18n.t('Voir les {{count}} autres applications', { count: reste.length })}
-						</button>
-					{/if}
-				</div>
+			{#if toutVoir && reste.length > 0}
+				<section class="border-t border-gray-100 pt-4 dark:border-gray-850">
+					<h3 class="mb-2.5 text-sm font-medium">
+						{$i18n.t('Le reste du catalogue')}
+						<span class="text-gray-400">({reste.length})</span>
+					</h3>
+					<div class="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
+						{#each reste as application (application.slug)}
+							<CarteApplication {application} on:changed={charger} />
+						{/each}
+					</div>
+				</section>
 			{/if}
 		{:else}
 			<div class="py-8 text-center text-xs text-gray-500">
