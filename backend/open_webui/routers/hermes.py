@@ -342,6 +342,38 @@ async def etat_detaille(user=Depends(get_admin_user)):
 
 
 # --------------------------------------------------------------------------
+# Mise a jour du moteur
+#
+# On ne lance aucune commande depuis Open WebUI : c'est Hermes qui se met a
+# jour lui-meme, par son API. C'est la seule facon qui marche partout — ici
+# ou Hermes tourne a cote, comme sur un VPS ou il tournera dans son propre
+# conteneur, hors de portee d'un shell lance d'ici.
+#
+# Hermes sait dans quel cas il se trouve : sa reponse porte `install_method`
+# et `can_apply`, qui disent si la mise a jour peut s'appliquer en place ou
+# si elle doit passer par un autre moyen.
+# --------------------------------------------------------------------------
+
+
+@router.get("/update/check")
+async def verifier_mise_a_jour(user=Depends(get_admin_user)):
+    """Regarde s'il existe une version plus recente, sans rien installer."""
+    return await _appeler("/api/hermes/update/check", timeout=TIMEOUT_LONG)
+
+
+@router.post("/update")
+async def demarrer_mise_a_jour(user=Depends(get_admin_user)):
+    """Lance la mise a jour. Hermes travaille en tache de fond et sauvegarde avant."""
+    return await _appeler("/api/hermes/update", methode="POST", timeout=TIMEOUT_LONG)
+
+
+@router.get("/update/status")
+async def suivi_mise_a_jour(user=Depends(get_admin_user)):
+    """Avancement de la mise a jour en cours, avec les dernieres lignes du journal."""
+    return await _appeler("/api/actions/hermes-update/status", timeout=TIMEOUT_COURT)
+
+
+# --------------------------------------------------------------------------
 # Onglet « Modeles IA » — sous-onglets de connexion
 #
 # La V1 rangeait les fournisseurs par mode de connexion : par compte (OAuth),

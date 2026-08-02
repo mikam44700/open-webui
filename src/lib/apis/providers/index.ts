@@ -16,7 +16,10 @@ import {
 	retirerCleFournisseur,
 	suivreOAuth,
 	verifierCleFournisseur,
-	definirNiveauIntelligence
+	definirNiveauIntelligence,
+	verifierMiseAJour,
+	demarrerMiseAJour,
+	suivreMiseAJour
 } from '$lib/apis/hermes';
 
 type ProviderView = {
@@ -575,6 +578,63 @@ export const getHermesStatus = async (token: string) => {
 	};
 };
 
-export const checkHermesUpdate = getHermesStatus;
-export const startHermesUpdate = async () => ({ ok: false, unavailable: true });
-export const getHermesUpdateStatus = async () => ({ running: false, success: false });
+/**
+ * Mise a jour du moteur.
+ *
+ * Ces trois fonctions etaient des coquilles vides : le bouton « Mettre a jour »
+ * ne faisait rien et « Verifier » repondait toujours « a jour ». Elles sont
+ * desormais branchees sur l'API de Hermes, qui se met a jour lui-meme.
+ *
+ * Cela marche quel que soit l'endroit ou tourne le moteur — a cote d'ici, ou
+ * dans son propre conteneur sur un serveur : on ne lance jamais de commande,
+ * on le lui demande. Hermes repond `can_apply: false` quand son mode
+ * d'installation lui interdit de s'appliquer la mise a jour tout seul, et
+ * donne alors la marche a suivre dans `message`.
+ */
+export const checkHermesUpdate = async (token: string) => {
+	const r = await verifierMiseAJour(token);
+
+	// Une verification qui n'a pas pu aboutir (hors-ligne, depot injoignable)
+	// renvoie `behind: null`. On ne la fait pas passer pour « a jour » : le
+	// panneau doit pouvoir dire « verification impossible » plutot que mentir.
+	const verificationAboutie = r?.behind !== null && r?.behind !== undefined;
+	const retard = verificationAboutie ? Number(r.behind) : 0;
+
+	const details = [
+		r?.message,
+		r?.update_command ? `Commande : ${r.update_command}` : '',
+		...(r?.commits ?? []).slice(0, 10).map((c) => `${c.sha?.slice(0, 7)} ${c.summary}`)
+	].filter(Boolean);
+
+	return {
+		output: details.join('\n'),
+		available: Boolean(r?.update_available) && retard !== 0,
+		can_apply: r?.can_apply ?? false,
+		install_method: r?.install_method ?? 'unknown',
+		current_version: verificationAboutie ? (r?.current_version ?? '') : '',
+		latest_version: ''
+	};
+};
+
+export const startHermesUpdate = async (token: string) => {
+	const r = await demarrerMiseAJour(token);
+	if (r && r.ok === false) {
+		throw new Error(r.message ?? 'Mise a jour indisponible pour ce mode d installation.');
+	}
+	return r;
+};
+
+export const getHermesUpdateStatus = async (token: string) => {
+	const r = await suivreMiseAJour(token);
+	const enCours = Boolean(r?.running);
+	const code = r?.exit_code;
+	const termine = !enCours && (code !== null && code !== undefined);
+
+	return {
+		running: enCours,
+		started: enCours || termine,
+		success: termine && code === 0,
+		rolled_back: false,
+		log: (r?.lines ?? []).join('\n')
+	};
+};

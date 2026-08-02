@@ -85,6 +85,40 @@ export type EtatDetaille = {
 export const getEtatDetaille = (token: string): Promise<EtatDetaille> =>
 	appeler(token, '/engine/status');
 
+export type VerificationMiseAJour = {
+	/** 'git' | 'docker' | 'nix' | 'nixos' | 'managed-runtime' | 'unknown' */
+	install_method?: string;
+	current_version?: string;
+	/** Nombre de versions de retard. 0 = a jour, null = verification impossible. */
+	behind?: number | null;
+	update_available?: boolean;
+	/** Faux quand la mise a jour doit se faire autrement (conteneur, Nix...). */
+	can_apply?: boolean;
+	update_command?: string;
+	message?: string;
+	commits?: { sha: string; summary: string; author: string; at: string }[];
+};
+
+export type SuiviMiseAJour = {
+	name?: string;
+	running?: boolean;
+	exit_code?: number | null;
+	pid?: number | null;
+	lines?: string[];
+};
+
+/** Regarde s'il existe une version plus recente du moteur, sans rien installer. */
+export const verifierMiseAJour = (token: string): Promise<VerificationMiseAJour> =>
+	appeler(token, '/update/check');
+
+/** Demande au moteur de se mettre a jour. Il sauvegarde avant de commencer. */
+export const demarrerMiseAJour = (token: string) =>
+	appeler(token, '/update', { methode: 'POST' });
+
+/** Avancement de la mise a jour en cours. */
+export const suivreMiseAJour = (token: string): Promise<SuiviMiseAJour> =>
+	appeler(token, '/update/status');
+
 /** Sous-onglet « Comptes » : fournisseurs a connexion par compte. */
 export const getFournisseursCompte = (token: string) => appeler(token, '/providers/oauth');
 
