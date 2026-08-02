@@ -14,7 +14,9 @@ RUN npm ci --force
 COPY . .
 ARG BUILD_HASH=fr-local
 ENV APP_BUILD_HASH=${BUILD_HASH}
-ENV NODE_OPTIONS=--max-old-space-size=4096
+# La page Moteur ajoute ~19 000 lignes et 129 images au bundle : 4 Go ne suffisent plus
+# a Rollup, qui s'arretait sur « JavaScript heap out of memory ».
+ENV NODE_OPTIONS=--max-old-space-size=6144
 RUN npm run pyodide:fetch
 RUN npx vite build
 
@@ -22,6 +24,11 @@ FROM ${OPEN_WEBUI_BASE_IMAGE}
 
 RUN find /app/build -depth -delete
 COPY --from=frontend /app/build /app/build
+
+# The French image is based on the official backend image, so local backend
+# extensions must be copied explicitly alongside the rebuilt frontend.
+COPY --from=frontend /app/backend/open_webui/main.py /app/backend/open_webui/main.py
+COPY --from=frontend /app/backend/open_webui/routers/hermes.py /app/backend/open_webui/routers/hermes.py
 
 ARG BUILD_HASH=fr-local
 ENV WEBUI_BUILD_VERSION=${BUILD_HASH}
