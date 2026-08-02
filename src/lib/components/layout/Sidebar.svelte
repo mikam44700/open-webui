@@ -187,7 +187,7 @@
 
 	const getMenuItemMeta = (id) => {
 		const items = {
-			engine: { label: 'Engine', href: '/engine', iconType: 'engine' },
+			engine: { label: 'Engine', href: '/hermes', iconType: 'engine' },
 			notes: { label: 'Notes', href: '/notes', iconType: 'note' },
 			workspace: { label: 'Workspace', href: '/workspace', iconType: 'workspace' },
 			automations: { label: 'Automations', href: '/automations', iconType: 'automations' },
@@ -198,7 +198,7 @@
 	};
 
 	const menuItemPathPrefixes = {
-		engine: '/engine',
+		engine: '/hermes',
 		notes: '/notes',
 		workspace: '/workspace',
 		calendar: '/calendar',

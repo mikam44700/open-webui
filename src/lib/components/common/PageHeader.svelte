@@ -1,10 +1,17 @@
 <script lang="ts">
-	// En-tête de page premium partagé (DRY). Style « monochrome restreint » (Stripe/Linear/Vercel) :
-	//   EYEBROW — nom fonctionnel : petit, capitales, GRIS neutre (subordonné au titre, JAMAIS coloré).
-	//   Titre   — semibold (pas bold lourd), tracking serré (letter-spacing négatif = rendu « designed »).
-	//   Desc    — 15px, interligne aéré, largeur ~65 caractères.
-	// Slot « actions » optionnel : contenu aligné à droite du titre (ex. un bouton d'actualisation).
-
+	/**
+	 * En-tete de page partage — repris d'AgentOS V1.
+	 *
+	 * Style monochrome restreint (Stripe / Linear / Vercel) :
+	 *   surtitre — nom fonctionnel, petit, capitales, GRIS neutre. Jamais colore :
+	 *              il est subordonne au titre, pas en concurrence avec lui.
+	 *   titre    — semibold plutot que bold, tracking serre.
+	 *   phrase   — 15 px, interligne aere, largeur limitee a ~65 caracteres pour
+	 *              rester lisible.
+	 *
+	 * Le volet « actions » est optionnel : il aligne un contenu a droite du titre
+	 * (par exemple l'interrupteur « Reglages avances »).
+	 */
 	export let eyebrow = '';
 	export let title = '';
 	export let description = '';

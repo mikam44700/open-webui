@@ -1,0 +1,254 @@
+// Nom + description FR des intégrations (orientés client, sans jargon), partagés par
+// l'onglet Intégrations. Même principe que connectorLabels.ts.
+//
+// `name` : nom affiché · `desc` : à quoi ça sert, en clair · les sous-services viennent
+// du backend (catalogue Hermes), pas d'ici.
+
+export type IntegrationMeta = {
+	name: string;
+	desc: string;
+	// Catégorie (filtre de la modale « Parcourir ») et mise en avant (section « Les plus populaires »).
+	category?: string;
+	popular?: boolean;
+	// `actions` = ce que l'intégration permet une fois branchée (déroulant « Voir ce que ça fait »).
+	actions?: string[];
+};
+
+export const INTEGRATION_FR: Record<string, IntegrationMeta> = {
+	'google-workspace': {
+		name: 'Google Workspace',
+		desc: 'Gmail, Agenda, Drive, Docs, Meet, Slides et plus — tout Google, depuis l’agent.',
+		category: 'Productivité',
+		popular: true,
+		actions: [
+			'Gmail — lire, résumer, rédiger et envoyer des e-mails',
+			'Agenda — consulter et créer des événements',
+			'Drive — chercher, ouvrir et organiser des fichiers',
+			'Sheets — créer et modifier des tableurs',
+			'Docs — créer et modifier des documents',
+			'Contacts — consulter le carnet d’adresses',
+			'Meet — créer des réunions et générer le lien visio',
+			'Slides — créer des présentations',
+			'Analytics — consulter la fréquentation du site',
+			'Search Console — suivre le référencement et l’indexation'
+		]
+	},
+	notion: {
+		name: 'Notion',
+		desc: 'Vos pages et bases Notion, depuis l’agent.',
+		category: 'Productivité',
+		popular: true,
+		actions: [
+			'Chercher et lire des pages',
+			'Créer et mettre à jour des pages',
+			'Interroger des bases de données'
+		]
+	},
+	github: {
+		name: 'GitHub',
+		desc: 'Vos dépôts, issues et pull requests GitHub.',
+		category: 'Développement',
+		actions: [
+			'Parcourir dépôts et fichiers',
+			'Créer et suivre des issues',
+			'Gérer les pull requests'
+		]
+	},
+	airtable: {
+		name: 'Airtable',
+		desc: 'Vos bases Airtable, depuis l’agent.',
+		category: 'Productivité',
+		popular: true,
+		actions: [
+			'Lire tables et enregistrements',
+			'Créer et mettre à jour des enregistrements',
+			'Filtrer et parcourir des vues'
+		]
+	},
+	email: {
+		name: 'Email',
+		desc: 'Votre boîte mail (réception et envoi).',
+		category: 'Communication',
+		actions: [
+			'Lire les e-mails reçus',
+			'Rechercher dans la boîte',
+			'Rédiger et envoyer des e-mails',
+			'Via IMAP/SMTP'
+		]
+	},
+	obsidian: {
+		name: 'Obsidian',
+		desc: 'Votre coffre de notes Obsidian.',
+		category: 'Productivité',
+		popular: true,
+		actions: [
+			'Lire et chercher des notes',
+			'Créer de nouvelles notes',
+			'Lier les notes entre elles'
+		]
+	},
+	x: {
+		name: 'X (Twitter)',
+		desc: 'Publier et lire sur X, avec votre compte.',
+		category: 'Réseaux sociaux',
+		actions: ['Publier des posts', 'Rechercher des posts et fils', 'Lire votre fil']
+	},
+	linkedin: {
+		name: 'LinkedIn',
+		desc: 'Publier des posts sur LinkedIn, avec votre compte.',
+		category: 'Réseaux sociaux',
+		popular: true,
+		actions: [
+			'Publier des posts sur votre fil',
+			'Publier avec une image',
+			'Au nom de votre compte'
+		]
+	},
+	tiktok: {
+		name: 'TikTok',
+		desc: 'Publier des vidéos sur TikTok, avec votre compte.',
+		category: 'Réseaux sociaux',
+		popular: true,
+		actions: ['Publier une vidéo', 'Depuis une URL vidéo', 'Au nom de votre compte']
+	},
+	facebook: {
+		name: 'Facebook',
+		desc: 'Publier sur votre Page Facebook, avec votre compte.',
+		category: 'Réseaux sociaux',
+		popular: true,
+		actions: ['Publier sur votre Page', 'Publier un lien', 'Au nom de votre Page']
+	},
+	instagram: {
+		name: 'Instagram',
+		desc: 'Publier photos et vidéos sur Instagram (compte pro).',
+		category: 'Réseaux sociaux',
+		popular: true,
+		actions: ['Publier une photo', 'Publier une vidéo (Reels)', 'Compte professionnel']
+	},
+	apple: {
+		name: 'Apple',
+		desc: 'Notes, Rappels et iMessage sur Mac.',
+		category: 'Productivité',
+		actions: [
+			'Créer notes et rappels',
+			'Envoyer des iMessages',
+			'Fonctionne en local sur votre Mac'
+		]
+	},
+	hue: {
+		name: 'Philips Hue',
+		desc: 'Pilote vos lumières Philips Hue.',
+		category: 'Maison',
+		actions: [
+			'Allumer et éteindre les lumières',
+			'Régler l’intensité et la couleur',
+			'Piloter par pièce ou par scène'
+		]
+	},
+	'microsoft-365': {
+		name: 'Microsoft 365',
+		desc: 'Outlook, Agenda, OneDrive, Word, Excel, Teams et plus — tout Microsoft, depuis l’agent.',
+		category: 'Productivité',
+		popular: true,
+		actions: [
+			'Outlook — lire, rédiger et envoyer des e-mails',
+			'Agenda — consulter et créer des événements',
+			'OneDrive — chercher, ouvrir et organiser des fichiers',
+			'Word — créer et modifier des documents',
+			'Excel — créer et modifier des tableurs',
+			'PowerPoint — créer des présentations',
+			'Teams — réunions et messages d’équipe',
+			'OneNote — prendre et retrouver des notes',
+			'To Do — gérer les tâches et les rappels',
+			'Contacts — consulter le carnet d’adresses'
+		]
+	},
+	calendly: {
+		name: 'Calendly',
+		desc: 'Prise de rendez-vous automatisée.',
+		category: 'Productivité',
+		popular: true,
+		actions: [
+			'Partager votre lien de réservation',
+			'Consulter vos disponibilités',
+			'Suivre les rendez-vous pris'
+		]
+	},
+	'cal-com': {
+		name: 'Cal.com',
+		desc: 'Prise de rendez-vous open source (alternative à Calendly).',
+		category: 'Productivité',
+		actions: [
+			'Partager votre lien de réservation',
+			'Consulter vos disponibilités',
+			'Suivre les rendez-vous pris'
+		]
+	},
+	box: {
+		name: 'Box',
+		desc: 'Stockage de fichiers sécurisé (Box).',
+		category: 'Productivité',
+		actions: [
+			'Parcourir fichiers et dossiers',
+			'Téléverser et télécharger des fichiers',
+			'Partager des documents'
+		]
+	},
+	dropbox: {
+		name: 'Dropbox',
+		desc: 'Stockage et synchro de fichiers Dropbox.',
+		category: 'Productivité',
+		actions: [
+			'Parcourir fichiers et dossiers',
+			'Téléverser et télécharger',
+			'Partager des liens'
+		]
+	},
+	salesforce: {
+		name: 'Salesforce',
+		desc: 'Votre CRM Salesforce, depuis l’agent.',
+		category: 'Productivité',
+		actions: [
+			'Rechercher contacts et comptes',
+			'Suivre les opportunités',
+			'Créer et mettre à jour des fiches'
+		]
+	},
+	clickup: {
+		name: 'ClickUp',
+		desc: 'Projets et tâches ClickUp.',
+		category: 'Productivité',
+		actions: [
+			'Créer et suivre des tâches',
+			'Gérer statuts et assignations',
+			'Parcourir listes et projets'
+		]
+	}
+};
+
+// Ordre d'affichage des catégories dans le filtre de la modale « Parcourir ».
+export const INTEGRATION_CATEGORIES = [
+	'Productivité',
+	'Communication',
+	'Développement',
+	'Réseaux sociaux',
+	'Maison'
+];
+
+// Accès en langage client (pas de jargon : ni « OAuth », ni « IMAP »).
+export const ACCESS_LABEL: Record<string, string> = {
+	account: 'Connexion par compte',
+	key: 'Clé requise',
+	credentials: 'Identifiants requis',
+	path: 'Dossier à indiquer',
+	local: 'Sur cet appareil'
+};
+
+// Libellés d'état honnêtes (jamais d'état supposé).
+export const STATE_LABEL: Record<string, string> = {
+	not_connected: 'Non connecté',
+	key_present: 'Clé enregistrée',
+	connected: 'Connecté',
+	error: 'Erreur',
+	unavailable: 'Indisponible'
+};
