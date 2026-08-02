@@ -3127,5 +3127,20 @@
 	"Vos applications sont utilisables par l’assistant": "Your apps can be used by the assistant",
 	"Dernière étape : collez l’adresse MCP donnée par Composio pour que l’assistant puisse utiliser ces applications.": "Last step: paste the MCP address given by Composio so the assistant can use these apps.",
 	"Brancher": "Wire up",
-	"Débrancher": "Unwire"
+	"Débrancher": "Unwire",
+	"Rechercher parmi {{count}} applications": "Search across {{count}} apps",
+	"Aucune application ne correspond à « {{terme}} ».": "No app matches “{{terme}}”.",
+	"Le reste du catalogue": "The rest of the catalogue",
+	"Voir les {{count}} autres applications": "See the other {{count}} apps",
+	"Replier": "Collapse",
+	"Connectées": "Connected",
+	"Messagerie & agenda": "Mail & calendar",
+	"Fichiers & documents": "Files & documents",
+	"Discussion d’équipe": "Team chat",
+	"Clients & ventes": "Customers & sales",
+	"Projets & tâches": "Projects & tasks",
+	"Réseaux sociaux": "Social networks",
+	"Compta & paiement": "Accounting & payments",
+	"Développement & design": "Development & design",
+	"Sur cette machine": "On this machine"
 }

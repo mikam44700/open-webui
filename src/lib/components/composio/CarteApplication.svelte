@@ -11,11 +11,24 @@
 	import { connecterApplication, retirerConnexion, suivreConnexion } from '$lib/apis/composio';
 	import type { ApplicationAffichee } from '$lib/composio/etat';
 	import { etatDeConnexion } from '$lib/composio/etat';
+	import { nomAffiche } from '$lib/composio/categories';
 
 	const i18n = getContext('i18n');
 	const dispatch = createEventDispatcher();
 
 	export let application: ApplicationAffichee;
+
+	// Nom lisible : le libelle francais quand il en existe un, sinon celui de
+	// Composio (cf. categories.ts).
+	$: nom = nomAffiche(application.slug, application.nom);
+	$: initiales = nom
+		.replace(/[^\p{L}\p{N}]/gu, '')
+		.slice(0, 2)
+		.toUpperCase();
+	// Remis a zero quand la carte change d'application, sinon un logo casse
+	// masquerait celui de la suivante.
+	let logoCasse = false;
+	$: if (application.slug) logoCasse = false;
 
 	let connexion = false;
 	let confirmationRetrait = false;
@@ -39,13 +52,13 @@
 			const lu = etatDeConnexion(etat?.etat ?? '');
 			if (lu === 'connectee') {
 				connexion = false;
-				toast.success($i18n.t('{{name}} est connecté', { name: application.nom }));
+				toast.success($i18n.t('{{name}} est connecté', { name: nom }));
 				dispatch('changed');
 				return;
 			}
 			if (lu === 'echouee') {
 				connexion = false;
-				toast.error($i18n.t('{{name}} n’a pas pu être connecté', { name: application.nom }));
+				toast.error($i18n.t('{{name}} n’a pas pu être connecté', { name: nom }));
 				dispatch('changed');
 				return;
 			}
@@ -80,7 +93,7 @@
 		retrait = true;
 		try {
 			await retirerConnexion(localStorage.token, application.connexionId);
-			toast.success($i18n.t('{{name}} est déconnecté', { name: application.nom }));
+			toast.success($i18n.t('{{name}} est déconnecté', { name: nom }));
 			confirmationRetrait = false;
 			dispatch('changed');
 		} catch (err) {
@@ -97,20 +110,28 @@
 	<div
 		class="flex-none size-10 rounded-xl border border-gray-100 dark:border-gray-700 bg-white overflow-hidden flex items-center justify-center"
 	>
-		{#if application.logo}
+		{#if application.logo && !logoCasse}
 			<img
 				src={application.logo}
-				alt={application.nom}
+				alt={nom}
 				class="max-w-full max-h-full object-contain"
 				draggable="false"
+				on:error={() => (logoCasse = true)}
 			/>
 		{:else}
-			<span class="text-xs font-medium text-gray-400">{application.nom.slice(0, 2)}</span>
+			<!-- Repli sur les initiales : plusieurs logos du catalogue Composio
+			     repondent sans image affichable, ce qui laissait un carre vide. -->
+			<span class="text-xs font-medium text-gray-400">{initiales}</span>
 		{/if}
 	</div>
 
 	<div class="flex-1 min-w-0">
-		<div class="text-sm font-medium truncate">{application.nom}</div>
+		<!-- Deux lignes plutot qu'une coupe seche : le catalogue compte une
+		     quinzaine d'applications Google, toutes reduites a « Google … » sur
+		     une seule ligne, donc impossibles a distinguer. -->
+		<div class="text-sm font-medium leading-tight line-clamp-2 wrap-break-word" title={nom}>
+			{nom}
+		</div>
 		{#if application.etat === 'connectee'}
 			<div class="text-xs text-green-600 dark:text-green-500">{$i18n.t('Connecté')}</div>
 		{:else if application.etat === 'en_cours'}

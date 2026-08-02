@@ -3141,5 +3141,20 @@
 	"Vos applications sont utilisables par l’assistant": "Vos applications sont utilisables par l’assistant",
 	"Dernière étape : collez l’adresse MCP donnée par Composio pour que l’assistant puisse utiliser ces applications.": "Dernière étape : collez l’adresse MCP donnée par Composio pour que l’assistant puisse utiliser ces applications.",
 	"Brancher": "Brancher",
-	"Débrancher": "Débrancher"
+	"Débrancher": "Débrancher",
+	"Rechercher parmi {{count}} applications": "Rechercher parmi {{count}} applications",
+	"Aucune application ne correspond à « {{terme}} ».": "Aucune application ne correspond à « {{terme}} ».",
+	"Le reste du catalogue": "Le reste du catalogue",
+	"Voir les {{count}} autres applications": "Voir les {{count}} autres applications",
+	"Replier": "Replier",
+	"Connectées": "Connectées",
+	"Messagerie & agenda": "Messagerie & agenda",
+	"Fichiers & documents": "Fichiers & documents",
+	"Discussion d’équipe": "Discussion d’équipe",
+	"Clients & ventes": "Clients & ventes",
+	"Projets & tâches": "Projets & tâches",
+	"Réseaux sociaux": "Réseaux sociaux",
+	"Compta & paiement": "Compta & paiement",
+	"Développement & design": "Développement & design",
+	"Sur cette machine": "Sur cette machine"
 }

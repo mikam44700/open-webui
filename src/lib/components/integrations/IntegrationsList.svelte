@@ -7,6 +7,7 @@
 	import IntegrationCard from './IntegrationCard.svelte';
 	import IntegrationsBrowseModal from './IntegrationsBrowseModal.svelte';
 	import PanneauComposio from '$lib/components/composio/PanneauComposio.svelte';
+	import { filtrerNatives } from '$lib/composio/doublons';
 
 	const i18n = getContext('i18n');
 
@@ -25,6 +26,10 @@
 	let bridgeDown = false;
 	let integrations: Integration[] = [];
 	let showBrowse = false;
+	// Remonte par le panneau Composio. Une application ne doit jamais avoir deux
+	// cartes : quand Composio la porte, la carte native s'efface — sauf si elle
+	// est reellement connectee, auquel cas c'est la native qui reste (doublons.ts).
+	let composioActif = false;
 
 	// Les 6 intégrations essentielles visibles sur la page, dans l'ordre produit décidé.
 	// Le catalogue « Tout parcourir » continue de recevoir toutes les intégrations visibles.
@@ -38,10 +43,17 @@
 	];
 
 	// Le client final ne voit que les intégrations visibles (les masquées restent gérées en admin).
-	$: visible = integrations.filter((i) => i.visible !== false);
-	$: home = HOME_INTEGRATION_IDS.map((id) => visible.find((i) => i.id === id)).filter(
-		(i): i is Integration => i !== undefined
+	$: visible = filtrerNatives(
+		integrations.filter((i) => i.visible !== false),
+		composioActif
 	);
+	// Avec Composio actif il ne reste que ce qu'il ne sait pas faire : quelques
+	// cartes, toutes montrees. Sans Composio, la selection produit d'origine.
+	$: home = composioActif
+		? visible
+		: HOME_INTEGRATION_IDS.map((id) => visible.find((i) => i.id === id)).filter(
+				(i): i is Integration => i !== undefined
+			);
 
 	const isBridgeDown = (err: any) =>
 		err?.error?.code === 'bridge_unreachable' || err?.error?.code === 'hermes_unavailable';
@@ -69,7 +81,7 @@
 	     Il se charge independamment du reste : sa panne ne masque pas les
 	     integrations natives en dessous, et l'inverse est vrai aussi. -->
 	<div class="mb-6">
-		<PanneauComposio />
+		<PanneauComposio on:etat={(e) => (composioActif = e.detail?.etat === 'ok')} />
 	</div>
 
 	{#if loading}
@@ -90,7 +102,13 @@
 		<!-- Sélection fixe de 6 cartes + catalogue complet. Leur ordre reste identique même connectées. -->
 		{#if home.length > 0}
 			<div class="flex items-center justify-between mb-3">
-				<div class="text-sm font-medium">{$i18n.t('Les plus populaires')}</div>
+				<!-- Une fois Composio actif, ce qui reste ici est ce qu'il ne peut pas
+				     atteindre : un coffre sur le disque, un protocole de messagerie,
+				     de la domotique. Le titre doit le dire, sinon la section parait
+				     arbitraire a cote du catalogue du dessus. -->
+				<div class="text-sm font-medium">
+					{composioActif ? $i18n.t('Sur cette machine') : $i18n.t('Les plus populaires')}
+				</div>
 				<button
 					type="button"
 					class="text-sm text-gray-500 hover:text-gray-900 dark:hover:text-white transition inline-flex items-center gap-1"
@@ -120,7 +138,10 @@
 				{/each}
 			</div>
 		{/if}
-	{:else}
+	{:else if !composioActif}
+		<!-- Silence volontaire quand Composio est actif : la liste native est vide
+		     parce que tout est passe au-dessus, pas parce que rien n'est
+		     disponible. Afficher « Aucune intégration » ferait croire a une panne. -->
 		<div class="text-xs text-gray-500 text-center py-8">
 			{$i18n.t('Aucune intégration disponible')}
 		</div>
