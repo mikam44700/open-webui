@@ -3203,5 +3203,20 @@
 	"Fermer": "Fermer",
 	"d'intégrations": "d'intégrations",
 	"Liste non actualisée — Composio n’a pas répondu. Vos connexions sont intactes.": "Liste non actualisée — Composio n’a pas répondu. Vos connexions sont intactes.",
-	"Impossible de lire le catalogue pour le moment.": "Impossible de lire le catalogue pour le moment."
+	"Impossible de lire le catalogue pour le moment.": "Impossible de lire le catalogue pour le moment.",
+	"Messagerie & discussion": "Messagerie & discussion",
+	"Réunions": "Réunions",
+	"Agenda & rendez-vous": "Agenda & rendez-vous",
+	"CRM & ventes": "CRM & ventes",
+	"Marketing & e-mailing": "Marketing & e-mailing",
+	"RH & temps": "RH & temps",
+	"Signature & devis": "Signature & devis",
+	"Vente en ligne & livraison": "Vente en ligne & livraison",
+	"Formulaires & enquêtes": "Formulaires & enquêtes",
+	"Analyse & données": "Analyse & données",
+	"Automatisation": "Automatisation",
+	"Recherche & extraction web": "Recherche & extraction web",
+	"Mémoire & bases vectorielles": "Mémoire & bases vectorielles",
+	"Bac à sable de code": "Bac à sable de code",
+	"Modèles IA": "Modèles IA"
 }

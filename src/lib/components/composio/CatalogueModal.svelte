@@ -10,7 +10,7 @@
 	import CarteApplication from './CarteApplication.svelte';
 	import type { ApplicationAffichee } from '$lib/composio/etat';
 	import { filtrer } from '$lib/composio/grouper';
-	import { estRecommandee } from '$lib/composio/catalogue';
+	import { FAMILLES, estRecommandee } from '$lib/composio/catalogue';
 
 	const i18n = getContext('i18n');
 	const dispatch = createEventDispatcher();
@@ -24,8 +24,18 @@
 	// recherche les traverse de toute facon.
 	let toutMontrer = false;
 
-	$: recommandees = applications.filter((a) => estRecommandee(a.slug));
 	$: autres = applications.filter((a) => !estRecommandee(a.slug));
+
+	// Rangees par usage plutot que par ordre alphabetique : autrement
+	// ActiveCampaign, Agentql et Ahrefs se suivent sans aucun rapport entre eux,
+	// et l'oeil n'a aucun repere. Une famille vide n'est jamais rendue.
+	$: parSlug = new Map(applications.map((a) => [`${a.slug}`.toLowerCase(), a]));
+	$: sections = FAMILLES.map((famille) => ({
+		...famille,
+		contenu: famille.applications
+			.map((slug) => parSlug.get(slug))
+			.filter((a): a is ApplicationAffichee => a !== undefined)
+	})).filter((famille) => famille.contenu.length > 0);
 	// La recherche porte sur le catalogue ENTIER : ranger ne doit pas cacher.
 	$: resultats = recherche.trim() ? filtrer(applications, recherche) : [];
 
@@ -90,11 +100,19 @@
 						</div>
 					{/if}
 				{:else}
-					<div class="grid grid-cols-1 gap-3 sm:grid-cols-2">
-						{#each recommandees as application (application.slug)}
-							<CarteApplication {application} on:changed={() => dispatch('changed')} />
-						{/each}
-					</div>
+					{#each sections as section (section.id)}
+						<section class="mb-6">
+							<h3 class="mb-2.5 text-sm font-medium">
+								{$i18n.t(section.libelle)}
+								<span class="text-gray-400">({section.contenu.length})</span>
+							</h3>
+							<div class="grid grid-cols-1 gap-3 sm:grid-cols-2">
+								{#each section.contenu as application (application.slug)}
+									<CarteApplication {application} on:changed={() => dispatch('changed')} />
+								{/each}
+							</div>
+						</section>
+					{/each}
 
 					{#if autres.length > 0}
 						{#if toutMontrer}
