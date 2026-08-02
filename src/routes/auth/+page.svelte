@@ -161,7 +161,10 @@
 		}
 
 		const sessionUser = await getSessionUser(token).catch((error) => {
-			toast.error(`${error}`);
+			// An expired OAuth cookie should simply leave the user on the sign-in
+			// screen. Login errors initiated by the user remain visible elsewhere.
+			console.info('OAuth session cookie is no longer valid:', error);
+			document.cookie = 'token=; Max-Age=0; path=/';
 			return null;
 		});
 

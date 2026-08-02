@@ -855,7 +855,6 @@
 		userSignOut().catch((error) => {
 			console.error('Error signing out expired session:', error);
 		});
-		toast.error($i18n.t('Session expired. Please sign in again.'));
 		isAuthRedirectInProgress = false;
 	};
 
@@ -1189,7 +1188,10 @@
 				if (localStorage.token) {
 					// Get Session User Info
 					const sessionUser = await getSessionUser(localStorage.token).catch((error) => {
-						toast.error(`${error}`);
+						// A stale session is normal after a restart, token rotation, or expiry.
+						// The global fetch guard clears it and the auth page is shown; surfacing
+						// the raw 401 here only creates a misleading error toast.
+						console.info('Stored session is no longer valid:', error);
 						return null;
 					});
 
