@@ -7,9 +7,11 @@
  * pour les fournisseurs de modeles (lib/catalog/provider-taxonomy.ts) : un
  * classement maison, en francais, oriente usage.
  *
- * Ce catalogue est volontairement COURT. Tout ce qui n'y figure pas reste
- * atteignable par la recherche et par « Tout parcourir » — rien n'est cache,
- * seulement range derriere ce qui sert tous les jours.
+ * Cette liste est celle de Mike, arretee le 2 aout 2026 : seize applications,
+ * cinq categories, dans son ordre. Elle est volontairement COURTE. Tout ce qui
+ * n'y figure pas reste atteignable par la recherche et par le reste du
+ * catalogue — rien n'est cache, seulement range derriere ce qui sert tous les
+ * jours. Ne pas rallonger sans le lui demander.
  *
  * Les identifiants ont ete verifies un par un contre le catalogue public de
  * Composio. Un identifiant invente donnerait une categorie vide sans que la
@@ -25,57 +27,28 @@ export type Categorie = {
 export const CATEGORIES: Categorie[] = [
 	{
 		id: 'messagerie',
-		libelle: 'Messagerie & agenda',
-		applications: ['gmail', 'outlook', 'googlecalendar', 'calendly', 'cal', 'googlemeet', 'zoom']
+		libelle: 'Messagerie',
+		applications: ['gmail', 'outlook']
+	},
+	{
+		id: 'agenda',
+		libelle: 'Agenda',
+		applications: ['googlecalendar', 'calendly', 'cal']
 	},
 	{
 		id: 'fichiers',
-		libelle: 'Fichiers & documents',
-		applications: [
-			'googledrive',
-			'one_drive',
-			'dropbox',
-			'box',
-			'googledocs',
-			'googlesheets',
-			'notion',
-			'docusign',
-			'dropbox_sign'
-		]
-	},
-	{
-		id: 'equipe',
-		libelle: 'Discussion d’équipe',
-		applications: ['slack', 'microsoft_teams', 'discord', 'whatsapp']
-	},
-	{
-		id: 'clients',
-		libelle: 'Clients & ventes',
-		applications: ['hubspot', 'salesforce', 'pipedrive', 'attio', 'mailchimp']
-	},
-	{
-		id: 'projets',
-		libelle: 'Projets & tâches',
-		applications: ['linear', 'asana', 'trello', 'clickup', 'jira', 'monday', 'airtable']
+		libelle: 'Fichiers et documents',
+		applications: ['googledrive', 'one_drive', 'dropbox']
 	},
 	{
 		id: 'reseaux',
 		libelle: 'Réseaux sociaux',
-		applications: ['linkedin', 'twitter', 'facebook', 'instagram', 'tiktok', 'youtube']
+		applications: ['linkedin', 'facebook', 'twitter', 'instagram', 'tiktok', 'youtube']
 	},
 	{
-		id: 'compta',
-		libelle: 'Compta & paiement',
-		applications: ['stripe', 'paypal', 'quickbooks', 'xero']
-	},
-	{
-		id: 'developpement',
-		libelle: 'Développement & design',
-		// `figma` et `linear` existent aussi chez Composio, mais le moteur porte
-		// deja ses propres serveurs MCP pour eux : les mettre ici en ferait un
-		// doublon, et le doublon Composio serait facture a l'appel. Ils restent
-		// trouvables par la recherche — declasses, pas caches.
-		applications: ['github', 'gitlab']
+		id: 'projets',
+		libelle: 'Projets et tâches',
+		applications: ['airtable', 'notion']
 	}
 ];
 

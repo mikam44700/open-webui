@@ -73,18 +73,28 @@ describe('couvertParComposio', () => {
 });
 
 describe('coherence du recouvrement', () => {
-	// Un identifiant errone donnerait un doublon invisible : la carte native
-	// resterait a l'ecran a cote de la carte Composio, sans cause lisible.
-	it('ne declare que des identifiants presents dans le catalogue cure', () => {
-		const cures = new Set(CATEGORIES.flatMap((c) => c.applications));
-		const inconnus = Object.values(COUVERTURE_COMPOSIO)
-			.flat()
-			.filter((slug) => !cures.has(slug));
-		expect(inconnus).toEqual([]);
-	});
-
 	it('ne fait pas porter le meme identifiant Composio par deux cartes natives', () => {
 		const tous = Object.values(COUVERTURE_COMPOSIO).flat();
 		expect(new Set(tous).size).toBe(tous.length);
+	});
+
+	it('ne declare que des identifiants exploitables', () => {
+		const tous = Object.values(COUVERTURE_COMPOSIO).flat();
+		for (const slug of tous) {
+			expect(slug).toBe(slug.toLowerCase());
+			expect(slug.trim()).not.toBe('');
+		}
+	});
+
+	// Le recouvrement et la vitrine sont deux choses distinctes : Composio sait
+	// faire Google Docs, Teams ou Salesforce, donc leurs cartes natives doivent
+	// disparaitre — meme si Mike a choisi de ne pas les mettre en vitrine. Lier
+	// les deux effacerait le recouvrement a chaque fois qu'on raccourcit la
+	// liste visible, et les doublons reviendraient sans qu'on comprenne pourquoi.
+	it('couvre plus large que la vitrine', () => {
+		const vitrine = new Set(CATEGORIES.flatMap((c) => c.applications));
+		const couverts = new Set(Object.values(COUVERTURE_COMPOSIO).flat());
+		const horsVitrine = [...couverts].filter((slug) => !vitrine.has(slug));
+		expect(horsVitrine.length).toBeGreaterThan(0);
 	});
 });

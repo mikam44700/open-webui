@@ -63,13 +63,14 @@ describe('grouper', () => {
 	});
 
 	it('range chaque application dans sa categorie', () => {
-		const sections = grouper([app('gmail', 'Gmail'), app('stripe', 'Stripe')]);
-		expect(sections.map((s) => s.id)).toEqual(['messagerie', 'compta']);
+		const sections = grouper([app('gmail', 'Gmail'), app('airtable', 'Airtable')]);
+		expect(sections.map((s) => s.id)).toEqual(['messagerie', 'projets']);
 	});
 
+	// L'ordre est celui choisi par Mike, pas celui d'arrivee des donnees.
 	it('respecte l ordre des categories', () => {
-		const sections = grouper([app('github', 'GitHub'), app('gmail', 'Gmail')]);
-		expect(sections.map((s) => s.id)).toEqual(['messagerie', 'developpement']);
+		const sections = grouper([app('airtable', 'Airtable'), app('gmail', 'Gmail')]);
+		expect(sections.map((s) => s.id)).toEqual(['messagerie', 'projets']);
 	});
 
 	it('ne rend jamais une section vide', () => {
