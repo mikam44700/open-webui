@@ -115,42 +115,43 @@
 				</div>
 			{/if}
 		{:else if sections.length > 0 || reste.length > 0}
-			{#each sections as section, rang (section.id)}
+			{#if reste.length > 0}
+				<!-- La porte vers le reste du catalogue tient sa PROPRE ligne, au-dessus
+				     de la premiere section. Sur la ligne du titre, elle se confondait
+				     avec le « Tout parcourir » des integrations natives, plus bas.
+				     C'est aussi le SEUL endroit qui ouvre `toutVoir` : sans ce bouton,
+				     le reste du catalogue devient inatteignable. -->
+				<div class="flex justify-end">
+					<button
+						type="button"
+						class="inline-flex items-center gap-1.5 rounded-xl border border-gray-100 px-3 py-1.5 text-sm text-gray-600 transition hover:border-gray-300 hover:text-gray-900 dark:border-gray-850 dark:text-gray-300 dark:hover:border-gray-700 dark:hover:text-white"
+						on:click={() => (toutVoir = !toutVoir)}
+					>
+						{toutVoir ? $i18n.t('Replier') : `${$i18n.t('Tout parcourir')} (${reste.length})`}
+						<svg
+							xmlns="http://www.w3.org/2000/svg"
+							fill="none"
+							viewBox="0 0 24 24"
+							stroke-width="2"
+							stroke="currentColor"
+							class="size-4"
+						>
+							<path
+								stroke-linecap="round"
+								stroke-linejoin="round"
+								d="M13.5 4.5 21 12m0 0-7.5 7.5M21 12H3"
+							/>
+						</svg>
+					</button>
+				</div>
+			{/if}
+
+			{#each sections as section (section.id)}
 				<section>
-					<div class="mb-2.5 flex items-center justify-between gap-3">
-						<h3 class="text-sm font-medium">
-							{$i18n.t(section.libelle)}
-							<span class="text-gray-400">({section.applications.length})</span>
-						</h3>
-						{#if rang === 0 && reste.length > 0}
-							<!-- La porte vers le reste du catalogue se tient en haut de page, sur
-							     la premiere section. Plus bas, apres les cartes, il fallait avoir
-							     deja tout fait defiler pour la voir. C'est aussi le SEUL endroit
-							     qui ouvre `toutVoir` : sans ce bouton, le reste du catalogue
-							     devient inatteignable. -->
-							<button
-								type="button"
-								class="inline-flex flex-none items-center gap-1 text-sm text-gray-500 transition hover:text-gray-900 dark:hover:text-white"
-								on:click={() => (toutVoir = !toutVoir)}
-							>
-								{toutVoir ? $i18n.t('Replier') : $i18n.t('Tout parcourir')}
-								<svg
-									xmlns="http://www.w3.org/2000/svg"
-									fill="none"
-									viewBox="0 0 24 24"
-									stroke-width="2"
-									stroke="currentColor"
-									class="size-4"
-								>
-									<path
-										stroke-linecap="round"
-										stroke-linejoin="round"
-										d="M13.5 4.5 21 12m0 0-7.5 7.5M21 12H3"
-									/>
-								</svg>
-							</button>
-						{/if}
-					</div>
+					<h3 class="mb-2.5 text-sm font-medium">
+						{$i18n.t(section.libelle)}
+						<span class="text-gray-400">({section.applications.length})</span>
+					</h3>
 					<div class="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
 						{#each section.applications as application (application.slug)}
 							<CarteApplication {application} on:changed={charger} />
