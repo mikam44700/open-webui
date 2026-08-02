@@ -31,6 +31,10 @@
 	let connexions: ConnexionComposio[] = [];
 	let recherche = '';
 	let toutVoir = false;
+	// Vrai quand la derniere lecture a echoue. On garde alors a l'ecran ce qui
+	// avait ete lu avant : une coupure de trois secondes ne doit pas faire croire
+	// au client que ses applications se sont deconnectees.
+	let lectureEnEchec = false;
 
 	$: composees = composerApplications(applications, connexions);
 	$: sections = grouper(composees);
@@ -46,14 +50,18 @@
 			if (!etat?.cle) {
 				applications = [];
 				connexions = [];
+				lectureEnEchec = false;
 				return;
 			}
 			const [catalogue, comptes] = await Promise.all([
 				getApplicationsComposio(localStorage.token).catch(() => null),
 				getConnexionsComposio(localStorage.token).catch(() => null)
 			]);
-			applications = catalogue?.applications ?? [];
-			connexions = comptes?.connexions ?? [];
+			// On n'ecrase que ce qui a ete lu. Une lecture ratee laisse en place la
+			// precedente plutot que de vider la grille.
+			if (catalogue?.applications) applications = catalogue.applications;
+			if (comptes?.connexions) connexions = comptes.connexions;
+			lectureEnEchec = !catalogue || !comptes;
 		} finally {
 			chargement = false;
 		}
@@ -76,6 +84,27 @@
 	{#if chargement}
 		<div class="flex justify-center py-10"><Spinner className="size-5" /></div>
 	{:else if etat?.cle}
+		{#if lectureEnEchec}
+			<!-- Dit ce qui s'est passe sans crier a la panne : ce qui est affiche
+			     dessous date de la derniere lecture reussie. -->
+			<div
+				class="flex items-center justify-between gap-3 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-800 dark:border-amber-900/40 dark:bg-amber-950/20 dark:text-amber-300"
+			>
+				<span class="text-pretty">
+					{$i18n.t(
+						'Liste non actualisée — Composio n’a pas répondu. Vos connexions sont intactes.'
+					)}
+				</span>
+				<button
+					type="button"
+					class="flex-none rounded-lg px-2 py-1 font-medium underline hover:no-underline"
+					on:click={charger}
+				>
+					{$i18n.t('Réessayer')}
+				</button>
+			</div>
+		{/if}
+
 		{#if composees.length > 0}
 			<div class="relative">
 				<svg
@@ -162,7 +191,9 @@
 			{/each}
 		{:else}
 			<div class="py-8 text-center text-xs text-gray-500">
-				{$i18n.t('Aucune application disponible sur ce projet Composio.')}
+				{lectureEnEchec
+					? $i18n.t('Impossible de lire le catalogue pour le moment.')
+					: $i18n.t('Aucune application disponible sur ce projet Composio.')}
 			</div>
 		{/if}
 	{/if}

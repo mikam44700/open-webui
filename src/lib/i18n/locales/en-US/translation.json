@@ -3187,5 +3187,7 @@
 	"Statistiques": "Statistics",
 	"Parcourir les applications": "Browse apps",
 	"Fermer": "Close",
-	"d'intégrations": "more integrations"
+	"d'intégrations": "more integrations",
+	"Liste non actualisée — Composio n’a pas répondu. Vos connexions sont intactes.": "List not refreshed — Composio did not answer. Your connections are intact.",
+	"Impossible de lire le catalogue pour le moment.": "The catalogue cannot be read right now."
 }

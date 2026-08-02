@@ -17,7 +17,9 @@ installation. Une fuite sur un serveur ne touche que ce client-la, et la
 consommation se lit par projet.
 """
 
+import asyncio
 import logging
+import time
 from typing import Any, Optional
 
 import aiohttp
@@ -65,24 +67,52 @@ async def _appeler(
 
     Les erreurs amont sont traduites en messages lisibles : l'ecran Integrations
     n'a pas a afficher une trace technique au client.
+
+    Deux nouvelles tentatives sur les pannes passageres — DNS qui hoquette,
+    coupure d'une seconde, 502 amont. Sans elles, un seul rate vidait l'ecran du
+    client et lui laissait croire que ses applications s'etaient deconnectees.
+    Une lecture qui echoue trois fois de suite est une vraie panne, et elle est
+    alors annoncee comme telle.
+
+    Seules les lectures sont retentees. Rejouer un POST creerait un second
+    compte connecte ou une seconde configuration d'authentification.
     """
     url = f"{base}{chemin}"
-    try:
-        async with aiohttp.ClientSession(timeout=timeout) as session:
-            async with session.request(
-                methode, url, headers=_entetes(cle), json=corps
-            ) as reponse:
-                return await _lire(reponse, methode, chemin)
-    except aiohttp.ClientError as exc:
-        log.warning(f"Composio injoignable sur {url}: {exc}")
-        raise HTTPException(
-            status_code=503,
-            detail="Composio ne repond pas. Reessayez dans un instant.",
-        )
-    except TimeoutError:
+    rejouable = methode.upper() in {"GET", "HEAD"}
+    tentatives = 3 if rejouable else 1
+    dernier: Optional[Exception] = None
+
+    for tentative in range(tentatives):
+        if tentative:
+            await asyncio.sleep(0.6 * tentative)
+        try:
+            async with aiohttp.ClientSession(timeout=timeout) as session:
+                async with session.request(
+                    methode, url, headers=_entetes(cle), json=corps
+                ) as reponse:
+                    # Un 5xx amont est passager aussi : on retente comme le reste.
+                    if reponse.status >= 500 and tentative + 1 < tentatives:
+                        log.warning(
+                            f"Composio {reponse.status} sur {chemin}, "
+                            f"tentative {tentative + 1}/{tentatives}"
+                        )
+                        continue
+                    return await _lire(reponse, methode, chemin)
+        except (aiohttp.ClientError, TimeoutError) as exc:
+            dernier = exc
+            log.warning(
+                f"Composio injoignable sur {url} "
+                f"(tentative {tentative + 1}/{tentatives}) : {exc}"
+            )
+
+    if isinstance(dernier, TimeoutError):
         raise HTTPException(
             status_code=504, detail="Composio met trop de temps a repondre."
         )
+    raise HTTPException(
+        status_code=503,
+        detail="Composio ne repond pas. Reessayez dans un instant.",
+    )
 
 
 async def _lire(reponse: aiohttp.ClientResponse, methode: str, chemin: str) -> Any:
@@ -218,23 +248,48 @@ async def retirer_cle(user=Depends(get_admin_user)):
 # --------------------------------------------------------------------------
 
 
+# Le catalogue compte plus de mille entrees et ne bouge quasiment pas. Le garder
+# en memoire evite un aller-retour a chaque ouverture de l'onglet, et surtout : il
+# reste servi quand Composio devient injoignable. Sans lui, une coupure de trois
+# secondes vidait la page du client.
+_CACHE_APPLICATIONS: dict[str, Any] = {"quand": 0.0, "donnees": None}
+DUREE_CACHE = 600.0
+
+
 @router.get("/toolkits")
 async def applications(user=Depends(get_admin_user)):
-    """Les applications que ce projet Composio peut brancher."""
+    """Les applications que ce projet Composio peut brancher.
+
+    En cas de panne amont, le dernier catalogue connu est servi plutot qu'une
+    page vide : le client ne perd pas ses applications parce que le reseau a
+    hoquete. `frais` dit lequel des deux il regarde.
+    """
     cle = await _cle_ou_erreur()
-    charge = await _appeler("/toolkits", cle)
-    return {
-        "applications": [
-            {
-                "slug": f"{app.get('slug') or app.get('name') or ''}".lower(),
-                "nom": app.get("name") or app.get("slug") or "",
-                "logo": app.get("logo") or app.get("meta", {}).get("logo"),
-                "categories": app.get("categories") or [],
-            }
-            for app in _liste(charge)
-            if app.get("slug") or app.get("name")
-        ]
-    }
+    age = time.monotonic() - float(_CACHE_APPLICATIONS["quand"])
+    if _CACHE_APPLICATIONS["donnees"] is not None and age < DUREE_CACHE:
+        return {"applications": _CACHE_APPLICATIONS["donnees"], "frais": True}
+
+    try:
+        charge = await _appeler("/toolkits", cle)
+    except HTTPException:
+        if _CACHE_APPLICATIONS["donnees"] is not None:
+            log.warning("Composio injoignable : catalogue servi depuis le cache.")
+            return {"applications": _CACHE_APPLICATIONS["donnees"], "frais": False}
+        raise
+
+    liste = [
+        {
+            "slug": f"{app.get('slug') or app.get('name') or ''}".lower(),
+            "nom": app.get("name") or app.get("slug") or "",
+            "logo": app.get("logo") or app.get("meta", {}).get("logo"),
+            "categories": app.get("categories") or [],
+        }
+        for app in _liste(charge)
+        if app.get("slug") or app.get("name")
+    ]
+    _CACHE_APPLICATIONS["donnees"] = liste
+    _CACHE_APPLICATIONS["quand"] = time.monotonic()
+    return {"applications": liste, "frais": True}
 
 
 @router.get("/connections")
