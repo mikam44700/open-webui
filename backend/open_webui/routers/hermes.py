@@ -667,6 +667,26 @@ async def ajouter_serveur_mcp(corps: dict, user=Depends(get_admin_user)):
     )
 
 
+@router.put("/mcp/servers")
+async def remplacer_serveurs_mcp(corps: dict, user=Depends(get_admin_user)):
+    """Reecrit la carte complete des serveurs MCP.
+
+    Hermes n'expose que ce remplacement global : la route d'ajout ne sait poser
+    qu'un en-tete `Authorization: Bearer`, ce qui exclut les serveurs attendant
+    un autre nom d'en-tete. Passer par ici est le seul moyen d'en configurer un.
+
+    DANGER : cette route ECRASE tout ce qui n'est pas dans `servers`. L'appelant
+    doit avoir relu la carte existante et l'avoir fusionnee au prealable. Rien
+    dans ce router ne le fait a sa place.
+    """
+    return await _appeler(
+        "/api/mcp/servers",
+        methode="PUT",
+        corps=corps,
+        timeout=TIMEOUT_LONG,
+    )
+
+
 @router.post("/mcp/servers/{nom}/test")
 async def tester_serveur_mcp(nom: str, user=Depends(get_admin_user)):
     identifiant = quote(nom, safe="")

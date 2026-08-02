@@ -6,6 +6,7 @@
 	import Spinner from '$lib/components/common/Spinner.svelte';
 	import IntegrationCard from './IntegrationCard.svelte';
 	import IntegrationsBrowseModal from './IntegrationsBrowseModal.svelte';
+	import PanneauComposio from '$lib/components/composio/PanneauComposio.svelte';
 
 	const i18n = getContext('i18n');
 
@@ -63,6 +64,14 @@
 </script>
 
 <div class="w-full max-w-7xl mx-auto px-3 py-3">
+	<!-- Composio en tete : c'est par lui que passent les connexions par compte
+	     (messagerie, agenda, fichiers), que le moteur ne sait pas ouvrir seul.
+	     Il se charge independamment du reste : sa panne ne masque pas les
+	     integrations natives en dessous, et l'inverse est vrai aussi. -->
+	<div class="mb-6">
+		<PanneauComposio />
+	</div>
+
 	{#if loading}
 		<div class="flex justify-center py-16"><Spinner className="size-6" /></div>
 	{:else if bridgeDown}

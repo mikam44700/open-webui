@@ -29,6 +29,7 @@ COPY --from=frontend /app/build /app/build
 # extensions must be copied explicitly alongside the rebuilt frontend.
 COPY --from=frontend /app/backend/open_webui/main.py /app/backend/open_webui/main.py
 COPY --from=frontend /app/backend/open_webui/routers/hermes.py /app/backend/open_webui/routers/hermes.py
+COPY --from=frontend /app/backend/open_webui/routers/composio.py /app/backend/open_webui/routers/composio.py
 
 ARG BUILD_HASH=fr-local
 ENV WEBUI_BUILD_VERSION=${BUILD_HASH}
