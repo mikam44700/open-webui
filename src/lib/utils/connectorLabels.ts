@@ -11,6 +11,7 @@
 export const CONNECTOR_TAGS: Record<string, string[]> = {
 	apify: ['Scraping web', 'Prospection', '5000+ robots'],
 	'data-gouv-fr': ['Données publiques', 'SIRENE', 'Souverain'],
+	composio: ['Vos applications', 'Automatique', 'Onglet Intégrations'],
 	ableton: ['Pistes MIDI', 'Instruments', 'Live Set'],
 	alpaca: ['Trading', 'Actions', 'Crypto'],
 	aws: ['Cloud AWS', 'Services'],
@@ -88,6 +89,20 @@ export const CONNECTOR_FR: Record<
 			'Chercher un robot précis et le lancer à la demande',
 			'Récupérer les résultats structurés d’une extraction',
 			'Payant à l’usage : chaque extraction est facturée par Apify'
+		]
+	},
+	// Ce connecteur n'est pas un serveur de plus : c'est le pont vers TOUT ce que
+	// le client a branche dans l'onglet Integrations. Il apparait ici parce que le
+	// moteur y accede par MCP, et son adresse est derivee automatiquement de la
+	// cle Composio du projet — le client n'a jamais d'URL a coller.
+	composio: {
+		name: 'Composio',
+		desc: 'Le pont vers vos applications connectées dans l’onglet Intégrations.',
+		actions: [
+			'Donner à l’assistant les outils de vos applications connectées',
+			'Router chaque demande vers la bonne application',
+			'Se mettre à jour tout seul dès que vous connectez une application',
+			'Se configure sans URL : l’adresse vient de votre clé Composio'
 		]
 	},
 	'data-gouv-fr': {
