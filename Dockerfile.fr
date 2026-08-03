@@ -27,9 +27,15 @@ COPY --from=frontend /app/build /app/build
 
 # The French image is based on the official backend image, so local backend
 # extensions must be copied explicitly alongside the rebuilt frontend.
+#
+# Every new router needs a line here. Forgetting one does not fail the build:
+# the image is built, the container starts, and only then does uvicorn die with
+# "cannot import name X from open_webui.routers" — on a restart loop, several
+# minutes after the build reported success.
 COPY --from=frontend /app/backend/open_webui/main.py /app/backend/open_webui/main.py
 COPY --from=frontend /app/backend/open_webui/routers/hermes.py /app/backend/open_webui/routers/hermes.py
 COPY --from=frontend /app/backend/open_webui/routers/composio.py /app/backend/open_webui/routers/composio.py
+COPY --from=frontend /app/backend/open_webui/routers/kanban.py /app/backend/open_webui/routers/kanban.py
 
 ARG BUILD_HASH=fr-local
 ENV WEBUI_BUILD_VERSION=${BUILD_HASH}
