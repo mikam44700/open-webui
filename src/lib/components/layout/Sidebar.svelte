@@ -83,6 +83,7 @@
 	import CodeIcon from './Sidebar/icons/Code.svelte';
 	import EditPencilIcon from './Sidebar/icons/EditPencil.svelte';
 	import EngineIcon from './Sidebar/icons/Engine.svelte';
+	import HomeIcon from '../icons/Home.svelte';
 	import KanbanIcon from './Sidebar/icons/Kanban.svelte';
 	import NotesIcon from './Sidebar/icons/Notes.svelte';
 	import Sidebar from '../icons/Sidebar.svelte';
@@ -95,7 +96,7 @@
 	import MoreHorizontalIcon from './Sidebar/icons/MoreHorizontal.svelte';
 
 	const BREAKPOINT = 768;
-	const DEFAULT_PINNED_ITEMS = ['engine', 'kanban', 'notes', 'workspace'];
+	const DEFAULT_PINNED_ITEMS = ['accueil', 'engine', 'kanban', 'notes', 'workspace'];
 
 	let scrollTop = 0;
 
@@ -146,13 +147,13 @@
 
 	let sharedFolders: any[] = [];
 
-	// Moteur et Kanban sont epingles de force, dans cet ordre, avant ce que
-	// l'utilisateur a range lui-meme.
+	// Accueil, Moteur et Kanban sont epingles de force, dans cet ordre, avant ce
+	// que l'utilisateur a range lui-meme.
 	//
 	// Sans cela, une entree ajoutee apres coup reste invisible pour tous ceux qui
 	// ont deja des `pinnedMenuItems` enregistres : la liste sauvegardee gagne sur
 	// la liste par defaut, et la nouvelle entree n'y figure evidemment pas.
-	const TOUJOURS_EPINGLES = ['engine', 'kanban'];
+	const TOUJOURS_EPINGLES = ['accueil', 'engine', 'kanban'];
 
 	$: pinnedItems = (() => {
 		const savedItems = $settings?.pinnedMenuItems ?? DEFAULT_PINNED_ITEMS;
@@ -190,6 +191,12 @@
 					$config?.features?.enable_calendar &&
 					($user?.role === 'admin' || $user?.permissions?.features?.calendar)
 				);
+			case 'accueil':
+				// Ouvert a tous, contrairement au Moteur et au Kanban : c'est
+				// l'ecran qui rend compte du travail, pas un ecran de pilotage.
+				// La personne qui traite les dossiers doit voir les siens, et le
+				// dirigeant doit pouvoir constater sans qu'on lui donne les cles.
+				return true;
 			case 'kanban':
 				// Comme la page Moteur : reservee a l'administrateur au premier jet.
 				return $user?.role === 'admin';
@@ -202,6 +209,7 @@
 
 	const getMenuItemMeta = (id) => {
 		const items = {
+			accueil: { label: 'journal.titre', href: '/home', iconType: 'accueil' },
 			engine: { label: 'Engine', href: '/hermes', iconType: 'engine' },
 			kanban: { label: 'Kanban', href: '/kanban', iconType: 'kanban' },
 			notes: { label: 'Notes', href: '/notes', iconType: 'note' },
@@ -214,6 +222,7 @@
 	};
 
 	const menuItemPathPrefixes = {
+		accueil: '/home',
 		engine: '/hermes',
 		kanban: '/kanban',
 		notes: '/notes',
@@ -1041,7 +1050,9 @@
 												: 'bg-black/[0.035] dark:bg-white/[0.045]'
 											: 'group-hover:bg-gray-50 dark:group-hover:bg-gray-900'}"
 									>
-										{#if itemId === 'engine'}
+										{#if itemId === 'accueil'}
+											<HomeIcon className="size-4" strokeWidth="1.5" />
+										{:else if itemId === 'engine'}
 											<EngineIcon className="size-4" strokeWidth="1.5" />
 										{:else if itemId === 'kanban'}
 											<KanbanIcon className="size-4" strokeWidth="1.5" />
@@ -1234,7 +1245,9 @@
 										aria-label={$i18n.t(meta.label)}
 									>
 										<div class="self-center flex size-4 shrink-0 items-center justify-center">
-											{#if itemId === 'engine'}
+											{#if itemId === 'accueil'}
+											<HomeIcon className="size-4" strokeWidth="1.5" />
+										{:else if itemId === 'engine'}
 												<EngineIcon className="size-4" strokeWidth="1.5" />
 											{:else if itemId === 'kanban'}
 												<KanbanIcon className="size-4" strokeWidth="1.5" />
