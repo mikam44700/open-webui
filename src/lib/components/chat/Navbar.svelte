@@ -22,6 +22,7 @@
 
 	import ShareChatModal from '../chat/ShareChatModal.svelte';
 	import ModelSelector from '../chat/ModelSelector.svelte';
+	import CerveauSelector from '../chat/CerveauSelector.svelte';
 	import Tooltip from '../common/Tooltip.svelte';
 	import Menu from '$lib/components/layout/Navbar/Menu.svelte';
 	import AdjustmentsHorizontal from '../icons/AdjustmentsHorizontal.svelte';
@@ -53,10 +54,19 @@
 	export let title = '';
 	export let selectedModels = [''];
 	export let showModelSelector = true;
+
 	export let onSaveTempChat: () => {};
 	export let archiveChatHandler: (id: string) => void;
 	export let deleteChatHandler: (id: string) => void;
 	export let moveChatHandler: (id: string, folderId: string) => void;
+
+	/**
+	 * Le selecteur natif ne sert que de filet : le moteur n'annonce qu'un modele
+	 * (`hermes-agent`), le vrai choix passe par CerveauSelector. On ne le remet
+	 * que si le moteur est injoignable — deux selecteurs cote a cote ne diraient
+	 * pas lequel commande.
+	 */
+	let moteurIndisponible = false;
 
 	let closedBannerIds = [];
 
@@ -125,13 +135,17 @@
 						     premier choix d'une conversation, il se lit avant le titre. -->
 						{#if showModelSelector}
 							<div class="flex min-w-0 shrink items-center">
-								<ModelSelector
-									bind:selectedModels
-									showSetDefault={!history?.currentId}
-									placement="bottom"
-									align="start"
-									triggerClassName="items-center gap-1.5 rounded-lg px-2 py-1 text-[15px] font-normal text-gray-700 transition-colors duration-100 hover:bg-gray-50/40 dark:text-gray-200 dark:hover:bg-gray-800/40"
-								/>
+								<CerveauSelector on:etat={(e) => (moteurIndisponible = e.detail.indisponible)} />
+
+								{#if moteurIndisponible}
+									<ModelSelector
+										bind:selectedModels
+										showSetDefault={!history?.currentId}
+										placement="bottom"
+										align="start"
+										triggerClassName="items-center gap-1.5 rounded-lg px-2 py-1 text-[15px] font-normal text-gray-700 transition-colors duration-100 hover:bg-gray-50/40 dark:text-gray-200 dark:hover:bg-gray-800/40"
+									/>
+								{/if}
 							</div>
 						{/if}
 

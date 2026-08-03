@@ -3266,5 +3266,17 @@
 	"Cette tâche a changé entre-temps. Le tableau est rechargé.": "Cette tâche a changé entre-temps. Le tableau est rechargé.",
 	"Le moteur a refusé la demande.": "Le moteur a refusé la demande.",
 	"{{n}} messages": "{{n}} messages",
-	"rebloquée {{n}} fois": "rebloquée {{n}} fois"
+	"rebloquée {{n}} fois": "rebloquée {{n}} fois",
+	"Fast": "Rapide",
+	"Quick answers": "Réponses vives",
+	"Balanced": "Équilibré",
+	"The right trade-off": "Le bon compromis",
+	"Thorough": "Approfondi",
+	"Deeper thinking": "Réflexion poussée",
+	"Maximum": "Maximum",
+	"Maximum reasoning": "Raisonnement maximal",
+	"Thinking level": "Niveau d’intelligence",
+	"The engine now thinks with {{model}}": "Le moteur réfléchit maintenant avec {{model}}",
+	"No provider is connected to the engine yet. Connect one from the Engine page.": "Aucun fournisseur n’est encore branché au moteur. Branchez-en un depuis la page Moteur.",
+	"This choice applies to every conversation, including open ones.": "Ce choix vaut pour toutes les conversations, y compris celles déjà ouvertes."
 }

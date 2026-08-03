@@ -23,6 +23,7 @@
 	import PanneauLocal from './PanneauLocal.svelte';
 	import type { Element } from './ListeBasculable.svelte';
 	import { enElements } from './normaliser';
+	import { listerCerveaux, estActif as cerveauEstActif, type Cerveau } from '$lib/moteur/cerveaux';
 	import { urlLogo, logoBordABord, initiales, LOGO_PAR_DEFAUT } from './logos';
 
 	export let etat: EtatMoteur | null = null;
@@ -61,7 +62,12 @@
 		sousOnglet = 'moteur';
 
 	/** Panneaux secondaires : meme forme que ceux de la page, meme logique. */
-	type Panneau = { elements: Element[]; chargement: boolean; erreur: string | null; charge: boolean };
+	type Panneau = {
+		elements: Element[];
+		chargement: boolean;
+		erreur: string | null;
+		charge: boolean;
+	};
 	const vide = (): Panneau => ({ elements: [], chargement: false, erreur: null, charge: false });
 	let secondaires: Record<string, Panneau> = {
 		combines: vide()
@@ -87,13 +93,12 @@
 		if (sousOnglet === 'combines') chargerSecondaire('combines', () => getModelesCombines(t()));
 	}
 
-	type Modele = {
-		id: string;
-		titre: string;
-		fournisseur?: string;
-		nomFournisseur?: string;
-		connecte?: boolean;
-	};
+	/**
+	 * La mise a plat du catalogue vit dans `$lib/moteur/cerveaux` : le selecteur
+	 * du chat lit le meme catalogue, et deux lectures divergentes finiraient par
+	 * afficher deux verites differentes sur le modele actif.
+	 */
+	type Modele = Cerveau;
 
 	let modeles: Modele[] = [];
 	let chargement = true;
@@ -103,75 +108,12 @@
 	let actifModele: string | null = null;
 	let actifFournisseur: string | null = null;
 
-	/**
-	 * Met la reponse du moteur a plat.
-	 *
-	 * Forme reelle observee sur Hermes :
-	 *   { providers: [ { slug, name, models: [...], authenticated } ],
-	 *     model: "gpt-5.6-sol", provider: "openai-codex" }
-	 *
-	 * Les deux autres formes (tableau simple, objet indexe) sont conservees :
-	 * elles existent sur d'autres versions d'Hermes et ne coutent rien a garder.
-	 */
-	const aplatir = (reponse: any): Modele[] => {
-		if (!reponse) return [];
-
-		// Forme principale : liste de fournisseurs, chacun avec ses modeles.
-		if (Array.isArray(reponse.providers)) {
-			return reponse.providers.flatMap((fournisseur: any) => {
-				const slug = `${fournisseur.slug ?? fournisseur.id ?? ''}`;
-				const liste = Array.isArray(fournisseur.models) ? fournisseur.models : [];
-				return liste
-					.map((entree: any) => {
-						const id = typeof entree === 'string' ? entree : `${entree.id ?? entree.name ?? ''}`;
-						return {
-							id,
-							titre: id,
-							fournisseur: slug,
-							nomFournisseur: `${fournisseur.name ?? slug}`,
-							connecte: fournisseur.authenticated !== false
-						};
-					})
-					.filter((m: Modele) => m.id);
-			});
-		}
-
-		const source = reponse.options ?? reponse.models ?? reponse.data ?? reponse;
-
-		if (Array.isArray(source)) {
-			return source
-				.map((entree) =>
-					typeof entree === 'string'
-						? { id: entree, titre: entree }
-						: {
-								id: `${entree.id ?? entree.model ?? entree.name ?? ''}`,
-								titre: `${entree.title ?? entree.label ?? entree.id ?? entree.model ?? entree.name ?? ''}`,
-								fournisseur: entree.provider ?? entree.owned_by
-							}
-				)
-				.filter((m) => m.id);
-		}
-
-		if (typeof source === 'object') {
-			return Object.entries(source)
-				.flatMap(([fournisseur, liste]) =>
-					(Array.isArray(liste) ? liste : []).map((entree: any) => {
-						const id = typeof entree === 'string' ? entree : `${entree.id ?? entree.model ?? ''}`;
-						return { id, titre: id, fournisseur };
-					})
-				)
-				.filter((m) => m.id);
-		}
-
-		return [];
-	};
-
 	const charger = async () => {
 		chargement = true;
 		erreur = null;
 		try {
 			const reponse = await getOptionsModeles(localStorage.token);
-			modeles = aplatir(reponse);
+			modeles = listerCerveaux(reponse);
 			// Le moteur declare lui-meme son couple actif : on le prend a la source
 			// plutot que de le deduire, pour ne jamais afficher un « Actif » faux.
 			actifModele = reponse?.model ?? etat?.modele_actif ?? null;
@@ -185,8 +127,7 @@
 
 	/** Un modele n'est actif que si son nom ET son fournisseur correspondent. */
 	const estActif = (modele: Modele) =>
-		modele.id === actifModele &&
-		(!actifFournisseur || !modele.fournisseur || modele.fournisseur === actifFournisseur);
+		cerveauEstActif(modele, { modele: actifModele, fournisseur: actifFournisseur });
 
 	const choisir = async (modele: Modele) => {
 		if (enCours || estActif(modele)) return;
@@ -241,7 +182,9 @@
 		messageVide="Aucun assemblage de modèles configuré."
 	/>
 {:else if chargement}
-	<div class="flex items-center justify-center gap-2 py-16 text-sm text-gray-500 dark:text-gray-400">
+	<div
+		class="flex items-center justify-center gap-2 py-16 text-sm text-gray-500 dark:text-gray-400"
+	>
 		<Spinner className="size-4" />
 		Lecture des modèles disponibles…
 	</div>
@@ -312,7 +255,9 @@
 					</div>
 
 					{#if modele.nomFournisseur ?? modele.fournisseur}
-						<div class="mt-1 flex flex-wrap items-center gap-1.5 text-xs text-gray-500 dark:text-gray-400">
+						<div
+							class="mt-1 flex flex-wrap items-center gap-1.5 text-xs text-gray-500 dark:text-gray-400"
+						>
 							{modele.nomFournisseur ?? modele.fournisseur}
 							{#if modele.connecte === false}
 								<span
