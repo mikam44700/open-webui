@@ -83,6 +83,7 @@
 	import CodeIcon from './Sidebar/icons/Code.svelte';
 	import EditPencilIcon from './Sidebar/icons/EditPencil.svelte';
 	import EngineIcon from './Sidebar/icons/Engine.svelte';
+	import KanbanIcon from './Sidebar/icons/Kanban.svelte';
 	import NotesIcon from './Sidebar/icons/Notes.svelte';
 	import Sidebar from '../icons/Sidebar.svelte';
 	import WorkspaceIcon from './Sidebar/icons/Workspace.svelte';
@@ -178,6 +179,9 @@
 					$config?.features?.enable_calendar &&
 					($user?.role === 'admin' || $user?.permissions?.features?.calendar)
 				);
+			case 'kanban':
+				// Comme la page Moteur : reservee a l'administrateur au premier jet.
+				return $user?.role === 'admin';
 			case 'playground':
 				return $user?.role === 'admin';
 			default:
@@ -188,6 +192,7 @@
 	const getMenuItemMeta = (id) => {
 		const items = {
 			engine: { label: 'Engine', href: '/hermes', iconType: 'engine' },
+			kanban: { label: 'Kanban', href: '/kanban', iconType: 'kanban' },
 			notes: { label: 'Notes', href: '/notes', iconType: 'note' },
 			workspace: { label: 'Workspace', href: '/workspace', iconType: 'workspace' },
 			automations: { label: 'Automations', href: '/automations', iconType: 'automations' },
@@ -199,6 +204,7 @@
 
 	const menuItemPathPrefixes = {
 		engine: '/hermes',
+		kanban: '/kanban',
 		notes: '/notes',
 		workspace: '/workspace',
 		calendar: '/calendar',
@@ -1026,6 +1032,8 @@
 									>
 										{#if itemId === 'engine'}
 											<EngineIcon className="size-4" strokeWidth="1.5" />
+										{:else if itemId === 'kanban'}
+											<KanbanIcon className="size-4" strokeWidth="1.5" />
 										{:else if itemId === 'notes'}
 											<NotesIcon className="size-4" strokeWidth="1.5" />
 										{:else if itemId === 'workspace'}
@@ -1217,6 +1225,8 @@
 										<div class="self-center flex size-4 shrink-0 items-center justify-center">
 											{#if itemId === 'engine'}
 												<EngineIcon className="size-4" strokeWidth="1.5" />
+											{:else if itemId === 'kanban'}
+												<KanbanIcon className="size-4" strokeWidth="1.5" />
 											{:else if itemId === 'notes'}
 												<NotesIcon className="size-4" strokeWidth="1.5" />
 											{:else if itemId === 'workspace'}
