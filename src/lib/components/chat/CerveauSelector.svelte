@@ -18,6 +18,7 @@
 
 	import {
 		getOptionsModeles,
+		getFournisseursCompte,
 		changerDeModele,
 		getNiveauIntelligence,
 		definirNiveauIntelligence
@@ -25,6 +26,7 @@
 	import {
 		cerveauActif,
 		cerveauxDisponibles,
+		comptesParFournisseur,
 		estActif,
 		listerCerveaux,
 		type Cerveau,
@@ -57,10 +59,15 @@
 
 	let cerveaux: Cerveau[] = [];
 	let actif: CerveauActif = { modele: null, fournisseur: null };
+	/**
+	 * Etat des comptes du moteur. Vide tant qu'il n'a pas repondu : rien n'est
+	 * alors ecarte, on ne masque jamais sur une information qu'on n'a pas.
+	 */
+	let comptes: Record<string, boolean> = {};
 	let effort = 'medium';
 	let enCours: string | null = null;
 
-	$: groupes = cerveauxDisponibles(cerveaux, actif);
+	$: groupes = cerveauxDisponibles(cerveaux, actif, comptes);
 	$: libelle = actif.modele ?? $i18n.t('Select a model');
 
 	const charger = async () => {
@@ -80,6 +87,15 @@
 		}
 
 		if (indisponible) return;
+
+		// Les deux appels qui suivent affinent l'affichage sans jamais le bloquer :
+		// chacun echoue seul, et le selecteur reste utilisable.
+		try {
+			comptes = comptesParFournisseur(await getFournisseursCompte(localStorage.token));
+		} catch {
+			// Sans cette liste, on ne sait pas distinguer un compte propre d'un
+			// jeton emprunte : on montre tout plutot que d'ecarter au hasard.
+		}
 
 		try {
 			effort = (await getNiveauIntelligence(localStorage.token))?.effort ?? 'medium';
