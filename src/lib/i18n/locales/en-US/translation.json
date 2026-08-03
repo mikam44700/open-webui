@@ -7,6 +7,7 @@
 	"Active model": "Active model",
 	"Active runs": "Active runs",
 	"Authentication failed": "Authentication failed",
+	"Autorisation annulée.": "Authorisation cancelled.",
 	"Ce compte est géré en dehors de Hermes : il ne peut pas être déconnecté ici.": "Ce compte est géré en dehors de Hermes : il ne peut pas être déconnecté ici.",
 	"Ce compte se connecte depuis votre machine, pas depuis cet écran.": "Ce compte se connecte depuis votre machine, pas depuis cet écran.",
 	"Check HERMES_API_KEY, or the key stored in the Hermes configuration file.": "Check HERMES_API_KEY, or the key stored in the Hermes configuration file.",

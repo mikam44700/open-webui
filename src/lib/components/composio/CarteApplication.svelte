@@ -74,16 +74,40 @@
 	let confirmationRetrait = false;
 	let retrait = false;
 	let minuteur: ReturnType<typeof setTimeout> | null = null;
+	let graceRetour: ReturnType<typeof setTimeout> | null = null;
+	// Vrai quand la fenetre d'autorisation s'est refermee sans que Composio ait
+	// confirme : le suivi s'arrete alors au tour suivant.
+	let renonce = false;
+
+	// Le retour du focus signale la fermeture de la fenetre d'autorisation — mais
+	// il survient aussi quand le client valide, une fraction de seconde avant que
+	// Composio enregistre. D'ou le delai : on laisse le compte s'activer avant de
+	// conclure a un abandon.
+	const auRetourDeFocus = () => {
+		if (!connexion || graceRetour) return;
+		graceRetour = setTimeout(() => {
+			renonce = true;
+			graceRetour = null;
+		}, 2500);
+	};
+
+	const arreterSuivi = () => {
+		if (minuteur) clearTimeout(minuteur);
+		if (graceRetour) clearTimeout(graceRetour);
+		minuteur = null;
+		graceRetour = null;
+		renonce = false;
+		window.removeEventListener('focus', auRetourDeFocus);
+	};
 
 	// L'onglet peut se fermer pendant qu'une autorisation est en cours : sans cet
 	// arret, le suivi continuerait a interroger Composio dans le vide.
-	onDestroy(() => {
-		if (minuteur) clearTimeout(minuteur);
-	});
+	onDestroy(arreterSuivi);
 
 	const suivre = async (id: string, restant = 60) => {
 		if (restant <= 0) {
 			connexion = false;
+			arreterSuivi();
 			toast.error($i18n.t('Autorisation non terminée. Réessayez.'));
 			return;
 		}
@@ -92,12 +116,14 @@
 			const lu = etatDeConnexion(etat?.etat ?? '');
 			if (lu === 'connectee') {
 				connexion = false;
+				arreterSuivi();
 				toast.success($i18n.t('{{name}} est connecté', { name: nom }));
 				dispatch('changed');
 				return;
 			}
 			if (lu === 'echouee') {
 				connexion = false;
+				arreterSuivi();
 				toast.error($i18n.t('{{name}} n’a pas pu être connecté', { name: nom }));
 				dispatch('changed');
 				return;
@@ -106,12 +132,23 @@
 			// Un trou de reseau pendant l'autorisation n'est pas un echec : on
 			// retente au tour suivant plutot que d'annoncer une panne.
 		}
+		// La verification ci-dessus vient d'avoir lieu : si le compte n'est
+		// toujours pas actif alors que la fenetre est refermee depuis plusieurs
+		// secondes, le client a renonce. Inutile de le faire patienter deux
+		// minutes devant une roue qui tourne.
+		if (renonce) {
+			connexion = false;
+			arreterSuivi();
+			toast.error($i18n.t('Autorisation annulée.'));
+			return;
+		}
 		minuteur = setTimeout(() => suivre(id, restant - 1), 2000);
 	};
 
 	const connecter = async () => {
 		if (connexion) return;
 		connexion = true;
+		renonce = false;
 		try {
 			const resultat = await connecterApplication(
 				localStorage.token,
@@ -120,10 +157,15 @@
 			);
 			if (!resultat?.url) throw new Error($i18n.t('Adresse d’autorisation manquante.'));
 			window.open(resultat.url, '_blank', 'noopener,width=520,height=680');
-			if (resultat.id) suivre(resultat.id);
-			else connexion = false;
+			if (resultat.id) {
+				window.addEventListener('focus', auRetourDeFocus);
+				suivre(resultat.id);
+			} else {
+				connexion = false;
+			}
 		} catch (err) {
 			connexion = false;
+			arreterSuivi();
 			toast.error(`${err}`);
 		}
 	};
