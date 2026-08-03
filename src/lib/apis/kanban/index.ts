@@ -23,7 +23,11 @@ export type TacheKanban = {
 	reblocages?: number | null;
 };
 
-export type LienKanban = { parent: string; enfant: string };
+/** Combien de parents et d'enfants une tâche porte, par identifiant de tâche. */
+export type DependancesKanban = Record<
+	string,
+	{ parents: number; enfants: number; faits?: number | null; total?: number | null }
+>;
 
 export type MessageKanban = {
 	auteur?: string | null;
@@ -99,7 +103,10 @@ export const getTableauKanban = (
 	if (options.inclureArchivees) parametres.set('inclure_archivees', 'true');
 	const suffixe = parametres.toString() ? `?${parametres}` : '';
 
-	return appeler<{ taches: TacheKanban[]; liens: LienKanban[] }>(token, `/board${suffixe}`);
+	return appeler<{ taches: TacheKanban[]; dependances: DependancesKanban }>(
+		token,
+		`/board${suffixe}`
+	);
 };
 
 export const getFicheKanban = (token: string, id: string) =>

@@ -70,27 +70,74 @@ def _projeter(brut: Any, champs: dict) -> dict:
 
 
 def _taches(charge: Any, champs: dict) -> list:
-    """Extrait la liste de taches, quel que soit l'emballage du plugin."""
+    """Extrait la liste de taches.
+
+    Le plugin ne rend PAS une liste a plat : il rend les taches deja rangees par
+    colonne, sous la forme
+
+        {"columns": [{"name": "triage", "tasks": [...]}, {"name": "todo", ...}]}
+
+    Une lecture qui cherche `tasks` a la racine trouve donc toujours vide, et
+    l'appel repond 200 — un ecran vide sans le moindre message d'erreur. C'est
+    exactement ce qui est arrive.
+
+    On aplatit ici plutot que de reprendre leur decoupage : le regroupement en
+    six colonnes appartient a `lib/kanban/colonnes.ts`, qui est teste, et
+    dependre du leur ferait perdre la distinction entre un statut inconnu et un
+    statut range d'office (le plugin fait `col = t.status if t.status in columns
+    else "todo"` — precisement le repli silencieux qu'on refuse).
+    """
     if isinstance(charge, list):
         brutes = charge
     elif isinstance(charge, dict):
-        brutes = charge.get("tasks") or charge.get("taches") or []
+        colonnes = charge.get("columns")
+        if isinstance(colonnes, list):
+            brutes = [
+                tache
+                for colonne in colonnes
+                if isinstance(colonne, dict)
+                for tache in (colonne.get("tasks") or [])
+            ]
+        else:
+            brutes = charge.get("tasks") or charge.get("taches") or []
     else:
         brutes = []
 
     return [_projeter(tache, champs) for tache in brutes if isinstance(tache, dict)]
 
 
-def _liens(charge: Any) -> list:
-    """Les dependances parent -> enfant, si le plugin les joint."""
-    if not isinstance(charge, dict):
-        return []
+def _dependances(charge: Any) -> dict:
+    """Combien de parents et d'enfants par tache.
 
-    return [
-        {"parent": lien.get("parent_id") or lien.get("parent"), "enfant": lien.get("child_id") or lien.get("enfant")}
-        for lien in (charge.get("links") or charge.get("liens") or [])
-        if isinstance(lien, dict)
-    ]
+    Le plugin ne rend pas la liste des liens : il rend un compte par tache
+    (`link_counts`), plus une progression (`progress`) sur les taches qui ont
+    des enfants. C'est suffisant pour dire « cette tache en attend une autre »
+    sans un aller-retour de plus.
+    """
+    if not isinstance(charge, dict):
+        return {}
+
+    colonnes = charge.get("columns")
+    if not isinstance(colonnes, list):
+        return {}
+
+    comptes: dict = {}
+    for colonne in colonnes:
+        if not isinstance(colonne, dict):
+            continue
+        for tache in colonne.get("tasks") or []:
+            if not isinstance(tache, dict):
+                continue
+            liens = tache.get("link_counts") or {}
+            progression = tache.get("progress") or {}
+            comptes[tache.get("id")] = {
+                "parents": liens.get("parents", 0),
+                "enfants": liens.get("children", 0),
+                "faits": progression.get("done"),
+                "total": progression.get("total"),
+            }
+
+    return comptes
 
 
 # --------------------------------------------------------------------------
@@ -132,7 +179,7 @@ async def tableau(
 
     charge = await _appeler(f"{BASE}/board{suffixe}")
 
-    return {"taches": _taches(charge, _CHAMPS_TACHE), "liens": _liens(charge)}
+    return {"taches": _taches(charge, _CHAMPS_TACHE), "dependances": _dependances(charge)}
 
 
 @router.get("/tasks/{task_id}")
