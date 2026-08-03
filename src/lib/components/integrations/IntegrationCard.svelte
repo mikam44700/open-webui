@@ -61,7 +61,10 @@
 		obsidian: ['Notes', 'Recherche', 'Liens'],
 		notion: ['Pages', 'Bases', 'Recherche'],
 		airtable: ['Bases', 'Tables', 'Vues'],
-		linkedin: ['Posts', 'Images', 'Profil']
+		linkedin: ['Posts', 'Images', 'Profil'],
+		email: ['Réception', 'Recherche', 'Envoi'],
+		apple: ['Notes', 'Rappels', 'iMessage'],
+		hue: ['Lumières', 'Intensité', 'Scènes']
 	};
 	// Le catalogue technique fournit les sous-services des grandes suites. Les autres cartes
 	// essentielles reçoivent ici leurs propres repères client.
