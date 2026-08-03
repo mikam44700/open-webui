@@ -21,6 +21,7 @@
 	import { goto } from '$app/navigation';
 
 	import ShareChatModal from '../chat/ShareChatModal.svelte';
+	import ModelSelector from '../chat/ModelSelector.svelte';
 	import Tooltip from '../common/Tooltip.svelte';
 	import Menu from '$lib/components/layout/Navbar/Menu.svelte';
 	import AdjustmentsHorizontal from '../icons/AdjustmentsHorizontal.svelte';
@@ -50,6 +51,8 @@
 	export let chat;
 	export let history;
 	export let title = '';
+	export let selectedModels = [''];
+	export let showModelSelector = true;
 	export let onSaveTempChat: () => {};
 	export let archiveChatHandler: (id: string) => void;
 	export let deleteChatHandler: (id: string) => void;
@@ -117,10 +120,24 @@
 				<div
 					class="flex-1 overflow-hidden max-w-full mt-0.5 py-0.5 pl-1 {$showSidebar ? 'ml-1' : ''}"
 				>
-					{#if chat?.id}
-						<div class="flex max-w-full min-w-0 items-center gap-2 mr-2">
+					<div class="flex max-w-full min-w-0 items-center gap-2 mr-2">
+						<!-- Sélecteur de modèle en tête de barre, comme dans AgentOS-v1 : c'est le
+						     premier choix d'une conversation, il se lit avant le titre. -->
+						{#if showModelSelector}
+							<div class="flex min-w-0 shrink items-center">
+								<ModelSelector
+									bind:selectedModels
+									showSetDefault={!history?.currentId}
+									placement="bottom"
+									align="start"
+									triggerClassName="items-center gap-1.5 rounded-lg px-2 py-1 text-[15px] font-normal text-gray-700 transition-colors duration-100 hover:bg-gray-50/40 dark:text-gray-200 dark:hover:bg-gray-800/40"
+								/>
+							</div>
+						{/if}
+
+						{#if chat?.id}
 							<div
-								class="min-w-0 truncate py-1 text-left text-[15px] font-normal text-gray-700 dark:text-gray-300"
+								class="hidden min-w-0 truncate py-1 text-left text-[15px] font-normal text-gray-500 md:block dark:text-gray-400"
 							>
 								{title || chat?.chat?.title || $i18n.t('New Chat')}
 							</div>
@@ -151,16 +168,8 @@
 									</button>
 								</Menu>
 							{/if}
-						</div>
-					{:else}
-						<div class="pointer-events-none invisible flex max-w-full min-w-0 items-center gap-2">
-							<div
-								class="min-w-0 truncate py-1 text-left text-[15px] font-normal text-gray-700 dark:text-gray-300"
-							>
-								{$i18n.t('New Chat')}
-							</div>
-						</div>
-					{/if}
+						{/if}
+					</div>
 				</div>
 
 				<div class="mr-1 flex flex-none items-center gap-2 self-center">
