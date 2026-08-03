@@ -108,6 +108,9 @@
 		if (restant <= 0) {
 			connexion = false;
 			arreterSuivi();
+			// Meme menage que sur un abandon : deux minutes sans reponse, le
+			// compte en attente ne sera jamais repris.
+			retirerConnexion(localStorage.token, id).catch(() => {});
 			toast.error($i18n.t('Autorisation non terminée. Réessayez.'));
 			return;
 		}
@@ -139,6 +142,11 @@
 		if (renonce) {
 			connexion = false;
 			arreterSuivi();
+			// L'ebauche laissee chez Composio ne servira plus : sans ce retrait,
+			// chaque essai abandonne encombrerait le projet du client d'un compte
+			// en attente que personne ne reprendra. L'echec du retrait est tu :
+			// le client n'a pas a s'entendre annoncer une panne pour un menage.
+			retirerConnexion(localStorage.token, id).catch(() => {});
 			toast.error($i18n.t('Autorisation annulée.'));
 			return;
 		}
