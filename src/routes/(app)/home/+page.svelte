@@ -12,8 +12,15 @@
 	 */
 	import { getContext, onMount } from 'svelte';
 
-	import { getSyntheseJournal, type Fenetre, type SyntheseJournal } from '$lib/apis/journal';
+	import {
+		getSyntheseJournal,
+		getTraitements,
+		type Fenetre,
+		type SyntheseJournal,
+		type Traitement
+	} from '$lib/apis/journal';
 	import Spinner from '$lib/components/common/Spinner.svelte';
+	import FileAttente from '$lib/components/journal/FileAttente.svelte';
 	import ListeTraitements from '$lib/components/journal/ListeTraitements.svelte';
 	import TuileCompteur from '$lib/components/journal/TuileCompteur.svelte';
 	import { COMPTEURS_VIDES, alerteJournal, etatAffichage, tuiles } from '$lib/journal/synthese';
@@ -21,6 +28,7 @@
 	const i18n = getContext('i18n');
 
 	let synthese: SyntheseJournal | null = null;
+	let enAttente: Traitement[] = [];
 	let lectureEchouee = false;
 	let chargement = true;
 	let fenetre: Fenetre = 'jour';
@@ -34,21 +42,38 @@
 		tout: 'journal.fenetre.tout'
 	};
 
+	/**
+	 * Les deux sources sont chargees separement, et une panne de l'une ne doit
+	 * pas emporter l'autre : si la file a signer devient illisible, les
+	 * compteurs restent affiches, et inversement.
+	 */
 	const charger = async (choix: Fenetre) => {
 		chargement = true;
 		lectureEchouee = false;
 
-		try {
-			synthese = await getSyntheseJournal(localStorage.token, choix);
-		} catch (erreur) {
+		const [resultatSynthese, resultatAttente] = await Promise.allSettled([
+			getSyntheseJournal(localStorage.token, choix),
+			getTraitements(localStorage.token, { statut: 'pending', limit: 20, fenetre: choix })
+		]);
+
+		if (resultatSynthese.status === 'fulfilled') {
+			synthese = resultatSynthese.value;
+		} else {
 			// On ne remplace pas les donnees par des zeros : un journal illisible
 			// n'est pas une journee sans travail.
 			synthese = null;
 			lectureEchouee = true;
-			console.error(erreur);
-		} finally {
-			chargement = false;
+			console.error(resultatSynthese.reason);
 		}
+
+		if (resultatAttente.status === 'fulfilled') {
+			enAttente = resultatAttente.value;
+		} else {
+			enAttente = [];
+			console.error(resultatAttente.reason);
+		}
+
+		chargement = false;
 	};
 
 	const changerFenetre = async (choix: Fenetre) => {
@@ -124,6 +149,8 @@
 				<TuileCompteur statut={tuile.statut} valeur={tuile.valeur} ton={tuile.ton} />
 			{/each}
 		</div>
+
+		<FileAttente traitements={enAttente} on:decide={() => charger(fenetre)} />
 
 		<section class="flex flex-col gap-2">
 			<h2 class="text-sm font-medium text-gray-800 dark:text-gray-200">

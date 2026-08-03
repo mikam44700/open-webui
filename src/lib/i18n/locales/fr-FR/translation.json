@@ -3303,5 +3303,12 @@
 	"journal.source.interface": "Interface",
 	"journal.source.telegram": "Telegram",
 	"journal.source.planifie": "Planifié",
-	"journal.source.api": "API"
+	"journal.source.api": "API",
+	"journal.a_signer": "En attente de votre validation",
+	"journal.valider": "Valider",
+	"journal.refuser": "Refuser",
+	"journal.signe": "Validé {{reference}}",
+	"journal.refuse": "Refusé {{reference}}",
+	"journal.deja_decide": "Quelqu’un l’a validé entre-temps. La liste a été rafraîchie.",
+	"journal.decision_impossible": "La décision n’a pas pu être enregistrée. Rien n’a changé."
 }

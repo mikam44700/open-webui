@@ -3289,5 +3289,12 @@
 	"journal.source.interface": "Interface",
 	"journal.source.telegram": "Telegram",
 	"journal.source.planifie": "Scheduled",
-	"journal.source.api": "API"
+	"journal.source.api": "API",
+	"journal.a_signer": "Waiting for your signature",
+	"journal.valider": "Approve",
+	"journal.refuser": "Reject",
+	"journal.signe": "Approved {{reference}}",
+	"journal.refuse": "Rejected {{reference}}",
+	"journal.deja_decide": "Someone signed this off in the meantime. The list has been refreshed.",
+	"journal.decision_impossible": "The decision could not be recorded. Nothing has changed."
 }

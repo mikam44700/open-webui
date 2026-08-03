@@ -47,6 +47,8 @@ class HermesActivity(Base):
     error = Column(Text, nullable=True)
     meta = Column(JSON, nullable=True)
     created_at = Column(BigInteger, nullable=False)
+    decided_by = Column(Text, nullable=True)
+    decided_at = Column(BigInteger, nullable=True)
 
     __table_args__ = (
         Index('ix_hermes_activity_created', 'created_at'),
@@ -73,6 +75,8 @@ class HermesActivityModel(BaseModel):
     error: Optional[str] = None
     meta: Optional[dict] = None
     created_at: int
+    decided_by: Optional[str] = None
+    decided_at: Optional[int] = None
 
 
 class HermesActivityForm(BaseModel):
@@ -171,6 +175,43 @@ class HermesActivityTable:
             unknown=tally.get('unknown', 0),
             total=sum(tally.values()),
         )
+
+    async def decide(
+        self,
+        id: str,
+        issue: str,
+        user_id: str,
+        motif: Optional[str] = None,
+    ) -> Optional[HermesActivityModel]:
+        """Records a human decision on a treatment awaiting signature.
+
+        Only `pending` rows can be decided, and a decision is final. Re-deciding
+        an already-decided treatment is refused rather than silently applied:
+        the second signature would overwrite the first, and the record of who
+        approved what is the whole point of these columns.
+
+        Returns None when the row is absent or no longer pending — the caller
+        turns that into a 404 or a 409, which are different answers.
+        """
+        if issue not in ('ok', 'error'):
+            return None
+
+        async with get_async_db_context() as db:
+            result = await db.execute(select(HermesActivity).where(HermesActivity.id == id))
+            row = result.scalars().first()
+
+            if row is None or row.status != 'pending':
+                return None
+
+            row.status = issue
+            row.decided_by = user_id
+            row.decided_at = int(time.time())
+            if motif:
+                row.error = motif
+
+            await db.commit()
+            await db.refresh(row)
+            return HermesActivityModel.model_validate(row)
 
     async def get_by_id(self, id: str) -> Optional[HermesActivityModel]:
         async with get_async_db_context() as db:

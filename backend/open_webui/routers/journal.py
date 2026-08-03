@@ -139,6 +139,49 @@ async def enregistrer(form: HermesActivityForm, user=Depends(get_verified_user))
     return await HermesActivities.insert(form, user_id=user.id)
 
 
+class DecisionForm(BaseModel):
+    """Ce qu'un humain repond a un dossier prepare."""
+
+    issue: str  # 'ok' pour valider, 'error' pour refuser
+    motif: Optional[str] = None
+
+
+@router.post('/{id}/decision', response_model=HermesActivityModel)
+async def decider(id: str, form: DecisionForm, user=Depends(get_verified_user)):
+    """Valide ou refuse un traitement en attente de signature.
+
+    C'est le geste que le produit vend : le moteur prepare, l'humain signe. La
+    signature est nominative et definitive — on veut pouvoir dire qui a valide
+    quoi le jour ou un conteneur reste bloque au port.
+
+    Trois reponses distinctes, parce qu'elles appellent trois gestes differents
+    de la part de l'interface :
+      404  le traitement n'existe pas
+      409  il a deja ete decide, ou n'attendait pas de signature
+      400  l'issue demandee n'est pas une issue possible
+    """
+    if form.issue not in ('ok', 'error'):
+        raise HTTPException(
+            status_code=400,
+            detail="Issue inconnue. Valeurs acceptees : ok, error.",
+        )
+
+    decide = await HermesActivities.decide(id, form.issue, user_id=user.id, motif=form.motif)
+
+    if decide is not None:
+        return decide
+
+    # `decide` rend None dans deux cas opposes : distinguons-les, sinon
+    # l'interface annonce « introuvable » sur un dossier deja signe.
+    if await HermesActivities.get_by_id(id) is None:
+        raise HTTPException(status_code=404, detail='Traitement introuvable.')
+
+    raise HTTPException(
+        status_code=409,
+        detail="Ce traitement n'attend pas de signature : il a deja ete decide.",
+    )
+
+
 @router.get('/{id}', response_model=HermesActivityModel)
 async def obtenir(id: str, user=Depends(get_verified_user)):
     entree = await HermesActivities.get_by_id(id)

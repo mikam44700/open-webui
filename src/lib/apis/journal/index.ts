@@ -107,3 +107,46 @@ export const getTraitements = (
 
 export const getTraitement = (token: string, id: string) =>
 	appeler<Traitement>(token, `/${encodeURIComponent(id)}`);
+
+/**
+ * Signe ou refuse un dossier prepare.
+ *
+ * Le 409 n'est pas une panne : il dit que quelqu'un d'autre a signe entre-temps.
+ * L'interface doit rafraichir, pas afficher une erreur rouge — c'est le cas
+ * courant quand deux personnes regardent la meme file.
+ */
+export const deciderTraitement = async (
+	token: string,
+	id: string,
+	issue: 'ok' | 'error',
+	motif?: string
+): Promise<Traitement> => {
+	let reponse: Response;
+
+	try {
+		reponse = await fetch(`${WEBUI_API_BASE_URL}/journal/${encodeURIComponent(id)}/decision`, {
+			method: 'POST',
+			headers: {
+				Accept: 'application/json',
+				'Content-Type': 'application/json',
+				authorization: `Bearer ${token}`
+			},
+			body: JSON.stringify({ issue, motif })
+		});
+	} catch (erreur) {
+		throw new ErreurJournal(0, `${erreur}`);
+	}
+
+	if (!reponse.ok) {
+		let detail = reponse.statusText;
+		try {
+			const corps = await reponse.json();
+			detail = corps?.detail ?? detail;
+		} catch {
+			// Le code HTTP suffit.
+		}
+		throw new ErreurJournal(reponse.status, detail);
+	}
+
+	return reponse.json();
+};
