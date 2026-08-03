@@ -357,14 +357,21 @@ async def connecter(corps: DemandeConnexion, user=Depends(get_admin_user)):
         raise HTTPException(status_code=400, detail="Application non precisee.")
 
     config_id = await _config_auth(toolkit, cle)
+    # Corps imbrique : Composio refuse la forme plate depuis la v3.1
+    # (« Error in payload.auth_config: Required »). `connection.state` est
+    # documente comme requis mais accepte absent — on l'omet plutot que de
+    # deviner le schema d'authentification, qui varie d'une application a
+    # l'autre (OAuth pour Gmail, cle pour d'autres).
     charge = await _appeler(
         "/connected_accounts",
         cle,
         methode="POST",
         corps={
-            "auth_config_id": config_id,
-            "user_id": user.id,
-            **({"callback_url": corps.callback_url} if corps.callback_url else {}),
+            "auth_config": {"id": config_id},
+            "connection": {
+                "user_id": user.id,
+                **({"callback_url": corps.callback_url} if corps.callback_url else {}),
+            },
         },
         base=COMPOSIO_API_COMPTES,
         timeout=TIMEOUT_LONG,
