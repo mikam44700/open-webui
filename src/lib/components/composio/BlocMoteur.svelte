@@ -20,7 +20,6 @@
 	const i18n = getContext('i18n');
 
 	let branchement: BranchementMoteur | null = null;
-	let url = '';
 	let chargement = true;
 	let occupe = false;
 	let confirmationRetrait = false;
@@ -32,12 +31,11 @@
 	};
 
 	const brancher = async () => {
-		if (!url.trim() || occupe) return;
+		if (occupe) return;
 		occupe = true;
 		try {
-			await brancherMoteur(localStorage.token, url.trim());
+			await brancherMoteur(localStorage.token);
 			toast.success($i18n.t('Vos applications sont branchées sur l’assistant'));
-			url = '';
 			await charger();
 		} catch (err) {
 			toast.error(`${err}`);
@@ -124,22 +122,14 @@
 	<div class="flex flex-col gap-2">
 		<div class="text-xs text-gray-500 text-pretty">
 			{$i18n.t(
-				'Dernière étape : collez l’adresse MCP donnée par Composio pour que l’assistant puisse utiliser ces applications.'
+				'Dernière étape : branchez ces applications sur l’assistant pour qu’il puisse s’en servir.'
 			)}
 		</div>
 		<div class="flex items-center gap-2">
-			<input
-				class="flex-1 min-w-0 text-sm bg-transparent border border-gray-100 dark:border-gray-850 rounded-xl px-3 py-2 outline-none"
-				type="url"
-				placeholder="https://…"
-				bind:value={url}
-				autocomplete="off"
-				on:keydown={(e) => e.key === 'Enter' && brancher()}
-			/>
 			<button
 				type="button"
 				class="flex-none text-xs px-3 py-1.5 rounded-lg btn-premium bg-black text-white dark:bg-white dark:text-black transition disabled:opacity-40"
-				disabled={!url.trim() || occupe}
+				disabled={occupe}
 				on:click={brancher}
 			>
 				{#if occupe}<Spinner className="size-3.5" />{:else}{$i18n.t('Brancher')}{/if}

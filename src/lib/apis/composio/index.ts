@@ -108,10 +108,8 @@ export type BranchementMoteur = {
 export const getBranchementMoteur = (token: string): Promise<BranchementMoteur> =>
 	appeler(token, '/engine');
 
-export const brancherMoteur = (
-	token: string,
-	url: string
-): Promise<{ ok: boolean; serveurs: string[] }> =>
-	appeler(token, '/engine', { methode: 'POST', corps: { url } });
+/** L'adresse MCP est demandée à Composio à partir de la clé : rien à fournir. */
+export const brancherMoteur = (token: string): Promise<{ ok: boolean; serveurs: string[] }> =>
+	appeler(token, '/engine', { methode: 'POST', corps: {} });
 
 export const debrancherMoteur = (token: string) => appeler(token, '/engine', { methode: 'DELETE' });

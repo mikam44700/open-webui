@@ -455,6 +455,36 @@ NOM_SERVEUR_MCP = "composio"
 ENV_CLE_MCP = "MCP_COMPOSIO_API_KEY"
 ENTETE_MCP = {"X-API-Key": f"${{{ENV_CLE_MCP}}}"}
 
+# Composio a deprecie ses serveurs MCP declares a la main : une session porte
+# desormais son propre point MCP, et c'est la seule voie encore soutenue. On ne
+# demande donc plus d'adresse au client — la cle suffit, l'adresse s'en deduit.
+CHEMIN_SESSION = "/tool_router/session"
+
+
+async def _adresse_mcp(cle: str, user_id: str) -> str:
+    """Ouvre une session Composio et rend l'adresse MCP qu'elle expose.
+
+    `user_id` doit etre celui des comptes connectes (cf. `connecter`) : une
+    session ouverte sous un autre identifiant serait vide, et l'agent ne verrait
+    aucune des applications que le client a branchees.
+    """
+    charge = await _appeler(
+        CHEMIN_SESSION,
+        cle,
+        methode="POST",
+        corps={"user_id": user_id},
+        base=COMPOSIO_API_COMPTES,
+        timeout=TIMEOUT_LONG,
+    )
+    mcp = charge.get("mcp") if isinstance(charge, dict) else None
+    url = f"{mcp.get('url') or ''}".strip() if isinstance(mcp, dict) else ""
+    if not url.startswith("https://"):
+        raise HTTPException(
+            status_code=502,
+            detail="Composio n'a pas renvoye d'adresse MCP pour cette cle.",
+        )
+    return url
+
 
 def fusionner_serveurs(
     existants: dict[str, Any], nom: str, entree: dict[str, Any]
@@ -520,9 +550,14 @@ def _config_depuis_resume(resume: dict[str, Any]) -> dict[str, Any]:
 
 
 class BranchementMoteur(BaseModel):
-    """`url` = l'adresse MCP donnee par Composio pour ce client."""
+    """`url` = adresse MCP imposee a la main.
 
-    url: str
+    Laissee vide — le cas normal — elle est demandee a Composio a partir de la
+    seule cle du client. Le champ subsiste pour les cas ou une adresse doit etre
+    forcee, jamais pour le parcours courant.
+    """
+
+    url: Optional[str] = None
 
 
 @router.get("/engine")
@@ -548,18 +583,28 @@ async def etat_branchement(user=Depends(get_admin_user)):
 
 
 @router.post("/engine")
-async def brancher_moteur(corps: BranchementMoteur, user=Depends(get_admin_user)):
+async def brancher_moteur(
+    corps: Optional[BranchementMoteur] = None, user=Depends(get_admin_user)
+):
     """Declare Composio comme serveur MCP du moteur.
+
+    Sans corps — le cas normal — l'adresse est demandee a Composio a partir de
+    la cle deja enregistree : le client n'a qu'une seule chose a coller.
 
     Trois ecritures, dans cet ordre : le secret dans le .env de Hermes, la
     relecture de la carte existante, puis son remplacement fusionne. Si la
     relecture echoue, on s'arrete — mieux vaut ne rien brancher que d'ecraser
     les serveurs MCP deja poses par le client.
+
+    Rejouer cette route rouvre une session et rafraichit l'adresse : c'est le
+    geste de reparation quand le branchement ne repond plus.
     """
     from open_webui.routers.hermes import _appeler as _appeler_hermes
 
     cle = await _cle_ou_erreur()
-    url = corps.url.strip()
+    url = (corps.url or "").strip() if corps else ""
+    if not url:
+        url = await _adresse_mcp(cle, user.id)
     if not url.startswith("https://"):
         raise HTTPException(
             status_code=400,
