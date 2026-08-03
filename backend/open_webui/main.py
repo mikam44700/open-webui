@@ -153,6 +153,7 @@ from open_webui.routers import (
     groups,
     hermes,
     images,
+    journal,
     kanban,
     knowledge,
     memories,
@@ -828,6 +829,7 @@ app.include_router(automations.router, prefix='/api/v1/automations', tags=['auto
 app.include_router(calendar.router, prefix='/api/v1/calendars', tags=['calendars'])
 app.include_router(hermes.router, prefix='/api/v1/hermes', tags=['hermes'])
 app.include_router(kanban.router, prefix='/api/v1/kanban', tags=['kanban'])
+app.include_router(journal.router, prefix='/api/v1/journal', tags=['journal'])
 app.include_router(composio.router, prefix='/api/v1/composio', tags=['composio'])
 
 # SCIM 2.0 API for identity management

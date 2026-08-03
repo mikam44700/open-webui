@@ -36,6 +36,12 @@ COPY --from=frontend /app/backend/open_webui/main.py /app/backend/open_webui/mai
 COPY --from=frontend /app/backend/open_webui/routers/hermes.py /app/backend/open_webui/routers/hermes.py
 COPY --from=frontend /app/backend/open_webui/routers/composio.py /app/backend/open_webui/routers/composio.py
 COPY --from=frontend /app/backend/open_webui/routers/kanban.py /app/backend/open_webui/routers/kanban.py
+COPY --from=frontend /app/backend/open_webui/routers/journal.py /app/backend/open_webui/routers/journal.py
+# The journal also needs its model and its migration. A missing model fails the
+# same way a missing router does; a missing migration is worse, since the app
+# starts fine and only breaks when the table is first queried.
+COPY --from=frontend /app/backend/open_webui/models/hermes_activity.py /app/backend/open_webui/models/hermes_activity.py
+COPY --from=frontend /app/backend/open_webui/migrations/versions/a7c3f9e1d240_add_hermes_activity_table.py /app/backend/open_webui/migrations/versions/a7c3f9e1d240_add_hermes_activity_table.py
 
 ARG BUILD_HASH=fr-local
 ENV WEBUI_BUILD_VERSION=${BUILD_HASH}
