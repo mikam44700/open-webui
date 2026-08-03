@@ -36,7 +36,11 @@ const VISIBLE: Record<string, string[]> = {
 		'youtube'
 	],
 	finance: ['stripe', 'paypal', 'quickbooks', 'plaid'],
-	creation: ['canva', 'figma', 'elevenlabs', 'higgsfield'],
+	// comfy-cloud est livré par Hermes (optional-mcps/comfy-cloud) mais manquait
+	// ici : il tombait donc en catégorie « autre », visibilité experte, invisible
+	// pour le client. Or c'est de la génération d'images, de vidéo et de 3D en
+	// connexion par compte, sans rien à installer — sa place est en vitrine.
+	creation: ['canva', 'figma', 'elevenlabs', 'higgsfield', 'comfy-cloud'],
 	search: ['brave-search']
 };
 
@@ -94,6 +98,9 @@ const REMOTE: Record<string, string> = {
 	canva: 'https://mcp.canva.com/mcp',
 	cloudflare: 'https://mcp.cloudflare.com/mcp',
 	coingecko: 'https://mcp.api.coingecko.com/sse',
+	// URL du manifest Hermes (optional-mcps/comfy-cloud/manifest.yaml) :
+	// Streamable HTTP + OAuth 2.1 natif, rien à installer localement.
+	'comfy-cloud': 'https://cloud.comfy.org/mcp',
 	context7: 'https://mcp.context7.com/mcp',
 	figma: 'http://127.0.0.1:3845/mcp',
 	higgsfield: 'https://mcp.higgsfield.ai',

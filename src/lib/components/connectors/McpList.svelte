@@ -5,12 +5,15 @@
 	import { toast } from 'svelte-sonner';
 
 	import { getCatalog, getConnectors } from '$lib/apis/connectors';
+	import { getEtatComposio } from '$lib/apis/composio';
 	import Spinner from '$lib/components/common/Spinner.svelte';
 	import CatalogCard from './CatalogCard.svelte';
 	import ConnectorCard from './ConnectorCard.svelte';
 	import AddConnectorModal from './AddConnectorModal.svelte';
 	import McpBrowseModal from './McpBrowseModal.svelte';
 	import { LUNARIA_MCP_CATALOG } from '$lib/utils/mcpCatalog';
+	import { filtrerDoublonsMcp } from '$lib/composio/doublons';
+	import { filtrerCatalogueMcp } from '$lib/mcp/exclusions';
 
 	const i18n = getContext<Writable<i18nType>>('i18n');
 
@@ -97,6 +100,10 @@
 	let connectors: Connector[] = [];
 	let showAddModal = false;
 	let showBrowse = false;
+	// Composio porte deja Gmail, Notion, Slack, Stripe et compagnie depuis l'onglet
+	// Integrations. Quand il repond, ces serveurs quittent la vitrine d'ici : MCP
+	// redevient l'onglet du sur-mesure. Ils restent dans « Tout parcourir ».
+	let composioActif = false;
 
 	$: installedIds = new Set(connectors.map((c) => c.id));
 	// Presets maison non encore installés + catalogue fusionné (registre + moteur).
@@ -123,9 +130,24 @@
 	$: unclassifiedEngineEntries = entries
 		.filter((e) => !historicalIds.has(e.name))
 		.map((e) => ({ ...e, category: e.category ?? 'other', visibility: e.visibility ?? 'expert' }));
-	$: allEntries = [...presetFeatured, ...historicalEntries, ...unclassifiedEngineEntries];
+	// Deux filtres, appliqués ici, APRÈS la fusion : Hermes livre blender, n8n et
+	// unreal-engine dans ses manifests, et `unclassifiedEngineEntries` réinjecte
+	// toute entrée du moteur absente du catalogue historique. Filtrer plus tôt
+	// les ferait revenir rangées en « autre ».
+	//
+	//   1. le voile permanent (ce que Mike a écarté du produit) ;
+	//   2. le dédoublonnage Composio, qui retire de TOUT l'onglet — vitrine et
+	//      « Tout parcourir » — ce que l'onglet Intégrations porte déjà.
+	//
+	// Les connecteurs installés s'affichent depuis `connectors`, pas d'ici : on
+	// ne cache jamais ce qui tourne déjà chez le client.
+	$: allEntries = filtrerDoublonsMcp(
+		filtrerCatalogueMcp([...presetFeatured, ...historicalEntries, ...unclassifiedEngineEntries]),
+		composioActif
+	);
 
 	// Vedettes : les essentiels (dans l'ordre défini), s'ils existent au catalogue.
+	// Plus rien à filtrer ici — `allEntries` est déjà purgé des doublons Composio.
 	$: featured = FEATURED.map((id) => allEntries.find((e) => e.name === id)).filter(
 		(e): e is Entry => !!e && !installedIds.has(e.name)
 	);
@@ -151,7 +173,18 @@
 		}
 	};
 
-	onMount(load);
+	// Lecture independante : Composio muet ne doit ni retarder ni vider la page MCP.
+	// Dans le doute on ne filtre pas — mieux vaut un doublon qu'un connecteur
+	// introuvable parce qu'une source tierce n'a pas repondu.
+	const lireComposio = async () => {
+		const etat = await getEtatComposio(localStorage.token).catch(() => null);
+		composioActif = etat?.etat === 'ok';
+	};
+
+	onMount(() => {
+		load();
+		lireComposio();
+	});
 </script>
 
 <div class="w-full max-w-7xl mx-auto px-3 py-3">
@@ -204,8 +237,15 @@
 
 		<!-- Les plus populaires + accès au catalogue complet (recherche + catégories). -->
 		<div class="flex items-center justify-between mb-3">
+			<!-- Composio actif : ce qui reste ici est ce qu'il n'atteint pas. Le titre
+			     doit le dire, sinon la sélection paraît arbitraire face au catalogue
+			     de l'onglet Intégrations. Même principe que « Sur cette machine ». -->
 			<div class="text-sm font-medium">
-				{connectors.length > 0 ? $i18n.t('À découvrir') : $i18n.t('Les plus populaires')}
+				{#if composioActif}
+					{$i18n.t('Connecteurs spécialisés')}
+				{:else}
+					{connectors.length > 0 ? $i18n.t('À découvrir') : $i18n.t('Les plus populaires')}
+				{/if}
 			</div>
 			<button
 				type="button"
@@ -237,8 +277,14 @@
 			{/each}
 		</div>
 		{#if featured.length === 0}
+			<!-- Vitrine vide parce que Composio porte deja tout, pas parce que le
+			     catalogue est vide : le dire, sinon la page passe pour cassée. -->
 			<div class="text-xs text-gray-500 py-4">
-				{$i18n.t('Ouvre « Tout parcourir » pour voir tous les connecteurs.')}
+				{composioActif
+					? $i18n.t(
+							'Vos applications courantes sont déjà branchées depuis l’onglet Intégrations. Ouvrez « Tout parcourir » pour les serveurs spécialisés.'
+						)
+					: $i18n.t('Ouvre « Tout parcourir » pour voir tous les connecteurs.')}
 			</div>
 		{/if}
 	{/if}

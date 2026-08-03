@@ -69,6 +69,7 @@ export const CONNECTOR_TAGS: Record<string, string[]> = {
 	figma: ['Composants', 'Variables', 'Maquettes'],
 	elevenlabs: ['Voix', 'Audio', 'Transcription'],
 	higgsfield: ['Images', 'Vidéos', 'Multi-modèles'],
+	'comfy-cloud': ['Images', 'Vidéos', 'Audio', '3D'],
 	'brave-search': ['Recherche web', 'Local', 'Privé']
 };
 
@@ -563,6 +564,16 @@ export const CONNECTOR_FR: Record<
 		name: 'Higgsfield',
 		desc: 'Plus de 30 modèles d’image et de vidéo (Sora, Veo, Kling, Seedance) via un seul accès.',
 		actions: ['Générer une image', 'Générer une vidéo', 'Choisir parmi plusieurs modèles']
+	},
+	'comfy-cloud': {
+		name: 'Comfy Cloud',
+		desc: 'Génération d’images, de vidéos, d’audio et de 3D, hébergée — rien à installer.',
+		actions: [
+			'Générer une image ou une vidéo',
+			'Générer un son ou une voix',
+			'Générer un modèle 3D',
+			'Partir d’un modèle prêt à l’emploi'
+		]
 	},
 
 	// --- Recherche (visible) ---

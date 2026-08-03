@@ -3208,5 +3208,7 @@
 	"Bac à sable de code": "Code sandbox",
 	"Modèles IA": "AI models",
 	"{{n}} actions": "{{n}} actions",
-	"{{n}} actions disponibles pour l’assistant.": "{{n}} actions available to the assistant."
+	"{{n}} actions disponibles pour l’assistant.": "{{n}} actions available to the assistant.",
+	"Connecteurs spécialisés": "Specialized connectors",
+	"Vos applications courantes sont déjà branchées depuis l’onglet Intégrations. Ouvrez « Tout parcourir » pour les serveurs spécialisés.": "Your everyday apps are already connected from the Integrations tab. Open \"Browse all\" for specialized servers."
 }
