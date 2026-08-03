@@ -12,6 +12,11 @@ services:
       - "3000:8080"
     environment:
       DEFAULT_LOCALE: fr-FR
+      # Ollama fait tourner des modeles en local sur la machine hote. Il n'est
+      # pas installe ici : le moteur, c'est Hermes. Sans ce reglage, Open WebUI
+      # sonde localhost:11434 a chaque chargement de page et log une erreur de
+      # connexion qui noie les vraies pannes.
+      ENABLE_OLLAMA_API: "false"
       HERMES_API_URL: ${HERMES_API_URL:-http://host.docker.internal:8642}
       HERMES_API_KEY: ${HERMES_API_KEY:-}
       HERMES_CONFIG_FILE: /run/secrets/hermes-config.yaml
