@@ -95,7 +95,7 @@
 	import MoreHorizontalIcon from './Sidebar/icons/MoreHorizontal.svelte';
 
 	const BREAKPOINT = 768;
-	const DEFAULT_PINNED_ITEMS = ['engine', 'notes', 'workspace'];
+	const DEFAULT_PINNED_ITEMS = ['engine', 'kanban', 'notes', 'workspace'];
 
 	let scrollTop = 0;
 
@@ -146,9 +146,20 @@
 
 	let sharedFolders: any[] = [];
 
+	// Moteur et Kanban sont epingles de force, dans cet ordre, avant ce que
+	// l'utilisateur a range lui-meme.
+	//
+	// Sans cela, une entree ajoutee apres coup reste invisible pour tous ceux qui
+	// ont deja des `pinnedMenuItems` enregistres : la liste sauvegardee gagne sur
+	// la liste par defaut, et la nouvelle entree n'y figure evidemment pas.
+	const TOUJOURS_EPINGLES = ['engine', 'kanban'];
+
 	$: pinnedItems = (() => {
 		const savedItems = $settings?.pinnedMenuItems ?? DEFAULT_PINNED_ITEMS;
-		return ['engine', ...savedItems.filter((itemId) => itemId !== 'engine')];
+		return [
+			...TOUJOURS_EPINGLES,
+			...savedItems.filter((itemId) => !TOUJOURS_EPINGLES.includes(itemId))
+		];
 	})();
 
 	const isMenuItemVisible = (id) => {
