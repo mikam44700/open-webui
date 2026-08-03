@@ -3264,5 +3264,7 @@
 	"Ce que l’assistant doit savoir pour continuer…": "Ce que l’assistant doit savoir pour continuer…",
 	"Débloquer la tâche": "Débloquer la tâche",
 	"Cette tâche a changé entre-temps. Le tableau est rechargé.": "Cette tâche a changé entre-temps. Le tableau est rechargé.",
-	"Le moteur a refusé la demande.": "Le moteur a refusé la demande."
+	"Le moteur a refusé la demande.": "Le moteur a refusé la demande.",
+	"{{n}} messages": "{{n}} messages",
+	"rebloquée {{n}} fois": "rebloquée {{n}} fois"
 }

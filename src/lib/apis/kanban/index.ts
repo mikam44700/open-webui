@@ -21,6 +21,9 @@ export type TacheKanban = {
 	termineLe?: number | null;
 	echecsConsecutifs?: number | null;
 	reblocages?: number | null;
+	nombreMessages?: number | null;
+	/** Âge depuis la création. Le moteur le range dans un sous-objet, le proxy l'aplatit. */
+	ageSecondes?: number | null;
 };
 
 /** Combien de parents et d'enfants une tâche porte, par identifiant de tâche. */

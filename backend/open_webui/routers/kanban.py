@@ -50,7 +50,23 @@ _CHAMPS_TACHE = {
     "completed_at": "termineLe",
     "consecutive_failures": "echecsConsecutifs",
     "block_recurrences": "reblocages",
+    "comment_count": "nombreMessages",
 }
+
+
+def _age_secondes(brut: Any) -> Optional[int]:
+    """L'age de la tache, en secondes.
+
+    Le plugin le range dans un sous-objet `age` plutot qu'a plat, et le champ
+    `created_age_seconds` de premier niveau est toujours nul — le lire la
+    donnerait un age vide sur toutes les cartes.
+    """
+    age = brut.get("age") if isinstance(brut, dict) else None
+    if not isinstance(age, dict):
+        return None
+
+    valeur = age.get("created_age_seconds")
+    return int(valeur) if isinstance(valeur, (int, float)) else None
 
 # Champs supplementaires de la fiche detaillee.
 _CHAMPS_FICHE = {
@@ -66,7 +82,12 @@ def _projeter(brut: Any, champs: dict) -> dict:
     if not isinstance(brut, dict):
         return {}
 
-    return {sortie: brut.get(entree) for entree, sortie in champs.items() if entree in brut}
+    projection = {
+        sortie: brut.get(entree) for entree, sortie in champs.items() if entree in brut
+    }
+    projection["ageSecondes"] = _age_secondes(brut)
+
+    return projection
 
 
 def _taches(charge: Any, champs: dict) -> list:

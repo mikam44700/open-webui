@@ -228,13 +228,15 @@
 							</p>
 						</div>
 					{:else}
-						<!-- Seul le tableau defile horizontalement, jamais la page entiere. -->
-						<div class="-mx-1 flex gap-4 overflow-x-auto px-1 pb-4">
+						<!-- Voies pleine hauteur, comme sur hermes-desktop : les colonnes
+						     descendent jusqu'en bas et defilent chacune de leur cote. Seul
+						     le tableau defile horizontalement, jamais la page entiere. -->
+						<div class="-mx-1 flex h-[calc(100dvh-19rem)] min-h-96 gap-3 overflow-x-auto px-1 pb-2">
 							{#each COLONNES as colonne (colonne.cle)}
 								<ColonneKanban
 									libelle={colonne.cleI18n}
+									pastille={colonne.pastille}
 									taches={repartition.colonnes[colonne.cle]}
-									sollicite={colonne.cle === 'bloque' || colonne.cle === 'avalider'}
 									on:ouvrir={(e) => ouvrirFiche(e.detail)}
 								/>
 							{/each}
@@ -243,9 +245,10 @@
 						{#if repartition.inconnues.length > 0}
 							<!-- Un etat que la page ne connait pas ne disparait pas : il se
 							     montre a part, avec son nom. -->
-							<div class="mt-4">
+							<div class="mt-4 h-64">
 								<ColonneKanban
 									libelle="États non reconnus"
+									pastille="bg-orange-500"
 									taches={repartition.inconnues}
 									on:ouvrir={(e) => ouvrirFiche(e.detail)}
 								/>

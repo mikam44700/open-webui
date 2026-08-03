@@ -3250,5 +3250,7 @@
 	"Ce que l’assistant doit savoir pour continuer…": "What the assistant needs to know to carry on…",
 	"Débloquer la tâche": "Unblock the task",
 	"Cette tâche a changé entre-temps. Le tableau est rechargé.": "This task changed in the meantime. The board has been reloaded.",
-	"Le moteur a refusé la demande.": "The engine refused the request."
+	"Le moteur a refusé la demande.": "The engine refused the request.",
+	"{{n}} messages": "{{n}} messages",
+	"rebloquée {{n}} fois": "blocked again {{n}} times"
 }

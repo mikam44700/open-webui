@@ -51,17 +51,51 @@ export type Colonne = {
 	/** Cle de traduction : le libelle se resout dans le composant, pas ici. */
 	cleI18n: string;
 	statuts: StatutMoteur[];
+	/**
+	 * La pastille de couleur de l'en-tete.
+	 *
+	 * Reprise de hermes-desktop, ou les teintes sont fixes par statut quel que
+	 * soit le theme : un statut se lit pareil partout, comme les pastilles d'un
+	 * gestionnaire de tickets. Ecrites en toutes lettres, jamais assemblees a la
+	 * volee — Tailwind ne garde que les classes qu'il voit ecrites.
+	 */
+	pastille: string;
 };
 
 /** L'ordre du tableau est l'ordre de lecture, de gauche a droite. */
 export const COLONNES: Colonne[] = [
-	{ cle: 'trier', cleI18n: 'À trier', statuts: ['triage'] },
-	{ cle: 'afaire', cleI18n: 'À faire', statuts: ['todo', 'scheduled', 'ready'] },
-	{ cle: 'encours', cleI18n: 'En cours', statuts: ['running'] },
-	{ cle: 'bloque', cleI18n: 'Bloqué', statuts: ['blocked'] },
-	{ cle: 'avalider', cleI18n: 'À valider', statuts: ['review'] },
-	{ cle: 'termine', cleI18n: 'Terminé', statuts: ['done'] }
+	{ cle: 'trier', cleI18n: 'À trier', statuts: ['triage'], pastille: 'bg-gray-400' },
+	{
+		cle: 'afaire',
+		cleI18n: 'À faire',
+		statuts: ['todo', 'scheduled', 'ready'],
+		pastille: 'bg-blue-500'
+	},
+	{ cle: 'encours', cleI18n: 'En cours', statuts: ['running'], pastille: 'bg-teal-500' },
+	{ cle: 'bloque', cleI18n: 'Bloqué', statuts: ['blocked'], pastille: 'bg-red-500' },
+	{ cle: 'avalider', cleI18n: 'À valider', statuts: ['review'], pastille: 'bg-purple-500' },
+	{ cle: 'termine', cleI18n: 'Terminé', statuts: ['done'], pastille: 'bg-emerald-500' }
 ];
+
+/**
+ * L'age d'une tache, en une ou deux lettres.
+ *
+ * Comme sur les cartes de hermes-desktop : « 25d », « 3h ». Un dirigeant lit
+ * l'anciennete d'un coup d'oeil ; une date complete demanderait un calcul.
+ */
+export const ageCourt = (secondes: number | null | undefined): string | null => {
+	if (typeof secondes !== 'number' || !Number.isFinite(secondes) || secondes < 0) return null;
+
+	const minutes = Math.floor(secondes / 60);
+	if (minutes < 1) return "moins d'1 min";
+	if (minutes < 60) return `${minutes} min`;
+
+	const heures = Math.floor(minutes / 60);
+	if (heures < 24) return `${heures} h`;
+
+	const jours = Math.floor(heures / 24);
+	return `${jours} j`;
+};
 
 const normaliser = (valeur: string | null | undefined): string =>
 	`${valeur ?? ''}`.trim().toLowerCase();

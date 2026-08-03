@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest';
 import {
 	COLONNES,
 	STATUTS_MOTEUR,
+	ageCourt,
 	attendLeTemps,
 	colonneDe,
 	estArchivee,
@@ -85,6 +86,45 @@ describe('couverture des statuts du moteur', () => {
 		for (const colonne of COLONNES) {
 			expect(colonne.cleI18n.trim()).not.toBe('');
 		}
+	});
+
+	// Une classe assemblee a la volee produirait une pastille transparente en
+	// production, sans la moindre erreur pour prevenir.
+	it('donne une pastille de couleur ecrite en toutes lettres', () => {
+		for (const colonne of COLONNES) {
+			expect(colonne.pastille).toMatch(/^bg-[a-z]+-\d{3}$/);
+		}
+	});
+
+	it('ne donne pas deux fois la meme couleur', () => {
+		const couleurs = COLONNES.map((c) => c.pastille);
+		expect(new Set(couleurs).size).toBe(couleurs.length);
+	});
+});
+
+describe('ageCourt', () => {
+	it('rend les minutes', () => {
+		expect(ageCourt(0)).toBe("moins d'1 min");
+		expect(ageCourt(59)).toBe("moins d'1 min");
+		expect(ageCourt(60)).toBe('1 min');
+		expect(ageCourt(3540)).toBe('59 min');
+	});
+
+	it('rend les heures', () => {
+		expect(ageCourt(3600)).toBe('1 h');
+		expect(ageCourt(86_340)).toBe('23 h');
+	});
+
+	it('rend les jours', () => {
+		expect(ageCourt(86_400)).toBe('1 j');
+		expect(ageCourt(25 * 86_400)).toBe('25 j');
+	});
+
+	it('ne rend rien quand l age est absent ou absurde', () => {
+		expect(ageCourt(null)).toBe(null);
+		expect(ageCourt(undefined)).toBe(null);
+		expect(ageCourt(-1)).toBe(null);
+		expect(ageCourt(Number.NaN)).toBe(null);
 	});
 });
 
