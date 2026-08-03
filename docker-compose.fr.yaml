@@ -18,19 +18,22 @@ services:
       # disparait avec le conteneur. Chaque rebuild deconnectait tout le monde.
       # La valeur vit dans .env, ignore par git.
       WEBUI_SECRET_KEY: ${WEBUI_SECRET_KEY:?WEBUI_SECRET_KEY manquant dans .env}
-      # Cle d'API pour que le moteur declare ce qu'il fait.
+      # Jeton par lequel le moteur declare ses traitements au journal.
       #
       # Open WebUI ne peut pas observer Telegram : ces traitements partent du
       # moteur sans jamais traverser ce serveur. C'est donc au moteur de les
-      # annoncer, par POST /api/v1/journal/.
+      # annoncer, par POST /api/v1/journal/ingest.
       #
-      # La restriction n'est pas une precaution de forme. Une cle d'API Open
-      # WebUI vaut le compte qui l'a creee : sans liste blanche, la cle du
-      # moteur pourrait lire toutes les conversations et tout le contenu de
-      # l'espace de travail. Bornee au journal, elle ne peut rien d'autre.
-      ENABLE_API_KEYS: "true"
-      ENABLE_API_KEYS_ENDPOINT_RESTRICTIONS: "true"
-      API_KEYS_ALLOWED_ENDPOINTS: "/api/v1/journal"
+      # Symetrique de HERMES_API_KEY, qui sert deja dans l'autre sens. Les deux
+      # sont posees par le script de provisionnement, a l'installation.
+      #
+      # Surtout : aucune action du client. Une premiere version passait par les
+      # cles d'API utilisateur d'Open WebUI, ce qui obligeait a aller en creer
+      # une dans un ecran de reglages — impensable pour un produit installe chez
+      # quelqu'un qui ne connait pas l'outil, et impossible a automatiser.
+      #
+      # Ce jeton n'ouvre qu'une porte : ecrire dans le journal.
+      JOURNAL_INGEST_KEY: ${JOURNAL_INGEST_KEY:?JOURNAL_INGEST_KEY manquant dans .env}
       # Ollama fait tourner des modeles en local sur la machine hote. Il n'est
       # pas installe ici : le moteur, c'est Hermes. Sans ce reglage, Open WebUI
       # sonde localhost:11434 a chaque chargement de page et log une erreur de

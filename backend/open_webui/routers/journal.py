@@ -29,11 +29,13 @@ prevu pour la cle d'API du moteur, a restreindre par `API_KEYS_ALLOWED_ENDPOINTS
 pour qu'elle ne puisse rien faire d'autre.
 """
 
+import hmac
 import logging
+import os
 import time
 from typing import Optional
 
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, Header, HTTPException, Query
 from open_webui.models.hermes_activity import (
     SOURCES,
     STATUSES,
@@ -58,6 +60,34 @@ FENETRES = {
 }
 
 LIMITE_MAX = 200
+
+# Jeton de service par lequel le moteur declare ses traitements.
+#
+# Symetrique de `HERMES_API_KEY`, qui sert deja dans l'autre sens : Open WebUI
+# parle au moteur avec l'une, le moteur repond au journal avec l'autre. Les deux
+# sont posees a l'installation, par le meme script de provisionnement.
+#
+# Ce choix remplace une premiere version qui reposait sur les cles d'API
+# utilisateur d'Open WebUI. Elle imposait au client d'aller creer une cle dans
+# un ecran de reglages : inacceptable pour un produit installe chez quelqu'un
+# qui ne connait pas l'outil, et impossible a automatiser.
+#
+# Ce jeton n'ouvre qu'une porte — ecrire dans le journal. Il ne donne acces ni
+# aux conversations, ni a l'espace de travail, ni a quoi que ce soit d'autre.
+JOURNAL_INGEST_KEY = os.environ.get('JOURNAL_INGEST_KEY', '')
+
+
+async def porteur_du_jeton(authorization: Optional[str] = Header(default=None)) -> bool:
+    """Vrai si l'appelant presente le jeton de service.
+
+    Comparaison a temps constant : un `==` sur un secret laisse fuir sa longueur
+    et son prefixe par le temps de reponse.
+    """
+    if not JOURNAL_INGEST_KEY or not authorization:
+        return False
+
+    presente = authorization[7:] if authorization.startswith('Bearer ') else authorization
+    return hmac.compare_digest(presente, JOURNAL_INGEST_KEY)
 
 
 def _borne_inferieure(fenetre: Optional[str]) -> Optional[int]:
@@ -129,12 +159,31 @@ async def synthese(
     )
 
 
-@router.post('/', response_model=Optional[HermesActivityModel])
-async def enregistrer(form: HermesActivityForm, user=Depends(get_verified_user)):
-    """Enregistre un traitement declare par le moteur.
+@router.post('/ingest', response_model=Optional[HermesActivityModel])
+async def ingerer(form: HermesActivityForm, moteur: bool = Depends(porteur_du_jeton)):
+    """Porte du moteur : il declare ce qu'il vient de faire.
+
+    C'est le chemin qui compte en production. Le moteur y annonce ses
+    traitements, Telegram compris — qu'Open WebUI ne voit pas autrement.
+
+    Serrure distincte de celle des humains, volontairement. Une route unique
+    acceptant les deux finirait par voir un cas de figure affaiblir l'autre ;
+    ici, un jeton absent ou faux est refuse, point.
 
     Rend `null` — et non une erreur — si l'ecriture echoue : le moteur ne doit
     pas reprendre un traitement reussi sous pretexte que le journal a flanche.
+    """
+    if not moteur:
+        raise HTTPException(status_code=401, detail='Jeton de service invalide ou absent.')
+
+    return await HermesActivities.insert(form, user_id=None)
+
+
+@router.post('/', response_model=Optional[HermesActivityModel])
+async def enregistrer(form: HermesActivityForm, user=Depends(get_verified_user)):
+    """Porte des humains : essais et outils internes.
+
+    Le moteur, lui, passe par `/ingest`.
     """
     return await HermesActivities.insert(form, user_id=user.id)
 
